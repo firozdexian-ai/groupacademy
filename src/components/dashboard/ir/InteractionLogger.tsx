@@ -18,12 +18,14 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { IR_CONFIG } from "@/lib/irConfig";
-import { Zap, MessageSquare, TrendingUp, Calendar, Target, ShieldCheck, RefreshCw } from "lucide-react";
+import { Zap, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Investor Interaction Intelligence Logger
  * CTO Reference: Primary ingestion node for stakeholder sentiment and engagement tracking.
+ * 2024 Standard: Executive Logic geometry with reinforced interaction analysis.
  */
 
 interface InteractionLoggerProps {
@@ -112,169 +114,204 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl rounded-[40px] border-4 p-0 overflow-hidden bg-background shadow-2xl">
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        if (!val) resetForm();
+        onOpenChange(val);
+      }}
+    >
+      <DialogContent className="max-w-2xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
         <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-        <div className="p-8 space-y-8 max-h-[90vh] overflow-y-auto no-scrollbar">
-          <DialogHeader className="text-left">
-            <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-              <Zap className="h-8 w-8 text-primary fill-current" /> Log Interaction
-            </DialogTitle>
-            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
-              Synchronize meeting artifacts and investor sentiment to the core registry
-            </DialogDescription>
+        <div className="p-10 pb-0">
+          <DialogHeader className="mb-8">
+            <div className="flex items-center gap-4">
+              <Zap className="h-8 w-8 text-primary fill-primary/20" />
+              <div className="space-y-1 text-left">
+                <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic leading-none">
+                  Log Interaction
+                </DialogTitle>
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                  Synchronize meeting artifacts and investor sentiment
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-6 text-left border-t border-border/10 pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
-                  Interaction Protocol
-                </Label>
-                <Select
-                  value={formData.interaction_type}
-                  onValueChange={(v) => setFormData({ ...formData, interaction_type: v })}
-                >
-                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-2">
-                    {IR_CONFIG.INTERACTION_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value} className="font-bold text-xs">
-                        {type.label.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Investor Sentiment</Label>
-                <Select value={formData.sentiment} onValueChange={(v) => setFormData({ ...formData, sentiment: v })}>
-                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
-                    <SelectValue placeholder="NEUTRAL" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-2">
-                    <SelectItem value="" className="font-bold text-xs">
-                      UNSPECIFIED
-                    </SelectItem>
-                    {IR_CONFIG.SENTIMENT_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value} className="font-bold text-xs">
-                        {opt.label.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Strategic Subject</Label>
-              <Input
-                value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                placeholder="E.G. Q2 EQUITY ROUND INITIAL REVIEW..."
-                className="h-14 rounded-2xl border-2 font-black uppercase italic text-xs tracking-widest bg-card/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
-                {formData.interaction_type === "reply_received"
-                  ? "Neural Payload (Reply Text)"
-                  : "Core Artifact (Notes)"}
-              </Label>
-              <Textarea
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder={
-                  formData.interaction_type === "reply_received"
-                    ? "PASTE RAW REPLY FOR AI CONTEXT..."
-                    : "LOG KEY DISCUSSION POINTS..."
-                }
-                className="min-h-[150px] rounded-3xl border-2 font-medium italic text-sm leading-relaxed bg-card/50 p-6"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Key Pulse Points</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={keyPointInput}
-                  onChange={(e) => setKeyPointInput(e.target.value)}
-                  placeholder="ADD STRATEGIC POINT..."
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyPoint())}
-                  className="h-12 rounded-xl border-2 font-bold uppercase text-[10px]"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addKeyPoint}
-                  className="h-12 rounded-xl border-2 font-black uppercase text-[10px]"
-                >
-                  + Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.key_points.map((point, i) => (
-                  <Badge
-                    key={i}
-                    className="bg-primary/10 text-primary border-2 border-primary/20 font-black italic text-[9px] px-3 py-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    onClick={() =>
-                      setFormData((p) => ({ ...p, key_points: p.key_points.filter((_, idx) => idx !== i) }))
-                    }
+          <ScrollArea className="max-h-[60vh] pr-4 -mr-4">
+            <div className="space-y-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Interaction Protocol
+                  </Label>
+                  <Select
+                    value={formData.interaction_type}
+                    onValueChange={(v) => setFormData({ ...formData, interaction_type: v })}
                   >
-                    {point.toUpperCase()} ×
-                  </Badge>
-                ))}
-              </div>
-            </div>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs bg-muted/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-2">
+                      {IR_CONFIG.INTERACTION_TYPES.map((type) => (
+                        <SelectItem
+                          key={type.value}
+                          value={type.value}
+                          className="font-bold text-xs uppercase tracking-widest"
+                        >
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex items-center justify-between bg-muted/20 p-6 rounded-[32px] border-2 border-border/10">
-              <div className="flex items-center gap-4">
-                <Switch
-                  id="followup"
-                  checked={formData.follow_up_needed}
-                  onCheckedChange={(v) => setFormData({ ...formData, follow_up_needed: v })}
-                />
-                <Label htmlFor="followup" className="text-[10px] font-black uppercase italic tracking-widest">
-                  Follow-up Protocol Required
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Investor Sentiment
+                  </Label>
+                  <Select value={formData.sentiment} onValueChange={(v) => setFormData({ ...formData, sentiment: v })}>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs bg-muted/20">
+                      <SelectValue placeholder="NEUTRAL" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-2">
+                      <SelectItem value="" className="font-bold text-xs uppercase tracking-widest">
+                        UNSPECIFIED
+                      </SelectItem>
+                      {IR_CONFIG.SENTIMENT_OPTIONS.map((opt) => (
+                        <SelectItem
+                          key={opt.value}
+                          value={opt.value}
+                          className="font-bold text-xs uppercase tracking-widest"
+                        >
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Strategic Subject
                 </Label>
+                <Input
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  placeholder="E.G. Q2 EQUITY ROUND INITIAL REVIEW..."
+                  className="h-14 rounded-2xl border-2 font-black uppercase italic text-sm tracking-widest bg-muted/10 focus-visible:border-primary/40 transition-colors"
+                />
               </div>
 
-              {formData.follow_up_needed && (
-                <Input
-                  type="date"
-                  value={formData.follow_up_date}
-                  onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
-                  className="w-44 h-12 rounded-xl border-2 font-black text-xs"
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  {formData.interaction_type === "reply_received"
+                    ? "Neural Payload (Reply Text)"
+                    : "Core Artifact (Notes)"}
+                </Label>
+                <Textarea
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  placeholder={
+                    formData.interaction_type === "reply_received"
+                      ? "PASTE RAW REPLY FOR AI CONTEXT..."
+                      : "LOG KEY DISCUSSION POINTS..."
+                  }
+                  className="min-h-[160px] rounded-3xl border-2 font-medium italic text-sm leading-relaxed bg-muted/10 p-6 resize-none focus-visible:border-primary/40 transition-colors"
                 />
-              )}
-            </div>
-          </div>
+              </div>
 
-          <DialogFooter className="pt-4 gap-4 flex-col sm:flex-row border-t border-border/10 pt-8">
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              className="font-black uppercase text-[10px] tracking-widest italic opacity-50"
-            >
-              Abort Log
-            </Button>
-            <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              className="flex-1 h-16 rounded-[24px] font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl"
-            >
-              {saveMutation.isPending ? (
-                <RefreshCw className="animate-spin" />
-              ) : (
-                <ShieldCheck className="fill-current" />
-              )}
-              Synchronize Interaction
-            </Button>
-          </DialogFooter>
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Key Pulse Points
+                </Label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    value={keyPointInput}
+                    onChange={(e) => setKeyPointInput(e.target.value)}
+                    placeholder="ADD STRATEGIC POINT..."
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyPoint())}
+                    className="h-12 rounded-xl border-2 font-bold uppercase text-[10px] bg-muted/10"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addKeyPoint}
+                    disabled={!keyPointInput.trim()}
+                    className="h-12 px-6 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest shrink-0"
+                  >
+                    Inject
+                  </Button>
+                </div>
+                {formData.key_points.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {formData.key_points.map((point, i) => (
+                      <Badge
+                        key={i}
+                        className="bg-primary/10 text-primary border-2 border-primary/20 font-black italic text-[9px] px-3 py-1 cursor-pointer hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-colors group flex items-center gap-1"
+                        onClick={() =>
+                          setFormData((p) => ({ ...p, key_points: p.key_points.filter((_, idx) => idx !== i) }))
+                        }
+                      >
+                        {point.toUpperCase()}
+                        <span className="opacity-40 group-hover:opacity-100 transition-opacity">×</span>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted/20 p-6 rounded-[32px] border-2 border-border/10 gap-4">
+                <div className="flex items-center gap-4">
+                  <Switch
+                    id="followup"
+                    checked={formData.follow_up_needed}
+                    onCheckedChange={(v) => setFormData({ ...formData, follow_up_needed: v })}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <Label
+                    htmlFor="followup"
+                    className="text-[10px] font-black uppercase italic tracking-widest cursor-pointer"
+                  >
+                    Follow-up Protocol Required
+                  </Label>
+                </div>
+
+                {formData.follow_up_needed && (
+                  <Input
+                    type="date"
+                    value={formData.follow_up_date}
+                    onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
+                    className="w-full sm:w-44 h-12 rounded-xl border-2 font-black text-xs uppercase"
+                  />
+                )}
+              </div>
+            </div>
+          </ScrollArea>
         </div>
+
+        <DialogFooter className="p-8 pt-6 border-t border-border/10 bg-muted/5 flex-col sm:flex-row gap-3 sm:gap-0">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-14 px-8 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest italic text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Abort Log
+          </Button>
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+            className="h-14 px-10 rounded-[24px] font-black uppercase italic tracking-tighter text-lg gap-3 shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-5 w-5 fill-current" />
+            )}
+            {saveMutation.isPending ? "Syncing..." : "Synchronize Interaction"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
