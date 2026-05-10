@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import {
   Share2,
   Linkedin,
@@ -28,12 +30,10 @@ import {
   Globe,
   Activity,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Service Outreach & Attribution Manager
- * CTO Reference: High-fidelity campaign orchestrator for social distribution.
+ * Platform Logic: Service Outreach & Attribution Manager
+ * 2026 Standard: Blended Phase 6 UI (Registry Ledger + Distribution Engine)
  */
 
 interface ServiceConfig {
@@ -91,7 +91,7 @@ const SERVICES: ServiceConfig[] = [
   },
 ];
 
-export function ServiceOutreachManager() {
+export function ServiceOutreachTab() {
   const [selectedService, setSelectedService] = useState<ServiceConfig | null>(null);
   const [shareLogs, setShareLogs] = useState<ShareLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +106,6 @@ export function ServiceOutreachManager() {
       .from("service_share_logs")
       .select("channel, shared_at, service_slug")
       .order("shared_at", { ascending: false });
-
     if (error) console.error("Telemetry Fault:", error);
     setShareLogs(data || []);
     setIsLoading(false);
@@ -116,22 +115,17 @@ export function ServiceOutreachManager() {
     loadShareLogs();
   }, [loadShareLogs]);
 
-  const getShareLink = (service: ServiceConfig, source: string) => {
-    return `${window.location.origin}/services?service=${service.slug}&source=${source.toLowerCase()}`;
-  };
+  const getShareLink = (service: ServiceConfig, source: string) =>
+    `${window.location.origin}/services?service=${service.slug}&source=${source.toLowerCase()}`;
 
   const recordShare = async (channel: string) => {
     if (!selectedService) return;
-
-    // Optimistic Logic
     const newLog = { channel, shared_at: new Date().toISOString(), service_slug: selectedService.slug };
     setShareLogs((prev) => [newLog, ...prev]);
 
-    const { error } = await supabase.from("service_share_logs").insert({
-      service_slug: selectedService.slug,
-      channel: channel.toLowerCase(),
-    });
-
+    const { error } = await supabase
+      .from("service_share_logs")
+      .insert({ service_slug: selectedService.slug, channel: channel.toLowerCase() });
     if (error) {
       setShareLogs((prev) => prev.filter((l) => l !== newLog));
       toast.error("System Error: Progress synchronization failed.");
@@ -194,34 +188,39 @@ export function ServiceOutreachManager() {
     );
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
-      {/* EXECUTIVE HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+      {/* Phase 6 Executive Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
         <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-primary">
-            <Zap className="h-8 w-8 fill-current" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Service Pulse</h2>
+          <div className="flex items-center gap-3 text-emerald-500">
+            <Sparkles className="h-8 w-8 text-emerald-500 fill-emerald-500/20" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+              Service Outreach
+            </h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
             Campaign Distribution & Attribution Registry
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="h-14 px-6 rounded-2xl border-2 font-black italic gap-2 text-primary">
+          <Badge
+            variant="outline"
+            className="h-14 px-6 rounded-2xl border-2 font-black italic gap-2 text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+          >
             <Activity className="h-4 w-4" /> {shareLogs.length} TOTAL TRANSMISSIONS
           </Badge>
         </div>
-      </div>
+      </header>
 
+      {/* Services Grid */}
       <div className="grid gap-6 md:grid-cols-2">
         {SERVICES.map((service) => {
           const Icon = service.icon;
           const sharedCount = shareLogs.filter((l) => l.service_slug === service.slug).length;
-
           return (
             <Card
               key={service.id}
-              className="group cursor-pointer rounded-[32px] border-2 border-border/40 bg-card/30 hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl"
+              className="group cursor-pointer rounded-[32px] border-2 border-border/40 bg-card/30 hover:border-emerald-500/40 transition-all duration-500 overflow-hidden shadow-xl"
               onClick={() => {
                 setSelectedService(service);
                 setIsShareOpen(true);
@@ -248,12 +247,12 @@ export function ServiceOutreachManager() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   {sharedCount > 0 && (
-                    <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] italic px-3">
+                    <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black text-[9px] italic px-3">
                       {sharedCount} NODES ACTIVE
                     </Badge>
                   )}
-                  <Button variant="ghost" size="icon" className="rounded-xl h-12 w-12 hover:bg-primary/10">
-                    <ExternalLink className="h-5 w-5 text-primary" />
+                  <Button variant="ghost" size="icon" className="rounded-xl h-12 w-12 hover:bg-emerald-500/10">
+                    <ExternalLink className="h-5 w-5 text-emerald-500" />
                   </Button>
                 </div>
               </CardContent>
@@ -262,10 +261,10 @@ export function ServiceOutreachManager() {
         })}
       </div>
 
-      {/* SHARE DIALOG */}
+      {/* Distribution Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="max-w-3xl rounded-[40px] border-4 border-border/40 p-0 overflow-hidden bg-background/95 backdrop-blur-2xl shadow-2xl">
-          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="h-2 w-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
           <div className="p-10">
             <DialogHeader className="mb-8 text-left">
               <div className="flex items-center gap-5">
@@ -323,8 +322,8 @@ export function ServiceOutreachManager() {
                     className={cn(
                       "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300",
                       activeTab === ch.id
-                        ? "border-primary bg-primary/5 shadow-inner scale-105"
-                        : "border-border/40 hover:border-primary/20 bg-muted/20",
+                        ? "border-emerald-500 bg-emerald-500/5 shadow-inner scale-105"
+                        : "border-border/40 hover:border-emerald-500/20 bg-muted/20",
                     )}
                   >
                     <div className="flex items-center gap-4">
@@ -332,7 +331,7 @@ export function ServiceOutreachManager() {
                       <span className="font-black uppercase italic text-[10px] tracking-widest">{ch.label}</span>
                     </div>
                     {selectedService && isShared(selectedService, ch.id) && (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     )}
                   </button>
                 ))}
@@ -342,8 +341,8 @@ export function ServiceOutreachManager() {
               <div className="flex-1 space-y-6 text-left">
                 {activeTab !== "custom" ? (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                    <div className="p-6 bg-primary/5 rounded-[32px] border-2 border-primary/10">
-                      <p className="text-[10px] font-black uppercase text-primary italic mb-3 flex items-center gap-2">
+                    <div className="p-6 bg-emerald-500/5 rounded-[32px] border-2 border-emerald-500/10">
+                      <p className="text-[10px] font-black uppercase text-emerald-500 italic mb-3 flex items-center gap-2">
                         <Globe className="h-3 w-3" /> Regional Template
                       </p>
                       <Textarea
@@ -366,10 +365,9 @@ export function ServiceOutreachManager() {
                         <Copy className="h-3 w-3 mr-2" /> Copy Deployment Caption
                       </Button>
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <Button
-                        className="h-16 rounded-2xl font-black uppercase italic text-sm gap-3 shadow-lg"
+                        className="h-16 rounded-2xl font-black uppercase italic text-sm gap-3 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white"
                         onClick={() => handleSocialShare(activeTab)}
                       >
                         <ExternalLink className="h-5 w-5" /> Launch {activeTab.toUpperCase()}
@@ -388,7 +386,7 @@ export function ServiceOutreachManager() {
                 ) : (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                     <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
+                      <Label className="text-[10px] font-black uppercase text-emerald-500 italic ml-2">
                         Channel Identifier
                       </Label>
                       <Input
@@ -399,7 +397,7 @@ export function ServiceOutreachManager() {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
+                      <Label className="text-[10px] font-black uppercase text-emerald-500 italic ml-2">
                         Generated Telemetry URL
                       </Label>
                       <div className="flex gap-2">
@@ -423,7 +421,7 @@ export function ServiceOutreachManager() {
                       </div>
                     </div>
                     <Button
-                      className="w-full h-16 rounded-2xl font-black uppercase italic text-sm"
+                      className="w-full h-16 rounded-2xl font-black uppercase italic text-sm bg-emerald-600 hover:bg-emerald-700 text-white"
                       onClick={() => {
                         if (customChannel) recordShare(customChannel);
                       }}
@@ -442,4 +440,4 @@ export function ServiceOutreachManager() {
   );
 }
 
-export { ServiceOutreachManager as ServiceOutreachTab };
+export default ServiceOutreachTab;
