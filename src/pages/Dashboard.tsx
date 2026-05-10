@@ -368,7 +368,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "professional-lives": React.lazy(() =>
     import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.ProfessionalLivesTab })),
   ),
-  "career-tracks": React.lazy(() => import("@/components/dashboard/ContentList")),
+  "career-tracks": React.lazy(() => import("@/components/dashboard/ugc/UgcVideosTab")),
   graduates: React.lazy(() => import("@/components/dashboard/learn/GraduatesTab")),
   "b2b-courses": React.lazy(() => import("@/components/dashboard/learn/B2BCoursesTab")),
   "course-briefs": React.lazy(() => import("@/components/dashboard/learn/CourseBriefsTab")),
