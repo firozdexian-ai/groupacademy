@@ -328,7 +328,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrTeamsTab })),
   ),
   "hr-targets": React.lazy(() =>
-    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrTargetsTab })),
+    import("@/components/dashboard/hr/HrTargetsTab").then((m) => ({ default: m.HrTargetsTab })),
   ),
   "hr-onboarding": React.lazy(() =>
     import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrOnboardingTab })),
