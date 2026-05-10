@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Wallet, Loader2, CheckCircle, XCircle, Clock, ArrowUpRight, Banknote } from "lucide-react";
+import { Wallet, Loader2, Clock, ArrowUpRight, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -76,11 +76,16 @@ export function WithdrawalsPanel() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      case "approved": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "paid": return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-      case "rejected": return "bg-destructive/10 text-destructive border-destructive/20";
-      default: return "bg-muted text-muted-foreground";
+      case "pending":
+        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+      case "approved":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "paid":
+        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+      case "rejected":
+        return "bg-destructive/10 text-destructive border-destructive/20";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -101,9 +106,9 @@ export function WithdrawalsPanel() {
       <Tabs value={filter} onValueChange={(v) => setFilter(v as Row["status"])}>
         <TabsList className="bg-muted/30 border-2 border-border/40 p-1 h-auto rounded-2xl mb-6">
           {STATUSES.map((s) => (
-            <TabsTrigger 
-              key={s} 
-              value={s} 
+            <TabsTrigger
+              key={s}
+              value={s}
               className="capitalize rounded-xl text-xs font-bold uppercase tracking-wider py-2.5 px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all"
             >
               {s} ({rows.filter((r) => r.status === s).length})
@@ -119,18 +124,29 @@ export function WithdrawalsPanel() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-muted/10 border-2 border-dashed border-border/40 rounded-[40px]">
             <Banknote className="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">No {filter} requests in queue</p>
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">
+              No {filter} requests in queue
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {filtered.map((r) => (
-              <Card key={r.id} className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-lg overflow-hidden transition-all hover:shadow-xl">
-                <div className={cn("h-1.5 w-full", 
-                  r.status === "pending" ? "bg-gradient-to-r from-orange-400 to-orange-500" :
-                  r.status === "paid" ? "bg-gradient-to-r from-emerald-400 to-emerald-500" :
-                  r.status === "rejected" ? "bg-gradient-to-r from-destructive to-red-500" :
-                  "bg-gradient-to-r from-blue-400 to-blue-500"
-                )} />
+              <Card
+                key={r.id}
+                className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-lg overflow-hidden transition-all hover:shadow-xl"
+              >
+                <div
+                  className={cn(
+                    "h-1.5 w-full",
+                    r.status === "pending"
+                      ? "bg-gradient-to-r from-orange-400 to-orange-500"
+                      : r.status === "paid"
+                        ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                        : r.status === "rejected"
+                          ? "bg-gradient-to-r from-destructive to-red-500"
+                          : "bg-gradient-to-r from-blue-400 to-blue-500",
+                  )}
+                />
                 <CardContent className="p-6 space-y-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 min-w-0">
@@ -141,20 +157,30 @@ export function WithdrawalsPanel() {
                         {r.talent?.email}
                       </p>
                     </div>
-                    <Badge variant="outline" className={cn("capitalize px-3 py-1 font-bold text-[10px] tracking-wider border-2", getStatusColor(r.status))}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "capitalize px-3 py-1 font-bold text-[10px] tracking-wider border-2",
+                        getStatusColor(r.status),
+                      )}
+                    >
                       {r.status}
                     </Badge>
                   </div>
 
                   <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
                     <div className="space-y-1 flex-1">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">Requested Capital</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                        Requested Capital
+                      </p>
                       <p className="text-2xl font-black italic tracking-tighter text-foreground leading-none">
                         {Number(r.amount_credits).toFixed(1)} <span className="text-sm text-primary">CR</span>
                       </p>
                     </div>
                     <div className="space-y-1 flex-1 border-l border-border/50 pl-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">Routing</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                        Routing
+                      </p>
                       <p className="text-sm font-bold truncate">{r.method}</p>
                       <p className="text-[10px] font-mono text-muted-foreground truncate">
                         {r.payout_details?.account_number}
@@ -176,16 +202,16 @@ export function WithdrawalsPanel() {
                         disabled={processingId === r.id}
                       />
                       <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => processWithdrawal(r.id, "approved")}
                           disabled={processingId === r.id}
                           className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase text-[10px] tracking-wider"
                         >
                           {processingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => processWithdrawal(r.id, "rejected")}
                           disabled={processingId === r.id}
                           variant="destructive"
@@ -199,8 +225,8 @@ export function WithdrawalsPanel() {
 
                   {r.status === "approved" && (
                     <div className="pt-2 border-t border-border/20">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={() => processWithdrawal(r.id, "paid")}
                         disabled={processingId === r.id}
                         className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-emerald-500/20"
@@ -213,7 +239,9 @@ export function WithdrawalsPanel() {
 
                   {r.admin_notes && (
                     <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-1">Audit Trail</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-1">
+                        Audit Trail
+                      </p>
                       <p className="text-xs text-foreground/80">{r.admin_notes}</p>
                     </div>
                   )}
@@ -222,7 +250,7 @@ export function WithdrawalsPanel() {
             ))}
           </div>
         )}
-      </div>
+      </Tabs>
     </div>
   );
 }
