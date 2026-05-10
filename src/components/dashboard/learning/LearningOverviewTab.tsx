@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLearningGraph } from "@/hooks/useLearningGraph";
 import { BookOpen, Users, Video, Award, Activity, AlertCircle, Clock, CheckCircle2, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CoursePerformanceDashboard from "./content-widgets/CoursePerformanceDashboard";
 
 export function LearningOverviewTab() {
   const { learningGraphQuery } = useLearningGraph();
