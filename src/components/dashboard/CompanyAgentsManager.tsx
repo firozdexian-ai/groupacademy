@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,9 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -57,7 +59,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: B2B Partnership Terminal (Company Agents)
  * High-fidelity orchestrator for sponsored AI artifacts and lead telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced budgetary guards.
+ * 2024 Standard: Executive Logic geometry with reinforced budgetary guards.
  */
 
 interface Company {
@@ -333,14 +335,14 @@ export function CompanyAgentsManager() {
     toast.success("Lead Ledger Exported");
   };
 
-  // CTO RESTORATION: Telemetry Constants
+  // Telemetry Constants
   const totalAgents = companyAgents.length;
   const activeNodes = companyAgents.filter((a) => a.is_active).length;
   const totalLeads = leads.length;
   const totalInteractions = companyAgents.reduce((sum, a) => sum + (a.ai_agents?.total_conversations || 0), 0);
   const totalBudget = companyAgents.reduce((sum, a) => sum + (a.monthly_budget || 0), 0);
 
-  if (loadingAgents || loadingCompanies)
+  if (loadingAgents || loadingCompanies || loadingLeads)
     return (
       <div className="space-y-8 animate-pulse">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -359,7 +361,7 @@ export function CompanyAgentsManager() {
         <div className="space-y-2">
           <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Partnership Terminal</h2>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            B2B Sponsored Intelligence & Lead Telemetry v2.6
+            B2B Sponsored Intelligence & Lead Telemetry
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -585,7 +587,7 @@ export function CompanyAgentsManager() {
                 </Button>
                 <Button
                   onClick={() => createAgentMutation.mutate({ ...formData, company_id: selectedCompany })}
-                  disabled={createAgentMutation.isPending}
+                  disabled={createAgentMutation.isPending || !selectedCompany || !formData.name.trim()}
                   className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
                 >
                   {createAgentMutation.isPending ? (
