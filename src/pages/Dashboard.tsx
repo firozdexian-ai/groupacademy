@@ -79,9 +79,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   all: React.lazy(() => import("@/components/dashboard/ugc/UgcVideosTab")),
   "ugc-videos": React.lazy(() => import("@/components/dashboard/ugc/UgcVideosTab")),
-  "ai-content-tools": React.lazy(() =>
-    import("@/components/dashboard/learning/content-widgets/BatchContentGenerator").then((m) => ({ default: m.BatchContentGenerator })),
-  ),
+  // Legacy "ai-content-tools" route removed — generative suite now lives in learning module.
   // Marketing legacy keys removed — see "marketing-*" block below.
   "ugc-blog": React.lazy(() => import("@/components/dashboard/ugc/UgcBlogTab").then((m) => ({ default: m.UgcBlogTab }))),
   "ugc-feed": React.lazy(() =>
@@ -170,7 +168,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ir-overview": React.lazy(() => import("@/components/dashboard/investors/IROverviewTab")),
   "ir-influencers": React.lazy(() => import("@/components/dashboard/investors/KeyInfluencersTab")),
   // Marketing banners/themes/access-codes legacy keys removed — see "marketing-*" block below.
-  "hr-team": React.lazy(() => import("@/components/dashboard/hr/TeamManager").then((m) => ({ default: m.TeamManager }))),
+  // Legacy "hr-team" route removed — superseded by "hr-teams".
   // Legacy "payments-legacy" + "invoices" keys removed — replaced by "finops-*" block below.
   institutions: React.lazy(() =>
     import("@/components/dashboard/institutions/StakeholderRegistry").then((m) => ({ default: m.InstitutionsManager })),
@@ -385,14 +383,7 @@ const TAB_TITLES: Record<string, string> = {
   "abroad-ielts-resources": "IELTS Resources",
   "abroad-language-lab": "Language Lab",
   "abroad-roadmap-leads": "Roadmap Leads",
-  "ai-agents": "Neural Workforce",
-  "agent-studio": "Agent Studio",
-  "agent-triggers": "Channel Triggers",
   "agent-outreach": "Proactive Engine",
-  "agent-marketplace": "Marketplace Review",
-  "agent-sessions": "Session Logs",
-  "agent-insights": "Agent Insights",
-  "agent-payouts": "Agent Payouts",
   "agents-overview": "Agent OS Overview",
   "agents-channels": "Channels & Triggers",
   "agents-tools": "Tools, Skills & Connectors",
