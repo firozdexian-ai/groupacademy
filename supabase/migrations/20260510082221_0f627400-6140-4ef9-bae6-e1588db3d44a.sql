@@ -1,0 +1,1 @@
+ALTER VIEW public.ir_document_hot_slides SET (security_invoker = on);

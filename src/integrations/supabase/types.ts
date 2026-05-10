@@ -8955,6 +8955,198 @@ export type Database = {
           },
         ]
       }
+      ir_data_room_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          external_url: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean
+          title: string
+          total_slides: number | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          doc_type: string
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          total_slides?: number | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          total_slides?: number | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      ir_data_room_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_id: string
+          expires_at: string | null
+          id: string
+          investor_id: string | null
+          require_email: boolean
+          revoked_at: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          expires_at?: string | null
+          id?: string
+          investor_id?: string | null
+          require_email?: boolean
+          revoked_at?: string | null
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          expires_at?: string | null
+          id?: string
+          investor_id?: string | null
+          require_email?: boolean
+          revoked_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_data_room_share_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ir_data_room_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_data_room_share_links_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_document_slide_events: {
+        Row: {
+          created_at: string
+          dwell_seconds: number
+          id: string
+          slide_label: string | null
+          slide_number: number
+          view_id: string
+        }
+        Insert: {
+          created_at?: string
+          dwell_seconds?: number
+          id?: string
+          slide_label?: string | null
+          slide_number: number
+          view_id: string
+        }
+        Update: {
+          created_at?: string
+          dwell_seconds?: number
+          id?: string
+          slide_label?: string | null
+          slide_number?: number
+          view_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_document_slide_events_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "ir_document_views"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_document_views: {
+        Row: {
+          completed: boolean
+          document_id: string
+          ended_at: string | null
+          id: string
+          investor_id: string | null
+          share_link_id: string | null
+          started_at: string
+          total_seconds: number
+          user_agent: string | null
+          viewer_email: string | null
+          viewer_ip: unknown
+        }
+        Insert: {
+          completed?: boolean
+          document_id: string
+          ended_at?: string | null
+          id?: string
+          investor_id?: string | null
+          share_link_id?: string | null
+          started_at?: string
+          total_seconds?: number
+          user_agent?: string | null
+          viewer_email?: string | null
+          viewer_ip?: unknown
+        }
+        Update: {
+          completed?: boolean
+          document_id?: string
+          ended_at?: string | null
+          id?: string
+          investor_id?: string | null
+          share_link_id?: string | null
+          started_at?: string
+          total_seconds?: number
+          user_agent?: string | null
+          viewer_email?: string | null
+          viewer_ip?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_document_views_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ir_data_room_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_document_views_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_document_views_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "ir_data_room_share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ir_email_communications: {
         Row: {
           ai_generated: boolean | null
@@ -9144,18 +9336,26 @@ export type Database = {
       }
       ir_investors: {
         Row: {
+          check_size_max_usd: number | null
+          check_size_min_usd: number | null
           created_at: string | null
           email: string | null
+          expected_close_date: string | null
           full_name: string
           id: string
           investment_stage_pref: string | null
           investor_interests: string[] | null
           last_contacted_at: string | null
           last_feedback_summary: string | null
+          lead_capability: string
           linkedin_url: string | null
           notes: string | null
           phone: string | null
+          pipeline_position: number
+          pipeline_stage: string
+          probability_pct: number
           relationship_summary: string | null
+          stage_changed_at: string
           subscription_status: string | null
           title: string | null
           twitter_handle: string | null
@@ -9163,18 +9363,26 @@ export type Database = {
           vc_firm_id: string | null
         }
         Insert: {
+          check_size_max_usd?: number | null
+          check_size_min_usd?: number | null
           created_at?: string | null
           email?: string | null
+          expected_close_date?: string | null
           full_name: string
           id?: string
           investment_stage_pref?: string | null
           investor_interests?: string[] | null
           last_contacted_at?: string | null
           last_feedback_summary?: string | null
+          lead_capability?: string
           linkedin_url?: string | null
           notes?: string | null
           phone?: string | null
+          pipeline_position?: number
+          pipeline_stage?: string
+          probability_pct?: number
           relationship_summary?: string | null
+          stage_changed_at?: string
           subscription_status?: string | null
           title?: string | null
           twitter_handle?: string | null
@@ -9182,18 +9390,26 @@ export type Database = {
           vc_firm_id?: string | null
         }
         Update: {
+          check_size_max_usd?: number | null
+          check_size_min_usd?: number | null
           created_at?: string | null
           email?: string | null
+          expected_close_date?: string | null
           full_name?: string
           id?: string
           investment_stage_pref?: string | null
           investor_interests?: string[] | null
           last_contacted_at?: string | null
           last_feedback_summary?: string | null
+          lead_capability?: string
           linkedin_url?: string | null
           notes?: string | null
           phone?: string | null
+          pipeline_position?: number
+          pipeline_stage?: string
+          probability_pct?: number
           relationship_summary?: string | null
+          stage_changed_at?: string
           subscription_status?: string | null
           title?: string | null
           twitter_handle?: string | null
@@ -9212,40 +9428,79 @@ export type Database = {
       }
       ir_metrics_snapshots: {
         Row: {
+          active_users_dau: number | null
+          active_users_mau: number | null
+          active_users_wau: number | null
+          ai_inference_cogs_usd: number | null
           arr_usd: number | null
+          automated_actions_count: number | null
+          contractor_fte: number | null
           created_at: string | null
+          gross_revenue_retention_pct: number | null
+          headcount_fte: number | null
+          hitl_actions_count: number | null
+          hitl_labor_cogs_usd: number | null
           id: string
           mom_growth_rate: number | null
           mrr_usd: number | null
+          net_revenue_retention_pct: number | null
           paying_users: number | null
+          revenue_per_employee_usd: number | null
           service_breakdown: Json | null
           snapshot_date: string
           total_credits_consumed: number | null
           total_users: number | null
+          usage_retention_pct: number | null
         }
         Insert: {
+          active_users_dau?: number | null
+          active_users_mau?: number | null
+          active_users_wau?: number | null
+          ai_inference_cogs_usd?: number | null
           arr_usd?: number | null
+          automated_actions_count?: number | null
+          contractor_fte?: number | null
           created_at?: string | null
+          gross_revenue_retention_pct?: number | null
+          headcount_fte?: number | null
+          hitl_actions_count?: number | null
+          hitl_labor_cogs_usd?: number | null
           id?: string
           mom_growth_rate?: number | null
           mrr_usd?: number | null
+          net_revenue_retention_pct?: number | null
           paying_users?: number | null
+          revenue_per_employee_usd?: number | null
           service_breakdown?: Json | null
           snapshot_date?: string
           total_credits_consumed?: number | null
           total_users?: number | null
+          usage_retention_pct?: number | null
         }
         Update: {
+          active_users_dau?: number | null
+          active_users_mau?: number | null
+          active_users_wau?: number | null
+          ai_inference_cogs_usd?: number | null
           arr_usd?: number | null
+          automated_actions_count?: number | null
+          contractor_fte?: number | null
           created_at?: string | null
+          gross_revenue_retention_pct?: number | null
+          headcount_fte?: number | null
+          hitl_actions_count?: number | null
+          hitl_labor_cogs_usd?: number | null
           id?: string
           mom_growth_rate?: number | null
           mrr_usd?: number | null
+          net_revenue_retention_pct?: number | null
           paying_users?: number | null
+          revenue_per_employee_usd?: number | null
           service_breakdown?: Json | null
           snapshot_date?: string
           total_credits_consumed?: number | null
           total_users?: number | null
+          usage_retention_pct?: number | null
         }
         Relationships: []
       }
@@ -9348,6 +9603,77 @@ export type Database = {
           target_id?: string | null
           target_label?: string | null
           target_type?: string
+        }
+        Relationships: []
+      }
+      ir_pipeline_events: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_stage: string | null
+          id: string
+          investor_id: string | null
+          note: string | null
+          to_stage: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          investor_id?: string | null
+          note?: string | null
+          to_stage: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          investor_id?: string | null
+          note?: string | null
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_pipeline_events_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_retention_cohorts: {
+        Row: {
+          active_users: number
+          cohort_month: string
+          cohort_size: number
+          created_at: string
+          expansion_revenue_usd: number | null
+          id: string
+          period_index: number
+          retained_revenue_usd: number | null
+        }
+        Insert: {
+          active_users: number
+          cohort_month: string
+          cohort_size: number
+          created_at?: string
+          expansion_revenue_usd?: number | null
+          id?: string
+          period_index: number
+          retained_revenue_usd?: number | null
+        }
+        Update: {
+          active_users?: number
+          cohort_month?: string
+          cohort_size?: number
+          created_at?: string
+          expansion_revenue_usd?: number | null
+          id?: string
+          period_index?: number
+          retained_revenue_usd?: number | null
         }
         Relationships: []
       }
@@ -16517,6 +16843,32 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ir_document_hot_slides: {
+        Row: {
+          document_id: string | null
+          investor_id: string | null
+          last_seen: string | null
+          slide_label: string | null
+          slide_number: number | null
+          total_dwell: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_document_views_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ir_data_room_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_document_views_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_readiness_v: {
         Row: {

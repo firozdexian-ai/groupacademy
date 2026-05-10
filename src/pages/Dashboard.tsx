@@ -264,6 +264,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ir-investors": React.lazy(() =>
     import("@/components/dashboard/ir/InvestorsManager").then((m) => ({ default: m.InvestorsManager })),
   ),
+  "ir-pipeline": React.lazy(() =>
+    import("@/components/dashboard/ir/IRPipelineBoard").then((m) => ({ default: m.IRPipelineBoard })),
+  ),
   "ir-emails": React.lazy(() =>
     import("@/components/dashboard/ir/EmailComposer").then((m) => ({ default: m.EmailComposer })),
   ),
@@ -493,6 +496,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-targets": "MRR Projections",
   "ir-vcs": "VC Portfolio",
   "ir-investors": "Shareholders",
+  "ir-pipeline": "Investor Pipeline",
   "ir-emails": "Executive Updates",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
