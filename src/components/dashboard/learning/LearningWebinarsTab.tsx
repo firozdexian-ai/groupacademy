@@ -119,6 +119,15 @@ export function LearningWebinarsTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => setSessionsRow(row)}
+                            className="hover:bg-pink-500/10 hover:text-pink-600"
+                            title="Manage sessions"
+                          >
+                            <CalendarClock className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => {
                               setDraft(row);
                               setOpen(true);
