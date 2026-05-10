@@ -300,3 +300,5 @@ export function ProfileCardThemeManager() {
 }
 
 export default ProfileCardThemeManager;
+
+export { ProfileCardThemeManager as ThemesTab };

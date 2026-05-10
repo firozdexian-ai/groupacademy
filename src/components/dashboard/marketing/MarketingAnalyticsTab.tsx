@@ -371,3 +371,5 @@ function DashboardLoadingSkeleton() {
     </div>
   );
 }
+
+export { MarketingAnalytics as MarketingAnalyticsTab };

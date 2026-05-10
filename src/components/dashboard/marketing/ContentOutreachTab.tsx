@@ -595,3 +595,5 @@ export function ContentOutreachManager() {
     </div>
   );
 }
+
+export { ContentOutreachManager as ContentOutreachTab };

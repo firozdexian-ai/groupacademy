@@ -553,3 +553,5 @@ export const BannerManager = () => {
     </div>
   );
 };
+
+export { BannerManager as BannersTab };

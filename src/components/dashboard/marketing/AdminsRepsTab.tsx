@@ -11,3 +11,5 @@ export default function AdminsRepsTab() {
     </Card>
   );
 }
+
+export { default as AdminsRepsTab } from "./AdminsRepsTab";
