@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-export default function GigWorkersWalletTab() {
+export function GigWorkersWalletTab() {
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold">Gig Workers & Wallet</h2>
@@ -12,4 +12,5 @@ export default function GigWorkersWalletTab() {
   );
 }
 
-export { default as GigWorkersWalletTab } from './GigWorkersWalletTab';
+
+export default GigWorkersWalletTab;
