@@ -121,6 +121,16 @@ export function LearningCohortsTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={!row.content_id}
+                            onClick={() => setSessionsRow(row)}
+                            className="hover:bg-indigo-500/10 hover:text-indigo-600"
+                            title="Manage live sessions"
+                          >
+                            <Video className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => {
                               setDraft(row);
                               setOpen(true);
