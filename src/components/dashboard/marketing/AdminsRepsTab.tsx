@@ -12,4 +12,3 @@ export default function AdminsRepsTab() {
   );
 }
 
-export { default as AdminsRepsTab } from "./AdminsRepsTab";
