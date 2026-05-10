@@ -483,9 +483,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
   "support-assistant": "Helpdesk AI",
-  codes: "Priority Codes",
-  banners: "Display Layer",
-  "profile-card-themes": "Profile Card Themes",
+  // Marketing labels moved to "marketing-*" block above.
   team: "Human Capital",
   payments: "Gateway Logic",
   invoices: "Invoice Manager",
