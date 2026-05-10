@@ -38,6 +38,7 @@ import {
   Activity,
   ShieldCheck,
   Globe,
+  Phone,
 } from "lucide-react";
 import { TalentDetailDialog } from "./TalentDetailDialog";
 import {
@@ -52,12 +53,13 @@ import { extractFirstName, cn } from "@/lib/utils";
 /**
  * GroUp Academy: Talent Pool Management Pipeline
  * CTO Reference: High-fidelity orchestrator for lead activation and outreach telemetry.
+ * Updated: Added Phone-First Telemetry for Shomvob/B2B Database Ingestions.
  */
 
 interface Talent {
   id: string;
   full_name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   country: string | null;
   user_id: string | null;
@@ -84,7 +86,8 @@ export function TalentPoolManager() {
 
         if (searchQuery) {
           const safe = sanitizeIlike(searchQuery);
-          if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`);
+          // UPGRADE: Added phone number indexing for CSV datasets
+          if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
         }
         if (countryFilter !== "all") query = query.eq("country", countryFilter);
 
@@ -184,7 +187,7 @@ export function TalentPoolManager() {
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
               <Input
-                placeholder="SEARCH NODES BY NAME OR EMAIL..."
+                placeholder="SEARCH NODES BY NAME, EMAIL OR PHONE..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/50"
@@ -234,9 +237,18 @@ export function TalentPoolManager() {
                   >
                     <TableCell className="py-6 pl-8">
                       <p className="font-black text-sm uppercase italic tracking-tight">{talent.full_name}</p>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 italic">
-                        {talent.email}
-                      </p>
+                      <div className="flex flex-col gap-1 mt-1">
+                        {talent.email && (
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest italic flex items-center gap-1.5">
+                            <Mail className="h-3 w-3" /> {talent.email}
+                          </p>
+                        )}
+                        {talent.phone && (
+                          <p className="text-[9px] font-bold text-primary/70 uppercase tracking-widest italic flex items-center gap-1.5">
+                            <Phone className="h-3 w-3" /> {talent.phone}
+                          </p>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {talent.country && (
@@ -326,7 +338,7 @@ export function TalentPoolManager() {
           open={!!selectedTalent}
           onOpenChange={() => setSelectedTalent(null)}
           talent={selectedTalent}
-          talentEmail={selectedTalent.email}
+          talentEmail={selectedTalent.email || "NO_EMAIL_PROVIDED"}
           talentName={selectedTalent.full_name}
         />
       )}
