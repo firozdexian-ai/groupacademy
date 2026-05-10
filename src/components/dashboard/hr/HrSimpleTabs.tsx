@@ -472,7 +472,3 @@ export function HrGradesTab() {
   );
 }
 
-// Stubs for remaining tabs so routing doesn't break
-export const HrPayrollTab = () => (
-  <div className="p-8 font-black uppercase tracking-widest text-muted-foreground italic">Phase 6 Upgrade Pending</div>
-);
