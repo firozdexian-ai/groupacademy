@@ -120,17 +120,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ugc-competitions": React.lazy(() =>
     import("@/components/dashboard/ugc/UgcCompetitionsTab").then((m) => ({ default: m.UgcCompetitionsTab })),
   ),
-  "study-abroad": React.lazy(() =>
-    import("@/components/dashboard/StudyAbroadManager").then((m) => ({ default: m.StudyAbroadManager })),
-  ),
-  ielts: React.lazy(() =>
-    import("@/components/dashboard/IELTSResourcesManager").then((m) => ({ default: m.IELTSResourcesManager })),
-  ),
-  "roadmap-leads": React.lazy(() =>
-    import("@/components/dashboard/StudyAbroadRoadmapLeadsManager").then((m) => ({
-      default: m.StudyAbroadRoadmapLeadsManager,
-    })),
-  ),
   "ai-agents": React.lazy(() =>
     import("@/components/dashboard/AIAgentsManager").then((m) => ({ default: m.AIAgentsManager })),
   ),
