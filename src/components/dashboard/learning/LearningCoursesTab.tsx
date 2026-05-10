@@ -287,6 +287,26 @@ export function LearningCoursesTab() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      {/* Module Management Dialog */}
+      <Dialog open={!!selectedModuleCourseId} onOpenChange={(o) => !o && setSelectedModuleCourseId(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-[32px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-indigo-500 flex items-center gap-2">
+              <Layers className="h-5 w-5" /> Module Curriculum
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Manage modules and learning resources for this course.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedModuleCourseId && (
+            <ModulePickerPanel
+              contentId={selectedModuleCourseId}
+              onClose={() => setSelectedModuleCourseId(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
