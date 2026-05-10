@@ -165,7 +165,7 @@ function SubmissionPreview({ submission }: { submission: any }) {
  * Terminal Execution Node
  * --------------------------------------------------------- */
 
-export function GigSubmissionsManager() {
+export function GigsSubmissionsTab() {
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [adminNotes, setAdminNotes] = useState("");

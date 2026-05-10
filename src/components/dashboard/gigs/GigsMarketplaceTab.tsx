@@ -68,7 +68,7 @@ const defaultForm: GigForm = {
   is_featured: false,
 };
 
-export function MarketplaceGigsManager() {
+export function GigsMarketplaceTab() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

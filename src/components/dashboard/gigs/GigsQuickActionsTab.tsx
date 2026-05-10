@@ -67,7 +67,7 @@ const defaultForm: GigForm = {
   display_order: 0,
 };
 
-export function GigsManager() {
+export function GigsQuickActionsTab() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

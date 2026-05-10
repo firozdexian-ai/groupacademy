@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-export default function ClientProjectsTab() {
+export function ClientProjectsTab() {
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold">Client Projects</h2>
@@ -10,3 +10,6 @@ export default function ClientProjectsTab() {
     </Card>
   );
 }
+
+
+export default ClientProjectsTab;

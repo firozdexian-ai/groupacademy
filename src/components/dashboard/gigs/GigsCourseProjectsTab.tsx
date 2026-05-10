@@ -76,7 +76,7 @@ const SUBTASK_KINDS = [
   "other",
 ];
 
-export function CourseProjectsManager() {
+export function GigsCourseProjectsTab() {
   const [loading, setLoading] = useState(true);
   const [coursesNoProject, setCoursesNoProject] = useState<Course[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
