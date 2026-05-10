@@ -294,10 +294,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
   ),
   institutions: React.lazy(() =>
-    import("@/components/dashboard/StakeholderRegistry").then((m) => ({ default: m.InstitutionsManager })),
+    import("@/components/dashboard/institutions/StakeholderRegistry").then((m) => ({ default: m.InstitutionsManager })),
   ),
   "partner-orgs": React.lazy(() =>
-    import("@/components/dashboard/StakeholderRegistry").then((m) => ({ default: m.PartnerOrgsManager })),
+    import("@/components/dashboard/institutions/StakeholderRegistry").then((m) => ({ default: m.PartnerOrgsManager })),
   ),
   "inst-overview": React.lazy(() => import("@/components/dashboard/institutions/InstitutionsOverviewTab")),
   "inst-types": React.lazy(() => import("@/components/dashboard/institutions/InstitutionTypesManager")),
