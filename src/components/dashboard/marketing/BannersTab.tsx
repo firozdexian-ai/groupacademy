@@ -11,7 +11,7 @@ import { Trash2, Plus, Image as ImageIcon, Loader2, ShieldCheck, Layers, Zap, La
 import { ImageUpload } from "@/components/ImageUpload";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardCardSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardCardSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -553,3 +553,5 @@ export const BannerManager = () => {
     </div>
   );
 };
+
+export { BannerManager as BannersTab };

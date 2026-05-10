@@ -145,3 +145,5 @@ export function CVOutreachGenerator() {
     </div>
   );
 }
+
+export { CVOutreachGenerator as TalentOutreachTab };

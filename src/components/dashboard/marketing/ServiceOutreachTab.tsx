@@ -441,3 +441,5 @@ export function ServiceOutreachManager() {
     </div>
   );
 }
+
+export { ServiceOutreachManager as ServiceOutreachTab };

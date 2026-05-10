@@ -312,3 +312,5 @@ export const AccessCodeManager = () => {
     </div>
   );
 };
+
+export { AccessCodeManager as AccessCodesTab };

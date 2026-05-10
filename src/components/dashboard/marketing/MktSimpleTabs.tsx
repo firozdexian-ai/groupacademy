@@ -13,7 +13,7 @@ export const ChannelsTab = () => (
   />
 );
 
-export const CommunityTab = () => (
+export const CommunityGroupsTab = () => (
   <SimpleAdminRegistry
     table="mkt_community_groups"
     title="Community Groups"
@@ -26,3 +26,5 @@ export const CommunityTab = () => (
     ]}
   />
 );
+
+export { CommunityGroupsTab as CommunityTab };

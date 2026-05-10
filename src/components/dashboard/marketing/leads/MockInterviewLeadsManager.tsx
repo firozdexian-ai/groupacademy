@@ -2,74 +2,78 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../../DashboardSkeleton";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import {
   Download,
   Search,
-  Eye,
-  Loader2,
-  TrendingUp,
+  Mail,
+  Phone,
+  Calendar,
+  ExternalLink,
   User,
   Activity,
   Zap,
+  TrendingUp,
   RefreshCw,
-  Mail,
-  ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
-import { SalaryAnalysisCodeGenerator } from "./SalaryAnalysisCodeGenerator";
-import { TalentDetailDialog } from "./TalentDetailDialog";
+import { MockInterviewCodeGenerator } from "../../MockInterviewCodeGenerator";
+import { TalentDetailDialog } from "../../TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Salary Intelligence Lead Orchestrator
- * CTO Reference: High-fidelity management of AI-driven salary analysis leads.
+ * GroUp Academy: Mock Interview Leads Orchestrator
+ * CTO Reference: Fixed TS2339/TS2739 via native async promise wrapping. [cite: 4, 16]
  */
 
-interface SalaryAnalysisLead {
+interface MockInterviewLead {
   id: string;
   full_name: string;
   email: string;
   phone: string | null;
   job_title: string | null;
   company_name: string | null;
+  selection_percentage: number | null;
+  performance_level: string | null;
+  difficulty: string | null;
+  question_count: number | null;
   status: string | null;
-  ai_analysis: any;
-  created_at: string | null;
-  profession_category: {
-    name: string;
-  } | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  processing: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  completed: "bg-green-500/10 text-green-600 border-green-500/20",
-  failed: "bg-red-500/10 text-red-600 border-red-500/20",
+const performanceColors: Record<string, string> = {
+  needs_work: "bg-red-500/10 text-red-600 border-red-500/20",
+  developing: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  competent: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+  strong: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  excellent: "bg-green-500/10 text-green-600 border-green-500/20",
 };
 
-const statusLabels: Record<string, string> = {
-  pending: "Pending",
-  processing: "Processing",
-  completed: "Completed",
-  failed: "Failed",
+const performanceLabels: Record<string, string> = {
+  needs_work: "Needs Work",
+  developing: "Developing",
+  competent: "Competent",
+  strong: "Strong",
+  excellent: "Excellent",
 };
 
-export const SalaryAnalysisLeadsManager = () => {
+export function MockInterviewLeadsManager() {
   const navigate = useNavigate();
-  const [leads, setLeads] = useState<SalaryAnalysisLead[]>([]);
+  const [leads, setLeads] = useState<MockInterviewLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [performanceFilter, setPerformanceFilter] = useState<string>("all");
   const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
   const [selectedTalentName, setSelectedTalentName] = useState<string>("");
 
@@ -81,30 +85,14 @@ export const SalaryAnalysisLeadsManager = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Wrap query in native async for standard Promise behavior
+      // FIXED: Wrap PostgrestBuilder in a native async function to ensure native Promise return [cite: 33, 43]
       const fetchLeads = async () => {
-        return await supabase
-          .from("salary_analyses")
-          .select(
-            `
-            id,
-            full_name,
-            email,
-            phone,
-            job_title,
-            company_name,
-            status,
-            ai_analysis,
-            created_at,
-            profession_category:profession_categories(name)
-          `,
-          )
-          .order("created_at", { ascending: false });
+        return await supabase.from("mock_interviews").select("*").order("created_at", { ascending: false });
       };
 
-      // 2. Execute via platform timeout protocol
-      const result = (await withTimeout(fetchLeads(), TIMEOUTS.DEFAULT, "Loading salary analysis leads timed out")) as {
-        data: any[] | null;
+      // FIXED: Destructure from the result of withTimeout with a specific cast [cite: 36, 43]
+      const result = (await withTimeout(fetchLeads(), TIMEOUTS.DEFAULT, "Loading mock interview leads timed out")) as {
+        data: MockInterviewLead[] | null;
         error: any;
       };
 
@@ -112,8 +100,8 @@ export const SalaryAnalysisLeadsManager = () => {
       setLeads(result.data || []);
     } catch (err: any) {
       console.error("Telemetry Fault:", err);
-      setError(err.message || "Failed to load leads");
-      toast.error("System Error: Lead synchronization failed.");
+      setError(err.message || "Failed to load mock interview leads");
+      toast.error("System Error: Failed to synchronize lead data.");
     } finally {
       setLoading(false);
     }
@@ -123,71 +111,80 @@ export const SalaryAnalysisLeadsManager = () => {
     const matchesSearch =
       lead.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (lead.job_title?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-
+      (lead.phone && lead.phone.includes(searchQuery)) ||
+      (lead.job_title && lead.job_title.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    const matchesPerformance = performanceFilter === "all" || lead.performance_level === performanceFilter;
+    return matchesSearch && matchesStatus && matchesPerformance;
   });
 
   const exportToCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Job Title", "Company", "Profession", "Status", "Date"];
+    const headers = ["Name", "Email", "Phone", "Job Title", "Company", "Score %", "Performance", "Status", "Date"];
     const rows = filteredLeads.map((lead) => [
-      `"${lead.full_name}"`,
-      `"${lead.email}"`,
-      `"${lead.phone || ""}"`,
-      `"${lead.job_title || ""}"`,
-      `"${lead.company_name || ""}"`,
-      `"${lead.profession_category?.name || ""}"`,
-      `"${lead.status || ""}"`,
-      `"${lead.created_at ? format(new Date(lead.created_at), "yyyy-MM-dd") : ""}"`,
+      lead.full_name,
+      lead.email,
+      lead.phone || "",
+      lead.job_title || "",
+      lead.company_name || "",
+      lead.selection_percentage?.toString() || "",
+      lead.performance_level || "",
+      lead.status || "",
+      format(new Date(lead.created_at), "yyyy-MM-dd"),
     ]);
 
-    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `salary_leads_${format(new Date(), "yyyy-MM-dd")}.csv`);
-    document.body.appendChild(link);
+    link.href = url;
+    link.download = `mock_interview_leads_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     toast.success("Protocol: Leads exported to CSV.");
   };
 
   const completedCount = leads.filter((l) => l.status === "completed").length;
+  const avgScore =
+    leads.length > 0
+      ? Math.round(leads.reduce((acc, curr) => acc + (curr.selection_percentage || 0), 0) / leads.length)
+      : 0;
 
-  if (loading) return <DashboardTableSkeleton rows={8} columns={7} />;
+  if (loading) return <DashboardTableSkeleton rows={8} columns={8} />;
   if (error) return <DashboardErrorState title="Telemetry Failure" message={error} onRetry={loadLeads} />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      {/* EXECUTIVE KPI BAR */}
+      {/* EXECUTIVE TELEMETRY HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
             <Activity className="h-8 w-8" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Salary Pulse</h2>
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Interview Pulse</h2>
           </div>
           <div className="flex items-center gap-4 mt-2">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-              AI Intelligence Lead Radar
+              AI Career Service Radar [cite: 78, 135]
             </p>
             <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] px-3 py-1 italic rounded-full">
-              {completedCount} VERIFIED CONVERSIONS
+              <TrendingUp className="h-3 w-3 mr-1" /> {avgScore}% AVG SCORE
             </Badge>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <div className="text-right hidden md:block mr-4">
+            <p className="text-[10px] font-black uppercase text-muted-foreground italic tracking-widest">
+              Active Conversions [cite: 117]
+            </p>
+            <p className="text-xl font-black italic text-primary">
+              {completedCount} / {leads.length}
+            </p>
+          </div>
           <Button
             onClick={exportToCSV}
             variant="outline"
             className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-3"
           >
-            <Download className="h-4 w-4" /> Export Registry
-          </Button>
-          <Button variant="ghost" size="icon" onClick={loadLeads} className="h-14 w-14 rounded-2xl border-2">
-            <RefreshCw className="h-5 w-5" />
+            <Download className="h-4 w-4" /> Export Leads
           </Button>
         </div>
       </div>
@@ -198,27 +195,51 @@ export const SalaryAnalysisLeadsManager = () => {
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
               <Input
-                placeholder="Search registry by name, email, or role..."
+                placeholder="Search leads by name, email, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest">
-                <SelectValue placeholder="STATUS FILTER" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-2">
-                <SelectItem value="all" className="font-bold text-[10px]">
-                  ALL STATUS
-                </SelectItem>
-                {Object.entries(statusLabels).map(([val, label]) => (
-                  <SelectItem key={val} value={val} className="font-bold text-[10px]">
-                    {label.toUpperCase()}
+            <div className="flex gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest">
+                  <SelectValue placeholder="STATUS" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-2">
+                  <SelectItem value="all" className="font-bold uppercase text-[10px]">
+                    ALL STATUS
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <SelectItem value="completed" className="font-bold uppercase text-[10px]">
+                    COMPLETED
+                  </SelectItem>
+                  <SelectItem value="in_progress" className="font-bold uppercase text-[10px]">
+                    IN PROGRESS
+                  </SelectItem>
+                  <SelectItem value="abandoned" className="font-bold uppercase text-[10px]">
+                    ABANDONED
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
+                <SelectTrigger className="w-[180px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest">
+                  <SelectValue placeholder="PERFORMANCE" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-2">
+                  <SelectItem value="all" className="font-bold uppercase text-[10px]">
+                    ALL LEVELS
+                  </SelectItem>
+                  {Object.entries(performanceLabels).map(([val, label]) => (
+                    <SelectItem key={val} value={val} className="font-bold uppercase text-[10px]">
+                      {label.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="icon" onClick={loadLeads} className="h-14 w-14 rounded-2xl border-2">
+                <RefreshCw className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -227,8 +248,9 @@ export const SalaryAnalysisLeadsManager = () => {
               <TableRow className="hover:bg-transparent border-b-2">
                 <TableHead className="font-black uppercase text-[10px] tracking-widest py-6 pl-8">Lead Node</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest">Target Role</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest">Structural Class</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest">Protocol Status</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Pulse Score</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Performance</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest">Deployment</TableHead>
                 <TableHead className="text-right py-6 pr-8"></TableHead>
               </TableRow>
@@ -236,7 +258,7 @@ export const SalaryAnalysisLeadsManager = () => {
             <TableBody>
               {filteredLeads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-20 italic font-bold opacity-50">
+                  <TableCell colSpan={7} className="text-center py-20 italic font-bold opacity-50">
                     No lead synchronization found.
                   </TableCell>
                 </TableRow>
@@ -247,7 +269,7 @@ export const SalaryAnalysisLeadsManager = () => {
                     className="group border-b border-border/5 hover:bg-muted/10 transition-colors"
                   >
                     <TableCell className="py-6 pl-8">
-                      <p className="font-black text-sm uppercase italic tracking-tight">{lead.full_name}</p>
+                      <p className="font-black text-sm uppercase italic tracking-tight">{lead.full_name || "-"}</p>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 italic flex items-center gap-1">
                         <Mail className="h-2 w-2" /> {lead.email}
                       </p>
@@ -261,25 +283,46 @@ export const SalaryAnalysisLeadsManager = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-black text-[9px] uppercase tracking-tighter border-2">
-                        {lead.profession_category?.name || "UNASSIGNED"}
-                      </Badge>
+                      {lead.selection_percentage !== null ? (
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-3 w-3 text-primary fill-current" />
+                          <span className="font-black italic text-sm">{lead.selection_percentage}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.performance_level ? (
+                        <Badge
+                          className={cn(
+                            "font-black text-[9px] uppercase tracking-widest italic border-2 px-3 py-1",
+                            performanceColors[lead.performance_level],
+                          )}
+                        >
+                          {performanceLabels[lead.performance_level]}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">PENDING</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
                         className={cn(
                           "font-black text-[9px] uppercase tracking-widest italic rounded-full px-4",
-                          statusColors[lead.status || "pending"],
+                          lead.status === "completed"
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {statusLabels[lead.status || "pending"]}
+                        {lead.status || "UNKNOWN"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         <span className="text-[10px] font-black italic">
-                          {lead.created_at ? format(new Date(lead.created_at), "MMM d, yyyy") : "N/A"}
+                          {format(new Date(lead.created_at), "MMM d, yyyy")}
                         </span>
                       </div>
                     </TableCell>
@@ -300,13 +343,13 @@ export const SalaryAnalysisLeadsManager = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => navigate(`/salary-analysis/results/${lead.id}`)}
+                            onClick={() => navigate(`/mock-interview/results/${lead.id}`)}
                             className="hover:bg-primary/10 hover:text-primary"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         )}
-                        <SalaryAnalysisCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
+                        <MockInterviewCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -329,29 +372,5 @@ export const SalaryAnalysisLeadsManager = () => {
         talentName={selectedTalentName}
       />
     </div>
-  );
-};
-
-// Helper for consistency
-function Calendar(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn("lucide lucide-calendar", props.className)}
-    >
-      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-      <path d="M16 2v4" />
-      <path d="M8 2v4" />
-      <path d="M3 10h18" />
-    </svg>
   );
 }

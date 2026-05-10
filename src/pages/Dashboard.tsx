@@ -72,7 +72,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/talent/CreatorEconomyTab").then((m) => ({ default: m.CreatorEconomyTab })),
   ),
   "lead-hunter": React.lazy(() =>
-    import("@/components/dashboard/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
+    import("@/components/dashboard/marketing/leads/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
   ),
   professions: React.lazy(() =>
     import("@/components/dashboard/ProfessionsManager").then((m) => ({ default: m.ProfessionsManager })),
@@ -101,18 +101,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ai-content-tools": React.lazy(() =>
     import("@/components/dashboard/learning/content-widgets/BatchContentGenerator").then((m) => ({ default: m.BatchContentGenerator })),
   ),
-  analytics: React.lazy(() =>
-    import("@/components/dashboard/MarketingAnalytics").then((m) => ({ default: m.MarketingAnalytics })),
-  ),
-  outreach: React.lazy(() =>
-    import("@/components/dashboard/CVOutreachGenerator").then((m) => ({ default: m.CVOutreachGenerator })),
-  ),
-  "content-outreach": React.lazy(() =>
-    import("@/components/dashboard/ContentOutreachManager").then((m) => ({ default: m.ContentOutreachManager })),
-  ),
-  "service-outreach": React.lazy(() =>
-    import("@/components/dashboard/ServiceOutreachManager").then((m) => ({ default: m.ServiceOutreachManager })),
-  ),
+  // Marketing legacy keys removed — see "marketing-*" block below.
   "ugc-blog": React.lazy(() => import("@/components/dashboard/ugc/UgcBlogTab").then((m) => ({ default: m.UgcBlogTab }))),
   "ugc-feed": React.lazy(() =>
     import("@/components/dashboard/ugc/UgcFeedTab").then((m) => ({ default: m.UgcFeedTab })),
@@ -184,10 +173,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/jobs/JobsAssessmentLeadsTab").then((m) => ({ default: m.JobsAssessmentLeadsTab })),
   ),
   interviews: React.lazy(() =>
-    import("@/components/dashboard/MockInterviewLeadsManager").then((m) => ({ default: m.MockInterviewLeadsManager })),
+    import("@/components/dashboard/marketing/leads/MockInterviewLeadsManager").then((m) => ({ default: m.MockInterviewLeadsManager })),
   ),
   salary: React.lazy(() =>
-    import("@/components/dashboard/SalaryAnalysisLeadsManager").then((m) => ({
+    import("@/components/dashboard/marketing/leads/SalaryAnalysisLeadsManager").then((m) => ({
       default: m.SalaryAnalysisLeadsManager,
     })),
   ),
@@ -232,11 +221,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "support-assistant": React.lazy(() =>
     import("@/components/dashboard/SupportAssistant").then((m) => ({ default: m.SupportAssistant })),
   ),
-  codes: React.lazy(() => import("@/components/AccessCodeManager").then((m) => ({ default: m.AccessCodeManager }))),
-  banners: React.lazy(() => import("@/components/dashboard/BannerManager").then((m) => ({ default: m.BannerManager }))),
-  "profile-card-themes": React.lazy(() =>
-    import("@/components/dashboard/ProfileCardThemeManager").then((m) => ({ default: m.ProfileCardThemeManager })),
-  ),
+  // Marketing banners/themes/access-codes legacy keys removed — see "marketing-*" block below.
   "hr-team": React.lazy(() => import("@/components/dashboard/hr/TeamManager").then((m) => ({ default: m.TeamManager }))),
   "payments-legacy": React.lazy(() =>
     import("@/components/dashboard/PaymentSettingsManager").then((m) => ({ default: m.PaymentSettingsManager })),
@@ -352,24 +337,24 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "abroad-ielts-resources": React.lazy(() => import("@/components/dashboard/abroad/AbroadIELTSResourcesTab").then(m => ({ default: (m as any).AbroadIELTSResourcesTab ?? m.default }))),
   "abroad-language-lab": React.lazy(() => import("@/components/dashboard/abroad/AbroadLanguageLabTab").then(m => ({ default: (m as any).AbroadLanguageLabTab ?? m.default }))),
   "abroad-roadmap-leads": React.lazy(() => import("@/components/dashboard/abroad/AbroadRoadmapLeadsTab").then(m => ({ default: (m as any).AbroadRoadmapLeadsTab ?? m.default }))),
-  "mkt-channels": React.lazy(() =>
-    import("@/components/dashboard/marketing/MktSimpleTabs").then((m) => ({ default: m.ChannelsTab })),
-  ),
-  "mkt-community": React.lazy(() =>
-    import("@/components/dashboard/marketing/MktSimpleTabs").then((m) => ({ default: m.CommunityTab })),
-  ),
-  "mkt-admins-reps": React.lazy(() => import("@/components/dashboard/marketing/AdminsRepsTab")),
-  "community-wa-channel": React.lazy(() =>
-    import("@/components/dashboard/marketing/CommunityMessagingChannelTab").then((m) => ({
-      default: m.CommunityMessagingChannelTab,
-    })),
-  ),
+  // ===== Marketing (Phase 6 standardized "marketing-*" keys) =====
+  "marketing-analytics": React.lazy(() => import("@/components/dashboard/marketing/MarketingAnalyticsTab").then(m => ({ default: (m as any).MarketingAnalyticsTab ?? (m as any).default }))),
+  "marketing-channels": React.lazy(() => import("@/components/dashboard/marketing/MktSimpleTabs").then(m => ({ default: (m as any).ChannelsTab ?? (m as any).default }))),
+  "marketing-community-wa": React.lazy(() => import("@/components/dashboard/marketing/CommunityMessagingChannelTab").then(m => ({ default: (m as any).CommunityMessagingChannelTab ?? (m as any).default }))),
+  "marketing-community-groups": React.lazy(() => import("@/components/dashboard/marketing/MktSimpleTabs").then(m => ({ default: (m as any).CommunityGroupsTab ?? (m as any).default }))),
+  "marketing-admins-reps": React.lazy(() => import("@/components/dashboard/marketing/AdminsRepsTab").then(m => ({ default: (m as any).AdminsRepsTab ?? (m as any).default }))),
+  "marketing-talent-outreach": React.lazy(() => import("@/components/dashboard/marketing/TalentOutreachTab").then(m => ({ default: (m as any).TalentOutreachTab ?? (m as any).default }))),
+  "marketing-content-outreach": React.lazy(() => import("@/components/dashboard/marketing/ContentOutreachTab").then(m => ({ default: (m as any).ContentOutreachTab ?? (m as any).default }))),
+  "marketing-service-outreach": React.lazy(() => import("@/components/dashboard/marketing/ServiceOutreachTab").then(m => ({ default: (m as any).ServiceOutreachTab ?? (m as any).default }))),
+  "marketing-leads": React.lazy(() => import("@/components/dashboard/marketing/LeadsActivitiesTab").then(m => ({ default: (m as any).LeadsActivitiesTab ?? (m as any).default }))),
+  "marketing-banners": React.lazy(() => import("@/components/dashboard/marketing/BannersTab").then(m => ({ default: (m as any).BannersTab ?? (m as any).default }))),
+  "marketing-themes": React.lazy(() => import("@/components/dashboard/marketing/ThemesTab").then(m => ({ default: (m as any).ThemesTab ?? (m as any).default }))),
+  "marketing-access-codes": React.lazy(() => import("@/components/dashboard/marketing/AccessCodesTab").then(m => ({ default: (m as any).AccessCodesTab ?? (m as any).default }))),
   "companies-wa-channel": React.lazy(() =>
     import("@/components/dashboard/companies/EmployerMessagingChannelTab").then((m) => ({
       default: m.EmployerMessagingChannelTab,
     })),
   ),
-  "leads-activities": React.lazy(() => import("@/components/dashboard/marketing/LeadsActivitiesTab")),
   "fin-overview": React.lazy(() => import("@/components/dashboard/finance/FinOverviewTab")),
   "gro10x-credits": React.lazy(() =>
     import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.Gro10xCreditsTab })),
@@ -433,10 +418,18 @@ const TAB_TITLES: Record<string, string> = {
   "learning-payouts": "Instructor Payouts",
   "learning-json-importer": "Bulk Course Importer",
   "ai-content-tools": "Generative Suite",
-  analytics: "Conversion Intel",
-  outreach: "CV Intelligence",
-  "content-outreach": "Campaign Hub",
-  "service-outreach": "Service Sync",
+  "marketing-analytics": "Conversion Intel",
+  "marketing-channels": "Marketing Channels",
+  "marketing-community-wa": "Community WhatsApp Line",
+  "marketing-community-groups": "Community Groups",
+  "marketing-admins-reps": "Admins & Reps",
+  "marketing-talent-outreach": "Talent Outreach (CV Intelligence)",
+  "marketing-content-outreach": "Content Outreach",
+  "marketing-service-outreach": "Service Outreach",
+  "marketing-leads": "Leads & Activities",
+  "marketing-banners": "Banners",
+  "marketing-themes": "Profile Card Themes",
+  "marketing-access-codes": "Access Codes",
   "ugc-blog": "Thought Leadership",
   "ugc-feed": "Network Stream",
   "ugc-competitions": "Gamification",
@@ -490,9 +483,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
   "support-assistant": "Helpdesk AI",
-  codes: "Priority Codes",
-  banners: "Display Layer",
-  "profile-card-themes": "Profile Card Themes",
+  // Marketing labels moved to "marketing-*" block above.
   team: "Human Capital",
   payments: "Gateway Logic",
   invoices: "Invoice Manager",
