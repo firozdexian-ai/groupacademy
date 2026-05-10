@@ -9,7 +9,7 @@ import { ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentRail } from "@/components/dashboard/chat/AgentRail";
 import { ChatThread } from "@/components/dashboard/chat/ChatThread";
-import { useAdminThreads } from "@/hooks/useAdminChatThread";
+import { useAdminAgentThreads } from "@/components/dashboard/chat/hooks/useAgentRuntimeThread";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { ADMIN_AGENTS, ADMIN_AGENTS_BY_KEY } from "@/lib/adminAgents";
 
@@ -20,7 +20,7 @@ export default function DashboardChat() {
   const [activeKey, setActiveKey] = useState<string | null>(
     initialAgent && ADMIN_AGENTS_BY_KEY[initialAgent] ? initialAgent : ADMIN_AGENTS[0].key,
   );
-  const { threads, reload } = useAdminThreads();
+  const { threads, reload } = useAdminAgentThreads();
 
   useEffect(() => {
     if (activeKey) setSearchParams({ agent: activeKey }, { replace: true });

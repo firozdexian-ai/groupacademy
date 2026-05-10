@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
-import type { ThreadSummary } from "@/hooks/useAdminChatThread";
+import type { AdminThreadSummary } from "./hooks/useAgentRuntimeThread";
 import { useAdminAgents } from "./hooks/useAdminAgents";
 
 interface AgentRailProps {
   activeKey: string | null;
-  threads: ThreadSummary[];
+  threads: AdminThreadSummary[];
   onSelect: (key: string) => void;
 }
 
