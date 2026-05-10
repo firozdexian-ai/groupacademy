@@ -1,58 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Globe, MapPin, Building, Network } from "lucide-react";
 import { SimpleAdminRegistry } from "@/components/dashboard/common/SimpleAdminRegistry";
-
-export function GtmOverviewTab() {
-  const counts = useQuery({
-    queryKey: ["gtm-overview-counts"],
-    queryFn: async () => {
-      const out: Record<string, number> = {};
-      const tables = [
-        ["talents", "country"],
-        ["companies", "country"],
-        ["jobs", "country"],
-      ] as const;
-      for (const [t] of tables) {
-        const { count } = await supabase.from(t as any).select("*", { count: "exact", head: true });
-        out[t] = count ?? 0;
-      }
-      const { count: clusters } = await supabase
-        .from("gtm_clusters" as any).select("*", { count: "exact", head: true });
-      out["gtm_clusters"] = clusters ?? 0;
-      return out;
-    },
-  });
-  const c = counts.data ?? {};
-  const tiles = [
-    { label: "Talents (geo-tagged)", value: c.talents ?? 0, icon: Globe },
-    { label: "Companies", value: c.companies ?? 0, icon: Building },
-    { label: "Jobs", value: c.jobs ?? 0, icon: MapPin },
-    { label: "Clusters", value: c.gtm_clusters ?? 0, icon: Network },
-  ];
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold">GTM (Geography)</h2>
-        <p className="text-sm text-muted-foreground">
-          Country, region, city and custom cluster management. Country-level outreach lives in the Agentic Dashboard chat.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {tiles.map((t) => (
-          <Card key={t.label} className="p-4 flex items-center gap-3">
-            <t.icon className="h-5 w-5 text-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">{t.label}</p>
-              <p className="text-xl font-bold">{t.value}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ReadOnlyDistinct({ table, column, title, description }: {
   table: string; column: string; title: string; description: string;
