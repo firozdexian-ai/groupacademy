@@ -6,7 +6,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { UploadCloud, Loader2 } from "lucide-react";
 
-// Strict type definitions to ensure our JSON matches the DB schema
+// Strict type definitions matching our Supabase schema enums
+type ContentType = "batch_class" | "free_video" | "live_webinar" | "offline_seminar" | "recorded_course";
+type ResourceType =
+  | "ai_scenario"
+  | "audio_podcast"
+  | "flashcards"
+  | "infographic"
+  | "mindmap"
+  | "quiz"
+  | "report"
+  | "slides"
+  | "video";
+
 interface ResourcePayload {
   title: string;
   resource_type: string;
@@ -58,13 +70,13 @@ export const CourseJSONImporter = () => {
 
       const generatedSlug = generateSlug(courseData.title);
 
-      // 1. Insert the main Course (Content) record
+      // 1. Insert the main Course (Content) record with Strict Type Casting
       const { data: contentRecord, error: contentError } = await supabase
         .from("content")
         .insert({
           title: courseData.title,
           description: courseData.description,
-          content_type: courseData.content_type || "recorded_course",
+          content_type: (courseData.content_type as ContentType) || "recorded_course",
           status: "unpublished", // Hardcoded safety constraint
           slug: generatedSlug,
         })
@@ -92,11 +104,12 @@ export const CourseJSONImporter = () => {
 
         // 3. Iterate and insert Resources for this Module
         if (mod.resources && mod.resources.length > 0) {
+          // Map to correct display_order column and cast resource_type
           const resourcesToInsert = mod.resources.map((res, index) => ({
             module_id: moduleRecord.id,
             title: res.title,
-            resource_type: res.resource_type,
-            order_index: index + 1,
+            resource_type: res.resource_type as ResourceType,
+            display_order: index + 1,
           }));
 
           const { error: resourceError } = await supabase.from("module_resources").insert(resourcesToInsert);
