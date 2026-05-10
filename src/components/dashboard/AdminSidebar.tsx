@@ -207,6 +207,7 @@ const navGroups: NavGroup[] = [
       { title: "States / Regions", icon: Map, value: "gtm-states" },
       { title: "Cities", icon: Map, value: "gtm-cities" },
       { title: "Clusters", icon: Network, value: "gtm-clusters" },
+      { title: "Knowledge Packs", icon: FileText, value: "gtm-knowledge" },
     ],
   },
   {
