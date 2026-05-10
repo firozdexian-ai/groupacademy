@@ -56,7 +56,7 @@ export function TalentUploadTab() {
           <TabsContent value="single" className="mt-6 flex-1 outline-none">
             {/* The existing batch tool also supports a single file; we surface
                 it under the same shell so behaviour stays consistent. */}
-            <BatchTalentUpload singleMode={true} />
+            <BatchTalentUpload />
           </TabsContent>
 
           <TabsContent value="batch" className="mt-6 flex-1 outline-none">
