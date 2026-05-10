@@ -348,9 +348,82 @@ export function LearningCoursesTab() {
             </DialogDescription>
           </DialogHeader>
           {selectedModuleCourseId && (
-            <ModulePickerPanel
-              contentId={selectedModuleCourseId}
-              onClose={() => setSelectedModuleCourseId(null)}
+            <Tabs defaultValue="modules" className="w-full">
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="modules" className="text-[10px] font-black uppercase tracking-widest gap-2">
+                  <Layers className="h-3.5 w-3.5" /> Modules
+                </TabsTrigger>
+                <TabsTrigger value="flashcards" className="text-[10px] font-black uppercase tracking-widest gap-2">
+                  <Sparkles className="h-3.5 w-3.5" /> Flashcards
+                </TabsTrigger>
+                <TabsTrigger value="resources" className="text-[10px] font-black uppercase tracking-widest gap-2">
+                  <BookOpen className="h-3.5 w-3.5" /> Resources
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="modules">
+                <ModulePickerPanel
+                  contentId={selectedModuleCourseId}
+                  onClose={() => setSelectedModuleCourseId(null)}
+                />
+              </TabsContent>
+              <TabsContent value="flashcards">
+                <FlashcardEditor onSave={() => {}} />
+              </TabsContent>
+              <TabsContent value="resources">
+                <div className="space-y-3 p-4 border-2 border-dashed border-border/40 rounded-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Attach a resource file or link for this course.
+                  </p>
+                  <ModuleResourceFileUpload
+                    value={tempResourceUrl}
+                    onChange={setTempResourceUrl}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Content Generator */}
+      <Dialog open={showBatchGenerator} onOpenChange={setShowBatchGenerator}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-[32px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-violet-500 flex items-center gap-2">
+              <Wand2 className="h-5 w-5" /> Bulk Content Generator
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Generate multiple courses, modules, or resources in a single batch.
+            </DialogDescription>
+          </DialogHeader>
+          <BatchContentGenerator />
+        </DialogContent>
+      </Dialog>
+
+      {/* Readiness Checklist */}
+      <Dialog
+        open={!!selectedCourseForChecklist}
+        onOpenChange={(o) => !o && setSelectedCourseForChecklist(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-emerald-500 flex items-center gap-2">
+              <FileCheck2 className="h-5 w-5" /> Readiness Checklist
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Live diagnostic of platform readiness rules for this course.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCourseForChecklist && (
+            <ContentReadinessChecklist
+              contentId={selectedCourseForChecklist.id}
+              formData={{
+                title: selectedCourseForChecklist.title,
+                content_type: selectedCourseForChecklist.content_type,
+              }}
+              moduleStats={undefined}
+              moduleAudit={[]}
+              sessionCount={0}
             />
           )}
         </DialogContent>
