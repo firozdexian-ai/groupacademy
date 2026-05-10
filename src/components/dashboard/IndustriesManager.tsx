@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Market Sector Normalization Terminal (Industries)
  * High-fidelity orchestrator for sectoral aggregation and registry deduplication.
- * 2026 Standard: Executive Logic geometry with reinforced aggregation guards.
+ * 2024 Standard: Executive Logic geometry with reinforced aggregation guards.
  */
 
 interface IndustryRow {
@@ -80,17 +80,17 @@ export function IndustriesManager() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      // 1. Ingest Raw Sectoral Data
+      // 1. Ingest Raw Sectoral Data (CTO Patch: Expanded limit to prevent silent 1000-row truncation)
       const { data: companies, error: compErr } = await withTimeout(
-        Promise.resolve(supabase.from("companies").select("id, industry")),
+        Promise.resolve(supabase.from("companies").select("id, industry").limit(10000)),
         TIMEOUTS.DEFAULT,
         "Sector Ingestion Timeout",
       );
       if (compErr) throw compErr;
 
-      // 2. Map Job Dependencies
+      // 2. Map Job Dependencies (CTO Patch: Expanded limit)
       const { data: jobs, error: jobErr } = await withTimeout(
-        Promise.resolve(supabase.from("jobs").select("company_id")),
+        Promise.resolve(supabase.from("jobs").select("company_id").limit(10000)),
         TIMEOUTS.DEFAULT,
         "Job Dependency Sync Timeout",
       );
@@ -331,52 +331,63 @@ export function IndustriesManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((row) => (
-                    <TableRow
-                      key={row.industry}
-                      className="group transition-all hover:bg-primary/[0.02] border-b-2 border-border/5 last:border-0"
-                    >
-                      <TableCell className="px-6">
-                        <Checkbox
-                          checked={selected.has(row.industry)}
-                          onCheckedChange={() => toggleSelect(row.industry)}
-                        />
-                      </TableCell>
-                      <TableCell className="py-6 font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors">
-                        {row.industry}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
-                        >
-                          <Building2 className="h-3 w-3 opacity-40" /> {row.companyCount}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
-                        >
-                          <Briefcase className="h-3 w-3 opacity-40" /> {row.jobCount}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
-                          onClick={() => {
-                            setRenameFrom(row.industry);
-                            setRenameTo(row.industry);
-                            setRenameDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                  {paginated.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-32 text-muted-foreground/40 italic uppercase tracking-[0.2em] font-black"
+                      >
+                        No market sectors match query.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    paginated.map((row) => (
+                      <TableRow
+                        key={row.industry}
+                        className="group transition-all hover:bg-primary/[0.02] border-b-2 border-border/5 last:border-0"
+                      >
+                        <TableCell className="px-6">
+                          <Checkbox
+                            checked={selected.has(row.industry)}
+                            onCheckedChange={() => toggleSelect(row.industry)}
+                          />
+                        </TableCell>
+                        <TableCell className="py-6 font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors">
+                          {row.industry}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
+                          >
+                            <Building2 className="h-3 w-3 opacity-40" /> {row.companyCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
+                          >
+                            <Briefcase className="h-3 w-3 opacity-40" /> {row.jobCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
+                            onClick={() => {
+                              setRenameFrom(row.industry);
+                              setRenameTo(row.industry);
+                              setRenameDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
