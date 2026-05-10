@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +104,7 @@ const emptyProgram = {
 
 const ITEMS_PER_PAGE = 10;
 
-export function StudyAbroadManager() {
+export function AbroadProgramsTab() {
   const [programs, setPrograms] = useState<StudyAbroadProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -564,3 +564,5 @@ export function StudyAbroadManager() {
     </div>
   );
 }
+
+export default AbroadProgramsTab;

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export default function DestinationsTab() {
+export default function AbroadDestinationsTab() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
 

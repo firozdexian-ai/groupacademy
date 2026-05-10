@@ -64,7 +64,7 @@ interface RoadmapLead {
   };
 }
 
-export function StudyAbroadRoadmapLeadsManager() {
+export function AbroadRoadmapLeadsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLead, setSelectedLead] = useState<RoadmapLead | null>(null);
@@ -431,3 +431,5 @@ function DataPoint({ label, value }: { label: string; value: any }) {
     </div>
   );
 }
+
+export default AbroadRoadmapLeadsTab;

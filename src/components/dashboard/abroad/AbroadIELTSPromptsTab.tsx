@@ -16,7 +16,7 @@ import { Plus } from "lucide-react";
 
 const SECTIONS = ["writing", "speaking", "reading", "listening"];
 
-export default function IELTSPromptsTab() {
+export default function AbroadIELTSPromptsTab() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
   const [section, setSection] = useState<string>("all");

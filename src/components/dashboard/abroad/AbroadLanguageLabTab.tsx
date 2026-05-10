@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-export default function LanguageLabTab() {
+export default function AbroadLanguageLabTab() {
   const { data: languages, isLoading: l1 } = useQuery({
     queryKey: ["admin-languages"],
     queryFn: async () => {
