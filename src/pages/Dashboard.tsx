@@ -388,7 +388,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.TransactionsTab })),
   ),
   payments: React.lazy(() => import("@/components/dashboard/finance/PaymentInfraTab")),
-  modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
+  modules: React.lazy(() => import("@/components/dashboard/learning/modules/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
 };
 
