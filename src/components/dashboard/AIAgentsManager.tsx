@@ -18,6 +18,7 @@ import {
   Terminal,
   Settings2,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
