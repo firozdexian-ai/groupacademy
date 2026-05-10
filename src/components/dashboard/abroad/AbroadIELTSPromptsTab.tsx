@@ -1,138 +1,215 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { useAbroadGraph } from "@/hooks/useAbroadGraph";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Pencil, Trash2, Mic, ShieldCheck, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-const SECTIONS = ["writing", "speaking", "reading", "listening"];
-
-export default function AbroadIELTSPromptsTab() {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState<any | null>(null);
-  const [section, setSection] = useState<string>("all");
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-ielts-prompts", section],
-    queryFn: async () => {
-      let q = supabase.from("ielts_prompts").select("*").order("created_at", { ascending: false }).limit(200);
-      if (section !== "all") q = q.eq("section", section);
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
-
-  const upsert = useMutation({
-    mutationFn: async (row: any) => {
-      const payload = {
-        section: row.section,
-        task_type: row.task_type ?? "general",
-        difficulty: row.difficulty ?? "medium",
-        prompt_text: row.prompt_text,
-        band_target: row.band_target ?? null,
-        is_active: row.is_active ?? true,
-      };
-      if (row.id) {
-        const { error } = await supabase.from("ielts_prompts").update(payload).eq("id", row.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("ielts_prompts").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success("Saved");
-      setEditing(null);
-      qc.invalidateQueries({ queryKey: ["admin-ielts-prompts"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
-  });
-
-  const toggle = useMutation({
-    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("ielts_prompts").update({ is_active: active }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-ielts-prompts"] }),
-  });
+export function AbroadIELTSPromptsTab() {
+  const {
+    abroadGraphQuery,
+    mutations: { upsertIeltsAttempt, deleteIeltsAttempt },
+  } = useAbroadGraph();
+  const { data, isLoading } = abroadGraphQuery;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<any>({ score: 0 });
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-bold">IELTS Prompts</h2>
-          <p className="text-sm text-muted-foreground">Curate prompts that power the AI mock test sections.</p>
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-violet-500">
+            <Mic className="h-8 w-8 text-violet-500 fill-violet-500/20" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+              IELTS Attempts
+            </h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            AI Scored Mock Submissions
+          </p>
         </div>
-        <Button size="sm" onClick={() => setEditing({ section: "writing", is_active: true })}>
-          <Plus className="h-4 w-4 mr-1" /> New
+        <Button
+          onClick={() => {
+            setDraft({ score: 0 });
+            setOpen(true);
+          }}
+          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-violet-500/20 bg-violet-600 hover:bg-violet-700 text-white"
+        >
+          <Plus className="h-4 w-4" /> Inject Score
         </Button>
-      </div>
+      </header>
 
-      <Select value={section} onValueChange={setSection}>
-        <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All sections</SelectItem>
-          {SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-400 via-purple-500 to-indigo-600" />
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/10 border-b-2 border-border/20">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest py-5 pl-8">
+                    Prompt ID
+                  </TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Talent Node</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Band Score</TableHead>
+                  <TableHead className="text-right py-5 pr-8">Manage</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border/5">
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-20 text-center">
+                      <Skeleton className="h-8 w-32 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : data?.ieltsAttempts?.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="py-20 text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground/50 italic"
+                    >
+                      Zero attempts detected.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.ieltsAttempts?.map((row) => (
+                    <TableRow key={row.id} className="group hover:bg-violet-500/[0.02]">
+                      <TableCell className="py-6 pl-8">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-background border-2 border-border/20 flex items-center justify-center shrink-0">
+                            <Mic className="h-3 w-3 text-violet-500" />
+                          </div>
+                          <span className="font-mono text-xs uppercase tracking-tight text-muted-foreground">
+                            {row.prompt_id?.substring(0, 8) || "N/A"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
+                          <User className="h-3 w-3 text-violet-500" />{" "}
+                          {row.user_id ? row.user_id.substring(0, 8) : "Unknown"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {row.score ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black uppercase text-sm tracking-widest">
+                            Band {row.score}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-amber-500 border-amber-500/20 bg-amber-500/10 font-bold uppercase text-[9px] tracking-widest"
+                          >
+                            Pending Scoring
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDraft(row);
+                              setOpen(true);
+                            }}
+                            className="hover:bg-violet-500/10 hover:text-violet-600"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              if (confirm("Purge Attempt?")) deleteIeltsAttempt.mutate(row.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-      {isLoading ? (
-        <Skeleton className="h-40 w-full" />
-      ) : (
-        <div className="space-y-2">
-          {data?.map((p) => (
-            <Card key={p.id} className="p-3 space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold text-sm capitalize">{p.task_type} · {p.difficulty}</div>
-                  <div className="text-xs text-muted-foreground line-clamp-2">{p.prompt_text}</div>
-                </div>
-                <Switch checked={p.is_active} onCheckedChange={(v) => toggle.mutate({ id: p.id, active: v })} />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md rounded-[40px] p-8 border-4 border-border/40 text-left">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-violet-500 flex items-center gap-2">
+              <Mic className="h-6 w-6" /> Evaluate Attempt
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Update AI or manual band score.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Prompt Node ID
+                </Label>
+                <Input
+                  placeholder="UUID"
+                  value={draft.prompt_id || ""}
+                  onChange={(e) => setDraft({ ...draft, prompt_id: e.target.value })}
+                  className="h-14 rounded-xl border-2 font-mono text-xs"
+                />
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="capitalize">{p.section}</Badge>
-                {p.band_target && <Badge variant="outline">Band {p.band_target}+</Badge>}
-                <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditing(p)}>Edit</Button>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Talent User ID
+                </Label>
+                <Input
+                  placeholder="UUID"
+                  value={draft.user_id || ""}
+                  onChange={(e) => setDraft({ ...draft, user_id: e.target.value })}
+                  className="h-14 rounded-xl border-2 font-mono text-xs"
+                />
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Sheet open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {editing && (
-            <>
-              <SheetHeader><SheetTitle>{editing.id ? "Edit" : "New"} prompt</SheetTitle></SheetHeader>
-              <div className="space-y-3 mt-4">
-                <div>
-                  <Label>Section</Label>
-                  <Select value={editing.section} onValueChange={(v) => setEditing({ ...editing, section: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Task type</Label><Input value={editing.task_type ?? "general"} onChange={(e) => setEditing({ ...editing, task_type: e.target.value })} /></div>
-                  <div><Label>Difficulty</Label><Input value={editing.difficulty ?? "medium"} onChange={(e) => setEditing({ ...editing, difficulty: e.target.value })} /></div>
-                </div>
-                <div><Label>Prompt text</Label><Textarea rows={8} value={editing.prompt_text ?? ""} onChange={(e) => setEditing({ ...editing, prompt_text: e.target.value })} /></div>
-                <div><Label>Target band (optional)</Label><Input type="number" step="0.5" value={editing.band_target ?? ""} onChange={(e) => setEditing({ ...editing, band_target: parseFloat(e.target.value) || null })} /></div>
-                <Button className="w-full" disabled={upsert.isPending} onClick={() => upsert.mutate(editing)}>Save</Button>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 ml-1">
+                Band Score (0-9)
+              </Label>
+              <Input
+                type="number"
+                step="0.5"
+                min="0"
+                max="9"
+                placeholder="e.g. 7.5"
+                value={draft.score || ""}
+                onChange={(e) => setDraft({ ...draft, score: Number(e.target.value) })}
+                className="h-14 rounded-xl border-2 border-emerald-500/20 bg-emerald-500/5 font-black text-emerald-600 text-lg"
+              />
+            </div>
+          </div>
+          <Button
+            disabled={!draft.user_id || upsertIeltsAttempt.isPending}
+            onClick={() => {
+              const payload = { ...draft, ai_band_score: draft.score };
+              delete payload.score;
+              delete payload.status;
+              upsertIeltsAttempt.mutate(payload, { onSuccess: () => setOpen(false) });
+            }}
+            className="h-14 rounded-xl font-black uppercase bg-violet-600 hover:bg-violet-700 text-white"
+          >
+            <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Score
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+export default AbroadIELTSPromptsTab;
