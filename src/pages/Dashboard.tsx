@@ -504,6 +504,8 @@ const TAB_TITLES: Record<string, string> = {
   "ir-investors": "Shareholders",
   "ir-pipeline": "Investor Pipeline",
   "ir-emails": "Executive Updates",
+  "ir-dataroom": "Data Room",
+  "ir-economics": "Unit Economics",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
   "support-assistant": "Helpdesk AI",
