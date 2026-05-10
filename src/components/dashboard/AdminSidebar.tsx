@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Building2,
   FileCheck,
+  ShieldCheck,
   Send,
   Database as DatabaseIcon,
   Key,
@@ -280,20 +281,7 @@ const navGroups: NavGroup[] = [
       { title: "Payouts", icon: Wallet, value: "instructor-payouts" },
     ],
   },
-  {
-    title: "Gig Economy",
-    icon: Briefcase,
-    roles: ["admin"],
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, value: "gig-overview" },
-      { title: "AI Scoper Queue", icon: Sparkles, value: "gig-ops-scoper" },
-      { title: "Quick Actions", icon: Zap, value: "quick-action-gigs" },
-      { title: "Course Projects", icon: Layers, value: "course-projects" },
-      { title: "Client Projects", icon: Store, value: "client-projects" },
-      { title: "Submissions", icon: FileCheck, value: "gig-submissions" },
-      { title: "Workers Wallet", icon: Coins, value: "gig-workers-wallet" },
-    ],
-  },
+  // Legacy Gig Economy group removed — unified above.
   {
     title: "Career Abroad",
     icon: Globe,
