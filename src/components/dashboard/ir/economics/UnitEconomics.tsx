@@ -123,7 +123,7 @@ export function UnitEconomics() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
-                <RetentionCard snapshots={ordered} />
+                <RetentionCard data={ordered} />
               </CardContent>
             </Card>
 
@@ -138,7 +138,7 @@ export function UnitEconomics() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
-                <HitLCogsCard snapshots={ordered} />
+                <HitLCogsCard data={ordered} />
               </CardContent>
             </Card>
 
@@ -158,7 +158,7 @@ export function UnitEconomics() {
                 </Badge>
               </CardHeader>
               <CardContent className="p-8 pt-0">
-                <RevPerEmployeeCard snapshots={ordered} />
+                <RevPerEmployeeCard data={ordered} />
               </CardContent>
             </Card>
           </div>
