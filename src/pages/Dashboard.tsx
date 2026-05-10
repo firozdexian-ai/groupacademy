@@ -49,34 +49,15 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "hr-workforce": React.lazy(() =>
     import("@/components/dashboard/hr/WorkforceManager").then((m) => ({ default: m.WorkforceManager })),
   ),
-  talent: React.lazy(() =>
-    import("@/components/dashboard/TalentPoolManager").then((m) => ({ default: m.TalentPoolManager })),
-  ),
-  "talent-overview": React.lazy(() =>
-    import("@/components/dashboard/talent/TalentOverviewTab").then((m) => ({ default: m.TalentOverviewTab })),
-  ),
-  "talent-upload": React.lazy(() =>
-    import("@/components/dashboard/talent/TalentUploadTab").then((m) => ({ default: m.TalentUploadTab })),
-  ),
-  "talent-outreach": React.lazy(() =>
-    import("@/components/dashboard/talent/TalentOutreachConsoleTab").then((m) => ({
-      default: m.TalentOutreachConsoleTab,
-    })),
-  ),
-  "talent-wa-channel": React.lazy(() =>
-    import("@/components/dashboard/talent/TalentMessagingChannelTab").then((m) => ({
-      default: m.TalentMessagingChannelTab,
-    })),
-  ),
-  "talent-creator-economy": React.lazy(() =>
-    import("@/components/dashboard/talent/CreatorEconomyTab").then((m) => ({ default: m.CreatorEconomyTab })),
-  ),
-  "lead-hunter": React.lazy(() =>
-    import("@/components/dashboard/marketing/leads/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
-  ),
-  professions: React.lazy(() =>
-    import("@/components/dashboard/ProfessionsManager").then((m) => ({ default: m.ProfessionsManager })),
-  ),
+  "crm-overview": React.lazy(() => import("@/components/dashboard/talent/TalentOverviewTab").then((m: any) => ({ default: m.TalentOverviewTab ?? m.default }))),
+  "crm-talent-pool": React.lazy(() => import("@/components/dashboard/talent/TalentPoolTab").then((m: any) => ({ default: m.TalentPoolTab ?? m.TalentPoolManager ?? m.default }))),
+  "crm-professions": React.lazy(() => import("@/components/dashboard/talent/ProfessionsTab").then((m: any) => ({ default: m.ProfessionsTab ?? m.ProfessionsManager ?? m.default }))),
+  "crm-upload": React.lazy(() => import("@/components/dashboard/talent/TalentUploadTab").then((m: any) => ({ default: m.TalentUploadTab ?? m.default }))),
+  "crm-outreach": React.lazy(() => import("@/components/dashboard/talent/TalentOutreachConsoleTab").then((m: any) => ({ default: m.TalentOutreachConsoleTab ?? m.default }))),
+  "crm-wa-channel": React.lazy(() => import("@/components/dashboard/talent/TalentMessagingChannelTab").then((m: any) => ({ default: m.TalentMessagingChannelTab ?? m.default }))),
+  "crm-creator-economy": React.lazy(() => import("@/components/dashboard/talent/CreatorEconomyTab").then((m: any) => ({ default: m.CreatorEconomyTab ?? m.default }))),
+  "crm-notifications": React.lazy(() => import("@/components/dashboard/talent/NotificationsTab").then((m: any) => ({ default: m.NotificationsTab ?? m.NotificationsManager ?? m.default }))),
+  "crm-support-ai": React.lazy(() => import("@/components/dashboard/talent/SupportAITab").then((m: any) => ({ default: m.SupportAITab ?? m.SupportAssistant ?? m.default }))),
   // Jobs / ATS routes consolidated below (search "jobs-overview").
   companies: React.lazy(() =>
     import("@/components/dashboard/CompaniesManager").then((m) => ({ default: m.CompaniesManager })),
@@ -183,9 +164,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   portfolios: React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager")),
   // Gig Economy routes consolidated below (search "gigs-overview").
 
-  notifications: React.lazy(() =>
-    import("@/components/dashboard/NotificationsManager").then((m) => ({ default: m.NotificationsManager })),
-  ),
   "ir-dashboard": React.lazy(() =>
     import("@/components/dashboard/ir/IRDashboard").then((m) => ({ default: m.IRDashboard })),
   ),
@@ -212,9 +190,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "ir-overview": React.lazy(() => import("@/components/dashboard/investors/IROverviewTab")),
   "ir-influencers": React.lazy(() => import("@/components/dashboard/investors/KeyInfluencersTab")),
-  "support-assistant": React.lazy(() =>
-    import("@/components/dashboard/SupportAssistant").then((m) => ({ default: m.SupportAssistant })),
-  ),
   // Marketing banners/themes/access-codes legacy keys removed — see "marketing-*" block below.
   "hr-team": React.lazy(() => import("@/components/dashboard/hr/TeamManager").then((m) => ({ default: m.TeamManager }))),
   // Legacy "payments-legacy" + "invoices" keys removed — replaced by "finops-*" block below.
@@ -365,14 +340,17 @@ const TAB_TITLES: Record<string, string> = {
   "overview-analyst": "Business Analyst",
   "overview-reports": "Report Builder",
   workforce: "Workforce",
-  talent: "Talent Intel",
-  "talent-upload": "Talent Upload",
-  "talent-outreach": "Talent Outreach",
-  "talent-wa-channel": "Talent WhatsApp Line",
   "companies-wa-channel": "Employer WhatsApp Line",
   "community-wa-channel": "Community WhatsApp Line",
-  "lead-hunter": "Lead Acquisition",
-  professions: "Taxonomies",
+  "crm-overview": "CRM Overview",
+  "crm-talent-pool": "Talent Pool",
+  "crm-professions": "Professions & Roles",
+  "crm-upload": "Talent Upload",
+  "crm-outreach": "Outreach Log",
+  "crm-wa-channel": "WhatsApp Line",
+  "crm-creator-economy": "Creator Economy",
+  "crm-notifications": "Notifications",
+  "crm-support-ai": "Support AI",
   "jobs-kpis": "Growth Analytics",
   "jobs-hub": "Jobs Hub",
   "jobs-applications": "Candidate Flow",
@@ -464,7 +442,7 @@ const TAB_TITLES: Record<string, string> = {
   "finops-pay-infra": "Payment Infrastructure",
   "finops-invoices": "Invoices",
   "finops-withdrawals": "Withdrawals",
-  notifications: "System Alerts",
+  
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
   "ir-vcs": "VC Portfolio",
@@ -475,7 +453,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-economics": "Unit Economics",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
-  "support-assistant": "Helpdesk AI",
+  
   // Marketing labels moved to "marketing-*" block above.
   team: "Human Capital",
   // FinOps labels moved to "finops-*" block above.
@@ -514,7 +492,7 @@ const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { role, isLoading: roleLoading } = useUserRole();
 
-  const defaultTab = useMemo(() => (role === "talent_exec" ? "talent" : "overview"), [role]);
+  const defaultTab = useMemo(() => (role === "talent_exec" ? "crm-talent-pool" : "overview"), [role]);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || defaultTab);
 
   useEffect(() => {

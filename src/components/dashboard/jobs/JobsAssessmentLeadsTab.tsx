@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AssessmentCodeGenerator } from "./codes/AssessmentCodeGenerator";
-import { TalentDetailDialog } from "../TalentDetailDialog";
+import { TalentDetailDialog } from "../talent/TalentDetailDialog";
 import { cn } from "@/lib/utils";
 
 /**

@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { MockInterviewCodeGenerator } from "../../MockInterviewCodeGenerator";
-import { TalentDetailDialog } from "../../TalentDetailDialog";
+import { TalentDetailDialog } from "../../talent/TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 

@@ -36,7 +36,7 @@ import {
 import { getIcon } from "@/lib/iconMap";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardCardSkeleton } from "./DashboardSkeleton";
+import { DashboardCardSkeleton } from "../DashboardSkeleton";
 import { cn } from "@/lib/utils";
 import { ProfessionalRolesPanel } from "@/components/dashboard/talent/ProfessionalRolesPanel";
 

@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Upload as UploadIcon, FileUp, FilePlus2, FileCheck } from "lucide-react";
-import { BatchTalentUpload } from "@/components/dashboard/BatchTalentUpload";
+import { BatchTalentUpload } from "@/components/dashboard/talent/BatchTalentUpload";
 import { GigsSubmissionsTab as GigSubmissionsManager } from "@/components/dashboard/gigs/GigsSubmissionsTab";
 
 export function TalentUploadTab() {
