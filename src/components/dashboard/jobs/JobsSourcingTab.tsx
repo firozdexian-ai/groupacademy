@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useJobsGraph } from "@/hooks/useJobsGraph";
+import { useJobsGraph } from "hooks/useJobsGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

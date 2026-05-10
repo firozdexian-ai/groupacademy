@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useIRDataRoom, useDocumentTelemetry, type IRDocument } from "@/hooks/useDataRoom";
+import { useIRDataRoom, useDocumentTelemetry, type IRDocument } from "../hooks/useDataRoom";
 import { Copy, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 

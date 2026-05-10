@@ -1,7 +1,7 @@
 import { Droppable } from "@hello-pangea/dnd";
 import { formatUSD } from "@/lib/irConfig";
 import { PipelineCard } from "./PipelineCard";
-import { PipelineStage } from "@/hooks/useIRPipeline";
+import { PipelineStage } from "../hooks/useIRPipeline";
 import { cn } from "@/lib/utils";
 
 interface Props {

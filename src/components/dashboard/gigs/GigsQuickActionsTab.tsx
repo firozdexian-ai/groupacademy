@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGigGraph } from "@/hooks/useGigGraph";
+import { useGigGraph } from "hooks/useGigGraph";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

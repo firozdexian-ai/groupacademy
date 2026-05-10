@@ -47,7 +47,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/overview/ReportsBuilderTab").then((m) => ({ default: m.ReportsBuilderTab })),
   ),
   "hr-workforce": React.lazy(() =>
-    import("@/components/dashboard/hr/WorkforceManager").then((m) => ({ default: m.WorkforceManager })),
+    import("@/components/dashboard/hr/WorkforceTab").then((m) => ({ default: m.WorkforceManager })),
   ),
   "crm-overview": React.lazy(() => import("@/components/dashboard/talent/TalentOverviewTab").then((m: any) => ({ default: m.TalentOverviewTab ?? m.default }))),
   "crm-talent-pool": React.lazy(() => import("@/components/dashboard/talent/TalentPoolTab").then((m: any) => ({ default: m.TalentPoolTab ?? m.TalentPoolManager ?? m.default }))),

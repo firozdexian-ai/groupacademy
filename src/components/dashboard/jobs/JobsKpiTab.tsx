@@ -1,4 +1,4 @@
-import { useJobsGraph } from "@/hooks/useJobsGraph";
+import { useJobsGraph } from "hooks/useJobsGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, TrendingUp, Users, Target, Crosshair } from "lucide-react";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useUgcGraph } from "@/hooks/useUgcGraph";
+import { useUgcGraph } from "hooks/useUgcGraph";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

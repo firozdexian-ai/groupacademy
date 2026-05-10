@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Share2, Activity, Plus, BarChart3, Database } from "lucide-react";
-import { useIRDataRoom, IRDocument } from "@/hooks/useDataRoom";
+import { useIRDataRoom, IRDocument } from "../hooks/useDataRoom";
 import { UploadDocumentDialog } from "./UploadDocumentDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { DocumentTelemetryDrawer } from "./DocumentTelemetryDrawer";

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useUgcGraph } from "@/hooks/useUgcGraph";
+import { useUgcGraph } from "hooks/useUgcGraph";
 import { Radio, Video, FileText, MessageSquare, Trophy, ShieldAlert, Activity, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 

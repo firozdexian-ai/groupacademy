@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useGigGraph } from "@/hooks/useGigGraph";
+import { useGigGraph } from "hooks/useGigGraph";
 import { Briefcase, Zap, ShieldCheck, Coins, Activity, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

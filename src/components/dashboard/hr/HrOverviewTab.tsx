@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useHrGraph } from "@/hooks/useHrGraph";
+import { useHrGraph } from "hooks/useHrGraph";
 import { Network, Users, Briefcase, Building2, Layers, ChevronRight, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 

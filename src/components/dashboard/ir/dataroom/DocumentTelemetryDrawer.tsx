@@ -1,5 +1,5 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useDocumentTelemetry, type IRDocument } from "@/hooks/useDataRoom";
+import { useDocumentTelemetry, type IRDocument } from "../hooks/useDataRoom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Flame, Clock } from "lucide-react";
