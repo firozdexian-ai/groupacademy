@@ -340,6 +340,8 @@ const TAB_TITLES: Record<string, string> = {
   "overview-analyst": "Business Analyst",
   "overview-reports": "Report Builder",
   workforce: "Workforce",
+  "companies-wa-channel": "Employer WhatsApp Line",
+  "community-wa-channel": "Community WhatsApp Line",
   "crm-overview": "CRM Overview",
   "crm-talent-pool": "Talent Pool",
   "crm-professions": "Professions & Roles",
