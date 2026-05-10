@@ -102,7 +102,7 @@ interface EngagementData {
   recommendations: number;
 }
 
-export function JobsManager() {
+export function JobsManagerLegacyTab() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [engagement, setEngagement] = useState<Record<string, EngagementData>>({});
   const [loading, setLoading] = useState(true);

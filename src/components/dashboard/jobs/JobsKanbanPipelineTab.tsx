@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ApplicationKanban } from "@/components/applications/ApplicationKanban";
 import { Card } from "@/components/ui/card";
 
-export function AdminApplicationsPipeline() {
+export function JobsKanbanPipelineTab() {
   const [showWithdrawn, setShowWithdrawn] = useState(false);
 
   return (
@@ -28,4 +28,4 @@ export function AdminApplicationsPipeline() {
   );
 }
 
-export default AdminApplicationsPipeline;
+export default JobsKanbanPipelineTab;

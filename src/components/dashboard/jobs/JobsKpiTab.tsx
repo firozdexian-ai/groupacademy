@@ -63,7 +63,7 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   "United States": ["USA", "United States", "US", "NY", "California"], //
 };
 
-export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: string) => void }) {
+export function JobsKpiTab({ onNavigateToTab }: { onNavigateToTab?: (tab: string) => void }) {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

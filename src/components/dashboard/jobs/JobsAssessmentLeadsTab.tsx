@@ -57,7 +57,7 @@ const readinessColors: Record<string, string> = {
 
 const PAGE_SIZE = 20;
 
-export function AssessmentLeadsManager() {
+export function JobsAssessmentLeadsTab() {
   const [leads, setLeads] = useState<AssessmentLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

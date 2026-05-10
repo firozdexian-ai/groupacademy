@@ -8,7 +8,7 @@ import { useTalentSearch } from "@/hooks/useTalentSearch";
 import { Search, Loader2, MapPin, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export function AdminTalentSourcing() {
+export function JobsSourcingTab() {
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("");
   const [filters, setFilters] = useState<{ keyword?: string; country?: string }>({});
@@ -100,4 +100,4 @@ export function AdminTalentSourcing() {
   );
 }
 
-export default AdminTalentSourcing;
+export default JobsSourcingTab;

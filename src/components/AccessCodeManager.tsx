@@ -21,10 +21,10 @@ import {
   ShieldCheck,
   RefreshCw,
 } from "lucide-react";
-import { StandaloneAssessmentCodeGenerator } from "@/components/dashboard/StandaloneAssessmentCodeGenerator";
+import { StandaloneAssessmentCodeGenerator } from "@/components/dashboard/jobs/codes/StandaloneAssessmentCodeGenerator";
 import { StandaloneMockInterviewCodeGenerator } from "@/components/dashboard/StandaloneMockInterviewCodeGenerator";
 import { StandaloneSalaryCodeGenerator } from "@/components/dashboard/StandaloneSalaryCodeGenerator";
-import { JobApplicationCodeGenerator } from "@/components/dashboard/JobApplicationCodeGenerator";
+import { JobApplicationCodeGenerator } from "@/components/dashboard/jobs/codes/JobApplicationCodeGenerator";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/components/dashboard/DashboardSkeleton";

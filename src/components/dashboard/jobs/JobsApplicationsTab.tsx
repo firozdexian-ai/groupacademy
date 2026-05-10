@@ -129,7 +129,7 @@ const getFirstName = (fullName: string): string => {
   return parts[0];
 };
 
-export const JobApplicationsManager = () => {
+export const JobsApplicationsTab = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState<JobApplication[]>([]);
