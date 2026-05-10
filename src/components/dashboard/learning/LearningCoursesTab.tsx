@@ -172,14 +172,32 @@ export function LearningCoursesTab() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={cn(
-                              "font-bold text-[9px] uppercase tracking-widest border-none px-3",
-                              isRowPublished ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600",
-                            )}
-                          >
-                            {isRowPublished ? "Published" : "Unpublished"}
-                          </Badge>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              className={cn(
+                                "font-bold text-[9px] uppercase tracking-widest border-none px-3",
+                                isRowPublished ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600",
+                              )}
+                            >
+                              {isRowPublished ? "Published" : "Unpublished"}
+                            </Badge>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCourseForChecklist(row)}
+                              title="Open readiness checklist"
+                              className="focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
+                            >
+                              <ContentReadinessBadge
+                                compact
+                                isReady={isRowPublished}
+                                stats={
+                                  isRowPublished
+                                    ? { module_count: 1, modules_with_desc: 1, modules_with_video: 1, playable_modules: 1 }
+                                    : undefined
+                                }
+                              />
+                            </button>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-mono text-[10px] text-muted-foreground">
                           {new Date(row.created_at).toLocaleDateString()}
