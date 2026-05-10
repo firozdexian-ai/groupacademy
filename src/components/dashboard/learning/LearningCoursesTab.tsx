@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tv, ShieldCheck, BookOpen, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Tv, ShieldCheck, BookOpen, Filter, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import ContentFilters, { type ContentFilterValues } from "./content-widgets/ContentFilters";
+import ModulePickerPanel from "./modules/ModulePickerPanel";
 
 export function LearningCoursesTab() {
   const {
@@ -21,25 +23,47 @@ export function LearningCoursesTab() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<any>({ status: "draft", content_type: "recorded_course" });
 
-  // Dynamic Filter States
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  // Selected course for module management
+  const [selectedModuleCourseId, setSelectedModuleCourseId] = useState<string | null>(null);
 
-  // Dynamic Filtering Logic matching DB columns (is_published)
-  const courses =
-    data?.content?.filter((c) => {
-      const matchType = filterType === "all" || c.content_type === filterType;
+  // Unified ContentFilters state
+  const [filters, setFilters] = useState<ContentFilterValues>({
+    programId: "all",
+    levelId: "all",
+    readiness: "all",
+    sortBy: "newest",
+    typeSegment: "all",
+  });
 
-      // Check both DB boolean and UI string to be safe against legacy data
+  // Map ContentFilters → existing dataset
+  const courses = (() => {
+    const list = (data?.content ?? []).filter((c) => {
+      const seg = filters.typeSegment ?? "all";
+      const matchType =
+        seg === "all" ||
+        (seg === "recorded" && c.content_type === "recorded_course") ||
+        (seg === "live" && (c.content_type === "live_webinar" || c.content_type === "batch_class")) ||
+        (seg === "free" && c.content_type === "free_video") ||
+        (seg === "offline" && c.content_type === "offline");
+
       const isPublished = c.is_published === true || c.status === "published";
-
       const matchStatus =
-        filterStatus === "all" ||
-        (filterStatus === "published" && isPublished) ||
-        (filterStatus === "draft" && !isPublished);
+        filters.readiness === "all" ||
+        filters.readiness === "ready_only" ||
+        filters.readiness === "inactive_only" ||
+        (filters.readiness === "published" && isPublished) ||
+        (filters.readiness === "draft" && !isPublished);
 
       return matchType && matchStatus;
-    }) || [];
+    });
+
+    return [...list].sort((a, b) => {
+      if (filters.sortBy === "oldest") return +new Date(a.created_at) - +new Date(b.created_at);
+      if (filters.sortBy === "title_asc") return (a.title || "").localeCompare(b.title || "");
+      if (filters.sortBy === "title_desc") return (b.title || "").localeCompare(a.title || "");
+      return +new Date(b.created_at) - +new Date(a.created_at);
+    });
+  })();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-1000 p-4 md:p-6">
@@ -66,52 +90,14 @@ export function LearningCoursesTab() {
         </Button>
       </header>
 
-      {/* Dynamic Filters Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 px-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      {/* Unified Content Filters HUD */}
+      <div className="flex flex-col sm:flex-row gap-4 px-2 items-start">
+        <div className="flex items-center gap-2 text-muted-foreground pt-2">
           <Filter className="h-4 w-4" />
           <span className="text-[10px] font-black uppercase tracking-widest">Filters:</span>
         </div>
-        <div className="flex-1 flex gap-4 flex-wrap">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[200px] h-10 rounded-xl font-bold text-xs uppercase tracking-widest border-2">
-              <SelectValue placeholder="Content Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="font-bold text-xs uppercase tracking-widest">
-                All Types
-              </SelectItem>
-              <SelectItem value="recorded_course" className="font-bold text-xs uppercase tracking-widest">
-                Recorded Course
-              </SelectItem>
-              <SelectItem value="batch_class" className="font-bold text-xs uppercase tracking-widest">
-                Batch Class
-              </SelectItem>
-              <SelectItem value="live_webinar" className="font-bold text-xs uppercase tracking-widest">
-                Live Webinar
-              </SelectItem>
-              <SelectItem value="free_video" className="font-bold text-xs uppercase tracking-widest">
-                Free Video
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[200px] h-10 rounded-xl font-bold text-xs uppercase tracking-widest border-2">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="font-bold text-xs uppercase tracking-widest">
-                All Status
-              </SelectItem>
-              <SelectItem value="published" className="font-bold text-xs uppercase tracking-widest text-emerald-500">
-                Published
-              </SelectItem>
-              <SelectItem value="draft" className="font-bold text-xs uppercase tracking-widest text-amber-500">
-                Unpublished
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex-1">
+          <ContentFilters values={filters} onChange={setFilters} />
         </div>
       </div>
 
@@ -181,6 +167,15 @@ export function LearningCoursesTab() {
                         </TableCell>
                         <TableCell className="text-right pr-8">
                           <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedModuleCourseId(row.id)}
+                              className="hover:bg-indigo-500/10 hover:text-indigo-600"
+                              title="Manage Modules"
+                            >
+                              <Layers className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -290,6 +285,26 @@ export function LearningCoursesTab() {
           >
             <ShieldCheck className="mr-2 h-5 w-5" /> Authorize Content
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Module Management Dialog */}
+      <Dialog open={!!selectedModuleCourseId} onOpenChange={(o) => !o && setSelectedModuleCourseId(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-[32px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-indigo-500 flex items-center gap-2">
+              <Layers className="h-5 w-5" /> Module Curriculum
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Manage modules and learning resources for this course.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedModuleCourseId && (
+            <ModulePickerPanel
+              contentId={selectedModuleCourseId}
+              onClose={() => setSelectedModuleCourseId(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

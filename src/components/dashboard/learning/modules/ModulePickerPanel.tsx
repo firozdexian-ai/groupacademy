@@ -22,10 +22,15 @@ interface CourseRow {
   is_published: boolean | null;
 }
 
-export default function ModulePickerPanel() {
+interface ModulePickerPanelProps {
+  contentId?: string | null;
+  onClose?: () => void;
+}
+
+export default function ModulePickerPanel({ contentId: contentIdProp, onClose }: ModulePickerPanelProps = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const contentId = searchParams.get("id");
+  const contentId = contentIdProp ?? searchParams.get("id");
 
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +68,10 @@ export default function ModulePickerPanel() {
       <ModuleManagement
         contentId={contentId}
         onBack={() => {
+          if (onClose) {
+            onClose();
+            return;
+          }
           const next = new URLSearchParams(searchParams);
           next.delete("id");
           setSearchParams(next, { replace: true });
