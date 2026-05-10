@@ -162,10 +162,15 @@ serve(async (req) => {
     const variantPrompt = (agent.prompt_variants as any)?.[variant];
     const baseSystem = variantPrompt || agent.system_prompt || "You are a helpful assistant.";
 
-    // Build subject context — talent profile OR company page context
-    const subjectCtx = subjectKind === "company"
-      ? await buildCompanyContext(admin, subjectId!, body.context)
-      : buildSubjectContext(talentRow);
+    // Build subject context — admin caller, company workspace, or talent profile.
+    let subjectCtx = "";
+    if (subjectKind === "admin") {
+      subjectCtx = `\n\n## Caller\nAdmin user (id: ${user.id}, email: ${user.email ?? "—"})\nYou are speaking inside the internal admin Agentic Dashboard. The caller is platform staff with full read access; do not ask them to authenticate, and prefer concise, operational answers.`;
+    } else if (subjectKind === "company") {
+      subjectCtx = await buildCompanyContext(admin, subjectId!, body.context);
+    } else {
+      subjectCtx = buildSubjectContext(talentRow);
+    }
     const systemPrompt = baseSystem + subjectCtx;
 
     // Load tools
