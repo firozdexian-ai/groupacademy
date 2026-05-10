@@ -233,16 +233,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     })),
   ),
   portfolios: React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager")),
-  gigs: React.lazy(() => import("@/components/dashboard/GigsManager").then((m) => ({ default: m.GigsManager }))),
-  "course-projects": React.lazy(() =>
-    import("@/components/dashboard/CourseProjectsManager").then((m) => ({ default: m.CourseProjectsManager })),
-  ),
-  "marketplace-gigs": React.lazy(() =>
-    import("@/components/dashboard/MarketplaceGigsManager").then((m) => ({ default: m.MarketplaceGigsManager })),
-  ),
-  "gig-submissions": React.lazy(() =>
-    import("@/components/dashboard/GigSubmissionsManager").then((m) => ({ default: m.GigSubmissionsManager })),
-  ),
+  // Gig Economy routes consolidated below (search "gigs-overview").
+
   credits: React.lazy(() =>
     import("@/components/dashboard/CreditsManager").then((m) => ({ default: m.CreditsManager })),
   ),
@@ -376,11 +368,18 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   moderation: React.lazy(() => import("@/components/dashboard/learn/ModerationTab")),
   "b2b-engagements": React.lazy(() => import("@/components/dashboard/learn/B2BEngagementsTab")),
   "instructor-payouts": React.lazy(() => import("@/components/dashboard/learn/InstructorPayoutsTab")),
-  "gig-overview": React.lazy(() => import("@/components/dashboard/gig/GigOverviewTab")),
-  "gig-ops-scoper": React.lazy(() => import("@/components/dashboard/gig/GigOpsTab")),
-  "quick-action-gigs": React.lazy(() => import("@/components/dashboard/gig/QuickActionGigsTab")),
-  "client-projects": React.lazy(() => import("@/components/dashboard/gig/ClientProjectsTab")),
-  "gig-workers-wallet": React.lazy(() => import("@/components/dashboard/gig/GigWorkersWalletTab")),
+  "gigs-overview": React.lazy(() => import("@/components/dashboard/gigs/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
+  "gigs-scoper": React.lazy(() => import("@/components/dashboard/gigs/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
+  "gigs-quick-actions": React.lazy(() => import("@/components/dashboard/gigs/GigsQuickActionsTab").then(m => ({ default: m.GigsQuickActionsTab }))),
+  "gigs-marketplace": React.lazy(() => import("@/components/dashboard/gigs/GigsMarketplaceTab").then(m => ({ default: m.GigsMarketplaceTab }))),
+  "gigs-course-projects": React.lazy(() => import("@/components/dashboard/gigs/GigsCourseProjectsTab").then(m => ({ default: m.GigsCourseProjectsTab }))),
+  "gigs-client-projects": React.lazy(() => import("@/components/dashboard/gigs/ClientProjectsTab").then(m => ({ default: m.ClientProjectsTab }))),
+  "gigs-managed-projects": React.lazy(() => import("@/components/dashboard/gigs/ManagedProjectsTab").then(m => ({ default: m.ManagedProjectsTab }))),
+  "gigs-submissions": React.lazy(() => import("@/components/dashboard/gigs/GigsSubmissionsTab").then(m => ({ default: m.GigsSubmissionsTab }))),
+  "gigs-verification": React.lazy(() => import("@/components/dashboard/gigs/GigVerificationQueueTab").then(m => ({ default: m.GigVerificationQueueTab }))),
+  "gigs-reviewers": React.lazy(() => import("@/components/dashboard/gigs/ReviewerProgramTab").then(m => ({ default: m.ReviewerProgramTab }))),
+  "gigs-matchmaker": React.lazy(() => import("@/components/dashboard/gigs/GigMatchmakerTab").then(m => ({ default: m.GigMatchmakerTab }))),
+  "gigs-workers-wallet": React.lazy(() => import("@/components/dashboard/gigs/GigWorkersWalletTab").then(m => ({ default: m.GigWorkersWalletTab }))),
   "abroad-overview": React.lazy(() => import("@/components/dashboard/abroad/AbroadOverviewTab")),
   "abroad-destinations": React.lazy(() => import("@/components/dashboard/abroad/DestinationsTab")),
   "abroad-applications": React.lazy(() => import("@/components/dashboard/abroad/AbroadApplicationsTab")),
