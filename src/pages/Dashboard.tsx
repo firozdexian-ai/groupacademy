@@ -46,8 +46,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "overview-reports": React.lazy(() =>
     import("@/components/dashboard/overview/ReportsBuilderTab").then((m) => ({ default: m.ReportsBuilderTab })),
   ),
-  workforce: React.lazy(() =>
-    import("@/components/dashboard/WorkforceManager").then((m) => ({ default: m.WorkforceManager })),
+  "hr-workforce": React.lazy(() =>
+    import("@/components/dashboard/hr/WorkforceManager").then((m) => ({ default: m.WorkforceManager })),
   ),
   talent: React.lazy(() =>
     import("@/components/dashboard/TalentPoolManager").then((m) => ({ default: m.TalentPoolManager })),
@@ -286,7 +286,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "profile-card-themes": React.lazy(() =>
     import("@/components/dashboard/ProfileCardThemeManager").then((m) => ({ default: m.ProfileCardThemeManager })),
   ),
-  team: React.lazy(() => import("@/components/dashboard/TeamManager").then((m) => ({ default: m.TeamManager }))),
+  "hr-team": React.lazy(() => import("@/components/dashboard/hr/TeamManager").then((m) => ({ default: m.TeamManager }))),
   "payments-legacy": React.lazy(() =>
     import("@/components/dashboard/PaymentSettingsManager").then((m) => ({ default: m.PaymentSettingsManager })),
   ),

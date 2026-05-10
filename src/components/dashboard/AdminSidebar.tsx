@@ -191,7 +191,7 @@ const navGroups: NavGroup[] = [
       { title: "Verticals", icon: Network, value: "hr-verticals" },
       { title: "Functions", icon: Network, value: "hr-functions" },
       { title: "Teams", icon: Users, value: "hr-teams" },
-      { title: "Workforce", icon: UserCog, value: "workforce" },
+      { title: "Workforce", icon: UserCog, value: "hr-workforce" },
       { title: "Targets", icon: Target, value: "hr-targets" },
       { title: "Onboarding", icon: ClipboardList, value: "hr-onboarding" },
       { title: "Payroll", icon: Coins, value: "hr-payroll" },
@@ -332,7 +332,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "Support AI", icon: Sparkles, value: "support-assistant" },
-      { title: "Team Members", icon: UserCog, value: "team" },
+      { title: "Team Members", icon: UserCog, value: "hr-team" },
       { title: "Notifications", icon: Bell, value: "notifications" },
     ],
   },
