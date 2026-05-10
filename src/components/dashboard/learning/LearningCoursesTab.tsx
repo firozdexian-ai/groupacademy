@@ -89,15 +89,24 @@ export function LearningCoursesTab() {
             Universal Content Management
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setDraft({ status: "draft", content_type: "recorded_course" });
-            setOpen(true);
-          }}
-          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-cyan-500/20 bg-cyan-600 hover:bg-cyan-700 text-white"
-        >
-          <Plus className="h-4 w-4" /> Inject Course
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowBatchGenerator(true)}
+            className="h-12 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 border-2 border-violet-500/40 text-violet-600 hover:bg-violet-500/10"
+          >
+            <Wand2 className="h-4 w-4" /> Bulk Generate
+          </Button>
+          <Button
+            onClick={() => {
+              setDraft({ status: "draft", content_type: "recorded_course" });
+              setOpen(true);
+            }}
+            className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-cyan-500/20 bg-cyan-600 hover:bg-cyan-700 text-white"
+          >
+            <Plus className="h-4 w-4" /> Inject Course
+          </Button>
+        </div>
       </header>
 
       {/* Unified Content Filters HUD */}
