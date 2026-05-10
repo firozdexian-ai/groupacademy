@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,11 @@ import { Wallet, Loader2, Clock, ArrowUpRight, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Withdrawal Ledger (Liquidity Output)
+ * 2026 Standard: Blended Phase 6 UI (Direct RPC Execution)
+ */
 
 interface Row {
   id: string;
@@ -50,15 +55,9 @@ export function WithdrawalsTab() {
   async function processWithdrawal(id: string, action_status: Row["status"]) {
     setProcessingId(id);
     try {
-      // CTO PATCH: Routing financial mutations through a secure executor
       const { data, error } = await supabase.functions.invoke("process-withdrawal", {
-        body: {
-          withdrawal_id: id,
-          action: action_status,
-          admin_notes: noteDraft[id] ?? null,
-        },
+        body: { withdrawal_id: id, action: action_status, admin_notes: noteDraft[id] ?? null },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
@@ -90,12 +89,15 @@ export function WithdrawalsTab() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+      {/* Phase 6 Executive Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 text-primary">
-            <Wallet className="h-8 w-8" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Liquidity Output</h2>
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-orange-500">
+            <Wallet className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+              Liquidity Output
+            </h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
             Gig Worker Payout Execution
@@ -104,12 +106,12 @@ export function WithdrawalsTab() {
       </header>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as Row["status"])}>
-        <TabsList className="bg-muted/30 border-2 border-border/40 p-1 h-auto rounded-2xl mb-6">
+        <TabsList className="bg-muted/30 border-2 border-border/40 p-1.5 h-auto rounded-2xl mb-8 flex w-full max-w-2xl mx-auto">
           {STATUSES.map((s) => (
             <TabsTrigger
               key={s}
               value={s}
-              className="capitalize rounded-xl text-xs font-bold uppercase tracking-wider py-2.5 px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all"
+              className="flex-1 capitalize rounded-xl text-[10px] font-black uppercase tracking-widest py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all"
             >
               {s} ({rows.filter((r) => r.status === s).length})
             </TabsTrigger>
@@ -117,9 +119,9 @@ export function WithdrawalsTab() {
         </TabsList>
 
         {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full rounded-[32px]" />
-            <Skeleton className="h-40 w-full rounded-[32px]" />
+          <div className="space-y-6">
+            <Skeleton className="h-40 w-full rounded-[32px] bg-muted/40" />
+            <Skeleton className="h-40 w-full rounded-[32px] bg-muted/40" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-muted/10 border-2 border-dashed border-border/40 rounded-[40px]">
@@ -129,7 +131,7 @@ export function WithdrawalsTab() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 text-left">
             {filtered.map((r) => (
               <Card
                 key={r.id}
@@ -174,7 +176,7 @@ export function WithdrawalsTab() {
                         Requested Capital
                       </p>
                       <p className="text-2xl font-black italic tracking-tighter text-foreground leading-none">
-                        {Number(r.amount_credits).toFixed(1)} <span className="text-sm text-primary">CR</span>
+                        {Number(r.amount_credits).toFixed(1)} <span className="text-sm text-orange-500">CR</span>
                       </p>
                     </div>
                     <div className="space-y-1 flex-1 border-l border-border/50 pl-4">
@@ -206,7 +208,7 @@ export function WithdrawalsTab() {
                           size="sm"
                           onClick={() => processWithdrawal(r.id, "approved")}
                           disabled={processingId === r.id}
-                          className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase text-[10px] tracking-wider"
+                          className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase text-[10px] tracking-wider"
                         >
                           {processingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
                         </Button>
@@ -231,7 +233,7 @@ export function WithdrawalsTab() {
                         disabled={processingId === r.id}
                         className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-emerald-500/20"
                       >
-                        {processingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Execute Fiat Payout"}
+                        {processingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Execute Fiat Payout"}{" "}
                         <ArrowUpRight className="h-4 w-4 ml-2" />
                       </Button>
                     </div>
@@ -254,3 +256,5 @@ export function WithdrawalsTab() {
     </div>
   );
 }
+
+export default WithdrawalsTab;
