@@ -34,7 +34,7 @@ interface CanSend {
   daily_cap?: number;
   hourly_used?: number;
   hourly_cap?: number;
-  is_night_mode?: boolean;
+  is_quiet_hours?: boolean; // Updated to match Phase 6.1 SQL telemetry
 }
 
 const TALENT_PRODUCTS = [
@@ -90,8 +90,12 @@ export function TalentOutreachConsoleTab() {
     setLoading(false);
   };
 
-  useEffect(() => { loadChannel(); }, []);
-  useEffect(() => { loadTalents(); }, [search]);
+  useEffect(() => {
+    loadChannel();
+  }, []);
+  useEffect(() => {
+    loadTalents();
+  }, [search]);
 
   const refreshGuard = async () => {
     if (!channel?.id) return;
@@ -101,7 +105,9 @@ export function TalentOutreachConsoleTab() {
     });
     setCanSend(data as any);
   };
-  useEffect(() => { refreshGuard(); }, [channel, selectedTalent]);
+  useEffect(() => {
+    refreshGuard();
+  }, [channel, selectedTalent]);
 
   const generateFallback = async () => {
     if (!selectedTalent) return toast.error("Pick a talent first");
@@ -113,7 +119,13 @@ export function TalentOutreachConsoleTab() {
         company: "Independent",
       };
       const { data, error } = await supabase.functions.invoke("generate-outreach-message", {
-        body: { parsedCV, product, professionCategory: professionCat, senderName, language: translateBangla ? "bangla" : "english" },
+        body: {
+          parsedCV,
+          product,
+          professionCategory: professionCat,
+          senderName,
+          language: translateBangla ? "bangla" : "english",
+        },
       });
       if (error) throw error;
       setDraft(data?.message || data?.text || "");
@@ -200,9 +212,17 @@ export function TalentOutreachConsoleTab() {
 
       <Card>
         <CardContent className="py-3 flex flex-wrap gap-3 text-xs">
-          <Badge variant="outline">Daily: {canSend?.daily_used ?? 0}/{channel?.daily_outreach_cap ?? 20}</Badge>
-          <Badge variant="outline">Hourly: {canSend?.hourly_used ?? 0}/{channel?.hourly_outreach_cap ?? 6}</Badge>
-          {canSend?.is_night_mode && <Badge variant="destructive">Night Mode Active</Badge>}
+          <Badge variant="outline">
+            Daily: {canSend?.daily_used ?? 0}/{channel?.daily_outreach_cap ?? 20}
+          </Badge>
+          <Badge variant="outline">
+            Hourly: {canSend?.hourly_used ?? 0}/{channel?.hourly_outreach_cap ?? 6}
+          </Badge>
+          {canSend?.is_quiet_hours && (
+            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 border-yellow-500/50">
+              Quiet Hours (Soft Warning)
+            </Badge>
+          )}
         </CardContent>
       </Card>
 
@@ -224,7 +244,9 @@ export function TalentOutreachConsoleTab() {
           </CardHeader>
           <CardContent className="p-0 max-h-[480px] overflow-y-auto">
             {loading ? (
-              <div className="p-6 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+              <div className="p-6 flex justify-center">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
             ) : (
               talents.map((t) => (
                 <div
@@ -255,7 +277,11 @@ export function TalentOutreachConsoleTab() {
                     <Label className="text-xs">Bangla Mode</Label>
                   </div>
                   <Button size="sm" onClick={generateHooks} disabled={generating}>
-                    {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    {generating ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
                     Propose Best Hooks
                   </Button>
                 </div>
@@ -266,10 +292,14 @@ export function TalentOutreachConsoleTab() {
                 <div>
                   <Label className="text-xs">Target Product</Label>
                   <Select value={product} onValueChange={setProduct}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {TALENT_PRODUCTS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
