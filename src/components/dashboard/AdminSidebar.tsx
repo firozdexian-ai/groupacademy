@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Flag,
   LayoutDashboard,
@@ -67,6 +67,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -82,11 +83,38 @@ interface NavGroup {
   icon: React.ElementType;
   items: NavItem[];
   roles: AppRole[];
-  /** When true, this group is shown to company_admin scope as well (read scoped to their company). */
   companyScoped?: boolean;
 }
 
+// 1. CTO FIX: Unified all navigation items into a Single Source of Truth
 const navGroups: NavGroup[] = [
+  {
+    title: "Executive Overview",
+    icon: LayoutDashboard,
+    roles: ["admin", "super_admin"],
+    items: [
+      { title: "Lifetime Metrics", value: "overview-lifetime", icon: LayoutDashboard },
+      { title: "Monthly", value: "overview-month", icon: Calendar },
+      { title: "Quarterly", value: "overview-quarter", icon: BarChart },
+      { title: "Business Analyst", value: "overview-analyst", icon: Sparkles },
+      { title: "Report Builder", value: "overview-reports", icon: FileText },
+    ],
+  },
+  {
+    title: "Talent Ecology",
+    icon: Users,
+    roles: ["admin", "super_admin", "talent_exec"],
+    items: [
+      { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
+      { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
+      { title: "Talent Upload", value: "talent-upload", icon: Upload },
+      { title: "Outreach Console", value: "talent-outreach", icon: MessageSquare },
+      { title: "WhatsApp Line", value: "talent-wa-channel", icon: Phone },
+      { title: "Creator Economy", value: "talent-creator-economy", icon: Sparkles },
+      { title: "Lead Hunter", value: "lead-hunter", icon: Target },
+      { title: "Professions & Roles", value: "professions", icon: GraduationCap },
+    ],
+  },
   {
     title: "Companies",
     icon: Building2,
@@ -109,21 +137,21 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Agent OS Overview", icon: LayoutDashboard, value: "agents-overview" },
       { title: "Channels & Triggers", icon: Zap, value: "agents-channels" },
-      { title: "Tools, Skills & Connectors", icon: Network, value: "agents-tools" },
-      { title: "Agent Studio (Builder)", icon: Sparkles, value: "agents-studio" },
-      { title: "Gro10x B2C Agents", icon: Users, value: "agents-b2c" },
-      { title: "Platform Tool-Agents", icon: Sparkles, value: "agents-platform" },
-      { title: "Company / B2B Agents", icon: Building2, value: "agents-b2b" },
-      { title: "User-Generated Agents", icon: UserCog, value: "agents-ugc" },
+      { title: "Tools & Skills", icon: Network, value: "agents-tools" },
+      { title: "Agent Studio", icon: Sparkles, value: "agents-studio" },
+      { title: "B2C Agents", icon: Users, value: "agents-b2c" },
+      { title: "Platform Tools", icon: Sparkles, value: "agents-platform" },
+      { title: "B2B Agents", icon: Building2, value: "agents-b2b" },
+      { title: "User-Generated", icon: UserCog, value: "agents-ugc" },
       { title: "Marketplace", icon: Store, value: "agents-marketplace" },
-      { title: "Marketplace Payouts", icon: Coins, value: "agents-payouts" },
+      { title: "Payouts", icon: Coins, value: "agents-payouts" },
       { title: "Sessions Log", icon: MessageSquare, value: "agents-sessions" },
       { title: "Proactive Engine", icon: Zap, value: "agent-outreach" },
       { title: "Agent Insights", icon: BarChart, value: "agents-insights" },
     ],
   },
   {
-    title: "Investors & High-Value Stakeholders",
+    title: "Investors & IR",
     icon: Landmark,
     roles: ["admin"],
     items: [
@@ -137,21 +165,21 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Institutions & Organizations",
+    title: "Institutions",
     icon: School,
     roles: ["admin"],
     items: [
       { title: "Dashboard", icon: LayoutDashboard, value: "inst-overview" },
       { title: "Institution Types", icon: Layers, value: "inst-types" },
-      { title: "Institutions Registry", icon: School, value: "institutions" },
-      { title: "Partner Organizations", icon: Handshake, value: "partner-orgs" },
-      { title: "Clubs & Departments", icon: Network, value: "inst-clubs" },
+      { title: "Registry", icon: School, value: "institutions" },
+      { title: "Partner Orgs", icon: Handshake, value: "partner-orgs" },
+      { title: "Clubs & Depts", icon: Network, value: "inst-clubs" },
       { title: "Representatives", icon: Users, value: "inst-reps" },
-      { title: "Events & Competitions", icon: Trophy, value: "inst-events" },
+      { title: "Events", icon: Trophy, value: "inst-events" },
     ],
   },
   {
-    title: "Team & Workforce",
+    title: "Team & HR",
     icon: UserCog,
     roles: ["admin"],
     items: [
@@ -160,14 +188,14 @@ const navGroups: NavGroup[] = [
       { title: "Verticals", icon: Network, value: "hr-verticals" },
       { title: "Functions", icon: Network, value: "hr-functions" },
       { title: "Teams", icon: Users, value: "hr-teams" },
-      { title: "Workforce Members", icon: UserCog, value: "workforce" },
-      { title: "Targets & Incentives", icon: Target, value: "hr-targets" },
+      { title: "Workforce", icon: UserCog, value: "workforce" },
+      { title: "Targets", icon: Target, value: "hr-targets" },
       { title: "Onboarding", icon: ClipboardList, value: "hr-onboarding" },
-      { title: "Rewards & Payroll", icon: Coins, value: "hr-payroll" },
+      { title: "Payroll", icon: Coins, value: "hr-payroll" },
     ],
   },
   {
-    title: "GTM (Geography)",
+    title: "Geography (GTM)",
     icon: Globe,
     roles: ["admin"],
     items: [
@@ -179,16 +207,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "UGC & Contents",
+    title: "Content & UGC",
     icon: FileText,
     roles: ["admin"],
     items: [
-      { title: "Content Overview", icon: LayoutDashboard, value: "ugc-overview" },
+      { title: "Overview", icon: LayoutDashboard, value: "ugc-overview" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Blog Posts", icon: FileText, value: "blog" },
       { title: "Feed Posts", icon: MessageSquare, value: "feed-posts" },
-      { title: "Competitions & Events", icon: Trophy, value: "competitions" },
-      { title: "Submissions, Gigs & Payouts", icon: FileCheck, value: "gig-submissions" },
+      { title: "Competitions", icon: Trophy, value: "competitions" },
+      { title: "Gig Submissions", icon: FileCheck, value: "gig-submissions" },
       { title: "Manage Gigs", icon: Briefcase, value: "gigs" },
       { title: "Marketplace Gigs", icon: Store, value: "marketplace-gigs" },
     ],
@@ -199,37 +227,37 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "talent_exec"],
     companyScoped: true,
     items: [
-      { title: "Jobs Overview", icon: LayoutDashboard, value: "jobs-overview" },
-      { title: "Jobs Upload & Approval", icon: Upload, value: "jobs-upload" },
+      { title: "Overview", icon: LayoutDashboard, value: "jobs-overview" },
+      { title: "Upload & Approval", icon: Upload, value: "jobs-upload" },
       { title: "Jobs Manager", icon: Briefcase, value: "jobs-hub" },
       { title: "Applications", icon: Users, value: "applications" },
-      { title: "Pipeline (Kanban)", icon: Users, value: "applications-pipeline" },
-      { title: "Sourcing & Lists", icon: Users, value: "sourcing-admin" },
-      { title: "Talent Pipeline (CRM)", icon: Users, value: "sourcing-pipeline" },
-      { title: "Jobs Assessments", icon: ClipboardList, value: "jobs-assessments" },
+      { title: "Kanban Pipeline", icon: Users, value: "applications-pipeline" },
+      { title: "Sourcing", icon: Users, value: "sourcing-admin" },
+      { title: "Talent CRM", icon: Users, value: "sourcing-pipeline" },
+      { title: "Assessments", icon: ClipboardList, value: "jobs-assessments" },
     ],
   },
   {
-    title: "Learn",
+    title: "Learning",
     icon: BookOpen,
     roles: ["admin"],
     items: [
       { title: "Dashboard", icon: LayoutDashboard, value: "learn-overview" },
       { title: "Academies", icon: GraduationCap, value: "academies" },
       { title: "Schools", icon: School, value: "schools" },
-      { title: "Professional Lives", icon: Users, value: "professional-lives" },
-      { title: "Career Track AI Courses", icon: Sparkles, value: "career-tracks" },
+      { title: "Pro Lives", icon: Users, value: "professional-lives" },
+      { title: "AI Career Tracks", icon: Sparkles, value: "career-tracks" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
-      { title: "Online Courses", icon: Calendar, value: "webinars" },
+      { title: "Webinars", icon: Calendar, value: "webinars" },
       { title: "Enrollments", icon: Users, value: "enrollments" },
-      { title: "Learner Progress", icon: BarChart, value: "learner-progress" },
+      { title: "Progress", icon: BarChart, value: "learner-progress" },
       { title: "Graduates", icon: Trophy, value: "graduates" },
       { title: "B2B Courses", icon: Building2, value: "b2b-courses" },
       { title: "Course Briefs", icon: Sparkles, value: "course-briefs" },
       { title: "Cohorts", icon: Users, value: "cohorts" },
       { title: "Moderation", icon: Flag, value: "moderation" },
       { title: "B2B Engagements", icon: Building2, value: "b2b-engagements" },
-      { title: "Instructor Payouts", icon: Wallet, value: "instructor-payouts" },
+      { title: "Payouts", icon: Wallet, value: "instructor-payouts" },
     ],
   },
   {
@@ -239,11 +267,11 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Dashboard", icon: LayoutDashboard, value: "gig-overview" },
       { title: "AI Scoper Queue", icon: Sparkles, value: "gig-ops-scoper" },
-      { title: "Quick Action Gigs", icon: Zap, value: "quick-action-gigs" },
+      { title: "Quick Actions", icon: Zap, value: "quick-action-gigs" },
       { title: "Course Projects", icon: Layers, value: "course-projects" },
       { title: "Client Projects", icon: Store, value: "client-projects" },
-      { title: "Gig Submissions", icon: FileCheck, value: "gig-submissions" },
-      { title: "Gig Workers & Wallet", icon: Coins, value: "gig-workers-wallet" },
+      { title: "Submissions", icon: FileCheck, value: "gig-submissions" },
+      { title: "Workers Wallet", icon: Coins, value: "gig-workers-wallet" },
     ],
   },
   {
@@ -252,36 +280,36 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "Dashboard", icon: LayoutDashboard, value: "abroad-overview" },
-      { title: "Destination Agents", icon: Globe, value: "abroad-destinations" },
+      { title: "Destinations", icon: Globe, value: "abroad-destinations" },
       { title: "Applications", icon: ClipboardList, value: "abroad-applications" },
-      { title: "University Programs", icon: GraduationCap, value: "study-abroad" },
-      { title: "IELTS Prompt Bank", icon: Mic, value: "ielts-prompts" },
+      { title: "Uni Programs", icon: GraduationCap, value: "study-abroad" },
+      { title: "IELTS Prompts", icon: Mic, value: "ielts-prompts" },
       { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
       { title: "Language Lab", icon: Languages, value: "language-lab" },
       { title: "Roadmap Leads", icon: Map, value: "roadmap-leads" },
     ],
   },
   {
-    title: "Marketing & Outreach",
+    title: "Marketing",
     icon: Megaphone,
     roles: ["admin", "talent_exec"],
     items: [
-      { title: "Analytics Overview", icon: PieChart, value: "analytics" },
+      { title: "Analytics", icon: PieChart, value: "analytics" },
       { title: "Channels", icon: Network, value: "mkt-channels" },
-      { title: "Community WhatsApp Line", icon: Phone, value: "community-wa-channel" },
+      { title: "Community WhatsApp", icon: Phone, value: "community-wa-channel" },
       { title: "Community Groups", icon: Users, value: "mkt-community" },
       { title: "Admins & Reps", icon: UserCog, value: "mkt-admins-reps" },
       { title: "Talent Outreach", icon: Send, value: "outreach" },
       { title: "Content Outreach", icon: BookOpen, value: "content-outreach" },
-      { title: "Service & Agent Outreach", icon: Sparkles, value: "service-outreach" },
-      { title: "Leads & Activities", icon: ClipboardList, value: "leads-activities" },
-      { title: "Banner Management", icon: ImageIcon, value: "banners" },
-      { title: "Profile Card Themes", icon: Sparkles, value: "profile-card-themes" },
+      { title: "Service Outreach", icon: Sparkles, value: "service-outreach" },
+      { title: "Leads", icon: ClipboardList, value: "leads-activities" },
+      { title: "Banners", icon: ImageIcon, value: "banners" },
+      { title: "Themes", icon: Sparkles, value: "profile-card-themes" },
       { title: "Access Codes", icon: Key, value: "codes" },
     ],
   },
   {
-    title: "Finance & Monetization",
+    title: "FinOps",
     icon: Coins,
     roles: ["admin"],
     items: [
@@ -290,19 +318,19 @@ const navGroups: NavGroup[] = [
       { title: "Gro10x Credits", icon: Coins, value: "gro10x-credits" },
       { title: "Company Credits", icon: Coins, value: "company-credits" },
       { title: "Transactions", icon: BarChart, value: "transactions" },
-      { title: "Payment Infrastructure", icon: CreditCard, value: "payments" },
-      { title: "Invoices & Payments", icon: CreditCard, value: "invoices" },
+      { title: "Pay Infra", icon: CreditCard, value: "payments" },
+      { title: "Invoices", icon: CreditCard, value: "invoices" },
       { title: "Withdrawals", icon: Coins, value: "withdrawals" },
     ],
   },
   {
-    title: "Platform Config & Others",
+    title: "Platform Config",
     icon: Settings,
     roles: ["admin"],
     items: [
       { title: "Support AI", icon: Sparkles, value: "support-assistant" },
       { title: "Team Members", icon: UserCog, value: "team" },
-      { title: "Notifications Center", icon: Bell, value: "notifications" },
+      { title: "Notifications", icon: Bell, value: "notifications" },
     ],
   },
 ];
@@ -311,7 +339,6 @@ interface AdminSidebarProps {
   activeTab: string;
   onTabChange: (value: string) => void;
   userRole?: AppRole | null;
-  /** Drives sidebar filtering. Defaults to "super" for backward compatibility. */
   adminScope?: "super" | "internal" | "company" | "none";
 }
 
@@ -335,24 +362,25 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
     });
   }, [adminScope, userRole]);
 
-  // Determine the active group title based on the activeTab
   const activeGroupTitle = useMemo<string | undefined>(() => {
-    const foundGroup = filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab));
-
-    if (foundGroup) {
-      return foundGroup.title;
-    }
-
-    if (filteredNavGroups.length > 0) {
-      return filteredNavGroups[0].title;
-    }
-
+    const foundGroup = filteredNavGroups.find((g) =>
+      g.items.some((i) => i.value === activeTab || (i.value === "overview-lifetime" && activeTab === "overview")),
+    );
+    if (foundGroup) return foundGroup.title;
+    if (filteredNavGroups.length > 0) return filteredNavGroups[0].title;
     return undefined;
   }, [activeTab, filteredNavGroups]);
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     return new Set(activeGroupTitle ? [activeGroupTitle] : []);
   });
+
+  // 2. CTO FIX: Force sidebar to auto-expand the correct folder when active tab changes externally
+  useEffect(() => {
+    if (activeGroupTitle) {
+      setOpenGroups((prev) => new Set(prev).add(activeGroupTitle));
+    }
+  }, [activeGroupTitle]);
 
   const toggleGroup = (title: string, isOpen: boolean) => {
     setOpenGroups((prev) => {
@@ -364,40 +392,45 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r bg-background">
-      <SidebarHeader className="border-b px-4 py-3 h-[60px] flex items-center">
-        <div className="flex items-center gap-3 w-full">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0 text-primary-foreground shadow-sm">
-            <BookOpen className="w-4 h-4" />
+    <Sidebar collapsible="icon" className="border-r border-border/40 bg-background/95 backdrop-blur-xl">
+      <SidebarHeader className="border-b border-border/40 px-4 py-4 h-[72px] flex items-center bg-muted/10">
+        <div className="flex items-center gap-4 w-full">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-lg">
+            <BookOpen className="w-5 h-5" />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col overflow-hidden transition-all duration-300">
-              <span className="font-bold text-sm tracking-tight truncate">GroUp Academy</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-medium truncate">
-                {userRole === "talent_exec" ? "Talent Portal" : "Admin Console"}
+              <span className="font-black text-sm tracking-tight truncate italic">GRO10X OS</span>
+              <span className="text-[9px] text-muted-foreground uppercase tracking-[0.2em] font-bold truncate">
+                {userRole === "talent_exec" ? "Talent Operations" : "Executive Console"}
               </span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 gap-2">
-        {/* Agentic Dashboard (Chat) — top-level link */}
+      <SidebarContent className="p-3 gap-2 overflow-y-auto no-scrollbar">
+        {/* Agentic Dashboard (Chat) — Top Level Action */}
         {(userRole === "admin" || userRole === "super_admin") &&
           (() => {
             const isChat = location.pathname.startsWith("/dashboard/chat");
             return (
-              <SidebarGroup className="p-0">
+              <SidebarGroup className="p-0 mb-2">
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       tooltip="Agentic Dashboard"
                       onClick={() => navigate("/dashboard/chat")}
                       isActive={isChat}
-                      className={`font-medium ${isChat ? "bg-primary/10 text-primary" : "hover:bg-accent/50"}`}
+                      className={cn(
+                        "h-12 transition-all duration-300",
+                        isChat
+                          ? "bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-md rounded-xl"
+                          : "hover:bg-primary/10 text-muted-foreground font-bold uppercase tracking-widest text-[10px] rounded-xl",
+                      )}
                     >
                       <MessageCircle className="w-4 h-4" />
-                      <span>Chat</span>
+                      <span className="text-[10px]">AI Co-Pilot</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -405,151 +438,56 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
             );
           })()}
 
-        {/* Overview group - admin & super_admin */}
-        {(userRole === "admin" || userRole === "super_admin") &&
-          (() => {
-            const overviewItems = [
-              { title: "Lifetime", value: "overview-lifetime", icon: LayoutDashboard },
-              { title: "Monthly", value: "overview-month", icon: Calendar },
-              { title: "Quarterly", value: "overview-quarter", icon: BarChart },
-              { title: "Business Analyst", value: "overview-analyst", icon: Sparkles },
-              { title: "Report Builder", value: "overview-reports", icon: FileText },
-            ];
-            const isOverviewActive = activeTab === "overview" || activeTab.startsWith("overview-");
-            return (
-              <Collapsible
-                open={openGroups.has("Overview") || isOverviewActive}
-                onOpenChange={(isOpen) => toggleGroup("Overview", isOpen)}
-                className="group/collapsible"
-              >
-                <SidebarGroup className="p-0">
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Overview" className="font-medium hover:bg-accent/50">
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>Overview</span>
-                      <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
-                      {overviewItems.map((item) => (
-                        <SidebarMenuItem key={item.value}>
-                          <SidebarMenuButton
-                            onClick={() => onTabChange(item.value)}
-                            isActive={
-                              activeTab === item.value ||
-                              (item.value === "overview-lifetime" && activeTab === "overview")
-                            }
-                            className={`h-9 text-sm ${
-                              activeTab === item.value ||
-                              (item.value === "overview-lifetime" && activeTab === "overview")
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-            );
-          })()}
-
-        {/* Talent group - admin, super_admin, talent_exec */}
-        {(userRole === "admin" || userRole === "super_admin" || userRole === "talent_exec") &&
-          (() => {
-            const talentItems = [
-              { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
-              { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
-              { title: "Talent Upload", value: "talent-upload", icon: Upload },
-              { title: "Outreach Console", value: "talent-outreach", icon: MessageSquare },
-              { title: "WhatsApp Line", value: "talent-wa-channel", icon: Phone },
-              { title: "Creator Economy", value: "talent-creator-economy", icon: Sparkles },
-              { title: "Lead Hunter", value: "lead-hunter", icon: Target },
-              { title: "Professions & Roles", value: "professions", icon: GraduationCap },
-            ];
-            const isTalentActive =
-              activeTab === "talent" ||
-              activeTab === "lead-hunter" ||
-              activeTab === "professions" ||
-              activeTab.startsWith("talent-");
-            return (
-              <Collapsible
-                open={openGroups.has("Talent") || isTalentActive}
-                onOpenChange={(isOpen) => toggleGroup("Talent", isOpen)}
-                className="group/collapsible"
-              >
-                <SidebarGroup className="p-0">
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Talent" className="font-medium hover:bg-accent/50">
-                      <Users className="w-4 h-4" />
-                      <span>Talent</span>
-                      <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
-                      {talentItems.map((item) => (
-                        <SidebarMenuItem key={item.value}>
-                          <SidebarMenuButton
-                            onClick={() => onTabChange(item.value)}
-                            isActive={activeTab === item.value}
-                            className={`h-9 text-sm ${
-                              activeTab === item.value
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-            );
-          })()}
-
-        {/* Nav Groups */}
+        {/* Dynamic Nav Groups */}
         {filteredNavGroups.map((group) => (
           <Collapsible
             key={group.title}
             open={openGroups.has(group.title)}
             onOpenChange={(isOpen) => toggleGroup(group.title, isOpen)}
-            className="group/collapsible"
+            className="group/collapsible mb-1"
           >
             <SidebarGroup className="p-0">
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
                   tooltip={group.title}
-                  className="font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  className={cn(
+                    "font-black uppercase tracking-wider text-[11px] h-10 transition-colors",
+                    openGroups.has(group.title)
+                      ? "text-foreground"
+                      : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 rounded-xl",
+                  )}
                 >
                   <group.icon className="w-4 h-4" />
                   <span>{group.title}</span>
-                  <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-300 group-data-[state=open]/collapsible:rotate-180" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
 
-              <CollapsibleContent>
-                <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.value}>
-                      <SidebarMenuButton
-                        onClick={() => onTabChange(item.value)}
-                        isActive={activeTab === item.value}
-                        className={`h-9 text-sm ${activeTab === item.value ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+              <CollapsibleContent className="animate-in slide-in-from-top-2 duration-200">
+                <SidebarMenu className="pl-2 mt-2 space-y-1 border-l-2 ml-4 border-border/30">
+                  {group.items.map((item) => {
+                    // Normalize overview active state logic
+                    const isItemActive =
+                      activeTab === item.value || (item.value === "overview-lifetime" && activeTab === "overview");
+
+                    return (
+                      <SidebarMenuItem key={item.value}>
+                        <SidebarMenuButton
+                          onClick={() => onTabChange(item.value)}
+                          isActive={isItemActive}
+                          className={cn(
+                            "h-10 text-[10px] uppercase tracking-widest transition-all duration-300",
+                            isItemActive
+                              ? "bg-primary/10 text-primary font-black border-r-4 border-primary rounded-none shadow-sm"
+                              : "text-muted-foreground font-bold hover:bg-muted/30 hover:text-foreground rounded-lg",
+                          )}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </CollapsibleContent>
             </SidebarGroup>
@@ -558,31 +496,31 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
 
         {/* External: Company Portal (B2B view) */}
         {userRole === "admin" && (
-          <SidebarMenu>
+          <SidebarMenu className="mt-4 pt-4 border-t border-border/20">
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => window.open("/company", "_blank")}
                 tooltip="Open Company Portal"
-                className="hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+                className="hover:bg-blue-500/10 text-blue-500/70 hover:text-blue-600 font-black uppercase text-[10px] tracking-widest h-10 rounded-xl transition-colors"
               >
                 <Building2 className="w-4 h-4" />
-                <span>Company Portal</span>
+                <span>B2B Portal View</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-2">
+      <SidebarFooter className="border-t border-border/40 p-4 bg-muted/5">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}
               tooltip="Sign out"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="text-destructive/70 hover:bg-destructive/10 hover:text-destructive font-black uppercase text-[10px] tracking-widest h-10 rounded-xl transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span>Sign out</span>
+              <span>Terminate Session</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
