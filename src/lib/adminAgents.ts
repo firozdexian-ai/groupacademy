@@ -1,6 +1,25 @@
 /**
- * Registry of conversational admin agents surfaced inside the unified
- * `/dashboard/chat` (Agentic Dashboard) WhatsApp-style messenger.
+ * ============================================================================
+ * ⚠️  DEPRECATED — DO NOT ADD NEW AGENTS HERE  ⚠️
+ * ============================================================================
+ *
+ * This hardcoded registry is being migrated to the `ai_agents` table
+ * (agent_type = 'admin'). New agents MUST be seeded into the database;
+ * the Agentic Dashboard sidebar now reads from `useAdminAgents` (DB-backed).
+ *
+ * Batch 1 (Executive Council — already seeded to DB):
+ *   - nia-analyst       (was: business-analyst)
+ *   - report-builder
+ *   - aisha-analyst     (was: talent-aisha)
+ *   - agent-manager
+ *
+ * This file is retained ONLY as a fallback meta-map (functionName, icon,
+ * accent, suggestions) for legacy keys still consumed by `useAdminChatThread`
+ * and `DashboardChat`. It will be deleted once all 32 agents are migrated
+ * and `personality_traits.functionName` + `sample_conversations` carry the
+ * full meta payload from the DB.
+ *
+ * ============================================================================
  */
 import {
   Sparkles,
