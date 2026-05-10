@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { getOutreachWhatsAppLink, getFirstName } from "@/lib/outreachTemplates";
+import { cn } from "@/lib/utils";
 import {
   BookOpen,
   Share2,
@@ -28,17 +33,10 @@ import {
   ExternalLink,
   Calendar,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { getOutreachWhatsAppLink, getFirstName } from "@/lib/outreachTemplates";
-import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Market Penetration Terminal (Content Outreach)
- * High-fidelity orchestrator for multi-channel promotion and individual pitch telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced distribution guards.
+ * 2026 Standard: Blended Phase 6 UI (Registry Ledger + Distribution Engine)
  */
 
 interface Content {
@@ -70,7 +68,7 @@ interface ShareLog {
   shared_at: string;
 }
 
-export function ContentOutreachManager() {
+export function ContentOutreachTab() {
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [talents, setTalents] = useState<Talent[]>([]);
@@ -85,7 +83,6 @@ export function ContentOutreachManager() {
 
   const loadContents = useCallback(async () => {
     const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    // Recorded courses: must be ready (has modules + resources) per readiness sync.
     const { data: recorded, error: e1 } = await supabase
       .from("content")
       .select("id, title, slug, content_type, current_enrollment, is_published, description")
@@ -94,7 +91,7 @@ export function ContentOutreachManager() {
       .eq("is_private", false)
       .eq("content_type", "recorded_course")
       .order("title");
-    // Live/batch: only upcoming (or in-grace) sessions
+
     const { data: live, error: e2 } = await supabase
       .from("content")
       .select("id, title, slug, content_type, current_enrollment, is_published, description")
@@ -226,7 +223,6 @@ export function ContentOutreachManager() {
     } catch {}
   };
 
-  // CTO RESTORATION: logic handshake for template copying
   const copyTemplate = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -268,37 +264,40 @@ export function ContentOutreachManager() {
 
   if (isLoading && contents.length === 0)
     return (
-      <div className="space-y-8 animate-pulse">
+      <div className="space-y-8 animate-pulse p-6">
         <Skeleton className="h-40 rounded-[32px] bg-muted/40" />
         <Skeleton className="h-[500px] rounded-[40px] bg-muted/40" />
       </div>
     );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-1000 pb-20">
-      {/* Executive Header Card */}
-      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
-        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-        <CardHeader className="p-10 border-b border-border/10 bg-muted/10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 text-left">
-              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-4">
-                <Zap className="h-8 w-8 text-primary" /> Distribution Hub
-              </CardTitle>
-              <CardDescription className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-                Authorized Market Penetration & Individual Target Telemetry
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="space-y-1 text-right">
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
-                  Artifact Pool
-                </p>
-                <p className="text-2xl font-black italic tracking-tighter leading-none">{contents.length}</p>
-              </div>
-            </div>
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+      {/* Phase 6 Executive Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-orange-500">
+            <BookOpen className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+              Content Outreach
+            </h2>
           </div>
-        </CardHeader>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Academy Promo Engine
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="space-y-1 text-right">
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
+              Artifact Pool
+            </p>
+            <p className="text-2xl font-black italic tracking-tighter leading-none">{contents.length}</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Distribution Hub Selector */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600" />
         <CardContent className="p-10 space-y-8">
           <div className="grid gap-8 md:grid-cols-2">
             <div className="space-y-3">
@@ -356,7 +355,7 @@ export function ContentOutreachManager() {
                 onClick={() => setIsShareOpen(true)}
                 className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30 group"
               >
-                <Share2 className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" /> Broad Distrubution
+                <Share2 className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" /> Broad Distribution
               </Button>
             </div>
           )}
@@ -366,7 +365,7 @@ export function ContentOutreachManager() {
       {/* Distribution Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="max-w-3xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
-          <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-primary to-blue-600" />
+          <div className="h-2 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600" />
           <div className="p-12">
             <DialogHeader className="mb-10">
               <div className="flex items-center gap-5">
@@ -550,7 +549,7 @@ export function ContentOutreachManager() {
                           isPitched(talent.id) ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {isPitched(talent.id) ? "SYNC'D_PITCH" : "PENDING_NODE"}
+                        {isPitched(talent.id) ? "SYNC'D PITCH" : "PENDING NODE"}
                       </Badge>
                       {!isPitched(talent.id) && talent.phone && (
                         <Button
@@ -575,25 +574,8 @@ export function ContentOutreachManager() {
           </CardContent>
         </Card>
       )}
-
-      {/* Operational Trace Footer */}
-      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
-        <div className="space-y-1 text-left">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-            Market Penetration Terminal: Authorized Access Active
-          </p>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-            Protocol: Verified Executive Logic 2026.4
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
-          ))}
-        </div>
-      </footer>
     </div>
   );
 }
 
-export { ContentOutreachManager as ContentOutreachTab };
+export default ContentOutreachTab;
