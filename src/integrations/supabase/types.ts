@@ -7729,6 +7729,38 @@ export type Database = {
           },
         ]
       }
+      gtm_cities: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          region_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          region_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          region_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gtm_cities_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "gtm_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gtm_clusters: {
         Row: {
           cities: string[] | null
@@ -7761,6 +7793,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      gtm_countries: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          iso2: string
+          name: string
+          tier: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          iso2: string
+          name: string
+          tier?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          iso2?: string
+          name?: string
+          tier?: string | null
+        }
+        Relationships: []
+      }
+      gtm_regions: {
+        Row: {
+          code: string | null
+          country_id: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gtm_regions_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "gtm_countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       headless_pool: {
         Row: {
