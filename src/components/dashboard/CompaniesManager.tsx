@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Building2,
@@ -30,26 +29,21 @@ import {
   Edit,
   Trash2,
   Search,
-  Mail,
   Loader2,
   RefreshCw,
-  CheckCircle,
-  Globe,
-  Linkedin,
   Upload,
   ChevronLeft,
   ChevronRight,
   Send,
-  Briefcase,
   ShieldCheck,
-  PhoneOff,
   Activity,
   Filter,
   Zap,
+  XCircle,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton } from "./DashboardSkeleton";
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
 import { getDexianEmailLink, EMAIL_TEMPLATE_OPTIONS, DexianEmailTemplate } from "@/lib/companyOutreachTemplates";
 import { cn } from "@/lib/utils";
@@ -57,7 +51,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Employer Registry Hub
  * High-fidelity orchestrator for corporate data synthesis and outreach telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced type-safe ingestion.
+ * 2024 Standard: Executive Logic geometry with reinforced type-safe ingestion.
  */
 
 interface Company {
@@ -156,8 +150,7 @@ export function CompaniesManager() {
 
       if (result.error) throw result.error;
 
-      // CTO FIX: Type Guard & Handshake
-      // Transforming Json[] from DB to strictly validated string[]
+      // Type Guard & Handshake: Transforming Json[] from DB to strictly validated string[]
       const mappedCompanies: Company[] = (result.data || []).map((company: any) => ({
         ...company,
         secondary_emails: Array.isArray(company.secondary_emails)
@@ -838,24 +831,3 @@ export function CompaniesManager() {
     </div>
   );
 }
-
-// Missing component from Lucide import
-const XCircle = ({ className, onClick }: { className?: string; onClick?: () => void }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    onClick={onClick}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <path d="m15 9-6 6" />
-    <path d="m9 9 6 6" />
-  </svg>
-);
