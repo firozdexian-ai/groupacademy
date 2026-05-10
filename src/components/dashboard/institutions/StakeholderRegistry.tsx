@@ -18,7 +18,9 @@ import {
   Activity,
   GraduationCap,
   Users,
+  Pencil,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Dialog,
