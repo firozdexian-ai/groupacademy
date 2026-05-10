@@ -564,3 +564,5 @@ export function AbroadProgramsTab() {
     </div>
   );
 }
+
+export default AbroadProgramsTab;

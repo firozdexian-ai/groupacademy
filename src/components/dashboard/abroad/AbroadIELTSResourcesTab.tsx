@@ -599,3 +599,5 @@ export function AbroadIELTSResourcesTab() {
     </div>
   );
 }
+
+export default AbroadIELTSResourcesTab;

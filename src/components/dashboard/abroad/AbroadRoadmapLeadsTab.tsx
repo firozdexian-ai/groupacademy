@@ -431,3 +431,5 @@ function DataPoint({ label, value }: { label: string; value: any }) {
     </div>
   );
 }
+
+export default AbroadRoadmapLeadsTab;
