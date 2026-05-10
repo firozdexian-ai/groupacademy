@@ -402,7 +402,18 @@ export function LearningProgressTab() {
                       )}
                     </TableCell>
                     <TableCell className="text-right pr-8 font-black text-[11px] italic text-primary">
-                      {learner.completedAt ? format(new Date(learner.completedAt), "MMM d, yyyy") : "IN_TRANSIT"}
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedEnrollment(learner)}
+                          title="View Quiz Results"
+                          className="hover:bg-violet-500/10 hover:text-violet-600"
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                        </Button>
+                        <span>{learner.completedAt ? format(new Date(learner.completedAt), "MMM d, yyyy") : "IN_TRANSIT"}</span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
