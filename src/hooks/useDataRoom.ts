@@ -179,7 +179,7 @@ export function useDocumentTelemetry(documentId: string | null) {
         .eq("document_id", documentId!)
         .order("total_dwell", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as IRHotSlide[];
+      return ((data as unknown) ?? []) as IRHotSlide[];
     },
   });
 
