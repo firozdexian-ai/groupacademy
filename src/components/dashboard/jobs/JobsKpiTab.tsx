@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import CircularProgress from "./CircularProgress";
+import CircularProgress from "../CircularProgress";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { COUNTRIES } from "@/lib/constants/countries";
 

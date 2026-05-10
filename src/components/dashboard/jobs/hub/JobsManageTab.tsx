@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { DashboardTableSkeleton } from "../DashboardSkeleton";
+import { DashboardTableSkeleton } from "../../DashboardSkeleton";
 import { JobFormDialog } from "./JobFormDialog";
 import { cn } from "@/lib/utils";
 

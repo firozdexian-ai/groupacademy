@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { AssessmentCodeGenerator } from "./AssessmentCodeGenerator";
-import { TalentDetailDialog } from "./TalentDetailDialog";
+import { AssessmentCodeGenerator } from "./codes/AssessmentCodeGenerator";
+import { TalentDetailDialog } from "../TalentDetailDialog";
 import { cn } from "@/lib/utils";
 
 /**
