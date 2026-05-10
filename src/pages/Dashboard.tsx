@@ -351,6 +351,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "gtm-clusters": React.lazy(() =>
     import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmClustersTab })),
   ),
+  "gtm-knowledge": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmKnowledgeTab").then((m) => ({ default: m.GtmKnowledgeTab })),
+  ),
   "ugc-overview": React.lazy(() => import("@/components/dashboard/ugc/UgcOverviewTab")),
   "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab")),
   "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab")),
@@ -535,6 +538,7 @@ const TAB_TITLES: Record<string, string> = {
   "gtm-states": "States / Regions",
   "gtm-cities": "Cities",
   "gtm-clusters": "Clusters",
+  "gtm-knowledge": "Knowledge Packs",
   "ugc-overview": "UGC & Contents",
   "jobs-overview": "Jobs Overview",
   "jobs-upload": "Jobs Upload & Approval",
