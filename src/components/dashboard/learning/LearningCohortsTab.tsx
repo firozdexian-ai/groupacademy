@@ -88,7 +88,7 @@ export function LearningCohortsTab() {
                           <div className="h-8 w-8 rounded-lg bg-background border-2 border-border/20 flex items-center justify-center shrink-0">
                             <Users className="h-3 w-3 text-indigo-500" />
                           </div>
-                          <span className="font-black text-sm uppercase italic tracking-tight">{row.title}</span>
+                          <span className="font-black text-sm uppercase italic tracking-tight">{row.name}</span>
                         </div>
                       </TableCell>
                       <TableCell>
