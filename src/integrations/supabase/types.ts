@@ -3993,6 +3993,7 @@ export type Database = {
           end_date: string | null
           featured_image: string | null
           id: string
+          institution_id: string | null
           is_featured: boolean | null
           max_participants: number | null
           prizes: Json | null
@@ -4011,6 +4012,7 @@ export type Database = {
           end_date?: string | null
           featured_image?: string | null
           id?: string
+          institution_id?: string | null
           is_featured?: boolean | null
           max_participants?: number | null
           prizes?: Json | null
@@ -4029,6 +4031,7 @@ export type Database = {
           end_date?: string | null
           featured_image?: string | null
           id?: string
+          institution_id?: string | null
           is_featured?: boolean | null
           max_participants?: number | null
           prizes?: Json | null
@@ -4040,7 +4043,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "competitions_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_bonus_grants: {
         Row: {
@@ -8418,6 +8429,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      institution_types: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       institutions: {
         Row: {
@@ -14799,6 +14834,7 @@ export type Database = {
           featured: boolean | null
           field_of_study: string | null
           id: string
+          institution_id: string | null
           intake_months: string[] | null
           is_active: boolean | null
           program_name: string
@@ -14819,6 +14855,7 @@ export type Database = {
           featured?: boolean | null
           field_of_study?: string | null
           id?: string
+          institution_id?: string | null
           intake_months?: string[] | null
           is_active?: boolean | null
           program_name: string
@@ -14839,6 +14876,7 @@ export type Database = {
           featured?: boolean | null
           field_of_study?: string | null
           id?: string
+          institution_id?: string | null
           intake_months?: string[] | null
           is_active?: boolean | null
           program_name?: string
@@ -14849,7 +14887,15 @@ export type Database = {
           updated_at?: string | null
           url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_abroad_programs_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_abroad_roadmaps: {
         Row: {
@@ -16227,6 +16273,7 @@ export type Database = {
           full_name: string
           id: string
           institution: string | null
+          institution_id: string | null
           is_featured: boolean | null
           is_suspected_duplicate: boolean
           job_preferences: Json | null
@@ -16282,6 +16329,7 @@ export type Database = {
           full_name: string
           id?: string
           institution?: string | null
+          institution_id?: string | null
           is_featured?: boolean | null
           is_suspected_duplicate?: boolean
           job_preferences?: Json | null
@@ -16337,6 +16385,7 @@ export type Database = {
           full_name?: string
           id?: string
           institution?: string | null
+          institution_id?: string | null
           is_featured?: boolean | null
           is_suspected_duplicate?: boolean
           job_preferences?: Json | null
@@ -16383,6 +16432,13 @@ export type Database = {
             columns: ["career_coach_instructor_id"]
             isOneToOne: false
             referencedRelation: "ai_instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talents_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
             referencedColumns: ["id"]
           },
           {
