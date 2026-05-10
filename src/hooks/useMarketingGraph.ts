@@ -7,7 +7,7 @@ export interface CommunityGroup { id: string; name: string; platform: string; me
 export interface TalentOutreach { id: string; talent_id: string; channel: string; campaign_name?: string; sent_at: string; }
 export interface CompanyOutreach { id: string; company_id: string; contact_id?: string; channel: string; sent_at: string; }
 export interface Banner { id: string; placement: string; media_url: string; link_url?: string; is_active: boolean; created_at: string; }
-export interface ProfileTheme { id: string; priority: number; gradient_css: string; media_url?: string; created_at: string; }
+export interface ProfileTheme { id: string; name: string; priority: number; media_type: string; gradient_css: string; media_url?: string; poster_url?: string; overlay_opacity: number; text_color: string; start_at?: string; end_at?: string; is_active: boolean; created_at: string; }
 export interface AccessCode { id: string; code: string; content_id?: string; max_uses: number; current_uses: number; expires_at?: string; }
 
 export function useMarketingGraph() {
@@ -31,7 +31,7 @@ export function useMarketingGraph() {
         supabase.from("talent_outreach_log").select("id, talent_id, channel, sent_at").order("sent_at", { ascending: false }).limit(500),
         supabase.from("company_outreach_log").select("id, company_id, contact_id, channel, sent_at").order("sent_at", { ascending: false }).limit(500),
         supabase.from("banners").select("id, placement, image_url, link_url, is_active, created_at").order("created_at", { ascending: false }).limit(100),
-        supabase.from("profile_card_themes").select("id, priority, gradient_css, media_url, created_at").order("created_at", { ascending: false }).limit(50),
+        supabase.from("profile_card_themes").select("id, name, priority, media_type, gradient_css, media_url, poster_url, overlay_opacity, text_color, start_at, end_at, is_active, created_at").order("priority", { ascending: false }).limit(50),
         supabase.from("access_codes").select("id, code, content_id, max_uses, current_uses, expires_at").order("created_at", { ascending: false }).limit(200),
       ]);
 
