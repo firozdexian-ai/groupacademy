@@ -19,9 +19,13 @@ import {
   Zap,
   Layers,
   ChevronRight,
+  ClipboardCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { QuizResultsViewer } from "./modules/QuizResultsViewer";
 
 /**
  * Platform Logic: Academic Progression Terminal (Learner Progress)
