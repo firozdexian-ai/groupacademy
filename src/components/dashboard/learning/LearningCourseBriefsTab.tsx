@@ -1,166 +1,209 @@
-/**
- * Phase 4.1 — Admin Course Briefs tab.
- * Create briefs, publish to auto-create instructor jobs, view linked job pipeline.
- */
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useLearningGraph } from "@/hooks/useLearningGraph";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Pencil, Trash2, Sparkles, ShieldCheck, Briefcase } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Briefcase, ExternalLink, Loader2 } from "lucide-react";
-import { useCourseBriefs, useCreateBrief, usePublishBrief } from "@/hooks/useCourseBriefs";
-import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 export function LearningCourseBriefsTab() {
-  const { data: briefs = [], isLoading } = useCourseBriefs();
-  const create = useCreateBrief();
-  const publish = usePublishBrief();
+  const {
+    learningGraphQuery,
+    mutations: { upsertCourseBrief, deleteCourseBrief },
+  } = useLearningGraph();
+  const { data, isLoading } = learningGraphQuery;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    summary: "",
-    mode: "recorded" as "recorded" | "live_cohort" | "hybrid",
-    language: "en",
-    duration_weeks: "",
-    revenue_share_pct: "60",
-    budget_amount: "",
-    budget_currency: "BDT",
-  });
-
-  const submit = async () => {
-    if (!form.title.trim()) return;
-    await create.mutateAsync({
-      title: form.title,
-      summary: form.summary || null,
-      mode: form.mode,
-      language: form.language,
-      duration_weeks: form.duration_weeks ? Number(form.duration_weeks) : null,
-      revenue_share_pct: Number(form.revenue_share_pct),
-      budget_amount: form.budget_amount ? Number(form.budget_amount) : 0,
-      budget_currency: form.budget_currency,
-    });
-    setOpen(false);
-    setForm({ ...form, title: "", summary: "", duration_weeks: "", budget_amount: "" });
-  };
+  const [draft, setDraft] = useState<any>({ status: "draft" });
 
   return (
-    <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold">Course Briefs</h2>
-          <p className="text-xs text-muted-foreground">
-            Define a course slot. Publishing creates a hidden instructor job.
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-orange-500">
+            <Sparkles className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+              Course Briefs
+            </h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            B2B Content Requests & Specs
           </p>
         </div>
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" />New brief</Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-            <SheetHeader><SheetTitle>New course brief</SheetTitle></SheetHeader>
-            <div className="space-y-3 mt-4">
-              <Field label="Title">
-                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-              </Field>
-              <Field label="Summary">
-                <Textarea rows={3} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
-              </Field>
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="Mode">
-                  <select
-                    className="w-full border rounded-md h-9 px-2 text-sm bg-background"
-                    value={form.mode}
-                    onChange={(e) => setForm({ ...form, mode: e.target.value as any })}
-                  >
-                    <option value="recorded">Recorded</option>
-                    <option value="live_cohort">Live cohort</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </Field>
-                <Field label="Language">
-                  <Input value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
-                </Field>
-                <Field label="Duration (wks)">
-                  <Input type="number" value={form.duration_weeks} onChange={(e) => setForm({ ...form, duration_weeks: e.target.value })} />
-                </Field>
-                <Field label="Revenue share %">
-                  <Input type="number" value={form.revenue_share_pct} onChange={(e) => setForm({ ...form, revenue_share_pct: e.target.value })} />
-                </Field>
-                <Field label="Flat fee">
-                  <Input type="number" value={form.budget_amount} onChange={(e) => setForm({ ...form, budget_amount: e.target.value })} />
-                </Field>
-                <Field label="Currency">
-                  <Input value={form.budget_currency} onChange={(e) => setForm({ ...form, budget_currency: e.target.value })} />
-                </Field>
-              </div>
-              <Button className="w-full" onClick={submit} disabled={create.isPending}>
-                {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save as draft
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+        <Button
+          onClick={() => {
+            setDraft({ status: "draft" });
+            setOpen(true);
+          }}
+          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <Plus className="h-4 w-4" /> Inject Brief
+        </Button>
+      </header>
 
-      {isLoading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      ) : briefs.length === 0 ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">
-          No briefs yet. Create one to start hiring an instructor.
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {briefs.map((b) => (
-            <Card key={b.id} className="p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{b.title}</p>
-                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{b.summary}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    <Badge variant={b.status === "open" ? "default" : "secondary"} className="text-[10px]">
-                      {b.status}
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px]">{b.mode}</Badge>
-                    <Badge variant="outline" className="text-[10px]">
-                      {b.revenue_share_pct}% share
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5 shrink-0">
-                  {b.status === "draft" && (
-                    <Button
-                      size="sm"
-                      onClick={() => publish.mutate(b.id)}
-                      disabled={publish.isPending}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500" />
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/10 border-b-2 border-border/20">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest py-5 pl-8">
+                    Brief Definition
+                  </TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Instructor Node</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
+                  <TableHead className="text-right py-5 pr-8">Manage</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border/5">
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-20 text-center">
+                      <Skeleton className="h-8 w-32 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : data?.courseBriefs?.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="py-20 text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground/50 italic"
                     >
-                      Publish
-                    </Button>
-                  )}
-                  {b.instructor_job_id && (
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={`/dashboard?tab=jobs&jobId=${b.instructor_job_id}`}>
-                        <Briefcase className="h-3.5 w-3.5 mr-1" />
-                        Pipeline
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+                      Zero briefs detected.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.courseBriefs?.map((row) => (
+                    <TableRow key={row.id} className="group hover:bg-orange-500/[0.02]">
+                      <TableCell className="py-6 pl-8">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-background border-2 border-border/20 flex items-center justify-center shrink-0">
+                            <Sparkles className="h-3 w-3 text-orange-500" />
+                          </div>
+                          <span className="font-black text-sm uppercase italic tracking-tight">{row.title}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
+                          <Briefcase className="h-3 w-3 text-orange-500" />
+                          {row.instructor_user_id ? row.instructor_user_id.substring(0, 8) : "Unassigned"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "font-bold text-[9px] uppercase tracking-widest border-none px-3",
+                            row.status === "approved"
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : row.status === "in_review"
+                                ? "bg-blue-500/10 text-blue-600"
+                                : "bg-amber-500/10 text-amber-600",
+                          )}
+                        >
+                          {row.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDraft(row);
+                              setOpen(true);
+                            }}
+                            className="hover:bg-orange-500/10 hover:text-orange-600"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              if (confirm("Purge Brief?")) deleteCourseBrief.mutate(row.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="text-[11px] text-muted-foreground">{label}</label>
-      {children}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md rounded-[40px] p-8 border-4 border-border/40 text-left">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-orange-500 flex items-center gap-2">
+              <Sparkles className="h-6 w-6" /> Inject Brief
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+              Update B2B course specifications.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Brief Title</Label>
+              <Input
+                placeholder="Title"
+                value={draft.title || ""}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                className="h-14 rounded-xl border-2 font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                Instructor User ID (Optional)
+              </Label>
+              <Input
+                placeholder="UUID"
+                value={draft.instructor_user_id || ""}
+                onChange={(e) => setDraft({ ...draft, instructor_user_id: e.target.value })}
+                className="h-14 rounded-xl border-2 font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Brief Status</Label>
+              <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+                <SelectTrigger className="h-14 rounded-xl border-2 font-bold text-xs uppercase">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft" className="font-bold text-xs uppercase tracking-widest text-amber-500">
+                    Draft
+                  </SelectItem>
+                  <SelectItem value="in_review" className="font-bold text-xs uppercase tracking-widest text-blue-500">
+                    In Review
+                  </SelectItem>
+                  <SelectItem value="approved" className="font-bold text-xs uppercase tracking-widest text-emerald-500">
+                    Approved
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button
+            disabled={!draft.title || upsertCourseBrief.isPending}
+            onClick={() => {
+              upsertCourseBrief.mutate(draft, { onSuccess: () => setOpen(false) });
+            }}
+            className="h-14 rounded-xl font-black uppercase bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Spec
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
