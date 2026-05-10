@@ -15,7 +15,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Wand2, Plus, Check, Trash2 } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  Wand2,
+  Plus,
+  Check,
+  Trash2,
+  BrainCircuit,
+  SplitSquareHorizontal,
+  ShieldCheck,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Proposal {
   name: string;
@@ -66,7 +77,10 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
 
   async function generate() {
     if (brief.trim().length < 10) {
-      toast({ title: "Write a longer brief", description: "Tell us what this agent should do, who it's for, and any tone notes." });
+      toast({
+        title: "Write a longer brief",
+        description: "Tell us what this agent should do, who it's for, and any tone notes.",
+      });
       return;
     }
     setGenerating(true);
@@ -113,10 +127,7 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
   }
 
   async function setActive(key: string) {
-    const { error } = await supabase
-      .from("ai_agents")
-      .update({ active_prompt_variant: key })
-      .eq("id", agent.id);
+    const { error } = await supabase.from("ai_agents").update({ active_prompt_variant: key }).eq("id", agent.id);
     if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
     setActiveVariant(key);
     toast({ title: `Variant ${key} is now live` });
@@ -135,10 +146,7 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
       return toast({ title: "Prompt too short" });
     }
     const next = { ...(agent.prompt_variants || {}), [key]: newVariantPrompt };
-    const { error } = await supabase
-      .from("ai_agents")
-      .update({ prompt_variants: next })
-      .eq("id", agent.id);
+    const { error } = await supabase.from("ai_agents").update({ prompt_variants: next }).eq("id", agent.id);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
     setNewVariantKey("");
     setNewVariantPrompt("");
@@ -148,7 +156,8 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
 
   async function deleteVariant(key: string) {
     if (key === "A") return toast({ title: "Cannot delete A", description: "Variant A is the base system prompt." });
-    if (key === activeVariant) return toast({ title: "Variant is live", description: "Switch to another variant first." });
+    if (key === activeVariant)
+      return toast({ title: "Variant is live", description: "Switch to another variant first." });
     const next = { ...(agent.prompt_variants || {}) };
     delete next[key];
     const { error } = await supabase.from("ai_agents").update({ prompt_variants: next }).eq("id", agent.id);
@@ -157,115 +166,243 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Blueprint */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-primary" /> Blueprint from brief
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Blueprint Generation */}
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl flex flex-col">
+        <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-primary to-blue-500" />
+        <CardHeader className="p-6 border-b border-border/10 bg-muted/5">
+          <CardTitle className="text-sm font-black uppercase tracking-[0.2em] italic flex items-center gap-3 text-primary">
+            <BrainCircuit className="h-5 w-5" /> Blueprint Generator
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            rows={3}
-            placeholder="Describe the agent in plain language. E.g. 'A friendly career coach for first-job seekers in tech. Should help with CV review, mock interview prep, and salary expectations. Keep tone warm but practical.'"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-          />
-          <Button size="sm" onClick={generate} disabled={generating}>
-            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            <span className="ml-2">Generate proposal</span>
-          </Button>
+        <CardContent className="p-6 space-y-6">
+          <div className="space-y-3">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">
+              Agent Brief
+            </Label>
+            <Textarea
+              rows={4}
+              placeholder="Describe the agent in plain language. E.g. 'A friendly career coach for first-job seekers in tech. Should help with CV review, mock interview prep, and salary expectations. Keep tone warm but practical.'"
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              className="rounded-3xl border-2 bg-background/50 font-medium p-6 italic focus:border-primary/40 transition-all text-sm"
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={generate}
+                disabled={generating || brief.trim().length < 10}
+                className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 gap-2"
+              >
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Generate Proposal
+              </Button>
+            </div>
+          </div>
 
           {proposal && (
-            <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge>{proposal.name}</Badge>
-                <Badge variant="outline" className="text-[10px]">{proposal.agent_key}</Badge>
-                <Badge variant="outline" className="text-[10px]">L{proposal.agent_level}</Badge>
-                <Badge variant="outline" className="text-[10px]">{proposal.category}</Badge>
-                <Badge variant="outline" className="text-[10px]">{proposal.connection_fee}c conn / {proposal.message_credit_cost}c msg</Badge>
+            <div className="rounded-[32px] border-2 border-primary/20 p-8 space-y-6 bg-primary/5 animate-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className="bg-primary text-white font-black uppercase tracking-widest px-3 py-1">
+                  {proposal.name}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-background">
+                  {proposal.agent_key}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-black uppercase tracking-widest bg-background border-border/50"
+                >
+                  L{proposal.agent_level}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-black uppercase tracking-widest bg-background border-border/50"
+                >
+                  {proposal.category}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                >
+                  {proposal.connection_fee}c CONN / {proposal.message_credit_cost}c MSG
+                </Badge>
               </div>
-              <p className="text-xs text-muted-foreground italic">{proposal.rationale}</p>
-              <div>
-                <Label className="text-xs">Description</Label>
-                <p className="text-sm">{proposal.description}</p>
+
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-muted-foreground italic border-l-2 border-primary/40 pl-4 py-1">
+                  "{proposal.rationale}"
+                </p>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2 block">
+                    Description
+                  </Label>
+                  <p className="text-sm font-medium">{proposal.description}</p>
+                </div>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2 block">
+                    System Prompt
+                  </Label>
+                  <pre className="text-xs whitespace-pre-wrap font-mono bg-background p-6 rounded-3xl border-2 border-border/20 max-h-64 overflow-auto shadow-inner">
+                    {proposal.system_prompt}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2 block">
+                    Authorized Tools
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {proposal.allowed_tools.map((t) => (
+                      <Badge key={t} variant="secondary" className="font-mono text-[9px]">
+                        {t}
+                      </Badge>
+                    ))}
+                    {proposal.allowed_tools.length === 0 && (
+                      <span className="text-xs text-muted-foreground italic">None required</span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">System prompt</Label>
-                <pre className="text-xs whitespace-pre-wrap font-mono bg-background p-2 rounded max-h-48 overflow-auto">{proposal.system_prompt}</pre>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {proposal.allowed_tools.map((t) => (
-                  <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
-                ))}
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={applyProposal} disabled={applying}>
-                  {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  <span className="ml-1">Apply to this agent</span>
+
+              <div className="flex gap-4 pt-4 border-t border-border/20">
+                <Button
+                  onClick={applyProposal}
+                  disabled={applying}
+                  className="h-12 flex-1 rounded-xl font-black uppercase tracking-widest text-[10px] gap-2"
+                >
+                  {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Apply Blueprint To Agent
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setProposal(null)}>Discard</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setProposal(null)}
+                  className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[10px] border-2"
+                >
+                  Discard
+                </Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* A/B variants */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Prompt variants (A/B)</CardTitle>
+      {/* A/B Prompt Variants */}
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-xl overflow-hidden bg-card/30 backdrop-blur-xl flex flex-col">
+        <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 to-emerald-600" />
+        <CardHeader className="p-6 border-b border-border/10 bg-muted/5">
+          <CardTitle className="text-sm font-black uppercase tracking-[0.2em] italic flex items-center gap-3 text-emerald-600">
+            <SplitSquareHorizontal className="h-5 w-5" /> Prompt Variants (A/B Testing)
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
+        <CardContent className="p-6 space-y-6">
+          <div className="space-y-4">
             {Object.entries(variants).map(([key, prompt]) => (
-              <div key={key} className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={key === activeVariant ? "default" : "outline"}>Variant {key}</Badge>
-                    {key === activeVariant && <span className="text-[10px] text-success-foreground">Live</span>}
-                    {key === "A" && <span className="text-[10px] text-muted-foreground">(base prompt)</span>}
+              <div
+                key={key}
+                className={cn(
+                  "rounded-[24px] border-2 p-6 transition-all duration-300",
+                  key === activeVariant
+                    ? "border-emerald-500/30 bg-emerald-500/5 shadow-sm"
+                    : "border-border/20 bg-background/30 hover:border-border/40",
+                )}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={key === activeVariant ? "default" : "outline"}
+                      className={cn(
+                        "font-black text-[10px] uppercase tracking-widest px-3 py-1",
+                        key === activeVariant && "bg-emerald-500 text-white",
+                      )}
+                    >
+                      Variant {key}
+                    </Badge>
+                    {key === activeVariant && (
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live
+                      </span>
+                    )}
+                    {key === "A" && (
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                        (Base Prompt)
+                      </span>
+                    )}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-2">
                     {key !== activeVariant && (
-                      <Button size="sm" variant="outline" onClick={() => setActive(key)}>Make live</Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setActive(key)}
+                        className="h-8 rounded-lg font-black uppercase text-[9px] tracking-widest px-4"
+                      >
+                        Make Live
+                      </Button>
                     )}
                     {key !== "A" && (
-                      <Button size="sm" variant="ghost" onClick={() => deleteVariant(key)}>
-                        <Trash2 className="h-3 w-3" />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => deleteVariant(key)}
+                        className="h-8 w-8 rounded-lg text-destructive/60 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
                 </div>
-                <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/40 p-2 rounded max-h-32 overflow-auto">{prompt}</pre>
+                <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 p-4 rounded-2xl border border-border/10 max-h-48 overflow-auto shadow-inner text-foreground/80">
+                  {prompt}
+                </pre>
               </div>
             ))}
           </div>
 
-          <div className="rounded-lg border border-dashed p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Add variant</span>
+          <div className="rounded-[32px] border-2 border-dashed border-border/40 p-6 space-y-6 bg-muted/5">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-black uppercase tracking-widest italic">Add Experimental Variant</span>
             </div>
-            <div className="flex gap-2">
-              <Input
-                className="w-24"
-                placeholder="B"
-                value={newVariantKey}
-                onChange={(e) => setNewVariantKey(e.target.value)}
-              />
-              <Textarea
-                rows={2}
-                placeholder="New system prompt to test against the live variant…"
-                value={newVariantPrompt}
-                onChange={(e) => setNewVariantPrompt(e.target.value)}
-              />
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="space-y-2 md:w-32 shrink-0">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                  Key
+                </Label>
+                <Input
+                  className="h-12 rounded-xl border-2 font-black text-center"
+                  placeholder="B"
+                  value={newVariantKey}
+                  onChange={(e) => setNewVariantKey(e.target.value)}
+                  maxLength={4}
+                />
+              </div>
+              <div className="space-y-2 flex-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                  System Prompt
+                </Label>
+                <Textarea
+                  rows={3}
+                  className="rounded-xl border-2 font-mono text-xs p-4 resize-none"
+                  placeholder="New system prompt to test against the live variant…"
+                  value={newVariantPrompt}
+                  onChange={(e) => setNewVariantPrompt(e.target.value)}
+                />
+              </div>
             </div>
-            <Button size="sm" onClick={addVariant}>Add</Button>
-            <p className="text-[10px] text-muted-foreground">
-              Variants run 50/50 against live traffic. Compare outcomes in Insights once enough sessions accumulate.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 max-w-sm leading-relaxed">
+                Variants run 50/50 against live traffic. Compare session completion rates in Insights.
+              </p>
+              <Button
+                onClick={addVariant}
+                disabled={!newVariantKey.trim() || newVariantPrompt.trim().length < 20}
+                className="h-12 px-10 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-md"
+              >
+                Inject Variant
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
