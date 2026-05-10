@@ -60,6 +60,10 @@ import {
   Languages,
   Phone,
   Lock,
+  CircleDollarSign,
+  ArrowRightLeft,
+  Receipt,
+  Banknote,
 } from "lucide-react";
 import {
   Sidebar,
