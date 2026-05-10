@@ -442,7 +442,7 @@ const TAB_TITLES: Record<string, string> = {
   "finops-pay-infra": "Payment Infrastructure",
   "finops-invoices": "Invoices",
   "finops-withdrawals": "Withdrawals",
-  notifications: "System Alerts",
+  
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
   "ir-vcs": "VC Portfolio",
@@ -453,7 +453,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-economics": "Unit Economics",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
-  "support-assistant": "Helpdesk AI",
+  
   // Marketing labels moved to "marketing-*" block above.
   team: "Human Capital",
   // FinOps labels moved to "finops-*" block above.
@@ -492,7 +492,7 @@ const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { role, isLoading: roleLoading } = useUserRole();
 
-  const defaultTab = useMemo(() => (role === "talent_exec" ? "talent" : "overview"), [role]);
+  const defaultTab = useMemo(() => (role === "talent_exec" ? "crm-talent-pool" : "overview"), [role]);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || defaultTab);
 
   useEffect(() => {
