@@ -1,41 +1,36 @@
 import { Draggable } from "@hello-pangea/dnd";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Crown, Users } from "lucide-react";
 import { formatUSD } from "@/lib/irConfig";
+import { Crown, Users, TrendingUp, Calendar as CalIcon, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PipelineInvestor, LeadCapability } from "@/hooks/useIRPipeline";
 
-const LEAD_BADGE: Record<
-  LeadCapability,
-  { label: string; className: string; icon: typeof Crown }
-> = {
-  lead: { label: "Lead", className: "bg-primary text-primary-foreground", icon: Crown },
+const LEAD_BADGE: Record<string, { label: string; className: string; icon: any }> = {
+  lead: { label: "True Lead", className: "bg-primary/10 text-primary border-primary/30", icon: Crown },
   co_lead: {
-    label: "Co-lead",
-    className: "bg-primary/70 text-primary-foreground",
+    label: "Co-Lead",
+    className: "bg-blue-500/10 text-blue-600 border-blue-500/30",
     icon: Crown,
   },
   follower: {
     label: "Follower",
-    className: "bg-muted text-muted-foreground",
+    className: "bg-muted text-muted-foreground border-border/40",
     icon: Users,
   },
   syndicate: {
     label: "Syndicate",
-    className: "bg-secondary text-secondary-foreground",
+    className: "bg-amber-500/10 text-amber-600 border-amber-500/30",
     icon: Users,
   },
   angel: {
     label: "Angel",
-    className: "bg-accent text-accent-foreground",
+    className: "bg-purple-500/10 text-purple-600 border-purple-500/30",
     icon: Users,
   },
 };
 
 interface Props {
-  investor: PipelineInvestor;
+  investor: any;
   index: number;
-  onSelect?: (investor: PipelineInvestor) => void;
+  onSelect?: (investor: any) => void;
 }
 
 export function PipelineCard({ investor, index, onSelect }: Props) {
@@ -58,43 +53,69 @@ export function PipelineCard({ investor, index, onSelect }: Props) {
           {...provided.dragHandleProps}
           onClick={() => onSelect?.(investor)}
           className={cn(
-            "group rounded-lg border bg-card p-3 shadow-sm transition cursor-grab active:cursor-grabbing",
+            "group rounded-[24px] border-2 bg-card p-4 shadow-sm transition-all cursor-grab active:cursor-grabbing",
             "hover:border-primary/40 hover:shadow-md",
-            snapshot.isDragging && "rotate-1 shadow-lg ring-2 ring-primary/30",
+            snapshot.isDragging
+              ? "rotate-2 shadow-2xl border-primary bg-background scale-105 z-50"
+              : "border-border/20",
           )}
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="truncate font-semibold text-sm">{investor.full_name}</div>
-              {investor.vc_firm?.name && (
-                <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Building2 className="h-3 w-3" />
-                  <span className="truncate">{investor.vc_firm.name}</span>
-                </div>
-              )}
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="min-w-0 flex-1">
+              <h4 className="font-black text-sm uppercase italic tracking-tight truncate group-hover:text-primary transition-colors">
+                {investor.full_name}
+              </h4>
+              <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 truncate">
+                {investor.vc_firm?.name ? (
+                  <>
+                    <Building2 className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{investor.vc_firm.name}</span>
+                  </>
+                ) : (
+                  <span className="opacity-50">Independent</span>
+                )}
+              </div>
             </div>
-            <Badge className={cn("shrink-0 gap-1 text-[10px]", lead.className)}>
-              <LeadIcon className="h-3 w-3" />
-              {lead.label}
-            </Badge>
           </div>
 
-          {(checkRange || investor.probability_pct > 0) && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-              {checkRange && (
-                <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                  {checkRange}
-                </span>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span
+              className={cn(
+                "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
+                lead.className,
               )}
-              {investor.probability_pct > 0 && (
-                <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                  {investor.probability_pct}% prob
-                </span>
+            >
+              <LeadIcon className="h-2.5 w-2.5" />
+              {lead.label}
+            </span>
+            {investor.probability_pct > 0 && (
+              <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-muted text-foreground/70 border border-border/40">
+                <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />
+                {investor.probability_pct}%
+              </span>
+            )}
+          </div>
+
+          {(checkRange || investor.expected_close_date) && (
+            <div className="border-t border-border/10 pt-3 flex flex-col gap-1.5">
+              {checkRange && (
+                <div className="text-[10px] font-mono font-bold text-foreground/80 flex items-center justify-between">
+                  <span className="text-[8px] text-muted-foreground uppercase font-sans tracking-widest">
+                    TGT Check
+                  </span>
+                  {checkRange}
+                </div>
               )}
               {investor.expected_close_date && (
-                <span className="rounded bg-muted px-1.5 py-0.5">
-                  ETA {new Date(investor.expected_close_date).toLocaleDateString()}
-                </span>
+                <div className="text-[10px] font-bold text-muted-foreground flex items-center justify-between">
+                  <span className="text-[8px] uppercase tracking-widest flex items-center gap-1">
+                    <CalIcon className="h-2.5 w-2.5" /> ETA
+                  </span>
+                  {new Date(investor.expected_close_date).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </div>
               )}
             </div>
           )}
