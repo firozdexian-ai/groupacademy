@@ -82,7 +82,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string; icon: Rea
   refunded: { label: "CAPITAL_REVERTED", className: "bg-muted text-muted-foreground", icon: XCircle },
 };
 
-export function InvoiceManager() {
+export function InvoicesTab() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus>("all");
   const [search, setSearch] = useState("");

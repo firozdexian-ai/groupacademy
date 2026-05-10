@@ -26,7 +26,7 @@ interface Row {
 
 const STATUSES: Row["status"][] = ["pending", "approved", "paid", "rejected"];
 
-export function WithdrawalsPanel() {
+export function WithdrawalsTab() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Row["status"]>("pending");

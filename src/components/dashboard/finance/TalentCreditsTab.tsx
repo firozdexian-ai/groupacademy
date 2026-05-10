@@ -89,7 +89,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function CreditsManager() {
+export function TalentCreditsTab() {
   const [credits, setCredits] = useState<TalentCredit[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);

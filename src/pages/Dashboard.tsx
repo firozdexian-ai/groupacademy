@@ -183,12 +183,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   portfolios: React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager")),
   // Gig Economy routes consolidated below (search "gigs-overview").
 
-  credits: React.lazy(() =>
-    import("@/components/dashboard/CreditsManager").then((m) => ({ default: m.CreditsManager })),
-  ),
-  withdrawals: React.lazy(() =>
-    import("@/components/dashboard/WithdrawalsPanel").then((m) => ({ default: m.WithdrawalsPanel })),
-  ),
   notifications: React.lazy(() =>
     import("@/components/dashboard/NotificationsManager").then((m) => ({ default: m.NotificationsManager })),
   ),
@@ -223,12 +217,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   // Marketing banners/themes/access-codes legacy keys removed — see "marketing-*" block below.
   "hr-team": React.lazy(() => import("@/components/dashboard/hr/TeamManager").then((m) => ({ default: m.TeamManager }))),
-  "payments-legacy": React.lazy(() =>
-    import("@/components/dashboard/PaymentSettingsManager").then((m) => ({ default: m.PaymentSettingsManager })),
-  ),
-  invoices: React.lazy(() =>
-    import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
-  ),
+  // Legacy "payments-legacy" + "invoices" keys removed — replaced by "finops-*" block below.
   institutions: React.lazy(() =>
     import("@/components/dashboard/institutions/StakeholderRegistry").then((m) => ({ default: m.InstitutionsManager })),
   ),
@@ -355,17 +344,15 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
       default: m.EmployerMessagingChannelTab,
     })),
   ),
-  "fin-overview": React.lazy(() => import("@/components/dashboard/finance/FinOverviewTab")),
-  "gro10x-credits": React.lazy(() =>
-    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.Gro10xCreditsTab })),
-  ),
-  "company-credits": React.lazy(() =>
-    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.CompanyCreditsTab })),
-  ),
-  transactions: React.lazy(() =>
-    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.TransactionsTab })),
-  ),
-  payments: React.lazy(() => import("@/components/dashboard/finance/PaymentInfraTab")),
+  // ===== FinOps (Phase 6 standardized "finops-*" keys) =====
+  "finops-overview": React.lazy(() => import("@/components/dashboard/finance/FinOverviewTab").then((m: any) => ({ default: m.FinOverviewTab ?? m.default }))),
+  "finops-talent-credits": React.lazy(() => import("@/components/dashboard/finance/TalentCreditsTab").then((m: any) => ({ default: m.TalentCreditsTab ?? m.default }))),
+  "finops-gro10x-credits": React.lazy(() => import("@/components/dashboard/finance/Gro10xCreditsTab").then((m: any) => ({ default: m.Gro10xCreditsTab ?? m.default }))),
+  "finops-company-credits": React.lazy(() => import("@/components/dashboard/finance/CompanyCreditsTab").then((m: any) => ({ default: m.CompanyCreditsTab ?? m.default }))),
+  "finops-transactions": React.lazy(() => import("@/components/dashboard/finance/TransactionsTab").then((m: any) => ({ default: m.TransactionsTab ?? m.default }))),
+  "finops-pay-infra": React.lazy(() => import("@/components/dashboard/finance/PaymentInfraTab").then((m: any) => ({ default: m.PaymentInfraTab ?? m.default }))),
+  "finops-invoices": React.lazy(() => import("@/components/dashboard/finance/InvoicesTab").then((m: any) => ({ default: m.InvoicesTab ?? m.default }))),
+  "finops-withdrawals": React.lazy(() => import("@/components/dashboard/finance/WithdrawalsTab").then((m: any) => ({ default: m.WithdrawalsTab ?? m.default }))),
   modules: React.lazy(() => import("@/components/dashboard/learning/modules/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
 };
@@ -469,8 +456,14 @@ const TAB_TITLES: Record<string, string> = {
   "course-projects": "Course Projects",
   "marketplace-gigs": "Project Gigs",
   "gig-submissions": "Work Evidence",
-  credits: "Financial Ledger",
-  withdrawals: "Withdrawals",
+  "finops-overview": "FinOps Dashboard",
+  "finops-talent-credits": "Talent Credits",
+  "finops-gro10x-credits": "Gro10x Credits",
+  "finops-company-credits": "Company Credits",
+  "finops-transactions": "Transactions",
+  "finops-pay-infra": "Payment Infrastructure",
+  "finops-invoices": "Invoices",
+  "finops-withdrawals": "Withdrawals",
   notifications: "System Alerts",
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
@@ -485,8 +478,7 @@ const TAB_TITLES: Record<string, string> = {
   "support-assistant": "Helpdesk AI",
   // Marketing labels moved to "marketing-*" block above.
   team: "Human Capital",
-  payments: "Gateway Logic",
-  invoices: "Invoice Manager",
+  // FinOps labels moved to "finops-*" block above.
   institutions: "Institutions Registry",
   "partner-orgs": "Partner Organizations",
   "inst-overview": "Institutions Dashboard",

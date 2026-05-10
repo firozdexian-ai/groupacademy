@@ -13,7 +13,7 @@ import { CreditCard, MessageCircle, Shield, Loader2, Save, CheckCircle2, AlertCi
 
 type GatewayOption = "whatsapp" | "stripe" | "both";
 
-export function PaymentSettingsManager() {
+export function PaymentSettingsTab() {
   const queryClient = useQueryClient();
 
   const { data: settings, isLoading } = useQuery({

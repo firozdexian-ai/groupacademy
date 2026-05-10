@@ -60,6 +60,10 @@ import {
   Languages,
   Phone,
   Lock,
+  CircleDollarSign,
+  ArrowRightLeft,
+  Receipt,
+  Banknote,
 } from "lucide-react";
 import {
   Sidebar,
@@ -327,16 +331,16 @@ const navGroups: NavGroup[] = [
   {
     title: "FinOps",
     icon: Coins,
-    roles: ["admin"],
+    roles: ["admin", "super_admin"],
     items: [
-      { title: "Dashboard", icon: LayoutDashboard, value: "fin-overview" },
-      { title: "Talent Credits", icon: Coins, value: "credits" },
-      { title: "Gro10x Credits", icon: Coins, value: "gro10x-credits" },
-      { title: "Company Credits", icon: Coins, value: "company-credits" },
-      { title: "Transactions", icon: BarChart, value: "transactions" },
-      { title: "Pay Infra", icon: CreditCard, value: "payments" },
-      { title: "Invoices", icon: CreditCard, value: "invoices" },
-      { title: "Withdrawals", icon: Coins, value: "withdrawals" },
+      { title: "Dashboard",       icon: LayoutDashboard,  value: "finops-overview" },
+      { title: "Talent Credits",  icon: CircleDollarSign, value: "finops-talent-credits" },
+      { title: "Gro10x Credits",  icon: Coins,            value: "finops-gro10x-credits" },
+      { title: "Company Credits", icon: Building2,        value: "finops-company-credits" },
+      { title: "Transactions",    icon: ArrowRightLeft,   value: "finops-transactions" },
+      { title: "Pay Infra",       icon: CreditCard,       value: "finops-pay-infra" },
+      { title: "Invoices",        icon: Receipt,          value: "finops-invoices" },
+      { title: "Withdrawals",     icon: Banknote,         value: "finops-withdrawals" },
     ],
   },
   {
