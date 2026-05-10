@@ -64,6 +64,7 @@ import {
   ArrowRightLeft,
   Receipt,
   Banknote,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -113,18 +114,19 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Talent Ecology",
+    title: "Global CRM",
     icon: Users,
     roles: ["admin", "super_admin", "talent_exec"],
     items: [
-      { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
-      { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
-      { title: "Talent Upload", value: "talent-upload", icon: Upload },
-      { title: "Outreach Console", value: "talent-outreach", icon: MessageSquare },
-      { title: "WhatsApp Line", value: "talent-wa-channel", icon: Phone },
-      { title: "Creator Economy", value: "talent-creator-economy", icon: Sparkles },
-      { title: "Lead Hunter", value: "lead-hunter", icon: Target },
-      { title: "Professions & Roles", value: "professions", icon: GraduationCap },
+      { title: "Overview",        icon: Activity,      value: "crm-overview" },
+      { title: "Talent Pool",     icon: Users,         value: "crm-talent-pool" },
+      { title: "Professions",     icon: Briefcase,     value: "crm-professions" },
+      { title: "Upload Node",     icon: Upload,        value: "crm-upload" },
+      { title: "Outreach Log",    icon: Send,          value: "crm-outreach" },
+      { title: "WA Channel",      icon: MessageCircle, value: "crm-wa-channel" },
+      { title: "Creator Econ",    icon: Sparkles,      value: "crm-creator-economy" },
+      { title: "Notifications",   icon: Bell,          value: "crm-notifications" },
+      { title: "Support AI",      icon: Bot,           value: "crm-support-ai" },
     ],
   },
   {
