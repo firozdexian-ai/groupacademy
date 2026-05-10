@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge"; // FIXED: Restored missing import
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, RefreshCw, Lock, Calendar, Zap, ShieldCheck, TrendingUp, Target as TargetIcon } from "lucide-react";
+import {
+  Save,
+  RefreshCw,
+  Lock,
+  Calendar,
+  Zap,
+  ShieldCheck,
+  TrendingUp,
+  Target as TargetIcon,
+  Settings2,
+  Activity,
+} from "lucide-react";
 import {
   IR_CONFIG,
   formatUSD,
@@ -37,15 +48,12 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Revenue & Target Orchestrator
  * CTO Reference: Authoritative node for MRR calibration and service mix simulation.
- * Resolved TS2304 by restoring the Badge primitive import.
+ * 2024 Standard: Executive Logic geometry with reinforced interaction analysis.
  */
 
 export function MRRTargetManager() {
   const queryClient = useQueryClient();
   const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
 
   const [mrrTarget, setMrrTarget] = useState<number>(0);
   const [serviceMix, setServiceMix] = useState<ServiceMix>(IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix);
@@ -64,17 +72,21 @@ export function MRRTargetManager() {
         .eq("month", currentMonth)
         .maybeSingle();
 
-      if (error) throw error;
-      if (data) {
-        setMrrTarget(Number(data.mrr_target_usd) || 0);
-        setServiceMix((data.service_mix as ServiceMix) || (IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix));
-        setTargetPayingUsers(data.target_paying_users || 0);
-        setTargetChurnRate(Number(data.target_churn_rate) || 5);
-        setNotes(data.notes || "");
-      }
-      return data;
+      if (error && error.code !== "PGRST116") throw error;
+      return data || null;
     },
   });
+
+  // CTO FIX: Safely hydrate state using useEffect instead of inside the queryFn
+  useEffect(() => {
+    if (target) {
+      setMrrTarget(Number(target.mrr_target_usd) || 0);
+      setServiceMix((target.service_mix as ServiceMix) || (IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix));
+      setTargetPayingUsers(target.target_paying_users || 0);
+      setTargetChurnRate(Number(target.target_churn_rate) || 5);
+      setNotes(target.notes || "");
+    }
+  }, [target]);
 
   // MUTATION: Synchronize Target Protocol
   const saveMutation = useMutation({
@@ -108,80 +120,105 @@ export function MRRTargetManager() {
   const totalCreditsTarget = mrrTarget * IR_CONFIG.USD_TO_CREDITS;
   const isClosed = target?.is_closed || false;
 
+  const handleMixChange = (service: ServiceKey, value: number) => {
+    // CTO FIX: Constrain input to reasonable bounds
+    const safeValue = Math.min(100, Math.max(0, value));
+    setServiceMix((prev) => ({ ...prev, [service]: safeValue }));
+    setHasChanges(true);
+  };
+
   if (isLoading) return <SkeletonGrid />;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
       {/* EXECUTIVE COMMAND HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
-            <TargetIcon className="h-8 w-8" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Target Command</h2>
+            <TargetIcon className="h-8 w-8 text-primary fill-primary/20" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Target Command</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            MRR Optimization & Service Mix Simulator
+            MRR Optimization · Service Mix Simulation
           </p>
         </div>
         <div className="flex items-center gap-3">
           {isClosed ? (
-            <Badge className="h-14 px-6 rounded-2xl border-2 font-black italic gap-2 bg-muted text-muted-foreground border-border/40">
-              <Lock className="h-4 w-4" /> REGISTRY_LOCKED
+            <Badge className="h-12 px-6 rounded-xl border-2 font-black italic gap-2 bg-muted text-muted-foreground border-border/40 uppercase tracking-widest text-[9px]">
+              <Lock className="h-3.5 w-3.5" /> REGISTRY_LOCKED
             </Badge>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-14 px-6 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+                    className="h-12 px-6 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2 bg-background/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
                   >
                     <Calendar className="h-4 w-4" /> Close Period
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-[32px] border-4">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-left">
-                      Terminate Period?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription className="text-xs font-medium italic text-left">
-                      This will finalize actual revenue nodes and lock the registry for this month.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-xl font-bold uppercase text-[10px]">Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-primary hover:bg-primary/90 rounded-xl font-bold uppercase text-[10px]">
-                      Confirm Termination
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
+                <AlertDialogContent className="rounded-[40px] border-4 border-destructive/20 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+                  <div className="h-2 w-full bg-gradient-to-r from-destructive to-rose-600" />
+                  <div className="p-10 space-y-8">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-destructive leading-none">
+                        Terminate Period?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/80 mt-2">
+                        This will finalize actual revenue nodes and lock the registry for this month.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-3 sm:gap-0">
+                      <AlertDialogCancel className="h-14 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest px-8">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction className="h-14 rounded-xl bg-destructive hover:bg-destructive/90 font-black uppercase text-[10px] tracking-[0.2em] px-10 shadow-lg shadow-destructive/20 gap-2">
+                        <Lock className="h-4 w-4" /> Confirm Termination
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </div>
                 </AlertDialogContent>
               </AlertDialog>
               <Button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending || !hasChanges}
-                className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg"
+                className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-primary/20 transition-all"
               >
-                <Zap className={cn("h-4 w-4", hasChanges ? "fill-current" : "")} /> Synchronize
+                {saveMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className={cn("h-4 w-4", hasChanges ? "fill-current" : "")} />
+                )}
+                {saveMutation.isPending ? "Syncing..." : "Synchronize"}
               </Button>
             </div>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
-          <CardHeader className="p-8 border-b border-border/10 bg-muted/10 text-left">
-            <CardTitle className="text-xl font-black uppercase italic tracking-tighter">Revenue Calibration</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase">
-              Define MRR parameters and user acquisition targets
-            </CardDescription>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <Card className="xl:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden backdrop-blur-xl flex flex-col">
+          <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500" />
+          <CardHeader className="p-8 border-b border-border/10 bg-muted/5 flex flex-row items-center justify-between">
+            <div className="space-y-1 text-left">
+              <CardTitle className="text-xl font-black uppercase italic tracking-tighter text-emerald-600">
+                Revenue Calibration
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                Define MRR parameters and user acquisition targets
+              </CardDescription>
+            </div>
+            <Activity className="h-6 w-6 text-emerald-500/20" />
           </CardHeader>
-          <CardContent className="p-10 space-y-10">
+          <CardContent className="p-8 md:p-10 space-y-10 flex-1">
             <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-3 text-left">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">MRR Target (USD)</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 italic ml-2">
+                  MRR Target (USD)
+                </Label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary italic text-xl">
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-emerald-500 italic text-xl">
                     $
                   </span>
                   <Input
@@ -191,13 +228,15 @@ export function MRRTargetManager() {
                       setMrrTarget(Number(e.target.value));
                       setHasChanges(true);
                     }}
-                    className="h-16 rounded-2xl border-2 pl-10 text-2xl font-black italic tracking-tighter bg-muted/10"
+                    className="h-16 rounded-[20px] border-2 border-border/40 pl-12 text-2xl md:text-3xl font-black italic tracking-tighter bg-background/50 focus-visible:border-emerald-500/50 transition-colors"
                     disabled={isClosed}
                   />
                 </div>
               </div>
               <div className="space-y-3 text-left">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Target Paying Units</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary italic ml-2">
+                  Target Paying Units
+                </Label>
                 <Input
                   type="number"
                   value={targetPayingUsers}
@@ -205,7 +244,7 @@ export function MRRTargetManager() {
                     setTargetPayingUsers(Number(e.target.value));
                     setHasChanges(true);
                   }}
-                  className="h-16 rounded-2xl border-2 text-2xl font-black italic tracking-tighter bg-muted/10"
+                  className="h-16 rounded-[20px] border-2 border-border/40 px-6 text-2xl md:text-3xl font-black italic tracking-tighter bg-background/50 focus-visible:border-primary/50 transition-colors"
                   disabled={isClosed}
                 />
               </div>
@@ -220,67 +259,73 @@ export function MRRTargetManager() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden flex flex-col justify-center">
-          <CardContent className="p-10 text-center space-y-4">
-            <div className="mx-auto h-16 w-16 rounded-3xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
-              <TrendingUp className="h-8 w-8 text-white" />
+        <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden flex flex-col justify-center relative">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 bg-primary/10 rounded-full blur-3xl" />
+          <CardContent className="p-10 text-center space-y-6 relative z-10">
+            <div className="mx-auto h-20 w-20 rounded-[24px] bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-xl shadow-primary/20 mb-2">
+              <TrendingUp className="h-10 w-10 text-white" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
-              Credit Yield Protocol
-            </p>
-            <h3 className="text-5xl font-black italic tracking-tighter leading-none">
-              {totalCreditsTarget.toLocaleString()}
-            </h3>
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+                Credit Yield Protocol
+              </p>
+              <h3 className="text-5xl md:text-6xl font-black italic tracking-tighter leading-none text-foreground drop-shadow-sm">
+                {totalCreditsTarget.toLocaleString()}
+              </h3>
+            </div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed max-w-[200px] mx-auto border-t border-primary/10 pt-4">
               Total Credits required to satisfy {formatUSD(mrrTarget)} target
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden text-left">
-        <CardHeader className="p-8 border-b border-border/10 bg-muted/10 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-black uppercase italic tracking-tighter">Mix Infrastructure</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase">
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden text-left backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 to-indigo-500" />
+        <CardHeader className="p-8 border-b border-border/10 bg-muted/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" /> Mix Infrastructure
+            </CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
               Distribute expected usage load across neural service nodes
             </CardDescription>
           </div>
           <Badge
             className={cn(
-              "font-black italic px-4 py-2 border-2",
+              "font-black italic px-4 py-2 border-2 text-[10px] uppercase tracking-widest rounded-xl shrink-0",
               totalMixPercent === 100
-                ? "bg-green-500/10 text-green-600 border-green-500/20"
+                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                 : "bg-amber-500/10 text-amber-600 border-amber-500/20",
             )}
           >
             TOTAL_MIX: {totalMixPercent}%
           </Badge>
         </CardHeader>
-        <CardContent className="p-8">
-          <div className="grid gap-10 md:grid-cols-2">
+        <CardContent className="p-8 md:p-10">
+          <div className="grid gap-8 md:grid-cols-2">
             {(Object.keys(IR_CONFIG.SERVICE_LABELS) as ServiceKey[]).map((service) => {
               const serviceTarget = serviceTargets.find((s) => s.service === service);
               const mixValue = serviceMix[service] || 0;
               return (
                 <div
                   key={service}
-                  className="space-y-4 p-6 rounded-3xl border-2 border-border/5 bg-muted/5 group hover:border-primary/20 transition-all"
+                  className="space-y-6 p-8 rounded-[32px] border-2 border-border/10 bg-muted/5 group hover:border-primary/20 hover:bg-primary/5 transition-all shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <Label className="font-black uppercase italic text-xs tracking-widest">
+                  <div className="flex items-start justify-between gap-4">
+                    <Label className="font-black uppercase italic text-sm tracking-widest group-hover:text-primary transition-colors">
                       {IR_CONFIG.SERVICE_LABELS[service]}
                     </Label>
-                    <div className="text-right">
-                      <p className="text-sm font-black italic text-primary">
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-black italic tracking-tight text-foreground/90">
                         {formatUSD(serviceTarget?.revenueUsd || 0)}
                       </p>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase">
-                        {serviceTarget?.creditTarget.toLocaleString()} CREDITS
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                        {serviceTarget?.creditTarget.toLocaleString()} CR
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                     <Slider
                       value={[mixValue]}
                       onValueChange={([v]) => handleMixChange(service, v)}
@@ -289,15 +334,19 @@ export function MRRTargetManager() {
                       className="flex-1"
                       disabled={isClosed}
                     />
-                    <div className="w-20 relative">
+                    <div className="w-24 relative shrink-0">
                       <Input
                         type="number"
                         value={mixValue}
                         onChange={(e) => handleMixChange(service, Number(e.target.value))}
-                        className="h-10 rounded-xl border-2 text-center font-black pr-6"
+                        className="h-12 rounded-xl border-2 text-center font-black pr-6 bg-background/50"
                         disabled={isClosed}
+                        max={100}
+                        min={0}
                       />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground">
+                        %
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -308,27 +357,26 @@ export function MRRTargetManager() {
       </Card>
     </div>
   );
-
-  function handleMixChange(service: ServiceKey, value: number) {
-    setServiceMix((prev) => ({ ...prev, [service]: value }));
-    setHasChanges(true);
-  }
 }
 
+// ATOMIC SUB-COMPONENTS
 function StatNode({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="p-5 rounded-2xl bg-muted/20 border-2 border-border/5 text-left">
-      <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">{label}</p>
-      <p className="font-black italic text-lg leading-none">{value}</p>
+    <div className="p-5 rounded-2xl bg-background/50 border-2 border-border/10 text-left hover:border-primary/20 transition-colors shadow-sm">
+      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
+      <p className="font-black italic text-xl leading-none text-foreground/90 tracking-tight">{value}</p>
     </div>
   );
 }
 
 function SkeletonGrid() {
   return (
-    <div className="space-y-10">
-      <Skeleton className="h-24 w-full rounded-[40px]" />
-      <Skeleton className="h-[400px] w-full rounded-[40px]" />
+    <div className="space-y-10 p-4 md:p-6 animate-pulse">
+      <Skeleton className="h-32 w-full rounded-[40px] bg-muted/40" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Skeleton className="h-[400px] lg:col-span-2 rounded-[40px] bg-muted/40" />
+        <Skeleton className="h-[400px] rounded-[40px] bg-muted/40" />
+      </div>
     </div>
   );
 }
