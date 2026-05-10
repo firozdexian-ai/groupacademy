@@ -614,13 +614,13 @@ const Dashboard = () => {
                   // PROP INJECTION FOR CURRICULUM TOOLS
                   if (activeTab === "quiz-manage") {
                     props.contentId = searchParams.get("id");
-                    props.onBack = () => handleTabChange("courses");
+                    props.onBack = () => handleTabChange("learning-courses");
                   }
 
                   const filters: Record<string, string> = {
                     videos: "free_video",
-                    courses: "recorded_course",
-                    webinars: "live_webinar",
+                    "learning-courses": "recorded_course",
+                    "learning-webinars": "live_webinar",
                   };
                   if (filters[activeTab]) props.filter = filters[activeTab];
 
