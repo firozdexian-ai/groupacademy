@@ -50,13 +50,23 @@ serve(async (req) => {
       return json({ error: "agent_key and message required" }, 400);
     }
 
-    // Resolve subject — defaults to authenticated talent.
+    // Resolve subject — admin > company > talent.
+    // Admins (per has_any_admin_role) bypass credit charges and the company tool-loop;
     // Company subjects must be requested explicitly and verified via company_members.
     let subjectKind = "talent";
     let subjectId: string | null = null;
     let talentRow: any = null;
+    let isAdmin = false;
 
-    if ((body as any).subject_kind === "company" && (body as any).subject_id) {
+    // Admin probe — same gate as the `Admins manage all threads` RLS policy.
+    const { data: adminFlag } = await admin.rpc("has_any_admin_role", { _user_id: user.id });
+    isAdmin = adminFlag === true;
+
+    if (isAdmin && (body as any).subject_kind !== "company") {
+      // Default admin path: subject = the admin user themselves.
+      subjectKind = "admin";
+      subjectId = user.id;
+    } else if ((body as any).subject_kind === "company" && (body as any).subject_id) {
       const companyId = (body as any).subject_id as string;
       const { data: membership } = await admin
         .from("company_members")
