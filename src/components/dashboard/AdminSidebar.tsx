@@ -160,6 +160,7 @@ const navGroups: NavGroup[] = [
       { title: "MRR / ARR Targets", icon: Target, value: "ir-targets" },
       { title: "VC Firms", icon: Building2, value: "ir-vcs" },
       { title: "Investors", icon: Users, value: "ir-investors" },
+      { title: "Pipeline (Kanban)", icon: Target, value: "ir-pipeline" },
       { title: "Key Influencers", icon: Handshake, value: "ir-influencers" },
       { title: "Email Updates", icon: Mail, value: "ir-emails" },
     ],
