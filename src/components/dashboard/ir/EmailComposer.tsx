@@ -47,10 +47,13 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       if (sessionError || !session) throw new Error("Unauthorized Dispatch");
 
       // 2. Log to IR Outreach Telemetry
-      const { error: logError } = await supabase.from("ir_outreach_log").insert({
+      const { error: logError } = await supabase.from("ir_outreach_log").insert([{
+        channel: "email",
+        target_type: "investor",
+        target_label: selectedInvestor.full_name || selectedInvestor.email,
         subject: subject,
         body: body,
-        sent_by: session.user.id,
+        created_by: session.user.id,
         // Since we don't have the investor ID directly in this component, we
         // rely on the backend triggering an email via webhook based on this log insert,
         // or we can invoke a specific Edge Function. For now, logging guarantees telemetry.
