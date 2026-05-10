@@ -7,7 +7,7 @@ export interface CommunityGroup { id: string; name: string; platform: string; me
 export interface TalentOutreach { id: string; talent_id: string; channel: string; campaign_name?: string; sent_at: string; }
 export interface CompanyOutreach { id: string; company_id: string; contact_id?: string; channel: string; sent_at: string; }
 export interface Banner { id: string; placement: string; media_url: string; link_url?: string; is_active: boolean; created_at: string; }
-export interface ProfileTheme { id: string; priority: number; gradient_css: string; media_url?: string; created_at: string; }
+export interface ProfileTheme { id: string; name: string; priority: number; media_type: string; gradient_css: string; media_url?: string; poster_url?: string; overlay_opacity: number; text_color: string; start_at?: string; end_at?: string; is_active: boolean; created_at: string; }
 export interface AccessCode { id: string; code: string; content_id?: string; max_uses: number; current_uses: number; expires_at?: string; }
 
 export function useMarketingGraph() {
