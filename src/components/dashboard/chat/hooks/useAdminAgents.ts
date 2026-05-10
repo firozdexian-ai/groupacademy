@@ -81,7 +81,9 @@ function rowToAgent(row: AiAgentRow): AdminAgent {
     : legacy?.suggestions ?? [];
   return {
     key: row.agent_key,
-    functionName: traits.functionName || legacy?.functionName || "admin-agents-router",
+    // NOTE: All admin chat traffic now flows through `agent-runtime`.
+    // The `functionName` field is retained as a deprecated no-op for legacy types.
+    functionName: "agent-runtime",
     name: row.name,
     tagline: traits.tagline || row.description || legacy?.tagline || "",
     icon,
