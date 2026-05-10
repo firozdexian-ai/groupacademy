@@ -343,16 +343,6 @@ const navGroups: NavGroup[] = [
       { title: "Withdrawals",     icon: Banknote,         value: "finops-withdrawals" },
     ],
   },
-  {
-    title: "Platform Config",
-    icon: Settings,
-    roles: ["admin"],
-    items: [
-      { title: "Support AI", icon: Sparkles, value: "support-assistant" },
-      { title: "Team Members", icon: UserCog, value: "hr-team" },
-      { title: "Notifications", icon: Bell, value: "notifications" },
-    ],
-  },
 ];
 
 interface AdminSidebarProps {
