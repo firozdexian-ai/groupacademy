@@ -1,56 +1,32 @@
-# Phase 3 — Data Room & AI-Era Unit Economics
+# Create `useAbroadGraph.ts` — central data hook for Career Abroad
 
-Schema is already migrated (Phase 1). This phase ships the edge function, hooks, and UI for both features and wires them into the IR sidebar.
+## What I'll do
+Create **`src/hooks/useAbroadGraph.ts`** with a master React Query that fans out to all 6 Abroad tables in parallel, plus generic upsert/delete mutation factories that invalidate the master key on success — mirroring the `useJobsGraph` / `useLearningGraph` pattern.
 
-## Feature B — Data Room Telemetry
+## Schema-alignment fixes (required)
+The provided spec assumes columns that don't exist in our DB. I'll keep the **public interface and exported names identical** to the spec, but map each `select(...)` to the real columns and alias them so the returned objects still expose `status / title / name / score / etc.` Same approach we used for Learning.
 
-### Edge function (public, CORS-enabled)
-`supabase/functions/dataroom-track/index.ts` — single function, multi-action via `?action=`:
-- `GET ?action=resolve&token=...` → validates `ir_data_room_share_links` (active + not expired), returns document metadata + signed URL from `ir-data-room` bucket (5 min TTL).
-- `POST ?action=view` → inserts `ir_document_views` row (token, viewer_email if gated, ip hash, user agent), returns `view_id`.
-- `POST ?action=slide` → inserts `ir_document_slide_events` (view_id, slide_index, dwell_ms).
-- Robust CORS preflight + headers on every response (incl. errors).
-- Uses `SUPABASE_SERVICE_ROLE_KEY`. No JWT required (public viewer). Add `verify_jwt = false` to `supabase/config.toml`.
+| Spec field | Actual column | Mapping |
+|---|---|---|
+| `abroad_applications.status` | `stage` | `select("id, talent_user_id, program_id, stage, created_at")` then map `status: row.stage` |
+| `study_abroad_programs.title` | `program_name` | alias to `title` |
+| `study_abroad_programs.institution_id` | `university_name` (no FK) | expose as `institution_id` (string) |
+| `study_abroad_programs.status` | `is_active` (boolean) | `status: is_active ? 'active' : 'inactive'` |
+| `destination_agents.name` | `display_name` | alias |
+| `destination_agents.country` | `country_code` | alias |
+| `destination_agents.status` | `is_active` | derive |
+| `ielts_mock_attempts.score` | `ai_band_score` | alias |
+| `ielts_mock_attempts.status` | derived from `ai_band_score is not null` | `'scored'` / `'pending'` |
+| `ielts_resources.resource_type` | `content_type` | alias |
+| `ielts_resources.status` | `is_active` | derive |
+| `study_abroad_roadmaps.destination` | `target_country` (likely; will confirm at write-time) | alias |
 
-### Hook
-`src/hooks/useDataRoom.ts` — list documents, upload (Storage `ir-data-room`), create/revoke share links, fetch per-document views + slide heatmap (via `ir_document_hot_slides` view).
+The mutation factories will write back to the **real** column names (so `upsertApplication({ stage })`), but external consumers can keep reading `application.status` etc.
 
-### Components (in `src/components/dashboard/ir/dataroom/`)
-- `DataRoomManager.tsx` — top-level: upload button + `DocumentList`.
-- `DocumentList.tsx` — table: name, version, total views, unique viewers, hot-slide count, actions.
-- `UploadDocumentDialog.tsx` — file picker, title, slide count input.
-- `ShareLinkDialog.tsx` — generate token, expiry picker, viewer email gate toggle, copy `https://<host>/ir/view/:token` URL.
-- `DocumentTelemetryDrawer.tsx` — recent views table + `SlideHeatmap`.
-- `SlideHeatmap.tsx` — recharts bar chart of dwell_ms per slide, ≥300s highlighted.
+## Files touched
+- **Create**: `src/hooks/useAbroadGraph.ts`
 
-### Public viewer route
-`src/pages/ir/IRDocumentViewer.tsx` mounted at `/ir/view/:token` in `App.tsx`:
-- Calls `dataroom-track?action=resolve` → renders signed PDF in `<iframe>` or `<embed>`.
-- Tracks page/slide changes via PDF.js `pageChange` event → posts `action=slide` with dwell_ms.
-- Posts `action=view` on mount.
+No UI components, no DB migrations, no other files modified. Final step: run `bunx tsc --noEmit` to confirm zero errors.
 
-## Feature C — AI-Era Unit Economics
-
-### Hook
-`src/hooks/useUnitEconomics.ts` — fetches last 12 `ir_metrics_snapshots`, computes deltas (NRR/GRR/Usage retention, AI COGS %, HitL labor %, Rev/FTE), exposes `upsertSnapshot` mutation.
-
-### Components (in `src/components/dashboard/ir/economics/`)
-- `UnitEconomics.tsx` — header + KPI grid + 3 cards + "Log monthly snapshot" button.
-- `RetentionCard.tsx` — sparkline of GRR/NRR/Usage retention with delta chips.
-- `HitLCogsCard.tsx` — stacked area: AI inference COGS vs HitL labor COGS, % of revenue.
-- `RevPerEmployeeCard.tsx` — Rev/FTE line + "3-person unicorn" benchmark line at $1M/FTE.
-- `MetricEntrySheet.tsx` — Sheet form to upsert a snapshot (period_month picker + all new fields).
-
-## Wiring
-- `Dashboard.tsx`: register `ir-dataroom` and `ir-economics` tabs.
-- `AdminSidebar.tsx`: under Investors group add "Data Room" + "Unit Economics".
-- `supabase/config.toml`: append `[functions.dataroom-track]\nverify_jwt = false`.
-
-## Build order
-1. Edge function `dataroom-track` + config.toml entry → deploy.
-2. `useDataRoom` + Data Room components + public viewer route.
-3. `useUnitEconomics` + Unit Economics components.
-4. Sidebar + Dashboard tab registration.
-5. Smoke-test: upload a PDF, generate share link, open in incognito, verify telemetry rows; log a snapshot, verify charts render.
-
-Stop and confirm before any further IR work.
+## Note
+Following the same precedent set for Learning (where I aligned `Cohort.title → name`, `start_date → starts_on`, etc.), this keeps the hook's TypeScript interface stable for downstream tabs while matching what Postgres actually has.
