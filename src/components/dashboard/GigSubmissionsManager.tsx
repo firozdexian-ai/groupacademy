@@ -23,14 +23,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
-// Assuming emailNotifications wraps an edge function call to Resend/Sendgrid
-import { emailNotifications } from "@/lib/emailNotifications";
 import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Incentive Validation Terminal (Gig Submissions)
  * CTO Audit: Notifications schema aligned with strict DB types (talent_id, message, link).
- * Added Email Dispatch triggers for worker retention loops.
  */
 
 /* -----------------------------------------------------------
@@ -197,7 +194,7 @@ export function GigSubmissionsManager() {
 
       const creditsAwarded = (data as any).credits_awarded || submission.gigs?.credit_reward;
 
-      // 1. In-App Notification
+      // In-App Notification ONLY (Removed mismatched email dispatch)
       try {
         await supabase.from("notifications").insert({
           talent_id: submission.talent_id,
@@ -210,24 +207,11 @@ export function GigSubmissionsManager() {
         console.warn("Failed to dispatch in-app notification", notifErr);
       }
 
-      // 2. Email Dispatch Trigger
-      if (submission.talents?.email && typeof emailNotifications?.gigApproved === "function") {
-        try {
-          await emailNotifications.gigApproved({
-            to: submission.talents.email,
-            name: submission.talents.full_name || "Talent",
-            gigTitle: submission.gigs?.title || "Gig",
-            credits: creditsAwarded,
-          });
-        } catch (emailErr) {
-          console.warn("Failed to dispatch email", emailErr);
-        }
-      }
-
-      return { ...data, creditsAwarded };
+      // Safe return bypassing object spread limitations
+      return { rawPayload: data, creditsAwarded };
     },
-    onSuccess: (data: any) => {
-      toast.success(`Protocol Committed: ${data.creditsAwarded} tokens awarded and user notified.`);
+    onSuccess: (result: any) => {
+      toast.success(`Protocol Committed: ${result.creditsAwarded} tokens awarded and user notified.`);
       queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
       setSelectedSubmission(null);
       setAdminNotes("");
@@ -247,7 +231,7 @@ export function GigSubmissionsManager() {
       if (error) throw error;
       if (!(data as any)?.success) throw new Error((data as any)?.error || "Rejection logic failed");
 
-      // 1. In-App Notification
+      // In-App Notification ONLY (Removed mismatched email dispatch)
       try {
         await supabase.from("notifications").insert({
           talent_id: submission.talent_id,
@@ -260,19 +244,7 @@ export function GigSubmissionsManager() {
         console.warn("Failed to dispatch in-app notification", notifErr);
       }
 
-      // 2. Email Dispatch Trigger
-      if (submission.talents?.email && typeof emailNotifications?.gigRejected === "function") {
-        try {
-          await emailNotifications.gigRejected({
-            to: submission.talents.email,
-            name: submission.talents.full_name || "Talent",
-            gigTitle: submission.gigs?.title || "Gig",
-            reason: adminNotes || "Submission did not meet quality guidelines.",
-          });
-        } catch (emailErr) {
-          console.warn("Failed to dispatch email", emailErr);
-        }
-      }
+      return data;
     },
     onSuccess: () => {
       toast.success("Artifact Purged: Submission rejected and user notified.");
