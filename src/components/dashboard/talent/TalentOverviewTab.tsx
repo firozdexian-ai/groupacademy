@@ -10,6 +10,7 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type Bucket = { label: string; value: number };
 
