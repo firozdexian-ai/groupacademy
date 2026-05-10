@@ -28,7 +28,7 @@ import {
 import {
   useInstitutionGraph,
   type InstitutionType,
-} from "hooks/useInstitutionGraph";
+} from "./hooks/useInstitutionGraph";
 import {
   Plus,
   Pencil,

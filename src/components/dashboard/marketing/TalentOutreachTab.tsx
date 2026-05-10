@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMarketingGraph } from "hooks/useMarketingGraph";
+import { useMarketingGraph } from "./hooks/useMarketingGraph";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

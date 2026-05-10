@@ -32,7 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useInstitutionGraph } from "hooks/useInstitutionGraph";
+import { useInstitutionGraph } from "./hooks/useInstitutionGraph";
 import { cn } from "@/lib/utils";
 
 interface StakeholderRow {

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useJobsGraph } from "hooks/useJobsGraph";
+import { useJobsGraph } from "./hooks/useJobsGraph";
 import { Briefcase, Users, UserPlus, ClipboardList, Activity, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

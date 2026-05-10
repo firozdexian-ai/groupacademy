@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useGtmGraph } from "hooks/useGtmGraph";
+import { useGtmGraph } from "./hooks/useGtmGraph";
 import { Globe, Map, MapPin, Network, Activity, Users, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Filter, TrendingUp, Target, Banknote, Users, Activity, Layers } from "lucide-react";
-import { useIRPipeline, PipelineStage } from "hooks/useIRPipeline";
+import { useIRPipeline, PipelineStage } from "./hooks/useIRPipeline";
 import { formatUSD } from "@/lib/irConfig";
 import { PipelineColumn } from "./pipeline/PipelineColumn";
 import { InvestorDetailSheet } from "./InvestorDetailSheet";

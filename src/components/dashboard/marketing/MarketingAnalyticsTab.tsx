@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useMarketingGraph } from "hooks/useMarketingGraph";
+import { useMarketingGraph } from "./hooks/useMarketingGraph";
 import { cn } from "@/lib/utils";
 import {
   RefreshCw,

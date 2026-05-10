@@ -1,4 +1,4 @@
-import { useJobsGraph } from "hooks/useJobsGraph";
+import { useJobsGraph } from "./hooks/useJobsGraph";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";

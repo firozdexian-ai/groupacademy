@@ -1,4 +1,4 @@
-import { useAbroadGraph } from "hooks/useAbroadGraph";
+import { useAbroadGraph } from "./hooks/useAbroadGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Languages, Activity, Mic, Users, Trophy } from "lucide-react";
