@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import CircularProgress from "./CircularProgress";
+import CircularProgress from "../CircularProgress";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { COUNTRIES } from "@/lib/constants/countries";
 
@@ -63,7 +63,7 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   "United States": ["USA", "United States", "US", "NY", "California"], //
 };
 
-export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: string) => void }) {
+export function JobsKpiTab({ onNavigateToTab }: { onNavigateToTab?: (tab: string) => void }) {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

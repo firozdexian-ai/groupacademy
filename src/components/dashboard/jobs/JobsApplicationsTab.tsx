@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ const getFirstName = (fullName: string): string => {
   return parts[0];
 };
 
-export const JobApplicationsManager = () => {
+export const JobsApplicationsTab = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState<JobApplication[]>([]);

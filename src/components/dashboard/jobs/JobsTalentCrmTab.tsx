@@ -15,7 +15,7 @@ interface Row {
   companies: { name: string } | null;
 }
 
-export function AdminSourcingPipeline() {
+export function JobsTalentCrmTab() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -85,4 +85,4 @@ export function AdminSourcingPipeline() {
   );
 }
 
-export default AdminSourcingPipeline;
+export default JobsTalentCrmTab;

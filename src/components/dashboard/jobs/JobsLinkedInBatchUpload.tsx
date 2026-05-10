@@ -195,7 +195,7 @@ async function resolveCompanies(
 }
 
 // --- Main Component ---
-export function BatchLinkedInJobUpload({
+export function JobsLinkedInBatchUpload({
   isOpen,
   onClose,
   onComplete,

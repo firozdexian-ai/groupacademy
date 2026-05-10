@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { JobFormDialog, type JobFormState } from "./JobFormDialog";
 import { PendingJobSubmissions } from "./PendingJobSubmissions";
-import { BatchLinkedInJobUpload } from "@/components/dashboard/BatchLinkedInJobUpload";
+import { JobsLinkedInBatchUpload } from "@/components/dashboard/jobs/JobsLinkedInBatchUpload";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -194,7 +194,7 @@ export function JobsUploadTab() {
               </div>
             </CardContent>
           </Card>
-          <BatchLinkedInJobUpload
+          <JobsLinkedInBatchUpload
             isOpen={showBatch}
             onClose={() => setShowBatch(false)}
             onComplete={() => {

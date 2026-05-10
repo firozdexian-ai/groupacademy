@@ -27,8 +27,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardTableSkeleton } from "./DashboardSkeleton";
-import { BatchLinkedInJobUpload } from "./BatchLinkedInJobUpload";
+import { DashboardTableSkeleton } from "../DashboardSkeleton";
+import { JobsLinkedInBatchUpload } from "./JobsLinkedInBatchUpload";
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
@@ -102,7 +102,7 @@ interface EngagementData {
   recommendations: number;
 }
 
-export function JobsManager() {
+export function JobsManagerLegacyTab() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [engagement, setEngagement] = useState<Record<string, EngagementData>>({});
   const [loading, setLoading] = useState(true);
@@ -468,7 +468,7 @@ export function JobsManager() {
         </TabsContent>
       </Tabs>
 
-      <BatchLinkedInJobUpload
+      <JobsLinkedInBatchUpload
         isOpen={isLinkedInImportOpen}
         onClose={() => setIsLinkedInImportOpen(false)}
         onComplete={loadJobs}

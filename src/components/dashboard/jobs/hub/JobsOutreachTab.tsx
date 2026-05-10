@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
  */
 
 const CVOutreachGenerator = lazy(() =>
-  import("../CVOutreachGenerator").then((m) => ({ default: m.CVOutreachGenerator })),
+  import("../../CVOutreachGenerator").then((m) => ({ default: m.CVOutreachGenerator })),
 );
 
 interface JobOption {

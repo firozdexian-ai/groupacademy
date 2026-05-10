@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { DashboardTableSkeleton } from "../DashboardSkeleton";
+import { DashboardTableSkeleton } from "../../DashboardSkeleton";
 import { AIRelevanceScore } from "./AIRelevanceScore";
 import { AddExternalApplicationDialog } from "./AddExternalApplicationDialog";
 import { cn } from "@/lib/utils";
