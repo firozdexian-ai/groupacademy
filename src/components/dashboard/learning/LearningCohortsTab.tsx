@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users, ShieldCheck, Calendar, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, ShieldCheck, Calendar, BookOpen, Video } from "lucide-react";
+import CourseSessionsManager from "@/components/dashboard/learning/sessions/CourseSessionsManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ export function LearningCohortsTab() {
   const { data, isLoading } = learningGraphQuery;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<any>({ status: "upcoming" });
+  const [sessionsRow, setSessionsRow] = useState<any>(null);
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
@@ -116,6 +118,16 @@ export function LearningCohortsTab() {
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={!row.content_id}
+                            onClick={() => setSessionsRow(row)}
+                            className="hover:bg-indigo-500/10 hover:text-indigo-600"
+                            title="Manage live sessions"
+                          >
+                            <Video className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -226,6 +238,21 @@ export function LearningCohortsTab() {
           >
             <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Cohort
           </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!sessionsRow} onOpenChange={(o) => !o && setSessionsRow(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[24px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tight text-indigo-500 flex items-center gap-2">
+              <Video className="h-5 w-5" /> Live Sessions — {sessionsRow?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {sessionsRow?.content_id && (
+            <CourseSessionsManager
+              contentId={sessionsRow.content_id}
+              contentTitle={sessionsRow.name || "Cohort"}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

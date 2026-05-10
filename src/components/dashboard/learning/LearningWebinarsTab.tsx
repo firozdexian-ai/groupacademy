@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, CalendarDays, ShieldCheck, Video } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, ShieldCheck, Video, CalendarClock } from "lucide-react";
+import CourseSessionsManager from "@/components/dashboard/learning/sessions/CourseSessionsManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ export function LearningWebinarsTab() {
   const { data, isLoading } = learningGraphQuery;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<any>({ status: "draft", content_type: "live_webinar" });
+  const [sessionsRow, setSessionsRow] = useState<any>(null);
 
   // Filter for webinars only
   const webinars = data?.content?.filter((c) => c.content_type === "live_webinar") || [];
@@ -117,6 +119,15 @@ export function LearningWebinarsTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => setSessionsRow(row)}
+                            className="hover:bg-pink-500/10 hover:text-pink-600"
+                            title="Manage sessions"
+                          >
+                            <CalendarClock className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => {
                               setDraft(row);
                               setOpen(true);
@@ -199,6 +210,21 @@ export function LearningWebinarsTab() {
           >
             <ShieldCheck className="mr-2 h-5 w-5" /> Authorize Event
           </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!sessionsRow} onOpenChange={(o) => !o && setSessionsRow(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[24px] p-6 border-2 border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tight text-pink-500 flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" /> Sessions — {sessionsRow?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {sessionsRow && (
+            <CourseSessionsManager
+              contentId={sessionsRow.id}
+              contentTitle={sessionsRow.title || "Webinar"}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
