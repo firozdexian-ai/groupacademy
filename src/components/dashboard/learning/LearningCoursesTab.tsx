@@ -6,13 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tv, ShieldCheck, BookOpen, Filter, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, Tv, ShieldCheck, BookOpen, Filter, Layers, Sparkles, FileCheck2, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import ContentFilters, { type ContentFilterValues } from "./content-widgets/ContentFilters";
 import ModulePickerPanel from "./modules/ModulePickerPanel";
+import { BatchContentGenerator } from "./content-widgets/BatchContentGenerator";
+import { AIActionButton } from "./content-widgets/ContentAIActions";
+import ContentReadinessBadge from "./content-widgets/ContentReadinessBadge";
+import ContentReadinessChecklist from "./content-widgets/ContentReadinessChecklist";
+import { FlashcardEditor } from "./modules/FlashcardEditor";
+import { ModuleResourceFileUpload } from "./modules/ModuleResourceFileUpload";
 
 export function LearningCoursesTab() {
   const {
