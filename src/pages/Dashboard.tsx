@@ -359,7 +359,7 @@ const TAB_TITLES: Record<string, string> = {
   "learning-b2b-engagements": "B2B Engagements",
   "learning-payouts": "Instructor Payouts",
   "learning-json-importer": "Bulk Course Importer",
-  "ai-content-tools": "Generative Suite",
+  
   "marketing-analytics": "Conversion Intel",
   "marketing-channels": "Marketing Channels",
   "marketing-community-wa": "Community WhatsApp Line",
