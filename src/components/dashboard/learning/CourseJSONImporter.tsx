@@ -43,12 +43,14 @@ export const CourseJSONImporter = () => {
   const [json, setJson] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Utility to generate URL-friendly slugs for the content table
+  // Utility to generate URL-friendly AND unique slugs to prevent DB constraint collisions
   const generateSlug = (title: string) => {
-    return title
+    const baseSlug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
+    const uniqueHash = Math.random().toString(36).substring(2, 8);
+    return `${baseSlug}-${uniqueHash}`;
   };
 
   const handleImport = async () => {
@@ -70,7 +72,6 @@ export const CourseJSONImporter = () => {
       const generatedSlug = generateSlug(courseData.title);
 
       // 1. Insert the main Course (Content) record
-      // Removed the non-existent 'status' column to respect DB schema
       const { data: contentRecord, error: contentError } = await supabase
         .from("content")
         .insert({
