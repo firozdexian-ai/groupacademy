@@ -100,6 +100,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agents-multichannel": React.lazy(() =>
     import("@/components/dashboard/agents/AgentMultichannelTab").then((m) => ({ default: m.AgentMultichannelTab })),
   ),
+  "agents-command-center": React.lazy(() =>
+    import("@/pages/dashboard/WorkforceCommandCenter").then((m) => ({ default: m.WorkforceCommandCenter })),
+  ),
   "agents-tools": React.lazy(() =>
     import("@/components/dashboard/agents/AgentToolsTab").then((m) => ({ default: m.AgentToolsTab })),
   ),
@@ -390,6 +393,7 @@ const TAB_TITLES: Record<string, string> = {
   "agents-overview": "Agent OS Overview",
   "agents-channels": "Channels & Triggers",
   "agents-multichannel": "Multichannel Routing",
+  "agents-command-center": "Workforce Command Center",
   "agents-tools": "Tools, Skills & Connectors",
   "agents-studio": "Agent Studio",
   "agents-b2c": "Gro10x B2C Agents",
