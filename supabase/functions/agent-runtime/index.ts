@@ -788,6 +788,22 @@ async function runWorkforceInstance(body: RunRequest, admin: any): Promise<Respo
     thread_id: threadId!, role: "user", content: userText,
   });
 
+  // 6b. Human-takeover gate: respect agent_threads.status
+  {
+    const { data: threadRow } = await admin
+      .from("agent_threads")
+      .select("status")
+      .eq("id", threadId!)
+      .maybeSingle();
+    const tStatus = (threadRow as any)?.status ?? "ai";
+    if (tStatus === "human") {
+      return json({ success: true, action: "skipped", reason: "human_in_control", thread_id: threadId });
+    }
+    if (tStatus === "closed") {
+      return json({ success: false, action: "skipped", reason: "thread_closed", thread_id: threadId }, 200);
+    }
+  }
+
   // 7. Stream completion.
   const convo: any[] = [
     { role: "system", content: finalPrompt },
