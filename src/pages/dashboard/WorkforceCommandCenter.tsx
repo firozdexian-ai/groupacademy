@@ -524,6 +524,15 @@ function ChannelsPanel() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right space-x-3">
+                      {c.channel_provider === "telegram" && (
+                        <button
+                          onClick={() => activateTelegramWebhook(c)}
+                          className="text-cyan-400 hover:underline text-xs font-semibold"
+                          title="Register this Edge Function URL with Telegram so the bot delivers messages here."
+                        >
+                          Activate Webhook
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setEditing(c);
