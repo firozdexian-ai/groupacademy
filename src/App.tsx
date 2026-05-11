@@ -308,6 +308,14 @@ export default function App() {
                   <Route path="/professions" element={<Navigate to="/auth?returnTo=/app/learning/tracks" replace />} />
                   <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />
                   <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+                  <Route
+                    path="/admin/workforce"
+                    element={
+                      <ProtectedRoute requireAnyAdminRole>
+                        <WorkforceFleet />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/my-learning" element={<Navigate to="/app/learning/my-courses" replace />} />
 
                   {/* ================= ADMIN ROUTES ================= */}
