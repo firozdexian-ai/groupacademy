@@ -546,6 +546,52 @@ export type Database = {
           },
         ]
       }
+      agent_bot_credentials: {
+        Row: {
+          agent_key: string
+          bot_token: string
+          bot_username: string | null
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_key: string
+          bot_token: string
+          bot_username?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_key?: string
+          bot_token?: string
+          bot_username?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_bot_credentials_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: true
+            referencedRelation: "agent_outreach_admin_v"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "agent_bot_credentials_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: true
+            referencedRelation: "ai_agents"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "agent_bot_credentials_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: true
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["agent_key"]
+          },
+        ]
+      }
       agent_channel_bindings: {
         Row: {
           agent_id: string
@@ -1325,6 +1371,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      agent_routing_rules: {
+        Row: {
+          agent_key: string | null
+          audience_type: string
+          created_at: string | null
+          description: string | null
+          event_topic: string
+          id: string
+          is_active: boolean | null
+          telegram_chat_id: string
+        }
+        Insert: {
+          agent_key?: string | null
+          audience_type: string
+          created_at?: string | null
+          description?: string | null
+          event_topic: string
+          id?: string
+          is_active?: boolean | null
+          telegram_chat_id: string
+        }
+        Update: {
+          agent_key?: string | null
+          audience_type?: string
+          created_at?: string | null
+          description?: string | null
+          event_topic?: string
+          id?: string
+          is_active?: boolean | null
+          telegram_chat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "agent_outreach_admin_v"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "agent_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "agent_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["agent_key"]
           },
         ]
       }
