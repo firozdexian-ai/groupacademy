@@ -62,6 +62,7 @@ import ModuleManagement from "./pages/ModuleManagement";
 import ModuleResourcesManager from "./pages/ModuleResourcesManager";
 import Organization from "./pages/Organization";
 import WorkforceFleet from "./pages/admin/WorkforceFleet";
+import AdminLiveInbox from "./pages/AdminLiveInbox";
 
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
