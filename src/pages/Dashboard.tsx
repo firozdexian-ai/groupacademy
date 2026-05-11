@@ -389,6 +389,7 @@ const TAB_TITLES: Record<string, string> = {
   "agent-outreach": "Proactive Engine",
   "agents-overview": "Agent OS Overview",
   "agents-channels": "Channels & Triggers",
+  "agents-multichannel": "Multichannel Routing",
   "agents-tools": "Tools, Skills & Connectors",
   "agents-studio": "Agent Studio",
   "agents-b2c": "Gro10x B2C Agents",
