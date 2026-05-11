@@ -60,6 +60,7 @@ import QuizManagement from "./pages/QuizManagement";
 import ModuleManagement from "./pages/ModuleManagement";
 import ModuleResourcesManager from "./pages/ModuleResourcesManager";
 import Organization from "./pages/Organization";
+import WorkforceFleet from "./pages/admin/WorkforceFleet";
 
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
