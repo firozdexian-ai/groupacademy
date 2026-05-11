@@ -73,6 +73,14 @@ const AdminSchemas: Record<string, z.ZodTypeAny> = {
     link: z.string().optional().nullable(),
     metadata: z.record(z.any()).optional(),
   }).passthrough(),
+  notify_stakeholder: z.object({
+    audience_type: z.enum(["admin", "talent", "business", "system"]),
+    event_topic: z.string().min(1),
+    message: z.string().min(2),
+    title: z.string().optional().nullable(),
+    agent_key: z.string().optional().nullable(),
+    metadata: z.record(z.any()).optional(),
+  }).passthrough(),
 };
 
 serve(async (req) => {
@@ -268,6 +276,71 @@ serve(async (req) => {
         } catch (_) { /* swallow */ }
 
         return j({ ok: true, result: { notification_id: data.id, persisted: true } });
+      }
+      case "notify_stakeholder": {
+        // 1. Persist to admin inbox (same pattern as notify_admin) so admins
+        //    always have an audit trail even if all downstream channels fail.
+        const headline = body.title || `[${body.audience_type}] ${body.event_topic}`;
+        const { data: inboxRow, error: inboxErr } = await admin
+          .from("admin_notifications")
+          .insert({
+            type: `stakeholder_${body.event_topic}`,
+            title: headline,
+            message: body.message,
+            link: body.link ?? null,
+            metadata: {
+              ...(body.metadata ?? {}),
+              audience_type: body.audience_type,
+              event_topic: body.event_topic,
+              agent_key: body.agent_key ?? null,
+              source_user_id: uid,
+            },
+          })
+          .select("id")
+          .single();
+        if (inboxErr) return j({ ok: false, error: inboxErr.message }, 400);
+
+        // 2. Forward to the smart router (fire-and-wait so the agent gets a
+        //    real dispatch report it can speak back to the user).
+        let routerResult: any = null;
+        try {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/notify-stakeholder`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+              apikey: ANON_KEY,
+            },
+            body: JSON.stringify({
+              agent_key: body.agent_key ?? null,
+              audience_type: body.audience_type,
+              event_topic: body.event_topic,
+              title: headline,
+              message: body.message,
+              metadata: body.metadata ?? {},
+            }),
+          });
+          const text = await r.text();
+          try { routerResult = JSON.parse(text); } catch { routerResult = { raw: text }; }
+          if (!r.ok) {
+            return j({
+              ok: false,
+              error: `router_${r.status}`,
+              result: { notification_id: inboxRow.id, router: routerResult },
+            }, 400);
+          }
+        } catch (e) {
+          console.error("[admin-agent-tools] notify-stakeholder fault:", e);
+        }
+
+        return j({
+          ok: true,
+          result: {
+            notification_id: inboxRow.id,
+            persisted: true,
+            router: routerResult,
+          },
+        });
       }
       default:
         return j({ ok: false, error: `unknown_admin_tool:${dispatch}` }, 400);

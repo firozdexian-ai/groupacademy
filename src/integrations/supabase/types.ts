@@ -17011,6 +17011,7 @@ export type Database = {
       workforce_routing_rules: {
         Row: {
           agent_key: string | null
+          audience_type: string | null
           channel_provider: string
           client_id: string | null
           created_at: string | null
@@ -17022,6 +17023,7 @@ export type Database = {
         }
         Insert: {
           agent_key?: string | null
+          audience_type?: string | null
           channel_provider: string
           client_id?: string | null
           created_at?: string | null
@@ -17033,6 +17035,7 @@ export type Database = {
         }
         Update: {
           agent_key?: string | null
+          audience_type?: string | null
           channel_provider?: string
           client_id?: string | null
           created_at?: string | null
