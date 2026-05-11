@@ -1695,6 +1695,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          is_template: boolean | null
           kill_switch: boolean
           language: string | null
           marketplace_status: string
@@ -1704,6 +1705,7 @@ export type Database = {
           name: string
           owner_id: string | null
           owner_kind: string
+          parent_template_id: string | null
           personality_traits: Json | null
           profession_line_id: string | null
           prompt_variants: Json
@@ -1745,6 +1747,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_template?: boolean | null
           kill_switch?: boolean
           language?: string | null
           marketplace_status?: string
@@ -1754,6 +1757,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           owner_kind?: string
+          parent_template_id?: string | null
           personality_traits?: Json | null
           profession_line_id?: string | null
           prompt_variants?: Json
@@ -1795,6 +1799,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_template?: boolean | null
           kill_switch?: boolean
           language?: string | null
           marketplace_status?: string
@@ -1804,6 +1809,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           owner_kind?: string
+          parent_template_id?: string | null
           personality_traits?: Json | null
           profession_line_id?: string | null
           prompt_variants?: Json
@@ -1821,6 +1827,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_parent_template_id_fkey"
+            columns: ["parent_template_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_parent_template_id_fkey"
+            columns: ["parent_template_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
             referencedColumns: ["id"]
           },
           {
@@ -16836,6 +16856,61 @@ export type Database = {
           },
         ]
       }
+      workforce_channel_connections: {
+        Row: {
+          agent_key: string | null
+          channel_provider: string
+          client_id: string | null
+          created_at: string | null
+          credentials: Json
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_key?: string | null
+          channel_provider: string
+          client_id?: string | null
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_key?: string | null
+          channel_provider?: string
+          client_id?: string | null
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_channel_connections_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "agent_outreach_admin_v"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "workforce_channel_connections_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "workforce_channel_connections_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["agent_key"]
+          },
+        ]
+      }
       workforce_members: {
         Row: {
           city: string | null
@@ -16930,6 +17005,64 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_teams"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_routing_rules: {
+        Row: {
+          agent_key: string | null
+          channel_provider: string
+          client_id: string | null
+          created_at: string | null
+          description: string | null
+          destination_id: string
+          event_topic: string
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          agent_key?: string | null
+          channel_provider: string
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          destination_id: string
+          event_topic: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          agent_key?: string | null
+          channel_provider?: string
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          destination_id?: string
+          event_topic?: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "agent_outreach_admin_v"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "workforce_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "workforce_routing_rules_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["agent_key"]
           },
         ]
       }
