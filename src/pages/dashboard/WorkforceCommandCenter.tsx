@@ -699,6 +699,7 @@ function RoutingPanel() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RoutingRule | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const listQ = useQuery({
     queryKey: ["wcc-rules"],
@@ -735,15 +736,23 @@ function RoutingPanel() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Master Routing Switchboard</h3>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-md shadow-sm"
-        >
-          New Route
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="px-4 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-500 border border-sky-500/30 font-bold text-sm rounded-md"
+          >
+            Telegram Scanner (Debug)
+          </button>
+          <button
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-md shadow-sm"
+          >
+            New Route
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-border/40 rounded-lg">
@@ -837,6 +846,126 @@ function RoutingPanel() {
           }}
         />
       )}
+
+      {scannerOpen && <TelegramScannerDialog onClose={() => setScannerOpen(false)} />}
+    </div>
+  );
+}
+
+// =====================================================
+// TELEGRAM SCANNER (DEBUG)
+// =====================================================
+function TelegramScannerDialog({ onClose }: { onClose: () => void }) {
+  const scanQ = useQuery({
+    queryKey: ["wcc-telegram-scan"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("telegram-diagnostic", { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? "Scan failed");
+      return data as { ok: true; count: number; total_updates: number; chats: any[] };
+    },
+    retry: false,
+  });
+
+  const copy = (id: string) => {
+    navigator.clipboard.writeText(id);
+    toast.success(`Copied ${id}`);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-6 overflow-y-auto">
+      <div className="bg-card border border-border rounded-lg w-full max-w-2xl my-8 shadow-2xl">
+        <div className="flex justify-between items-center p-5 border-b border-border/50">
+          <div>
+            <h3 className="text-xl font-bold text-sky-500">Telegram Scanner</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Recent chats that have messaged your bot
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl px-2">
+            ×
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm rounded-md p-3">
+            <strong>Note:</strong> If your name doesn't appear here, you must go to Telegram and send a
+            message (like <code className="font-mono bg-amber-500/20 px-1 rounded">/start</code>) to your
+            bot first!
+          </div>
+
+          {scanQ.isLoading && (
+            <div className="py-10 text-center text-muted-foreground text-sm">Scanning bot updates...</div>
+          )}
+
+          {scanQ.isError && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-500 text-sm rounded-md p-3">
+              {(scanQ.error as Error).message}
+            </div>
+          )}
+
+          {scanQ.data && scanQ.data.chats.length === 0 && (
+            <div className="py-10 text-center text-muted-foreground text-sm">
+              No recent chats found. Send <code className="font-mono">/start</code> to your bot, then rescan.
+            </div>
+          )}
+
+          {scanQ.data && scanQ.data.chats.length > 0 && (
+            <div className="space-y-2">
+              {scanQ.data.chats.map((c: any) => (
+                <div
+                  key={c.chat_id}
+                  className="border border-border/50 rounded-md p-3 flex items-start justify-between gap-3 hover:bg-muted/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm">
+                      {[c.first_name, c.last_name].filter(Boolean).join(" ") || c.username || "(no name)"}
+                      {c.username && (
+                        <span className="ml-2 text-xs text-muted-foreground">@{c.username}</span>
+                      )}
+                      {c.chat_type && (
+                        <span className="ml-2 text-[10px] uppercase font-bold text-muted-foreground">
+                          {c.chat_type}
+                        </span>
+                      )}
+                    </div>
+                    {c.text && (
+                      <div className="text-xs text-muted-foreground mt-1 truncate italic">"{c.text}"</div>
+                    )}
+                    <div className="font-mono text-base font-bold text-sky-500 mt-1">{c.chat_id}</div>
+                  </div>
+                  <button
+                    onClick={() => copy(c.chat_id)}
+                    className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shrink-0"
+                  >
+                    Copy
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2">
+            <span className="text-xs text-muted-foreground">
+              {scanQ.data ? `${scanQ.data.count} unique chats from ${scanQ.data.total_updates} updates` : ""}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => scanQ.refetch()}
+                className="px-3 py-1.5 border border-border text-sm rounded hover:bg-muted"
+              >
+                Rescan
+              </button>
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 bg-muted text-sm rounded hover:bg-muted/70"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
