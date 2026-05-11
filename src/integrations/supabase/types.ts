@@ -18268,6 +18268,14 @@ export type Database = {
         Args: { p_job_id: string; p_ref_code: string }
         Returns: Json
       }
+      trigger_agent_report: {
+        Args: {
+          p_admin_user?: string
+          p_agent_key: string
+          p_prompt_text: string
+        }
+        Returns: number
+      }
       try_dedupe_outreach: {
         Args: {
           p_agent_id: string
