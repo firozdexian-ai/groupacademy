@@ -97,6 +97,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agents-channels": React.lazy(() =>
     import("@/components/dashboard/agents/AgentChannelsTab").then((m) => ({ default: m.AgentChannelsTab })),
   ),
+  "agents-multichannel": React.lazy(() =>
+    import("@/components/dashboard/agents/AgentMultichannelTab").then((m) => ({ default: m.AgentMultichannelTab })),
+  ),
   "agents-tools": React.lazy(() =>
     import("@/components/dashboard/agents/AgentToolsTab").then((m) => ({ default: m.AgentToolsTab })),
   ),
