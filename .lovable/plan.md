@@ -1,32 +1,71 @@
-# Create `useAbroadGraph.ts` — central data hook for Career Abroad
+## Workforce Command Center — Build Plan
 
-## What I'll do
-Create **`src/hooks/useAbroadGraph.ts`** with a master React Query that fans out to all 6 Abroad tables in parallel, plus generic upsert/delete mutation factories that invalidate the master key on success — mirroring the `useJobsGraph` / `useLearningGraph` pattern.
+A new admin page presenting the AI Workforce as an enterprise NOC: fleet of agents (templates + hired instances), channel connections, and a routing switchboard.
 
-## Schema-alignment fixes (required)
-The provided spec assumes columns that don't exist in our DB. I'll keep the **public interface and exported names identical** to the spec, but map each `select(...)` to the real columns and alias them so the returned objects still expose `status / title / name / score / etc.` Same approach we used for Learning.
+### Route & access
+- New page: `src/pages/dashboard/WorkforceCommandCenter.tsx`
+- Wired into `src/pages/Dashboard.tsx` as a lazy tab `agents-command-center` (matches existing `agents-multichannel` registration pattern).
+- Sidebar: add "Command Center" entry under the **AI Agents** group in `src/components/dashboard/AdminSidebar.tsx` (icon: `Radar` or `Cpu`).
+- Guarded with `useAdminScope()` — only `super` and `internal` scopes render content; others see an "Unauthorized" empty state.
 
-| Spec field | Actual column | Mapping |
-|---|---|---|
-| `abroad_applications.status` | `stage` | `select("id, talent_user_id, program_id, stage, created_at")` then map `status: row.stage` |
-| `study_abroad_programs.title` | `program_name` | alias to `title` |
-| `study_abroad_programs.institution_id` | `university_name` (no FK) | expose as `institution_id` (string) |
-| `study_abroad_programs.status` | `is_active` (boolean) | `status: is_active ? 'active' : 'inactive'` |
-| `destination_agents.name` | `display_name` | alias |
-| `destination_agents.country` | `country_code` | alias |
-| `destination_agents.status` | `is_active` | derive |
-| `ielts_mock_attempts.score` | `ai_band_score` | alias |
-| `ielts_mock_attempts.status` | derived from `ai_band_score is not null` | `'scored'` / `'pending'` |
-| `ielts_resources.resource_type` | `content_type` | alias |
-| `ielts_resources.status` | `is_active` | derive |
-| `study_abroad_roadmaps.destination` | `target_country` (likely; will confirm at write-time) | alias |
+### Visual language (NOC feel)
+- Dark surface cards on `bg-card/30` with `backdrop-blur`, `border-border/40`.
+- Top "status strip" row of 4 KPI tiles: Templates count, Hired Instances, Active Channels, Active Routes (one query each, colored dots for live state).
+- Monospaced micro-labels (`text-[10px] uppercase tracking-widest text-muted-foreground/60`) reusing tokens already in `table.tsx` / `tabs.tsx`.
+- All colors via semantic tokens — no raw hex.
 
-The mutation factories will write back to the **real** column names (so `upsertApplication({ stage })`), but external consumers can keep reading `application.status` etc.
+### Tab 1 — The Fleet
+Source: `ai_agents`.
 
-## Files touched
-- **Create**: `src/hooks/useAbroadGraph.ts`
+- Segmented control at top: **Master Templates** (`is_template = true`) | **Hired Instances** (`is_template = false`).
+- Search box (filters by `name` / `agent_key`).
+- Table columns:
+  - Agent Name (with `avatar_url` thumb + `agent_key` subtitle)
+  - Key (`agent_key`)
+  - Company (`company_id` → resolved name from `companies`; null → "Group Academy" badge)
+  - Status (`is_active` / `kill_switch` indicator dot)
+  - For instances: also show "Cloned from" (parent template name)
+- Primary action button: **Hire / Clone Agent**
+  - Dialog: select Master Template (dropdown of `is_template=true` agents) + Target Company (searchable list from `companies` ordered by name).
+  - On submit: read full template row, insert duplicate with `is_template=false`, `parent_template_id=<template.id>`, `company_id=<selected>`, `agent_key = '<template.agent_key>__<companySlug>'` (uniqueness safety), preserve required NOT NULL fields.
+  - Success toast + invalidate fleet query.
 
-No UI components, no DB migrations, no other files modified. Final step: run `bunx tsc --noEmit` to confirm zero errors.
+### Tab 2 — Channel Connections (The Phones)
+Source: `workforce_channel_connections`.
 
-## Note
-Following the same precedent set for Learning (where I aligned `Cohort.title → name`, `start_date → starts_on`, etc.), this keeps the hook's TypeScript interface stable for downstream tabs while matching what Postgres actually has.
+- Table grouped by agent: Agent · Channel Provider · Credential summary (masked) · Active · Updated.
+- Add / Edit dialog:
+  - Agent dropdown (instances only — `is_template=false`).
+  - Channel Provider select: `telegram`, `whatsapp`, `linkedin`, `web_widget`, `email`, `instagram`.
+  - Credentials: JSON textarea with live `JSON.parse` validation; placeholder example per provider.
+  - Active switch.
+- Mutations: `upsert` on `(agent_key, channel_provider)`; delete with confirm.
+- Credentials never shown raw in list — masked summary like `{token: ••••1234, …}`; reveal button inside edit dialog only.
+
+### Tab 3 — Routing Switchboard (God Mode)
+Source: `workforce_routing_rules`.
+
+- Filters: Agent (incl. "Any/Global"), Channel Provider, Active only.
+- Table columns: Agent (or "ANY" chip) · Event Topic · → · Channel · Destination ID · Active · Description.
+- Add / Edit dialog:
+  - Agent dropdown including **Any / Global** (stored as `NULL`).
+  - Event Topic: select with presets `*`, `onboarding`, `transactions`, `alerts`, `signup`, `payment`, `error`, plus `Custom…` → free text input.
+  - Destination Channel: same provider enum as Tab 2.
+  - Destination ID: text (Chat ID / phone / email / webhook handle).
+  - Description (optional), Active switch.
+- Conflict hint: warn if a rule with same `(agent_key, event_topic, channel_provider, destination_id)` already exists.
+
+### Data layer
+- `@tanstack/react-query` for all fetching; mutations call `qc.invalidateQueries`.
+- All Supabase calls via `@/integrations/supabase/client` and `.from("table" as any)` (tables not yet in generated types).
+- `sonner` `toast` for success/error feedback; explicit error message from `error.message`.
+
+### Files touched
+- **Create** `src/pages/dashboard/WorkforceCommandCenter.tsx` (page + 3 tab panels co-located, ~600 LOC; split into helper components if it grows).
+- **Edit** `src/pages/Dashboard.tsx` — register lazy `agents-command-center` tab.
+- **Edit** `src/components/dashboard/AdminSidebar.tsx` — add "Command Center" link under AI Agents group.
+
+### Out of scope
+- Backend dispatcher that consumes routing rules to actually send messages on each channel.
+- Per-channel credential schema validation beyond JSON syntax.
+- RLS changes (assumed already restricting writes to admins on the new tables).
