@@ -39,7 +39,8 @@ serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
     const isCronTrigger = req.headers.get("x-cron-trigger") === "true";
-    const isServiceCall = bearer === SERVICE_ROLE_KEY;
+    const cronPass = Deno.env.get("CRON_VIP_PASS");
+    const isServiceCall = !!cronPass && bearer === cronPass;
 
     const body = (await req.json()) as RunRequest;
     if (!body?.agent_key || !body?.message) {
