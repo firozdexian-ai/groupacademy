@@ -16521,8 +16521,10 @@ export type Database = {
           achievements: Json | null
           batch_upload_id: string | null
           career_coach_instructor_id: string | null
+          career_stage_id: string | null
           country: string | null
           country_code: string | null
+          country_id: string | null
           cover_image_url: string | null
           created_at: string | null
           current_status: string | null
@@ -16563,6 +16565,7 @@ export type Database = {
           public_show_mastery: boolean
           ref_code: string | null
           referred_by: string | null
+          school_id: string | null
           search_tsv: unknown
           services_used: Json | null
           skills: Json | null
@@ -16577,8 +16580,10 @@ export type Database = {
           achievements?: Json | null
           batch_upload_id?: string | null
           career_coach_instructor_id?: string | null
+          career_stage_id?: string | null
           country?: string | null
           country_code?: string | null
+          country_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           current_status?: string | null
@@ -16619,6 +16624,7 @@ export type Database = {
           public_show_mastery?: boolean
           ref_code?: string | null
           referred_by?: string | null
+          school_id?: string | null
           search_tsv?: unknown
           services_used?: Json | null
           skills?: Json | null
@@ -16633,8 +16639,10 @@ export type Database = {
           achievements?: Json | null
           batch_upload_id?: string | null
           career_coach_instructor_id?: string | null
+          career_stage_id?: string | null
           country?: string | null
           country_code?: string | null
+          country_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           current_status?: string | null
@@ -16675,6 +16683,7 @@ export type Database = {
           public_show_mastery?: boolean
           ref_code?: string | null
           referred_by?: string | null
+          school_id?: string | null
           search_tsv?: unknown
           services_used?: Json | null
           skills?: Json | null
@@ -16698,6 +16707,20 @@ export type Database = {
             columns: ["career_coach_instructor_id"]
             isOneToOne: false
             referencedRelation: "ai_instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talents_career_stage_id_fkey"
+            columns: ["career_stage_id"]
+            isOneToOne: false
+            referencedRelation: "career_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talents_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "gtm_countries"
             referencedColumns: ["id"]
           },
           {
@@ -16741,6 +16764,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "talents_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "talents_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
