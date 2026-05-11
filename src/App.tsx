@@ -9,6 +9,7 @@ import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { useTalent } from "@/hooks/useTalent";
+import { AccountUpgradeModal } from "@/components/auth/AccountUpgradeModal";
 import ProfileBuilder from "@/pages/app/ProfileBuilder";
 
 // Components
@@ -207,9 +208,10 @@ const JobApplyRedirect = () => {
   return <Navigate to={`/auth?returnTo=/app/jobs/${id}/apply`} replace />;
 };
 
-// Force new talents into the conversational profile builder (Aisha)
+// Force new talents into the conversational profile builder (Aisha),
+// and gate legacy users (missing reference FKs) behind the AccountUpgradeModal.
 const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
-  const { talent, isTalentLoading } = useTalent();
+  const { talent, isTalentLoading, refreshTalent } = useTalent();
   const location = useLocation();
 
   if (isTalentLoading && !talent) return <>{children}</>;
@@ -219,6 +221,21 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
 
   if (needsOnboarding && !onBuilder) {
     return <Navigate to="/app/profile-builder" replace />;
+  }
+
+  // Legacy upgrade gate: completed onboarding but missing the new reference FKs.
+  const needsUpgrade =
+    !!talent &&
+    !!talent.onboardingCompletedAt &&
+    (!talent.careerStageId || !talent.institutionId);
+
+  if (needsUpgrade) {
+    return (
+      <>
+        {children}
+        <AccountUpgradeModal open onComplete={() => refreshTalent()} />
+      </>
+    );
   }
 
   return <>{children}</>;

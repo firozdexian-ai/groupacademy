@@ -50,6 +50,11 @@ export interface TalentProfile {
   country: string | null;
   countryCode: string | null;
   whatsappBonusClaimedAt: string | null;
+  // Reference FKs (added for the upgraded routing logic)
+  institutionId: string | null;
+  careerStageId: string | null;
+  schoolId: string | null;
+  countryId: string | null;
 }
 
 interface TalentContextValue {
@@ -118,6 +123,10 @@ function mapRowToTalent(row: any): TalentProfile {
     country: row.country || null,
     countryCode: row.country_code || null,
     whatsappBonusClaimedAt: row.whatsapp_bonus_claimed_at || null,
+    institutionId: row.institution_id || null,
+    careerStageId: row.career_stage_id || null,
+    schoolId: row.school_id || null,
+    countryId: row.country_id || null,
   };
 }
 

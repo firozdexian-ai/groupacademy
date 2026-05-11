@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -48,7 +49,36 @@ const STEPS = [
   { id: 4, label: "Profession", icon: Building2 },
 ];
 
-export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+type FunnelParams = Record<string, string>;
+const FUNNEL_KEYS = ["job_id", "ref", "utm_source", "utm_medium", "utm_campaign", "gig_id", "program_id"] as const;
+
+type ProvisionResult = { instance_id: string; created: boolean };
+
+export function OnboardingWizard({
+  onComplete,
+  funnelOverride,
+}: {
+  onComplete: () => void;
+  funnelOverride?: FunnelParams;
+}) {
+  const [searchParams] = useSearchParams();
+  const funnelParamsRef = useRef<FunnelParams>({});
+
+  // Capture funnel params once on mount (or accept an explicit override from a parent)
+  useEffect(() => {
+    if (funnelOverride && Object.keys(funnelOverride).length > 0) {
+      funnelParamsRef.current = { ...funnelOverride };
+      return;
+    }
+    const captured: FunnelParams = {};
+    for (const key of FUNNEL_KEYS) {
+      const value = searchParams.get(key);
+      if (value) captured[key] = value;
+    }
+    funnelParamsRef.current = captured;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [step, setStep] = useState(1);
   const [country, setCountry] = useState<Country | null>(null);
   const [stage, setStage] = useState<Stage | null>(null);
@@ -56,6 +86,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const [school, setSchool] = useState<School | null>(null);
   const [comboOpen, setComboOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingPhase, setSubmittingPhase] = useState<string>("");
 
   // Step 1: Countries
   const countriesQ = useQuery({
@@ -136,34 +167,140 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
     return false;
   }, [step, country, stage, institution, school]);
 
+  const provisionOrGetInstance = async (institutionName: string): Promise<ProvisionResult | null> => {
+    // 1. Try canonical RPC first
+    try {
+      const { data, error } = await supabase.rpc("provision_or_get_instance" as never, {
+        _cluster_geo_id: institutionName,
+        _funnel: funnelParamsRef.current as unknown as object,
+      } as never);
+      if (!error && data) {
+        const id =
+          typeof data === "string"
+            ? data
+            : (data as { instance_id?: string })?.instance_id ?? null;
+        if (id) return { instance_id: id, created: false };
+      }
+    } catch {
+      // fall through to manual fallback
+    }
+
+    // 2. Lookup existing instance for this geo cluster
+    const { data: existing } = await supabase
+      .from("workforce_hired_instances")
+      .select("id")
+      .eq("cluster_geo_id", institutionName)
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) return { instance_id: existing.id, created: false };
+
+    // 3. Provision a new B2C instance bound to this user as tenant
+    const { data: tplRow } = await supabase
+      .from("workforce_master_templates")
+      .select("id")
+      .eq("agent_key", "b2c_campus_ambassador")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id;
+    if (!tplRow?.id || !userId) return null;
+
+    const { data: created, error: insertErr } = await supabase
+      .from("workforce_hired_instances")
+      .insert({
+        template_id: tplRow.id,
+        tenant_id: userId,
+        cluster_geo_id: institutionName,
+        name_override: `${institutionName} Campus Ambassador`,
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (insertErr || !created?.id) return null;
+    return { instance_id: created.id, created: true };
+  };
+
   const handleNext = async () => {
     if (step < 4) {
       setStep((s) => s + 1);
       return;
     }
-    // Final submit
+    if (!country || !stage || !institution || !school) return;
+
     setSubmitting(true);
-    const payload = {
-      country_id: country?.id,
-      country: country?.name,
-      stage_id: stage?.id,
-      stage: stage?.slug,
-      academy_id: stage?.academy_id,
-      institution_id: institution?.id,
-      institution: institution?.name,
-      school_id: school?.id,
-      school: school?.slug,
-    };
-    // eslint-disable-next-line no-console
-    console.log("[OnboardingWizard] Final payload", payload);
-    // Brief simulated handoff
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success(`Connected to ${institution?.name} AI Campus Ambassador`, {
-      description: `Your ${school?.name} pathway is ready.`,
-      icon: <Sparkles className="h-4 w-4 text-blue-500" />,
-    });
-    setSubmitting(false);
-    onComplete();
+    const startedAt = Date.now();
+    try {
+      // --- Phase 1: persist selections to talents ---
+      setSubmittingPhase("Saving your profile…");
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !authData?.user?.id) throw new Error("Not signed in");
+      const userId = authData.user.id;
+
+      const { error: updateErr } = await supabase
+        .from("talents")
+        .update({
+          country_id: country.id,
+          country_code: country.iso2,
+          country: country.name,
+          career_stage_id: stage.id,
+          institution_id: institution.id,
+          institution: institution.name,
+          school_id: school.id,
+          onboarding_step: 4,
+          onboarding_completed_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
+      if (updateErr) throw updateErr;
+
+      // --- Phase 2: provision/get the campus instance ---
+      setSubmittingPhase(`Connecting to ${institution.name} Campus Agent…`);
+      const provisioned = await provisionOrGetInstance(institution.name);
+
+      // --- Phase 3: fire-and-forget seed so the first prompt has context ---
+      if (provisioned?.instance_id) {
+        setSubmittingPhase("Almost ready…");
+        try {
+          await supabase.functions.invoke("agent-runtime", {
+            body: {
+              instance_id: provisioned.instance_id,
+              subject_kind: "talent",
+              subject_id: userId,
+              silent_seed: true,
+              seed_context: {
+                funnelParams: funnelParamsRef.current,
+                institution: institution.name,
+                school: school.slug,
+                stage: stage.slug,
+              },
+            },
+          });
+        } catch (e) {
+          // non-blocking
+          // eslint-disable-next-line no-console
+          console.warn("[OnboardingWizard] agent-runtime seed failed", e);
+        }
+      }
+
+      // Loading floor: avoid jarring flash
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 600) await new Promise((r) => setTimeout(r, 600 - elapsed));
+
+      toast.success(`Connected to ${institution.name} AI Campus Ambassador`, {
+        description: `Your ${school.name} pathway is ready.`,
+        icon: <Sparkles className="h-4 w-4 text-blue-500" />,
+      });
+      onComplete();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[OnboardingWizard] Submission failed", err);
+      toast.error("Couldn't finish setup", {
+        description: "Please try again — your selections are saved.",
+      });
+    } finally {
+      setSubmitting(false);
+      setSubmittingPhase("");
+    }
   };
 
   return (
@@ -391,7 +528,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
             {submitting ? (
               <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                Connecting you to the {institution?.name} AI Campus Ambassador…
+                {submittingPhase || `Connecting you to the ${institution?.name} AI Campus Ambassador…`}
               </div>
             ) : (
               <Button
