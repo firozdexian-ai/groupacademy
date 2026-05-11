@@ -73,6 +73,14 @@ const AdminSchemas: Record<string, z.ZodTypeAny> = {
     link: z.string().optional().nullable(),
     metadata: z.record(z.any()).optional(),
   }).passthrough(),
+  notify_stakeholder: z.object({
+    audience_type: z.enum(["admin", "talent", "business", "system"]),
+    event_topic: z.string().min(1),
+    message: z.string().min(2),
+    title: z.string().optional().nullable(),
+    agent_key: z.string().optional().nullable(),
+    metadata: z.record(z.any()).optional(),
+  }).passthrough(),
 };
 
 serve(async (req) => {
