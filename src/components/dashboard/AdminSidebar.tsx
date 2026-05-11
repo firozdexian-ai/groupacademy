@@ -66,6 +66,7 @@ import {
   Banknote,
   Activity,
   Radio,
+  Radar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -153,6 +154,7 @@ const navGroups: NavGroup[] = [
       { title: "Agent OS Overview", icon: LayoutDashboard, value: "agents-overview" },
       { title: "Channels & Triggers", icon: Zap, value: "agents-channels" },
       { title: "Multichannel Routing", icon: Radio, value: "agents-multichannel" },
+      { title: "Command Center", icon: Radar, value: "agents-command-center" },
       { title: "Tools & Skills", icon: Network, value: "agents-tools" },
       { title: "Agent Studio", icon: Sparkles, value: "agents-studio" },
       { title: "B2C Agents", icon: Users, value: "agents-b2c" },
