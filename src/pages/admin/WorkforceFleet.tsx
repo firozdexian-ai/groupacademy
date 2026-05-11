@@ -177,17 +177,25 @@ function DeployDialog({
       return;
     }
     setSubmitting(true);
-    const payload = {
-      template_id: template.id,
-      template_key: template.template_key,
-      tenant_id: tenantId,
-      name_override: nameOverride || null,
-      cluster_geo_id: clusterGeo || null,
-    };
-    // eslint-disable-next-line no-console
-    console.log("[Deploy Instance Payload]", payload);
-    await new Promise((r) => setTimeout(r, 400));
-    toast.success(`Deployment queued for ${template.name}`);
+    const { data, error } = await supabase
+      .from("workforce_hired_instances")
+      .insert({
+        template_id: template.id,
+        tenant_id: tenantId,
+        name_override: nameOverride || null,
+        cluster_geo_id: clusterGeo || null,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error(error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    toast.success(`Agent successfully deployed to client!`);
     setSubmitting(false);
     reset();
     onClose();
