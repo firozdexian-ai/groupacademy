@@ -21,10 +21,16 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const FREE_AGENTS = new Set(["ai-general", "aisha"]);
 
 interface RunRequest {
-  agent_key: string;
+  agent_key?: string;
   thread_id?: string;
-  message: string;
+  message?: string;
   context?: Record<string, unknown>;
+  // WaaS — Workforce-as-a-Service flow
+  instance_id?: string;
+  source?: string; // e.g. "telegram"
+  chat_id?: string | number;
+  from_user_id?: string | number;
+  text?: string;
 }
 
 serve(async (req) => {
@@ -43,6 +49,24 @@ serve(async (req) => {
     const isServiceCall = !!cronPass && bearer === cronPass;
 
     const body = (await req.json()) as RunRequest;
+
+    // ────────────────────────────────────────────────────────────────────
+    // WaaS (Workforce-as-a-Service) flow — multi-tenant Hired Instances.
+    // Triggered when the caller (typically the workforce-*-router edge
+    // function) provides an `instance_id`. We do NOT touch the legacy
+    // `ai_agents` table here. Auth is implicit: only trusted service-role
+    // callers (other edge functions) can reach this branch in practice
+    // because the router validates channel credentials before dispatch.
+    // ────────────────────────────────────────────────────────────────────
+    if (body?.instance_id) {
+      try {
+        return await runWorkforceInstance(body, admin);
+      } catch (err: any) {
+        console.error("[agent-runtime/waas] fault", err);
+        return json({ error: err?.message || "WAAS_FAULT" }, 500);
+      }
+    }
+
     if (!body?.agent_key || !body?.message) {
       return json({ error: "agent_key and message required" }, 400);
     }
@@ -645,4 +669,149 @@ async function pipeAndPersist(
     await admin.from("agent_threads").update({ last_message_at: new Date().toISOString() }).eq("id", ctx.threadId);
     await admin.rpc("increment_agent_conversations", { p_agent_key: ctx.agentKey });
   }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// WaaS — Workforce-as-a-Service execution path.
+// Loads a hired instance + its master template, assembles the hybrid
+// system prompt (template base + per-instance overrides + tenant/geo
+// metadata), resolves a per-(instance, chat) thread, and streams the
+// completion back through the same `pipeAndPersist` plumbing the legacy
+// flow uses. Channel-specific routers (Telegram, WhatsApp, etc.) are
+// responsible for delivering the streamed reply back to the end user;
+// for Telegram in particular the router currently fires-and-forgets and
+// returns 200 to Telegram immediately, so we still need to drain the
+// stream here so persistence runs.
+// ──────────────────────────────────────────────────────────────────────
+async function runWorkforceInstance(body: RunRequest, admin: any): Promise<Response> {
+  const instanceId = body.instance_id!;
+  const userText = (body.text ?? body.message ?? "").toString().trim();
+  if (!userText) return json({ error: "EMPTY_MESSAGE" }, 400);
+
+  // 1. Load instance + template (single round-trip).
+  const { data: instance, error: instanceErr } = await admin
+    .from("workforce_hired_instances")
+    .select(`
+      id, name_override, prompt_override, model_override, tenant_id, cluster_geo_id, status,
+      template:workforce_master_templates(
+        id, agent_key, name, base_system_prompt, default_model, capabilities, base_message_credit_cost
+      )
+    `)
+    .eq("id", instanceId)
+    .maybeSingle();
+
+  if (instanceErr || !instance) {
+    console.error("[agent-runtime/waas] instance lookup fault", instanceErr);
+    return json({ error: "INSTANCE_NOT_FOUND" }, 404);
+  }
+  if (instance.status && instance.status !== "active") {
+    return json({ error: "INSTANCE_DISABLED", status: instance.status }, 403);
+  }
+  const template = (instance as any).template;
+  if (!template) return json({ error: "TEMPLATE_MISSING" }, 500);
+
+  // 2. Hybrid brain assembly.
+  const agentName = instance.name_override || template.name;
+  const model = instance.model_override || template.default_model || "google/gemini-3-flash-preview";
+  const finalPrompt =
+    `${template.base_system_prompt}\n\n` +
+    `[Instance Overrides & Rules]:\n${instance.prompt_override || "None"}\n\n` +
+    `[Agent Name]: ${agentName}\n` +
+    `[Tenant ID]: ${instance.tenant_id}\n` +
+    `[Geo-Cluster]: ${instance.cluster_geo_id || "Global"}`;
+
+  // 3. Resolve subject — channel chat id (Telegram chat / WhatsApp jid / etc.)
+  const source = body.source || "headless";
+  const subjectKind = source === "telegram" ? "telegram_user" : `${source}_user`;
+  const subjectId = body.chat_id != null ? String(body.chat_id) : (body.from_user_id != null ? String(body.from_user_id) : "anonymous");
+
+  // 4. Find or create thread scoped to (instance, subject).
+  let threadId: string | undefined = body.thread_id;
+  if (!threadId) {
+    const { data: existing } = await admin
+      .from("agent_threads")
+      .select("id")
+      .eq("instance_id", instanceId)
+      .eq("subject_kind", subjectKind)
+      .eq("external_subject_id", subjectId)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      threadId = existing.id;
+    } else {
+      const { data: created, error: createErr } = await admin
+        .from("agent_threads")
+        .insert({
+          instance_id: instanceId,
+          agent_key: template.agent_key,
+          subject_kind: subjectKind,
+          external_subject_id: subjectId,
+          title: userText.slice(0, 60),
+        })
+        .select("id")
+        .single();
+      if (createErr || !created) {
+        console.error("[agent-runtime/waas] thread create fault", createErr);
+        return json({ error: "THREAD_CREATE_FAULT" }, 500);
+      }
+      threadId = created.id;
+    }
+  }
+
+  // 5. Load short history.
+  const { data: history } = await admin
+    .from("agent_messages")
+    .select("role, content")
+    .eq("thread_id", threadId!)
+    .order("created_at", { ascending: true })
+    .limit(20);
+
+  // 6. Persist user turn.
+  await admin.from("agent_messages").insert({
+    thread_id: threadId!, role: "user", content: userText,
+  });
+
+  // 7. Stream completion.
+  const convo: any[] = [
+    { role: "system", content: finalPrompt },
+    ...(history ?? []).map((m: any) => ({ role: m.role, content: m.content || "" })),
+    { role: "user", content: userText },
+  ];
+
+  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, messages: convo, stream: true }),
+  });
+
+  if (!aiResp.ok) {
+    if (aiResp.status === 429) return json({ error: "Rate limit exceeded, please try again." }, 429);
+    if (aiResp.status === 402) return json({ error: "AI workspace credits exhausted." }, 402);
+    const txt = await aiResp.text();
+    console.error("[agent-runtime/waas] AI gateway error", aiResp.status, txt);
+    return json({ error: "AI_GATEWAY_FAULT" }, 500);
+  }
+
+  const { readable, writable } = new TransformStream();
+  pipeAndPersist(aiResp.body!, writable, admin, {
+    threadId: threadId!,
+    agentId: template.id,
+    agentKey: template.agent_key,
+    subjectKind,
+    subjectId,
+    variant: "waas",
+    msgCost: Number(template.base_message_credit_cost ?? 0),
+    invalidationKeys: [],
+  }).catch((err) => console.error("[agent-runtime/waas] persist error", err));
+
+  return new Response(readable, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "X-Thread-Id": threadId!,
+      "X-Instance-Id": instanceId,
+    },
+  });
 }

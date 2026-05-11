@@ -1431,48 +1431,54 @@ export type Database = {
       }
       agent_threads: {
         Row: {
-          agent_id: string
+          agent_id: string | null
           agent_key: string
           company_id: string | null
           created_at: string
+          external_subject_id: string | null
           id: string
+          instance_id: string | null
           is_archived: boolean
           is_pinned: boolean
           last_message_at: string
           metadata: Json
-          subject_id: string
+          subject_id: string | null
           subject_kind: string
           title: string | null
           unread_count: number
           updated_at: string
         }
         Insert: {
-          agent_id: string
+          agent_id?: string | null
           agent_key: string
           company_id?: string | null
           created_at?: string
+          external_subject_id?: string | null
           id?: string
+          instance_id?: string | null
           is_archived?: boolean
           is_pinned?: boolean
           last_message_at?: string
           metadata?: Json
-          subject_id: string
+          subject_id?: string | null
           subject_kind: string
           title?: string | null
           unread_count?: number
           updated_at?: string
         }
         Update: {
-          agent_id?: string
+          agent_id?: string | null
           agent_key?: string
           company_id?: string | null
           created_at?: string
+          external_subject_id?: string | null
           id?: string
+          instance_id?: string | null
           is_archived?: boolean
           is_pinned?: boolean
           last_message_at?: string
           metadata?: Json
-          subject_id?: string
+          subject_id?: string | null
           subject_kind?: string
           title?: string | null
           unread_count?: number
@@ -1491,6 +1497,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_threads_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_hired_instances"
             referencedColumns: ["id"]
           },
         ]
