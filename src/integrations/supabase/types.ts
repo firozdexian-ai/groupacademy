@@ -16911,6 +16911,165 @@ export type Database = {
           },
         ]
       }
+      workforce_hired_instances: {
+        Row: {
+          cluster_geo_id: string | null
+          created_at: string
+          id: string
+          kill_switch: boolean
+          model_override: string | null
+          name_override: string | null
+          prompt_override: string | null
+          status: string
+          template_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cluster_geo_id?: string | null
+          created_at?: string
+          id?: string
+          kill_switch?: boolean
+          model_override?: string | null
+          name_override?: string | null
+          prompt_override?: string | null
+          status?: string
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cluster_geo_id?: string | null
+          created_at?: string
+          id?: string
+          kill_switch?: boolean
+          model_override?: string | null
+          name_override?: string | null
+          prompt_override?: string | null
+          status?: string
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_hired_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_master_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_instance_credentials: {
+        Row: {
+          bot_token: string | null
+          channel_provider: string
+          created_at: string
+          id: string
+          instance_id: string
+          is_active: boolean
+          webhook_url: string | null
+        }
+        Insert: {
+          bot_token?: string | null
+          channel_provider: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          is_active?: boolean
+          webhook_url?: string | null
+        }
+        Update: {
+          bot_token?: string | null
+          channel_provider?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          is_active?: boolean
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_instance_credentials_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_hired_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_instance_tools: {
+        Row: {
+          config: Json
+          granted_at: string
+          instance_id: string
+          tool_key: string
+        }
+        Insert: {
+          config?: Json
+          granted_at?: string
+          instance_id: string
+          tool_key: string
+        }
+        Update: {
+          config?: Json
+          granted_at?: string
+          instance_id?: string
+          tool_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_instance_tools_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_hired_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_master_templates: {
+        Row: {
+          agent_key: string
+          base_message_credit_cost: number | null
+          base_system_prompt: string
+          capabilities: Json
+          created_at: string
+          default_model: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          agent_key: string
+          base_message_credit_cost?: number | null
+          base_system_prompt: string
+          capabilities?: Json
+          created_at?: string
+          default_model?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          agent_key?: string
+          base_message_credit_cost?: number | null
+          base_system_prompt?: string
+          capabilities?: Json
+          created_at?: string
+          default_model?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workforce_members: {
         Row: {
           city: string | null
@@ -18096,6 +18255,7 @@ export type Database = {
         Returns: boolean
       }
       is_enrolled_in_module: { Args: { _module_id: string }; Returns: boolean }
+      is_tenant_member: { Args: { _tenant_id: string }; Returns: boolean }
       issue_skill_credential: {
         Args: { _module_id: string; _talent_id: string; _topic_tag: string }
         Returns: {
