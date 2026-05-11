@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -48,7 +49,36 @@ const STEPS = [
   { id: 4, label: "Profession", icon: Building2 },
 ];
 
-export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+type FunnelParams = Record<string, string>;
+const FUNNEL_KEYS = ["job_id", "ref", "utm_source", "utm_medium", "utm_campaign", "gig_id", "program_id"] as const;
+
+type ProvisionResult = { instance_id: string; created: boolean };
+
+export function OnboardingWizard({
+  onComplete,
+  funnelOverride,
+}: {
+  onComplete: () => void;
+  funnelOverride?: FunnelParams;
+}) {
+  const [searchParams] = useSearchParams();
+  const funnelParamsRef = useRef<FunnelParams>({});
+
+  // Capture funnel params once on mount (or accept an explicit override from a parent)
+  useEffect(() => {
+    if (funnelOverride && Object.keys(funnelOverride).length > 0) {
+      funnelParamsRef.current = { ...funnelOverride };
+      return;
+    }
+    const captured: FunnelParams = {};
+    for (const key of FUNNEL_KEYS) {
+      const value = searchParams.get(key);
+      if (value) captured[key] = value;
+    }
+    funnelParamsRef.current = captured;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [step, setStep] = useState(1);
   const [country, setCountry] = useState<Country | null>(null);
   const [stage, setStage] = useState<Stage | null>(null);
@@ -56,6 +86,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const [school, setSchool] = useState<School | null>(null);
   const [comboOpen, setComboOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingPhase, setSubmittingPhase] = useState<string>("");
 
   // Step 1: Countries
   const countriesQ = useQuery({
