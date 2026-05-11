@@ -528,7 +528,7 @@ export function OnboardingWizard({
             {submitting ? (
               <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                Connecting you to the {institution?.name} AI Campus Ambassador…
+                {submittingPhase || `Connecting you to the ${institution?.name} AI Campus Ambassador…`}
               </div>
             ) : (
               <Button
