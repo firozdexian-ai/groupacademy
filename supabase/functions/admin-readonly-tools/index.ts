@@ -106,6 +106,53 @@ async function queryPlatformMetrics(admin: any, args: any) {
     admin.from("talents").select("id", { count: "exact", head: true }).gte("created_at", sinceISO),
   ]);
 
+  // ---- Financial telemetry (best-effort, tolerate missing tables) ----
+  const safeSum = async (
+    table: string,
+    column: string,
+    filter?: (q: any) => any,
+  ): Promise<number> => {
+    try {
+      let q = admin.from(table).select(column);
+      if (filter) q = filter(q);
+      const { data, error } = await q;
+      if (error) return 0;
+      return (data ?? []).reduce(
+        (acc: number, row: any) => acc + Number(row?.[column] ?? 0),
+        0,
+      );
+    } catch {
+      return 0;
+    }
+  };
+
+  const [
+    creditsIssued,
+    creditsSpent,
+    fiatRevenue,
+    walletBalances,
+    agentCreditsBurned,
+  ] = await Promise.all([
+    // Positive credit ledger entries (purchases, grants, top-ups)
+    safeSum("credit_transactions", "amount", (q) =>
+      q.gt("amount", 0).gte("created_at", sinceISO),
+    ),
+    // Negative credit ledger entries (spend) — return absolute value
+    safeSum("credit_transactions", "amount", (q) =>
+      q.lt("amount", 0).gte("created_at", sinceISO),
+    ).then((n) => Math.abs(n)),
+    // Fiat revenue from successful payments in window
+    safeSum("payments", "amount", (q) =>
+      q.eq("status", "succeeded").gte("created_at", sinceISO),
+    ),
+    // Current outstanding wallet balances across the platform
+    safeSum("credits_wallet", "balance"),
+    // Credits burned by AI agents in window
+    safeSum("agent_credit_events", "credits", (q) =>
+      q.gte("created_at", sinceISO),
+    ),
+  ]);
+
   return {
     metric,
     window: args?.window ?? "30d",
@@ -117,6 +164,14 @@ async function queryPlatformMetrics(admin: any, args: any) {
       new_jobs_in_window: jobs.count ?? 0,
       new_gigs_in_window: gigs.count ?? 0,
       new_applications_in_window: apps.count ?? 0,
+    },
+    financials: {
+      total_credits_issued_in_window: creditsIssued,
+      total_credits_spent_in_window: creditsSpent,
+      total_agent_credits_burned_in_window: agentCreditsBurned,
+      total_fiat_revenue_in_window: fiatRevenue,
+      currency_hint: "platform-default (BDT for native; USD for Stripe)",
+      outstanding_wallet_balance_total: walletBalances,
     },
   };
 }

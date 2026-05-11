@@ -141,33 +141,31 @@ export function useAgentRuntimeThread(
   }, [agentKey]);
 
   const reconcileTail = useCallback(async (tid: string) => {
-    // Pull the last 4 rows to lock in stable ids for the freshly-streamed turn.
+    // Authoritative refetch: replace local state with the canonical server
+    // rows for this thread. This guarantees zero duplicates regardless of
+    // optimistic placeholders, streaming order, or prior race conditions.
     const { data: rows } = await supabase
       .from("agent_messages")
       .select("id, role, content, created_at")
       .eq("thread_id", tid)
-      .order("created_at", { ascending: false })
-      .limit(4);
-    if (!rows?.length) return;
-    const ordered = [...rows].reverse() as any[];
-    setMessages((prev) => {
-      // Replace any trailing optimistic rows (no id) with server rows.
-      const stableHead: ChatMsg[] = [];
-      for (const m of prev) {
-        if (m.id) stableHead.push(m);
-        else break;
-      }
-      const headIds = new Set(stableHead.map((m) => m.id));
-      const tail = ordered
-        .filter((r) => !headIds.has(r.id))
-        .map((r) => ({
-          id: r.id as string,
-          role: r.role as ChatMsg["role"],
-          content: (r.content as string) ?? "",
-          created_at: r.created_at as string,
-        }));
-      return [...stableHead, ...tail];
+      .order("created_at", { ascending: true });
+    if (!rows) return;
+    const canonical: ChatMsg[] = (rows as any[])
+      .filter((r) => r.role === "user" || r.role === "assistant")
+      .map((r) => ({
+        id: r.id as string,
+        role: r.role as ChatMsg["role"],
+        content: (r.content as string) ?? "",
+        created_at: r.created_at as string,
+      }));
+    // Dedupe defensively by id (server is source of truth).
+    const seen = new Set<string>();
+    const deduped = canonical.filter((m) => {
+      if (!m.id || seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
     });
+    setMessages(deduped);
   }, []);
 
   const send = useCallback(
