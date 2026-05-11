@@ -699,6 +699,7 @@ function RoutingPanel() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RoutingRule | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const listQ = useQuery({
     queryKey: ["wcc-rules"],
