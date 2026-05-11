@@ -40,20 +40,31 @@ serve(async (req) => {
     const SUPA_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // Dynamic persona resolution from the central ai_agents registry (standard pattern).
+    // Persona resolution: pulled from the WaaS instance bound to this auth-page
+    // visitor (mkt-seo-01 country-specific Marketing & SEO agent). Legacy
+    // `ai_agents` lookup is removed — all front-door personas now live in
+    // workforce_hired_instances + workforce_master_templates.
     let systemPrompt = FALLBACK_SYSTEM_PROMPT;
     let model = "google/gemini-2.5-flash";
-    if (SUPA_URL && SERVICE_KEY) {
+    const instanceId = (context as any)?.instance_id ?? (context as any)?.instanceId;
+    if (SUPA_URL && SERVICE_KEY && instanceId) {
       try {
         const admin = createClient(SUPA_URL, SERVICE_KEY);
-        const { data: agentCfg } = await admin
-          .from("ai_agents")
-          .select("system_prompt, model, is_active")
-          .eq("agent_key", "talent-auth")
+        const { data: inst } = await admin
+          .from("workforce_hired_instances")
+          .select(
+            "status, kill_switch, prompt_override, model_override, name_override, " +
+              "template:workforce_master_templates(base_system_prompt, default_model, is_active)",
+          )
+          .eq("id", instanceId)
           .maybeSingle();
-        if (agentCfg && agentCfg.is_active !== false && agentCfg.system_prompt) {
-          systemPrompt = agentCfg.system_prompt;
-          if (agentCfg.model) model = agentCfg.model;
+        const tpl: any = inst?.template;
+        const active = inst && !inst.kill_switch && inst.status === "active" && tpl?.is_active !== false;
+        if (active) {
+          const basePrompt = inst.prompt_override || tpl?.base_system_prompt;
+          if (basePrompt) systemPrompt = basePrompt;
+          const m = inst.model_override || tpl?.default_model;
+          if (m) model = m;
         }
       } catch (_e) { /* fall back to inline */ }
     }
