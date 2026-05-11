@@ -62,6 +62,7 @@ import ModuleManagement from "./pages/ModuleManagement";
 import ModuleResourcesManager from "./pages/ModuleResourcesManager";
 import Organization from "./pages/Organization";
 import WorkforceFleet from "./pages/admin/WorkforceFleet";
+import AdminLiveInbox from "./pages/AdminLiveInbox";
 
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
@@ -330,6 +331,14 @@ export default function App() {
                     element={
                       <ProtectedRoute requireAnyAdminRole>
                         <WorkforceFleet />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/inbox"
+                    element={
+                      <ProtectedRoute requireAnyAdminRole>
+                        <AdminLiveInbox />
                       </ProtectedRoute>
                     }
                   />

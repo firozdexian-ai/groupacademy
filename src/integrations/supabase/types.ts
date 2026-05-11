@@ -1433,15 +1433,18 @@ export type Database = {
         Row: {
           agent_id: string | null
           agent_key: string
+          assigned_admin_id: string | null
           company_id: string | null
           created_at: string
           external_subject_id: string | null
+          human_takeover_at: string | null
           id: string
           instance_id: string | null
           is_archived: boolean
           is_pinned: boolean
           last_message_at: string
           metadata: Json
+          status: string
           subject_id: string | null
           subject_kind: string
           title: string | null
@@ -1451,15 +1454,18 @@ export type Database = {
         Insert: {
           agent_id?: string | null
           agent_key: string
+          assigned_admin_id?: string | null
           company_id?: string | null
           created_at?: string
           external_subject_id?: string | null
+          human_takeover_at?: string | null
           id?: string
           instance_id?: string | null
           is_archived?: boolean
           is_pinned?: boolean
           last_message_at?: string
           metadata?: Json
+          status?: string
           subject_id?: string | null
           subject_kind: string
           title?: string | null
@@ -1469,15 +1475,18 @@ export type Database = {
         Update: {
           agent_id?: string | null
           agent_key?: string
+          assigned_admin_id?: string | null
           company_id?: string | null
           created_at?: string
           external_subject_id?: string | null
+          human_takeover_at?: string | null
           id?: string
           instance_id?: string | null
           is_archived?: boolean
           is_pinned?: boolean
           last_message_at?: string
           metadata?: Json
+          status?: string
           subject_id?: string | null
           subject_kind?: string
           title?: string | null
