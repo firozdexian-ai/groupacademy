@@ -72,7 +72,7 @@ function BotCredentialsPanel() {
         .select("*")
         .order("agent_key");
       if (error) throw error;
-      return (data ?? []) as Cred[];
+      return ((data ?? []) as unknown) as Cred[];
     },
   });
 
@@ -282,7 +282,7 @@ function RoutingRulesPanel() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Rule[];
+      return ((data ?? []) as unknown) as Rule[];
     },
   });
 
