@@ -115,6 +115,8 @@ function reducer(state: AuthChatState, action: Action): AuthChatState {
       return { ...state, quiz: action.value };
     case "SET_ERROR":
       return { ...state, error: action.value };
+    case "SET_INSTANCE":
+      return { ...state, instanceId: action.instanceId, agentName: action.agentName };
     case "COMPLETE":
       return { ...state, isComplete: true };
     default:
