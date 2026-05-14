@@ -63,7 +63,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/companies/CompaniesTab").then((m: any) => ({ default: m.CompaniesTab ?? m.CompaniesManager ?? m.default })),
   ),
   contacts: React.lazy(() =>
-    import("@/components/dashboard/talent/ContactsTab").then((m: any) => ({ default: m.ContactsTab ?? m.ContactsManager ?? m.default })),
+    import("@/components/dashboard/companies/ContactsTab").then((m: any) => ({ default: m.ContactsTab ?? m.ContactsManager ?? m.default })),
   ),
   "company-agents": React.lazy(() =>
     import("@/components/dashboard/companies/CompanyAgentsTab").then((m: any) => ({ default: m.CompanyAgentsTab ?? m.CompanyAgentsManager ?? m.default })),
