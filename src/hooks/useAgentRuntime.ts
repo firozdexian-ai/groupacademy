@@ -7,10 +7,9 @@ import { handleAIError } from "@/lib/aiErrorHandler";
 import type { AgentMessage } from "@/hooks/useAgentChat";
 
 /**
- * GroUp Academy: Agent OS Runtime Hook (Phase 3)
- * Streams from the unified `agent-runtime` edge function (SSE) and persists
- * threads in `agent_threads` / `agent_messages`. Mirrors `useAgentChat` shape
- * so existing UI (AgentChatDialog) plugs in without changes.
+ * GroUp Academy: Agent OS Runtime Hook (V3.1.0 - May 2026)
+ * CTO Reference: Authoritative sensor for contextualized agent interactions.
+ * Logic: Streams from `agent-runtime` (SSE) with thread persistence.
  */
 
 export interface AgentThread {
@@ -42,8 +41,6 @@ export interface AgentRuntimeSubject {
   id: string;
 }
 
-/** Page-level context passed to the edge function so the agent knows what
- * resource the user is currently looking at (job, applicant, gig, etc.). */
 export interface AgentRuntimeContext {
   route?: string;
   job_id?: string;
@@ -87,7 +84,7 @@ export function useAgentRuntime(
           .maybeSingle();
 
         if (!agent) {
-          toast.error("Agent not found");
+          toast.error("AGENT_NOT_FOUND");
           return null;
         }
 
@@ -103,7 +100,6 @@ export function useAgentRuntime(
           .eq("subject_kind", subject.kind)
           .eq("subject_id", subject.id)
           .order("last_message_at", { ascending: false, nullsFirst: false })
-          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -114,6 +110,7 @@ export function useAgentRuntime(
             .select("role, content")
             .eq("thread_id", existing.id)
             .order("created_at", { ascending: true });
+
           setMessages(
             (history ?? [])
               .filter((m: any) => m.role === "user" || m.role === "assistant")
@@ -124,9 +121,18 @@ export function useAgentRuntime(
 
         setThread(null);
         setMessages([]);
-        return { id: "", agent_id: agent.id, agent_key: agent.agent_key, subject_kind: subject.kind, subject_id: subject.id, title: null, last_message_at: null, created_at: new Date().toISOString() };
+        return {
+          id: "",
+          agent_id: agent.id,
+          agent_key: agent.agent_key,
+          subject_kind: subject.kind,
+          subject_id: subject.id,
+          title: null,
+          last_message_at: null,
+          created_at: new Date().toISOString(),
+        };
       } catch (err) {
-        console.error("[useAgentRuntime] init fault", err);
+        console.error("[Digital Workforce] useAgentRuntime Initialization Error:", err);
         return null;
       } finally {
         setIsLoading(false);
@@ -138,7 +144,21 @@ export function useAgentRuntime(
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim() || isStreaming || !agentKeyRef.current) return;
+      if (!content.trim() || isStreaming || !agentKeyRef.current || !talent?.id) return;
+
+      // PRE-FLIGHT: Credit Deficit Check (May 2026 Standard)
+      if (perResponseCost > 0) {
+        const { data: credits } = await supabase
+          .from("talent_credits")
+          .select("balance")
+          .eq("talent_id", talent.id)
+          .single();
+
+        if (!credits || credits.balance < perResponseCost) {
+          toast.error(`FISCAL_DEFICIT: ${perResponseCost} CR required to process message.`);
+          return;
+        }
+      }
 
       const userMsg: AgentMessage = { role: "user", content: content.trim() };
       setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
@@ -151,52 +171,43 @@ export function useAgentRuntime(
         } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("AUTH_REQUIRED");
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-runtime`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authSession.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({
-              agent_key: agentKeyRef.current,
-              thread_id: thread?.id || undefined,
-              message: userMsg.content,
-              subject_kind: subject?.kind,
-              subject_id: subject?.id,
-              context: contextProvider?.() ?? undefined,
-            }),
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-runtime`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authSession.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-        );
+          body: JSON.stringify({
+            agent_key: agentKeyRef.current,
+            thread_id: thread?.id || undefined,
+            message: userMsg.content,
+            subject_kind: subject?.kind,
+            subject_id: subject?.id,
+            context: contextProvider?.() ?? undefined,
+          }),
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const { message } = handleAIError(errorData, response.status);
           toast.error(message);
-          // rollback assistant placeholder + user msg
           setMessages((prev) => prev.slice(0, -2));
           return;
         }
 
-        // Capture thread id from header (new threads)
         const newThreadId = response.headers.get("X-Thread-Id");
         if (newThreadId && (!thread || thread.id !== newThreadId)) {
-          setThread((prev) =>
-            prev
-              ? { ...prev, id: newThreadId }
-              : ({
-                  id: newThreadId,
-                  agent_id: agentIdRef.current || "",
-                  agent_key: agentKeyRef.current || "",
-                  subject_kind: subject?.kind || "talent",
-                  subject_id: subject?.id || "",
-                  title: userMsg.content.slice(0, 60),
-                  last_message_at: new Date().toISOString(),
-                  created_at: new Date().toISOString(),
-                } as AgentThread),
-          );
+          setThread({
+            id: newThreadId,
+            agent_id: agentIdRef.current || "",
+            agent_key: agentKeyRef.current || "",
+            subject_kind: subject?.kind || "talent",
+            subject_id: subject?.id || "",
+            title: userMsg.content.slice(0, 60),
+            last_message_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          });
         }
 
         const reader = response.body?.getReader();
@@ -216,16 +227,16 @@ export function useAgentRuntime(
             if (!line.startsWith("data: ")) continue;
             const payload = line.slice(6).trim();
             if (payload === "[DONE]") continue;
+
             try {
               const parsed = JSON.parse(payload);
+              // AUTOMATED EFFICIENCY: Real-time UI refresh via invalidation keys
               if (parsed?.type === "invalidations" && Array.isArray(parsed.keys)) {
-                for (const k of parsed.keys as string[]) {
-                  queryClient.invalidateQueries({ queryKey: [k] });
-                }
+                parsed.keys.forEach((k: string) => queryClient.invalidateQueries({ queryKey: [k] }));
                 continue;
               }
               const token = parsed?.choices?.[0]?.delta?.content;
-              if (typeof token === "string" && token.length) {
+              if (typeof token === "string") {
                 assistantBuffer += token;
                 setMessages((prev) => {
                   const next = [...prev];
@@ -234,24 +245,21 @@ export function useAgentRuntime(
                 });
               }
             } catch {
-              /* partial chunk */
+              /* Fragment handling */
             }
           }
         }
 
-        if (!assistantBuffer) {
-          // No content streamed — drop empty assistant bubble
-          setMessages((prev) => prev.slice(0, -1));
-        }
+        if (!assistantBuffer) setMessages((prev) => prev.slice(0, -1));
       } catch (err) {
-        console.error("[useAgentRuntime] stream fault", err);
-        toast.error("Connection interrupted");
+        console.error("[Digital Workforce] useAgentRuntime Stream Anomaly:", err);
+        toast.error("NEURAL_SYNC_FAULT: Connection interrupted");
         setMessages((prev) => prev.slice(0, -1));
       } finally {
         setIsStreaming(false);
       }
     },
-    [isStreaming, thread, subject?.id, subject?.kind, queryClient],
+    [isStreaming, thread, subject?.id, subject?.kind, queryClient, talent?.id, perResponseCost, contextProvider],
   );
 
   const endSession = useCallback(async () => {
