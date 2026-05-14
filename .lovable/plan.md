@@ -1,65 +1,79 @@
-# GTM (Group #8 — Geography) Deep Audit
+# UGC & Contents (Group #9) Deep Audit
 
-Scope: 6 sidebar tabs (Dashboard, Countries, States/Regions, Cities, Clusters, Knowledge Packs) — 4 files, ~1,151 LOC, 5 tables (`gtm_countries`, `gtm_regions`, `gtm_cities`, `gtm_clusters`, `country_knowledge_packs`).
+Scope: 5 sidebar tabs (Overview, Free Videos, Blog Posts, Feed Posts, Competitions) — 5 components + 1 hook, ~952 LOC, tables `content`, `blog_posts`, `feed_posts`, `competitions`, `content_reports`.
 
-DB state: 7 countries, **0 regions, 0 cities, 0 clusters, 0 knowledge packs**, 2,670 talents with `country` set.
+DB state: `content` 1,105 rows (7 free_video, 1,094 recorded_course, 4 misc), `blog_posts` 16, `feed_posts` 14, `competitions` 3, `content_reports` 0.
 
 ## Findings
 
-### 🔴 Critical bugs
+### 🔴 Critical bugs (UI is genuinely broken right now)
 
-- **G1 — Cluster composition UI is a stub.** `GtmTabs.tsx:610` reads *"Node selection UI pending Phase 6.2 update."* The `countries[]` and `cities[]` arrays of `gtm_clusters` cannot be edited from the dashboard at all. The Clusters tab can create a name + description shell but the cluster is functionally empty. This is the same family of bug as HR's stripped Assign-Talent dialog.
-- **G2 — `useGtmGraph` mutation factory anti-pattern.** Same Rules-of-Hooks violation we just fixed in `useHrGraph`. `createUpsertMutation` / `createDeleteMutation` call `useMutation` inside non-hook helpers, then are invoked 10× in the return block (lines 91–100). Works today but: (a) hook order is fragile, (b) React 18 strict-mode/Suspense will surface warnings, (c) any conditional call breaks. Inline the 10 mutations directly.
-- **G3 — Talent-density string bridge is silently lossy.** `gtmGraphQuery` aggregates `talents.country` (free text) against `gtm_countries.name`. Memory says `normalize_country_name` trigger exists, but: legacy rows, casing drift, "Bangladesh " vs "Bangladesh", or talents whose country is NOT in `gtm_countries` all silently disappear from the Overview. Should aggregate by iso2 via a server-side RPC and surface an "Unmapped" bucket.
-- **G4 — N+1-style client aggregation in Overview.** `GtmOverviewTab` reads all talents (`talents.select("country")` — currently 2,670 rows, will scale to 50k+) just to count by country. Plus the `Active Deployment Zones` block re-filters `data.regions` per country in render. Move both rollups into one `get_gtm_dashboard()` RPC returning `{country_id, iso2, name, tier, is_active, region_count, city_count, talent_count}` plus an `unmapped_talent_count` and a `top_talent_countries` array.
+- **U1 — Free Videos tab queries the wrong column AND the wrong scope.**
+  `useUgcGraph` line 19 selects `id, title, type, status, created_at` from `content`, but the column is `content_type`, not `type`. Result: every row returns `type: undefined`, the "Classification" cell renders empty. It also pulls all 1,105 `content` rows (including 1,094 recorded courses) and labels them "Free Videos." The `Deploy Video` dialog then writes `{ type: "video", title, status }` — `type` is a non-existent column and `slug` (NOT NULL), `content_type` (NOT NULL enum), and `description` are all missing. Insert fails or writes garbage.
+  Fix: filter `content_type = 'free_video'`, use `content_type` everywhere, and expand the form to capture `slug`, `description`, `youtube_url`, `thumbnail_url`, `is_published` — the columns that actually exist.
+
+- **U2 — Feed Posts tab queries a non-existent column.**
+  Hook line 21 selects `content` from `feed_posts`. The actual column is `text_content`. The tab's preview cell, length badge, and edit dialog all read/write `row.content` — every row shows "No text content" and saving writes to `content`, which fails or is silently dropped. Author column reads `author_user_id` which does exist. Form must use `text_content` and supply `author_user_id` (NOT NULL on insert) + `content_type` (enum, NOT NULL).
+
+- **U3 — Blog Posts insert is impossible.**
+  `blog_posts.slug` is NOT NULL; the dialog only captures `title` + `status`. First "Inject Article" click on a fresh row → 23502 NOT NULL violation. Same for `excerpt`, `content`, `category`, `featured_image`, `author_id` (RLS will likely reject without it). Add the full editor + auto-slugify title.
+
+- **U4 — Competitions insert is impossible.**
+  `competitions.slug` is NOT NULL; dialog captures only `title` + `status`. First "Deploy Tournament" → 23502 violation. Also missing `description`, `start_date`, `end_date`, `submission_deadline`, `prizes` (jsonb), `category`, `featured_image`, `max_participants`. Need a richer 2-column form with date pickers.
+
+- **U5 — `useUgcGraph` mutation factory anti-pattern.**
+  Same Rules-of-Hooks violation we already cleaned in HR-Z2 and GTM-Z1. `createUpsertMutation` / `createDeleteMutation` call `useMutation` inside non-hook helpers, then are invoked 10× in the return block. Inline the 10 mutations or wrap as `useUpsert()` / `useDelete()` real hooks (the GTM pattern).
 
 ### 🟠 Warnings
 
-- **G5 — `confirm()` browser dialog × 5** (countries, regions, cities, clusters, knowledge packs). Breaks the brutalist theme. Replace with `AlertDialog` like HR-Z1.
-- **G6 — No search / no tier filter on registries.** Tables are flat. Fine at 7 countries; unusable when we seed the full ISO list or thousands of cities. Need a top-bar search + a Tier filter on Countries, a Country filter on Regions, a Region+Country filter on Cities.
-- **G7 — No bulk-seed path.** With only manual `Deploy Node` dialogs and 0 regions/cities in DB, the team cannot realistically populate the global geography. Need a CSV import (or one-shot ISO seed migration) for `gtm_countries` (full ISO list), and a "Seed regions/cities for country" action that pulls from a static dataset or admin-pasted CSV.
-- **G8 — `country_knowledge_packs.country_code` is text, not an FK to `gtm_countries.iso2`.** Lookup in UI works, but nothing prevents orphan packs. Add FK or normalize via trigger.
-- **G9 — Knowledge pack body has no markdown preview.** Admin types markdown blind. Add a tabbed preview using existing `react-markdown` (already in app).
-- **G10 — `gtm_countries.tier` is unconstrained text** populated by a 3-value Select. Add a check constraint (`'Tier 1' | 'Tier 2' | 'Tier 3'`) so direct DB writes can't drift.
-- **G11 — Region/city tabs show no talent or operational rollup.** Counts only exist at country level. Add a "talent count" / "city count" column at region level once the RPC exists.
-- **G12 — `GtmKnowledgeTab` wraps in `p-6`** while the other tabs don't — double padding inside the dashboard shell. Drop the wrapper padding for visual parity.
-- **G13 — `gtm_clusters.owner_user_id` is captured but never set or shown.** Either wire it (auto-set to `auth.uid()` on insert + show owner badge) or drop it from the type.
+- **U6 — Hard 500-row caps.** Each table in the master query is `.limit(500)`. With 1,105 `content` rows the "Free Videos" KPI tile (which counts ALL content rows) is **already lying** by 605 nodes, and any new content beyond 500 will silently disappear from every screen. Two fixes: (a) tab queries should be filtered + paginated, (b) Overview KPIs should come from a `get_ugc_dashboard()` RPC returning real `count(*)` per scope.
+- **U7 — `confirm()` browser dialogs × 4** (videos, blog, feed, competitions). Breaks the brutalist theme — same fix we applied in GTM-Z1 (reuse the new `ConfirmPurge` component or lift it to `dashboard/common`).
+- **U8 — Moderation Queue is read-only and dead-end.** Pending reports render with a truncated `scope_id` and an "Awaiting Review" badge — there is no "Resolve", "Dismiss", "Open content" action and no link to the reported entity. Today the table is empty (0 rows) so it looks fine; the moment a real report lands, admins can't do anything with it. Add resolve/dismiss buttons that update `content_reports.status` + capture `resolved_by`, and a "View" link that deep-links into the right tab.
+- **U9 — Overview KPIs miscount.** "Free Videos" tile counts every row in `content` (1,105), not free_videos (7). "Blog Posts" / "Feed Posts" / "Competitions" tiles also count whatever the 500-row sample returned, not the true total. Move counts to RPC.
+- **U10 — Author cells show first-8-chars of UUID.** Both Blog and Feed tabs display raw author UUID slices instead of resolving names. Join via `talents.full_name` (Blog) / `feed_posts.author_name` (already on row, but ignored) — or surface in a single RPC.
+- **U11 — No filters / no pagination on any registry.** Even after fixing the 500 cap, browsing 1,000+ articles or feed posts requires search + pagination. At minimum: search-by-title, status filter, and "Load 50 more".
+- **U12 — Feed dialog allows admins to edit any user's post body without surfacing who they're editing.** No author label, no warning, no audit trail. At least show the original author handle in the dialog header and keep the edit explicit.
+- **U13 — Pulse bars use hard-coded max (500 / 100).** Once real volume kicks in, every bar pegs at 100% forever. Either drop the bars or compute max from the actual rollup.
+- **U14 — Reports `scope` enum not constrained in UI.** When we add resolve actions, ensure we recognise the full enum (`feed_post`, `comment`, `blog`, `video`, `competition`, etc.). Today the cell uses `scope.replace("_"," ")` which is fine but no canonical list anywhere.
 
 ### ✅ What works
 
-Country/Region/City CRUD plumbing is correct; brutalist styling matches the rest of the dashboard; Overview KPI tiles render cleanly; Knowledge Pack dialog form is complete (title, country, kind, status, markdown body, source URL, sort order).
+Brutalist styling matches the rest of the dashboard; competitions table cells render cleanly; loading skeletons present; report tile + KPI grid layout are solid; sidebar group order is correct.
 
-## Did we strip anything in prior passes?
+## Did we strip anything in earlier passes?
 
-Checked: `GtmTabs.tsx` is intact end-to-end (no `{/* ... */}` placeholder fragments, all 4 tab components export their full Dialog). `GtmKnowledgeTab.tsx` likewise complete. The single intentional gap is **G1 (cluster composition)** — that one is explicitly marked "pending Phase 6.2", not stripped. No regressions to restore.
+No. There are no `{/* ... */}` placeholder fragments, no "pending Phase X" notes, and no bare `null`-returning panels. The bugs above are pre-existing schema drift and unfinished forms, not regressions from prior cleanup.
 
-## Phase GTM-Z1 plan (must-fix this pass)
+## Phase UGC-Z1 plan (must-fix this pass)
 
 | ID | Fix | Files |
 |---|---|---|
-| G1 | Build cluster composition UI: multi-select countries chip-picker + multi-select cities chip-picker (filtered by selected countries), with selected pills showing remove × | `GtmTabs.tsx` (~+120) |
-| G2 | Inline 10 mutations directly in `useGtmGraph`, drop the factory helpers | `hooks/useGtmGraph.ts` (rewrite, same LOC) |
-| G3 + G4 | New `get_gtm_dashboard()` RPC (SECURITY DEFINER, search_path public) returning enriched country rows + `unmapped_talent_count`. Overview switches to RPC; Talent Density block keys off iso2; "Unmapped" appears as a final amber row when > 0 | DB migration; `GtmOverviewTab.tsx` (~−40/+30) |
-| G5 | Swap all 5 `confirm()` calls for the existing `AlertDialog` pattern from HR-Z1 | `GtmTabs.tsx`, `GtmKnowledgeTab.tsx` |
-| G10 | Add check constraint on `gtm_countries.tier` | DB migration |
-| G12 | Drop `p-6` wrapper in `GtmKnowledgeTab` | `GtmKnowledgeTab.tsx` |
+| U1 | Videos tab: query `content` filtered to `content_type='free_video'`, select `content_type`, expand dialog to (slug auto, description, youtube_url, thumbnail_url, is_published) | `useUgcGraph.ts`, `UgcVideosTab.tsx` |
+| U2 | Feed tab: select `text_content` (alias to `content` if we want to keep current cell code, or rename throughout), edit dialog writes `text_content`. Show `author_name` instead of UUID slice. Insert path requires `author_user_id` + `content_type` defaults | `useUgcGraph.ts`, `UgcFeedTab.tsx` |
+| U3 | Blog dialog: full editor — title (auto-slug), excerpt, body (markdown + preview tabs reusing the helper from GTM-Z1), category, featured_image, status, is_featured. `author_id` defaults to `auth.uid()` | `UgcBlogTab.tsx` |
+| U4 | Competition dialog: 2-col form — title (auto-slug), description, category, featured_image, start_date, end_date, submission_deadline, prizes JSON textarea, max_participants, status | `UgcCompetitionsTab.tsx` |
+| U5 | Inline 10 mutations in `useUgcGraph` (drop factory) | `useUgcGraph.ts` |
+| U6 + U9 | New `get_ugc_dashboard()` RPC returning real counts (`free_videos`, `blogs`, `feed_posts`, `competitions`, `pending_reports`); Overview consumes it instead of `.length` on capped arrays | DB migration; `UgcOverviewTab.tsx` |
+| U7 | Lift `ConfirmPurge` to `dashboard/common/ConfirmPurge.tsx`; replace 4 `confirm()` callsites | new shared file; 4 tab files |
+| U8 | Add Resolve / Dismiss / View buttons on each row of the moderation queue, + DB column `resolved_by` (uuid) on `content_reports` if missing | `UgcOverviewTab.tsx` (+ migration if column missing) |
 
-## Stretch (same pass if time allows)
+## Stretch (same pass if room)
 
-- **G6** — search + Tier filter on Countries, Country filter on Regions, Region filter on Cities (~+40 each)
-- **G9** — markdown preview tab in Knowledge Pack dialog using `react-markdown` (~+30)
-- **G11** — once RPC lands, surface `talent_count` column on Regions tab and `talent_count` on Cities tab (rolled up from talents → city via region join, or left null if no city link exists yet)
+- **U10** — show resolved author names in Blog + Feed (cheap join in the same RPC) (~+30)
+- **U11** — search input + status filter on each registry (~+40 each)
+- **U13** — derive PulseBar max from RPC totals so bars stop pegging (~+10)
 
 ## Defer
 
-- **G7 (bulk seed / CSV import)** — meaningful work; better as its own phase once we know the canonical dataset (Countries-States-Cities JSON vs admin upload).
-- **G8 (FK on `country_knowledge_packs.country_code`)** — needs a one-time data cleanup of any orphan rows first; safer in a follow-up.
-- **G13 (owner_user_id)** — product call: do we want clusters scoped per-owner? Park until product confirms.
+- **U12** — proper "audit trail" on admin edits to user feed posts (needs a `content_audit_log` table — own phase)
+- **U14** — scope enum centralisation (cosmetic, ship after Resolve actions exist)
 
-## Memory updates
+## Memory
 
-After ship: append "GTM-Z1 closed" line to `mem://admin/groups-7-to-10-stakeholder-structure`. No new memory files needed.
+After ship: update `mem://admin/groups-7-to-10-stakeholder-structure` with "UGC-Z1 closed" line covering schema-drift fix, `get_ugc_dashboard()` RPC, ConfirmPurge lift, resolvable moderation queue.
 
 ## Out of scope
 
-`AdminSidebar` group title rename, any changes to `talents.country` source-of-truth, real `MapView` visualization (separate phase).
+- Admin-side gigs / marketplace (separate group)
+- Public-facing /blog, /feed, /competitions routes (no UI changes here)
+- Notification fanout for resolved reports
