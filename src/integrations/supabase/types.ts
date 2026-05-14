@@ -18379,16 +18379,21 @@ export type Database = {
           assigned_count: number
           city: string
           commission_earned: number
+          country: string
           created_at: string
-          email: string
-          full_name: string
-          grade_label: string
-          member_id: string
-          role: string
-          specialization: string
+          grade_id: string
+          hired_at: string
+          id: string
+          probation_ends_at: string
+          reports_to: string
+          role_type: string
+          specialization: Json
           status: string
+          talent_email: string
           talent_id: string
-          team_name: string
+          talent_name: string
+          team_id: string
+          user_id: string
         }[]
       }
       grant_company_welcome_credits: {
