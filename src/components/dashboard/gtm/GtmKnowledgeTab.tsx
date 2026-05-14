@@ -94,9 +94,15 @@ export function GtmKnowledgeTab() {
                         <Button size="icon" variant="ghost" onClick={() => { setDraft(row); setOpen(true); }} className="hover:bg-indigo-500/10 hover:text-indigo-600">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Purge Content?")) deleteKnowledgePack.mutate(row.id); }} className="hover:bg-destructive/10 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <ConfirmPurge
+                          title="Purge content?"
+                          description="This will permanently remove the knowledge pack."
+                          onConfirm={() => deleteKnowledgePack.mutate(row.id)}
+                        >
+                          <Button size="icon" variant="ghost" className="hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </ConfirmPurge>
                       </div>
                     </TableCell>
                   </TableRow>
