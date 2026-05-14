@@ -67,6 +67,7 @@ import {
   Activity,
   Radio,
   Radar,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
@@ -430,9 +431,10 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
         {(userRole === "admin" || userRole === "super_admin") &&
           (() => {
             const isChat = location.pathname.startsWith("/dashboard/chat");
+            const isInbox = location.pathname.startsWith("/admin/inbox");
             return (
               <SidebarGroup className="p-0 mb-2">
-                <SidebarMenu>
+                <SidebarMenu className="space-y-1">
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       tooltip="Agentic Dashboard"
@@ -447,6 +449,22 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
                     >
                       <MessageCircle className="w-4 h-4" />
                       <span className="text-[10px]">AI Co-Pilot</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Live Agent Inbox"
+                      onClick={() => navigate("/admin/inbox")}
+                      isActive={isInbox}
+                      className={cn(
+                        "h-12 transition-all duration-300",
+                        isInbox
+                          ? "bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-md rounded-xl"
+                          : "hover:bg-primary/10 text-muted-foreground font-bold uppercase tracking-widest text-[10px] rounded-xl",
+                      )}
+                    >
+                      <Inbox className="w-4 h-4" />
+                      <span className="text-[10px]">Live Inbox</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
