@@ -220,13 +220,9 @@ export function GtmCountriesTab() {
             </TableCell>
             <TableCell className="text-right">
               <RowActions
-                onEdit={() => {
-                  setDraft(row);
-                  setOpen(true);
-                }}
-                onDelete={() => {
-                  deleteCountry.mutate(row.id);
-                }}
+                label="country"
+                onEdit={() => { setDraft(row); setOpen(true); }}
+                onDelete={() => deleteCountry.mutate(row.id)}
               />
             </TableCell>
           </TableRow>
