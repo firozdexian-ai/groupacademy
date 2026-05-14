@@ -67,6 +67,7 @@ import {
   Activity,
   Radio,
   Radar,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
