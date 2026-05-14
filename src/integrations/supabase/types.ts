@@ -1155,6 +1155,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agent_outreach_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vw_agent_anomalies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agent_outreach_trigger_id_fkey"
             columns: ["trigger_id"]
             isOneToOne: false
@@ -17359,6 +17366,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agent_outreach_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vw_agent_anomalies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agent_outreach_trigger_id_fkey"
             columns: ["trigger_id"]
             isOneToOne: false
@@ -17643,6 +17657,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_agent_anomalies: {
+        Row: {
+          agent_key: string | null
+          created_at: string | null
+          description: string | null
+          event_kind: string | null
+          id: string | null
+          severity: string | null
+          title: string | null
+        }
+        Insert: {
+          agent_key?: never
+          created_at?: string | null
+          description?: never
+          event_kind?: string | null
+          id?: string | null
+          severity?: never
+          title?: never
+        }
+        Update: {
+          agent_key?: never
+          created_at?: string | null
+          description?: never
+          event_kind?: string | null
+          id?: string | null
+          severity?: never
+          title?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_gig_bid: {
@@ -17703,6 +17747,14 @@ export type Database = {
         Returns: undefined
       }
       analyst_metric: { Args: { metric: string; period?: Json }; Returns: Json }
+      analyst_metrics_bulk: {
+        Args: { metrics: string[]; periods: Json }
+        Returns: {
+          metric: string
+          period_label: string
+          value: number
+        }[]
+      }
       analyst_series: {
         Args: { granularity?: string; metric: string; period?: Json }
         Returns: Json
@@ -18218,6 +18270,13 @@ export type Database = {
         Returns: Json
       }
       get_talent_public_projects: { Args: { _handle: string }; Returns: Json }
+      get_top_countries: {
+        Args: never
+        Returns: {
+          count: number
+          country: string
+        }[]
+      }
       get_track_progress: { Args: { p_assignment_id: string }; Returns: Json }
       get_trending_jobs: {
         Args: { limit_n?: number }
