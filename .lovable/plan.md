@@ -1,77 +1,56 @@
-## Action 1 — Add the 13 missing entries to `TAB_TITLES`
+## Wire `/admin/inbox` (Mission Control) into the AdminSidebar
 
-### Why
-`src/pages/Dashboard.tsx` derives the page header from `TAB_TITLES[activeTab]`, falling back to `"Nexus Console"` when a key is missing. A diff of `TAB_COMPONENTS` vs `TAB_TITLES` shows **13 keys** that have a lazy component but no title — so 13 admin tabs currently render the generic "Nexus Console" header instead of their real name. There are also **4 stale title keys** with no matching component that should be removed in the same edit.
+### Why a top-level entry, not inside the AI Agents group
 
-### The 13 missing keys (component → header to add)
+The AI Agents group entries call `onTabChange(item.value)` which only flips the `?tab=` query string on `/dashboard`. Mission Control lives at its **own route** `/admin/inbox` (`AdminLiveInbox.tsx`), so it cannot be expressed as a `NavItem` inside `navGroups` without breaking that pattern.
 
-Using the exact labels already used in `AdminSidebar.tsx` so the sidebar item and the page header match word-for-word:
+The existing **"AI Co-Pilot"** button (`AdminSidebar.tsx` lines 429–455) already solves exactly this case: it's a top-level `SidebarMenuButton` that calls `navigate("/dashboard/chat")` and uses `location.pathname` for active state. Mission Control is the operational twin of AI Co-Pilot (one is admin-talks-to-agents, the other is admin-takes-over-from-agents) and deserves the same prominence.
 
-| Tab key | Title to add |
-|---|---|
-| `hr-workforce` | `Workforce` |
-| `gigs-overview` | `Gig Economy Overview` |
-| `gigs-scoper` | `AI Scoper Queue` |
-| `gigs-quick-actions` | `Quick Action Gigs` |
-| `gigs-marketplace` | `Marketplace Gigs` |
-| `gigs-course-projects` | `Course Projects` |
-| `gigs-client-projects` | `Client Projects` |
-| `gigs-managed-projects` | `Managed Projects` |
-| `gigs-submissions` | `Gig Submissions` |
-| `gigs-verification` | `Verification Queue` |
-| `gigs-reviewers` | `Reviewer Program` |
-| `gigs-matchmaker` | `Gig Matchmaker` |
-| `gigs-workers-wallet` | `Workers Wallet` |
+### Placement
 
-Note: `gigs-overview` and `gigs-scoper` both load `GigOverviewTab` but live as separate sidebar entries, so each gets its own label rather than collapsing them.
-
-### The 4 stale title keys to remove
-
-These titles exist but no `TAB_COMPONENTS` key resolves to them, so they're dead weight:
-
-- `community-wa-channel` (replaced by `marketing-community-wa`)
-- `course-projects` (replaced by `gigs-course-projects`)
-- `marketplace-gigs` (replaced by `gigs-marketplace`)
-- `gig-submissions` (replaced by `gigs-submissions`)
-
-### Where to place them
-
-In `src/pages/Dashboard.tsx`, the `TAB_TITLES` object (lines 318–465) is loosely grouped by domain (overview, CRM, jobs, learning, marketing, abroad, agents, finops, IR, HR, GTM, …). I will insert each new entry in its matching domain block so the file stays readable:
-
-- `hr-workforce` → inside the **HR block** (after `"hr-overview"` on line 445), before `"hr-grades"`.
-- All 12 `gigs-*` entries → as a new **"Gig Economy"** block placed right after the `finops-*` block (after line 422) and before the blank line / `ir-*` block. This mirrors the order in `AdminSidebar.tsx` (group #12) and keeps related labels co-located.
-- The 4 stale keys (`community-wa-channel`, `course-projects`, `marketplace-gigs`, `gig-submissions`) → delete in place (lines 327, 412, 413, 414).
-
-### Patch shape
+Add **"Live Inbox"** as a second top-level button rendered immediately under "AI Co-Pilot", inside the same conditional block (before the `navGroups.map(...)` loop). Both stay pinned at the top of the sidebar regardless of which tab is open.
 
 ```text
-src/pages/Dashboard.tsx
-  - line 327     remove  "community-wa-channel": "Community WhatsApp Line",
-  + after 422    insert  // ===== Gig Economy =====
-                          "gigs-overview":         "Gig Economy Overview",
-                          "gigs-scoper":           "AI Scoper Queue",
-                          "gigs-quick-actions":    "Quick Action Gigs",
-                          "gigs-marketplace":      "Marketplace Gigs",
-                          "gigs-course-projects":  "Course Projects",
-                          "gigs-client-projects":  "Client Projects",
-                          "gigs-managed-projects": "Managed Projects",
-                          "gigs-submissions":      "Gig Submissions",
-                          "gigs-verification":     "Verification Queue",
-                          "gigs-reviewers":        "Reviewer Program",
-                          "gigs-matchmaker":       "Gig Matchmaker",
-                          "gigs-workers-wallet":   "Workers Wallet",
-  - lines 411-414 remove  gigs / course-projects / marketplace-gigs / gig-submissions stale entries
-  + after 445    insert  "hr-workforce": "Workforce",
+SidebarContent
+├── (top-level)  AI Co-Pilot      → /dashboard/chat
+├── (top-level)  Live Inbox  ⟵ NEW → /admin/inbox
+└── navGroups.map(...)
+    ├── Executive Overview
+    ├── Global CRM
+    └── …
 ```
 
-### Scope guarantees
+### Edit shape — `src/components/dashboard/AdminSidebar.tsx`
 
-- Single file touched: `src/pages/Dashboard.tsx`.
-- No component, route, sidebar, or business-logic changes.
-- Pure cosmetic — eliminates 13 "Nexus Console" headers and 4 dead keys.
+1. **Import an icon** at the top with the other `lucide-react` imports — `Inbox` (matches the "Live Inbox" semantics; falls back to `Headphones` if `Inbox` is already imported).
+2. **Wrap both top-level buttons in one `SidebarGroup`** so they read as a single "command bar" block. Replace the current single-item group (lines 434–453) with a `SidebarMenu` that contains two `SidebarMenuItem`s:
+   - Item 1: existing "AI Co-Pilot" button (unchanged behavior).
+   - Item 2: new "Live Inbox" button:
+     - `tooltip="Live Agent Inbox"`
+     - `onClick={() => navigate("/admin/inbox")}`
+     - `isActive={location.pathname.startsWith("/admin/inbox")}`
+     - Same `h-12 … rounded-xl` styling as AI Co-Pilot so they look like siblings.
+     - Active variant uses the same `bg-primary text-primary-foreground` treatment for consistency.
+     - Icon: `<Inbox className="w-4 h-4" />`, label `"Live Inbox"`.
+3. **Role gate**: keep the same `(userRole === "admin" || userRole === "super_admin")` guard that wraps AI Co-Pilot — Mission Control is staff-only.
+4. **Collapsed state**: `SidebarMenuButton`'s `tooltip` prop already handles the icon-only collapsed sidebar; nothing extra needed.
+
+### What does NOT change
+
+- `navGroups` array — untouched.
+- `App.tsx` — `/admin/inbox` route already exists.
+- `Dashboard.tsx` `TAB_COMPONENTS` / `TAB_TITLES` — not relevant; Mission Control is its own page, not a tab.
+- No new component, no styling tokens, no business logic.
 
 ### Verification after build
 
-1. Open `/dashboard?tab=hr-workforce` → header reads "Workforce" (not "Nexus Console").
-2. Click each of the 12 Gig Economy sidebar entries → header matches the sidebar label exactly.
-3. Re-run the diff script — `Missing` and `Extra` arrays should both be empty.
+1. Load `/dashboard` as an admin → "Live Inbox" appears under "AI Co-Pilot" at the top of the sidebar.
+2. Click it → URL becomes `/admin/inbox` and the AdminLiveInbox renders. The button shows the active (filled) treatment.
+3. Navigate back to any `/dashboard?tab=…` → "Live Inbox" returns to the inactive style; AI Co-Pilot stays inactive too.
+4. Collapse the sidebar → both top-level icons remain visible with hover tooltips.
+5. Sign in as a non-admin (e.g. `talent_exec`) → "Live Inbox" is hidden (same role gate as AI Co-Pilot).
+
+### Out of scope
+
+- Unread-count badge on the Live Inbox button (would need a `useQuery` against `agent_threads` filtered by `status = 'human'` or `human_takeover_at is not null`). Worth a follow-up plan once the Inbox has real traffic.
+- Wiring `/admin/workforce` and `/dashboard/messaging` (the other two orphan routes flagged in the audit) — separate decisions.
