@@ -32,8 +32,15 @@ export function TalentOverviewTab() {
     queryKey: ["global-crm-overview-full-telemetry"],
     queryFn: async () => {
       // P2: High-performance RPC for core aggregates
-      const { data: res, error } = await supabase.rpc("get_global_crm_overview");
+      const { data: rawRes, error } = await supabase.rpc("get_global_crm_overview");
       if (error) throw error;
+      const res = (rawRes ?? {}) as {
+        total_talents?: number;
+        onboarded_count?: number;
+        professions?: Record<string, number>;
+        countries?: Record<string, number>;
+        recent_nodes?: any[];
+      };
 
       // Restore: Aisha Funnel Data (Capturing the conversion flow)
       const aishaCount = async (filter?: (q: any) => any) => {

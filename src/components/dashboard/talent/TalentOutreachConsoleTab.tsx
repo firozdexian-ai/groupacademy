@@ -129,11 +129,11 @@ export function TalentOutreachConsoleTab() {
     setSending(true);
     try {
       const { error } = await supabase.from("outreach_messages").insert({
-        recipient_id: selectedTalent.id,
-        message_body: draft,
-        status: "sent",
-        channel_type: "whatsapp",
-        agent_key: "talent-outreach",
+        talent_id: selectedTalent.id,
+        message_content: draft,
+        channel: "whatsapp",
+        product: "talent-outreach",
+        notes: "Sent via Talent Outreach Console",
       });
 
       if (error) throw error;

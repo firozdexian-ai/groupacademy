@@ -91,14 +91,16 @@ export function ProfessionsTab() {
   const handleSave = async (e: React.FormEvent<HTMLFormElement>, table: string, setOpen: (o: boolean) => void) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(formData.entries());
+    const raw = Object.fromEntries(formData.entries()) as Record<string, any>;
+    const payload: Record<string, any> = { ...raw };
 
     // Convert checkbox
-    if (payload.is_active) payload.is_active = payload.is_active === ("on" as any);
+    if ("is_active" in raw) payload.is_active = raw.is_active === "on";
 
+    const tbl = supabase.from(table as any) as any;
     const query = editingItem?.id
-      ? supabase.from(table).update(payload).eq("id", editingItem.id)
-      : supabase.from(table).insert(payload);
+      ? tbl.update(payload).eq("id", editingItem.id)
+      : tbl.insert(payload);
 
     const { error } = await query;
     if (error) {
