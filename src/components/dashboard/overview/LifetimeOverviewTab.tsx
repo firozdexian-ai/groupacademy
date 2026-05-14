@@ -75,7 +75,7 @@ export function LifetimeOverviewTab() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // F3: Aggregate all credit pools
+      // F3: Aggregate credit pools (talent + company; gro10x_credits not yet provisioned)
       const [
         talentCount,
         regCount,
@@ -88,7 +88,6 @@ export function LifetimeOverviewTab() {
         sessionCount,
         talentCreds,
         companyCreds,
-        groCreds,
         countryStats,
         txTodayResult,
       ] = await Promise.all([
@@ -96,15 +95,15 @@ export function LifetimeOverviewTab() {
         supabase.from("talents").select("*", { count: "exact", head: true }).not("user_id", "is", null),
         supabase.from("enrollments").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("enrollments").select("payment_amount"),
-        supabase.from("credit_transactions").select("amount").eq("type", "commission"),
+        // Real column is `transaction_type`; commission rows are negative amounts
+        supabase.from("credit_transactions").select("amount").eq("transaction_type", "commission"),
         supabase.from("career_assessments").select("*", { count: "exact", head: true }),
         supabase.from("mock_interviews").select("status"),
         supabase.from("portfolio_requests").select("status"),
         supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true }),
         supabase.from("talent_credits").select("balance"),
         supabase.from("company_credits").select("balance"),
-        supabase.from("gro10x_credits").select("balance"),
-        supabase.rpc("get_top_countries"), // Assumes a simple RPC to group by country
+        supabase.rpc("get_top_countries" as any),
         supabase
           .from("credit_transactions")
           .select("*", { count: "exact", head: true })
@@ -115,13 +114,12 @@ export function LifetimeOverviewTab() {
       const registered = regCount.count || 0;
 
       // F5 Calculation
-      const rev = (revRes.data || []).reduce((s, i) => s + (Number(i.payment_amount) || 0), 0);
-      const comms = (commRes.data || []).reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0);
+      const rev = ((revRes.data as any[]) || []).reduce((s, i) => s + (Number(i.payment_amount) || 0), 0);
+      const comms = ((commRes.data as any[]) || []).reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0);
 
       // F3 Summation
-      const totalTalentBalance = (talentCreds.data || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
-      const totalCompanyBalance = (companyCreds.data || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
-      const totalGroBalance = (groCreds.data || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
+      const totalTalentBalance = ((talentCreds.data as any[]) || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
+      const totalCompanyBalance = ((companyCreds.data as any[]) || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
 
       // F4 Dynamic Country Detection
       const topCountry = (countryStats.data as any[])?.[0] || { country: "N/A", count: 0 };
