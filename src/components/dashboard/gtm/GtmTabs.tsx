@@ -225,7 +225,7 @@ export function GtmCountriesTab() {
                   setOpen(true);
                 }}
                 onDelete={() => {
-                  if (confirm("Purge this country?")) deleteCountry.mutate(row.id);
+                  deleteCountry.mutate(row.id);
                 }}
               />
             </TableCell>
@@ -349,7 +349,7 @@ export function GtmStatesTab() {
                   setOpen(true);
                 }}
                 onDelete={() => {
-                  if (confirm("Purge this region?")) deleteRegion.mutate(row.id);
+                  deleteRegion.mutate(row.id);
                 }}
               />
             </TableCell>
@@ -463,7 +463,7 @@ export function GtmCitiesTab() {
                   setOpen(true);
                 }}
                 onDelete={() => {
-                  if (confirm("Purge this city?")) deleteCity.mutate(row.id);
+                  deleteCity.mutate(row.id);
                 }}
               />
             </TableCell>
@@ -583,7 +583,7 @@ export function GtmClustersTab() {
                   setOpen(true);
                 }}
                 onDelete={() => {
-                  if (confirm("Purge this cluster?")) deleteCluster.mutate(row.id);
+                  deleteCluster.mutate(row.id);
                 }}
               />
             </TableCell>
