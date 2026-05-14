@@ -1,56 +1,48 @@
-## Wire `/admin/inbox` (Mission Control) into the AdminSidebar
 
-### Why a top-level entry, not inside the AI Agents group
+# Global CRM — Re-Audit (Round 4)
 
-The AI Agents group entries call `onTabChange(item.value)` which only flips the `?tab=` query string on `/dashboard`. Mission Control lives at its **own route** `/admin/inbox` (`AdminLiveInbox.tsx`), so it cannot be expressed as a `NavItem` inside `navGroups` without breaking that pattern.
+Re-checked all 9 `crm-*` tabs after the latest fixes. Almost everything from previous rounds has landed. **One trivial cleanup remains.**
 
-The existing **"AI Co-Pilot"** button (`AdminSidebar.tsx` lines 429–455) already solves exactly this case: it's a top-level `SidebarMenuButton` that calls `navigate("/dashboard/chat")` and uses `location.pathname` for active state. Mission Control is the operational twin of AI Co-Pilot (one is admin-talks-to-agents, the other is admin-takes-over-from-agents) and deserves the same prominence.
+---
 
-### Placement
+## Verified fixed since last audit
 
-Add **"Live Inbox"** as a second top-level button rendered immediately under "AI Co-Pilot", inside the same conditional block (before the `navGroups.map(...)` loop). Both stay pinned at the top of the sidebar regardless of which tab is open.
+| ID | Item | Evidence |
+|----|------|----------|
+| P2a | `TalentOverviewTab` adopts `get_global_crm_overview` | line 35: `supabase.rpc("get_global_crm_overview")` — replaces ~9 client queries |
+| P2b | `CreatorEconomyTab` adopts `get_creator_economy_leaderboard` | line 39: `supabase.rpc("get_creator_economy_leaderboard", { window_days: 30 })` |
+| P3 | `TalentPoolTab` outreach badge counts lifetime | line 72 embeds `outreach_count:outreach_messages(count)`, rendered at line 189 — no longer page-bound |
+| P4 | `NotificationsTab` talents picker refreshes | lines 63–71: re-fetches `talents` each time the broadcast dialog opens in `single` mode |
+| N1/N2 | `TalentUploadTab` Badge import + `gigs-submissions` nav | confirmed in file |
+
+## Red — none
+No runtime crashes, no PostgREST column errors, no dead buttons.
+
+## Amber — 1 remaining
+
+**P1. `src/components/dashboard/talent/hooks/useGlobalCRMGraph.ts` is still orphan dead code.**
+- `rg useGlobalCRMGraph src/` returns only the file itself (82 lines, never imported).
+- Reads from `talent_outreach_log` while the rest of CRM uses `outreach_messages` — keeping it invites future drift.
+- **Fix:** delete the file. Drop the `hooks/` directory if it becomes empty.
+
+## Deferred (cosmetic, flagged earlier)
+- **A4** — hardcoded color classes (`text-indigo-500`, `bg-fuchsia-500/10`, etc.) across the 9 tabs. Violates the design-token rule but cosmetic only.
+- **A5** — Jobs `jobs-talent-crm` ("Talent CRM") collides with sidebar "Global CRM". Suggest renaming Jobs → "Hiring CRM" in a separate UX pass.
+
+## Green — verified OK
+- All 9 `crm-*` keys present in both `TAB_COMPONENTS` and `TAB_TITLES`.
+- `TalentMessagingChannelTab` (17-line wrapper) and `SupportAITab` are self-contained.
+- `ProfessionsTab` Schools + Professions CRUD is complete.
+- `TalentOutreachConsoleTab` selects only real `talents` columns.
+- No orphans in `src/components/dashboard/talent/` other than P1.
+
+---
+
+## Proposed action
 
 ```text
-SidebarContent
-├── (top-level)  AI Co-Pilot      → /dashboard/chat
-├── (top-level)  Live Inbox  ⟵ NEW → /admin/inbox
-└── navGroups.map(...)
-    ├── Executive Overview
-    ├── Global CRM
-    └── …
+1. Delete src/components/dashboard/talent/hooks/useGlobalCRMGraph.ts        (P1)
+   — and remove the empty hooks/ folder if nothing else lives there.
 ```
 
-### Edit shape — `src/components/dashboard/AdminSidebar.tsx`
-
-1. **Import an icon** at the top with the other `lucide-react` imports — `Inbox` (matches the "Live Inbox" semantics; falls back to `Headphones` if `Inbox` is already imported).
-2. **Wrap both top-level buttons in one `SidebarGroup`** so they read as a single "command bar" block. Replace the current single-item group (lines 434–453) with a `SidebarMenu` that contains two `SidebarMenuItem`s:
-   - Item 1: existing "AI Co-Pilot" button (unchanged behavior).
-   - Item 2: new "Live Inbox" button:
-     - `tooltip="Live Agent Inbox"`
-     - `onClick={() => navigate("/admin/inbox")}`
-     - `isActive={location.pathname.startsWith("/admin/inbox")}`
-     - Same `h-12 … rounded-xl` styling as AI Co-Pilot so they look like siblings.
-     - Active variant uses the same `bg-primary text-primary-foreground` treatment for consistency.
-     - Icon: `<Inbox className="w-4 h-4" />`, label `"Live Inbox"`.
-3. **Role gate**: keep the same `(userRole === "admin" || userRole === "super_admin")` guard that wraps AI Co-Pilot — Mission Control is staff-only.
-4. **Collapsed state**: `SidebarMenuButton`'s `tooltip` prop already handles the icon-only collapsed sidebar; nothing extra needed.
-
-### What does NOT change
-
-- `navGroups` array — untouched.
-- `App.tsx` — `/admin/inbox` route already exists.
-- `Dashboard.tsx` `TAB_COMPONENTS` / `TAB_TITLES` — not relevant; Mission Control is its own page, not a tab.
-- No new component, no styling tokens, no business logic.
-
-### Verification after build
-
-1. Load `/dashboard` as an admin → "Live Inbox" appears under "AI Co-Pilot" at the top of the sidebar.
-2. Click it → URL becomes `/admin/inbox` and the AdminLiveInbox renders. The button shows the active (filled) treatment.
-3. Navigate back to any `/dashboard?tab=…` → "Live Inbox" returns to the inactive style; AI Co-Pilot stays inactive too.
-4. Collapse the sidebar → both top-level icons remain visible with hover tooltips.
-5. Sign in as a non-admin (e.g. `talent_exec`) → "Live Inbox" is hidden (same role gate as AI Co-Pilot).
-
-### Out of scope
-
-- Unread-count badge on the Live Inbox button (would need a `useQuery` against `agent_threads` filtered by `status = 'human'` or `human_takeover_at is not null`). Worth a follow-up plan once the Inbox has real traffic.
-- Wiring `/admin/workforce` and `/dashboard/messaging` (the other two orphan routes flagged in the audit) — separate decisions.
+That's the only Global-CRM cleanup left. Once you approve, this audit closes out the tab. The two deferred items (A4 design tokens, A5 Jobs rename) are good candidates to bundle into the next tab's pass rather than handle in isolation.
