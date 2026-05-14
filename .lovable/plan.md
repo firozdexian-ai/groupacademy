@@ -1,48 +1,62 @@
+## Companies Tab — Re-audit (Phase Z1)
 
-# Global CRM — Re-Audit (Round 4)
-
-Re-checked all 9 `crm-*` tabs after the latest fixes. Almost everything from previous rounds has landed. **One trivial cleanup remains.**
-
----
-
-## Verified fixed since last audit
-
-| ID | Item | Evidence |
-|----|------|----------|
-| P2a | `TalentOverviewTab` adopts `get_global_crm_overview` | line 35: `supabase.rpc("get_global_crm_overview")` — replaces ~9 client queries |
-| P2b | `CreatorEconomyTab` adopts `get_creator_economy_leaderboard` | line 39: `supabase.rpc("get_creator_economy_leaderboard", { window_days: 30 })` |
-| P3 | `TalentPoolTab` outreach badge counts lifetime | line 72 embeds `outreach_count:outreach_messages(count)`, rendered at line 189 — no longer page-bound |
-| P4 | `NotificationsTab` talents picker refreshes | lines 63–71: re-fetches `talents` each time the broadcast dialog opens in `single` mode |
-| N1/N2 | `TalentUploadTab` Badge import + `gigs-submissions` nav | confirmed in file |
-
-## Red — none
-No runtime crashes, no PostgREST column errors, no dead buttons.
-
-## Amber — 1 remaining
-
-**P1. `src/components/dashboard/talent/hooks/useGlobalCRMGraph.ts` is still orphan dead code.**
-- `rg useGlobalCRMGraph src/` returns only the file itself (82 lines, never imported).
-- Reads from `talent_outreach_log` while the rest of CRM uses `outreach_messages` — keeping it invites future drift.
-- **Fix:** delete the file. Drop the `hooks/` directory if it becomes empty.
-
-## Deferred (cosmetic, flagged earlier)
-- **A4** — hardcoded color classes (`text-indigo-500`, `bg-fuchsia-500/10`, etc.) across the 9 tabs. Violates the design-token rule but cosmetic only.
-- **A5** — Jobs `jobs-talent-crm` ("Talent CRM") collides with sidebar "Global CRM". Suggest renaming Jobs → "Hiring CRM" in a separate UX pass.
-
-## Green — verified OK
-- All 9 `crm-*` keys present in both `TAB_COMPONENTS` and `TAB_TITLES`.
-- `TalentMessagingChannelTab` (17-line wrapper) and `SupportAITab` are self-contained.
-- `ProfessionsTab` Schools + Professions CRUD is complete.
-- `TalentOutreachConsoleTab` selects only real `talents` columns.
-- No orphans in `src/components/dashboard/talent/` other than P1.
+### Scope
+7 sub-tabs under the admin Companies group:
+`companies-overview` · `companies` (CRM) · `companies-unlocks` · `companies-agents` · `industries` · `contacts` · `companies-wa-channel`
 
 ---
 
-## Proposed action
+### Verdict per file
 
-```text
-1. Delete src/components/dashboard/talent/hooks/useGlobalCRMGraph.ts        (P1)
-   — and remove the empty hooks/ folder if nothing else lives there.
+| File | Lines | Status | Notes |
+|---|---|---|---|
+| `CompaniesOverviewTab.tsx` | 237 | ✅ Lock-ready | Single-RPC (`get_companies_overview`), all icons imported, `unknown` cast applied. |
+| `CompaniesTab.tsx` (CRM) | 574 | ✅ Lock-ready | Search/industry filters wired, RPC KPIs, full edit dialog, outreach Select w/ template, delete AlertDialog, pagination correct. |
+| `IndustriesTab.tsx` | 413 | ✅ Lock-ready | `get_industry_rollup` + `merge_industries` RPCs, rename + unassigned KPI restored. |
+| `ContactUnlocksTab.tsx` | 223 | ✅ Lock-ready | `get_contact_unlocks_summary` RPC, `Button` imported, stats cast applied. |
+| `CompanyAgentsTab.tsx` | 927 | ✅ Lock-ready | Already react-query + bounded queries (verified prior audit, untouched since). |
+| `EmployerMessagingChannelTab.tsx` | 17 | 🟡 1-line cleanup | Title still hard-codes `01708459008` (S3 from prior audit). |
+| `talent/ContactsTab.tsx` (mounted as `contacts`) | — | 🟡 Misplaced | Owned by Companies group but lives in `talent/`. Cosmetic only — works as-is. |
+
+No 🔴 runtime crashes remain. No regressions vs the pre-Z0 feature set.
+
+---
+
+### Two cleanup items before lock
+
+**C1 — Strip hard-coded phone from Employer WA tab title**
+```tsx
+// EmployerMessagingChannelTab.tsx line 10
+title="Employer WhatsApp Line"
 ```
 
-That's the only Global-CRM cleanup left. Once you approve, this audit closes out the tab. The two deferred items (A4 design tokens, A5 Jobs rename) are good candidates to bundle into the next tab's pass rather than handle in isolation.
+**C2 — Move `ContactsTab.tsx` into the companies folder**
+- `git mv src/components/dashboard/talent/ContactsTab.tsx src/components/dashboard/companies/ContactsTab.tsx`
+- Update lazy import in `src/pages/Dashboard.tsx:66` to `@/components/dashboard/companies/ContactsTab`.
+- No behavior change; pure re-org so the file lives with its group owner.
+
+---
+
+### After C1 + C2 → "Lock" the tab
+
+Locking means:
+1. Mark all 7 sub-tabs as audited & frozen at this revision in `mem://admin/companies-stakeholder-structure`.
+2. Add a Phase Z1 entry: *Companies group hardened (RPC-backed KPIs, restored CRM depth, no scan storms, no 🔴 crashes).*
+3. Future edits to these files require a fresh audit pass before merging.
+
+This is documentation-only — no runtime gating. If you want a stronger lock (e.g. eslint rule or a CODEOWNERS entry), say the word and I'll add it.
+
+---
+
+### Out of scope (deferred, not blockers)
+- **S2:** `CompaniesTab.tsx` is 574 lines with 4 responsibilities (registry, edit dialog, outreach, batch upload). Splitting into 4 files is a refactor, not a fix — defer unless you want it now.
+
+---
+
+### Proposed execution
+One small batch:
+1. Edit `EmployerMessagingChannelTab.tsx` title (C1)
+2. Move `ContactsTab.tsx` + update Dashboard import (C2)
+3. Update memory `mem://admin/companies-stakeholder-structure` with Phase Z1 lock note
+
+Approve and I'll ship all three in one pass.
