@@ -6,6 +6,7 @@ import { useUnitEconomics } from "@/hooks/useUnitEconomics";
 import { RetentionCard } from "./RetentionCard";
 import { HitLCogsCard } from "./HitLCogsCard";
 import { RevPerEmployeeCard } from "./RevPerEmployeeCard";
+import { CohortRetentionCard } from "./CohortRetentionCard";
 import { MetricEntrySheet } from "./MetricEntrySheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Activity, Users, Plus, Cpu, Database, ChevronUp, ChevronDown, Minus } from "lucide-react";
@@ -159,6 +160,22 @@ export function UnitEconomics() {
               </CardHeader>
               <CardContent className="p-8 pt-0">
                 <RevPerEmployeeCard data={ordered} />
+              </CardContent>
+            </Card>
+
+            {/* Cohort Retention Triangle — wired from ir_retention_cohorts */}
+            <Card className="xl:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden backdrop-blur-xl">
+              <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-400 via-purple-500 to-indigo-500" />
+              <CardHeader className="p-8 pb-4">
+                <CardTitle className="text-xl font-black uppercase italic tracking-tighter">
+                  Cohort Retention Triangle
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  Monthly cohorts × periods · active_users / cohort_size
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-8 pt-0">
+                <CohortRetentionCard />
               </CardContent>
             </Card>
           </div>
