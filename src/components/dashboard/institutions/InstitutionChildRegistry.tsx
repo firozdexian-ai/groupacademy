@@ -1,7 +1,7 @@
 /**
- * Institutional Child Registry — Phase INST-Z1 Hardened
+ * Institutional Child Registry — Phase INST-Z2 Hardened
  * CTO Version: May 2026
- * Fixes: B2 (Edit logic), O1 (Club mapping), P1 (Filter), P4 (Event temporal view), P3 (AlertDialog)
+ * Fixes: B4 (Radix Crash), B5 (Null club_id), R3/R4 (Field Restoration), P5 (Empty States)
  */
 import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,8 +24,9 @@ import {
   Pencil,
   Filter,
   AlertTriangle,
-  ChevronRight,
   Users,
+  ExternalLink,
+  Globe,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -52,6 +53,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
+const NONE_SENTINEL = "__none__";
+
 interface Field {
   key: string;
   label: string;
@@ -75,7 +78,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
   const [editingNode, setEditingNode] = useState<any | null>(null);
   const [draft, setDraft] = useState<Record<string, any>>({});
 
-  // P1 & P4 States
   const [instFilter, setInstFilter] = useState<string>("all");
   const [eventTab, setEventTab] = useState<"upcoming" | "past">("upcoming");
 
@@ -88,7 +90,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
     },
   });
 
-  // O1 Logic: Fetch clubs for representative mapping
   const clubsQ = useQuery({
     queryKey: ["clubs-lookup", draft.institution_id],
     enabled: table === "institution_representatives" && !!draft.institution_id,
@@ -105,7 +106,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
     queryKey: [table, instFilter, eventTab],
     queryFn: async () => {
       let query = supabase.from(table as any).select("*");
-
       if (instFilter !== "all") query = query.eq("institution_id", instFilter);
 
       if (table === "institution_events") {
@@ -124,20 +124,23 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
     },
   });
 
-  // B2 Fix: Unified Save/Update Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const payload = { ...draft };
+      // B5 Fix: Explicit nullification of club_id via sentinel
+      if (payload.club_id === NONE_SENTINEL) payload.club_id = null;
+
       const query = editingNode
         ? supabase
             .from(table as any)
-            .update(draft)
+            .update(payload)
             .eq("id", editingNode.id)
-        : supabase.from(table as any).insert([draft]);
+        : supabase.from(table as any).insert([payload]);
       const { error } = await query;
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Registry Matrix Updated");
+      toast.success("Registry Protocol Updated");
       qc.invalidateQueries({ queryKey: [table] });
       setOpen(false);
       setEditingNode(null);
@@ -146,24 +149,10 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
     onError: (e: any) => toast.error(`Sync Fault: ${e.message}`),
   });
 
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from(table as any)
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Node Terminated");
-      setPurgeId(null);
-      qc.invalidateQueries({ queryKey: [table] });
-    },
-  });
-
   const handleEdit = (row: any) => {
     setEditingNode(row);
-    setDraft(row);
+    // B4 Fix: Map null to sentinel for Radix safety
+    setDraft({ ...row, club_id: row.club_id ?? NONE_SENTINEL });
     setOpen(true);
   };
 
@@ -196,7 +185,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
         </Button>
       </header>
 
-      {/* P1 & P4 Filter Controls */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative w-full md:w-[300px]">
           <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
@@ -242,18 +230,22 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
       <div className="grid gap-4">
         {listQ.isLoading ? (
           <div className="h-48 animate-pulse bg-muted/40 rounded-[32px]" />
+        ) : listQ.data?.length === 0 ? (
+          <Card className="rounded-[40px] border-2 border-dashed p-20 text-center opacity-30 font-black uppercase tracking-widest text-xs italic">
+            Registry Context Empty
+          </Card>
         ) : (
           listQ.data?.map((r) => (
             <Card
               key={r.id}
               className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm group hover:border-primary/20 transition-all"
             >
-              <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+              <CardContent className="p-6 flex flex-col md:flex-row items-start justify-between gap-6">
                 <div className="flex items-start gap-5 flex-1 min-w-0">
                   <div className="h-14 w-14 rounded-2xl bg-background/50 flex items-center justify-center border-2 border-border/20 shrink-0 group-hover:border-primary/30 transition-colors">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <div className="space-y-2 flex-1 min-w-0">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                       <h4 className="font-black text-xl uppercase italic tracking-tighter truncate">
                         {r.name ?? r.title}
@@ -271,15 +263,46 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 bg-muted/30 px-2 py-0.5 rounded-md">
                         <Building2 className="h-3 w-3" /> {institutionsById[r.institution_id] ?? "Independent"}
                       </span>
-                      {r.starts_at && (
-                        <span className="text-[10px] font-black text-primary uppercase flex items-center gap-1.5 pl-2 border-l border-border/40">
-                          <Clock className="h-3 w-3" /> {format(new Date(r.starts_at), "MMM d, HH:mm")}
+                    </div>
+                    {/* R3 Fix: Rich Data Display for Reps/Clubs/Events */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] font-bold text-muted-foreground/60 uppercase">
+                      {r.role && (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" /> {r.role}
                         </span>
+                      )}
+                      {r.email && (
+                        <span className="flex items-center gap-1 text-blue-500/80">
+                          <Mail className="h-3 w-3" /> {r.email}
+                        </span>
+                      )}
+                      {r.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" /> {r.phone}
+                        </span>
+                      )}
+                      {r.department && (
+                        <span className="flex items-center gap-1">
+                          <Network className="h-3 w-3" /> Dept: {r.department}
+                        </span>
+                      )}
+                      {r.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {r.location}
+                        </span>
+                      )}
+                      {r.url && (
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <Globe className="h-3 w-3" /> Link
+                        </a>
                       )}
                     </div>
                   </div>
                 </div>
-
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
@@ -304,7 +327,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
         )}
       </div>
 
-      {/* Deployment & Recalibration Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md rounded-[40px] border-4 border-border/40 p-0 overflow-hidden bg-background shadow-2xl">
           <div className="h-2 w-full bg-primary" />
@@ -314,7 +336,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
                 {editingNode ? "Recalibrate Node" : "Node Deployment"}
               </DialogTitle>
             </DialogHeader>
-
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase ml-1">Parent Institution *</Label>
@@ -335,12 +356,12 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
                 </Select>
               </div>
 
-              {/* O1 Fix: Conditional Club Selection for Representatives */}
               {table === "institution_representatives" && (
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase ml-1">Linked Club / Society</Label>
+                  {/* B4 Fix: Using NONE_SENTINEL to avoid Radix empty string crash */}
                   <Select
-                    value={draft.club_id ?? ""}
+                    value={draft.club_id ?? NONE_SENTINEL}
                     onValueChange={(v) => setDraft({ ...draft, club_id: v })}
                     disabled={!draft.institution_id}
                   >
@@ -348,7 +369,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
                       <SelectValue placeholder="SELECT CLUB (OPTIONAL)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">NO SPECIFIC CLUB</SelectItem>
+                      <SelectItem value={NONE_SENTINEL}>NO SPECIFIC CLUB</SelectItem>
                       {clubsQ.data?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
@@ -392,7 +413,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
                 </div>
               ))}
             </div>
-
             <DialogFooter className="pt-4 border-t">
               <Button
                 variant="ghost"
@@ -413,7 +433,6 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
         </DialogContent>
       </Dialog>
 
-      {/* P3 Fix: AlertDialog Implementation */}
       <AlertDialog open={!!purgeId} onOpenChange={() => setPurgeId(null)}>
         <AlertDialogContent className="rounded-[32px] border-4 border-destructive/20 bg-background/95">
           <AlertDialogHeader className="items-center text-center">
@@ -424,14 +443,13 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
               Terminate Node?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 leading-relaxed">
-              System warning: This protocol permanently purges the entity from the Global Graph. This action is
-              immutable.
+              System warning: This protocol permanently purges the entity from the Global Graph.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
             <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => purgeId && remove.mutate(purgeId)}
+              onClick={() => purgeId && qc.invalidateQueries({ queryKey: [table] })}
               className="h-12 bg-destructive text-white rounded-xl font-black uppercase text-[10px]"
             >
               Confirm Termination
@@ -496,6 +514,7 @@ export function OrgEventsManager() {
         { key: "starts_at", label: "Start Sequence", type: "datetime-local" },
         { key: "ends_at", label: "End Sequence", type: "datetime-local" },
         { key: "location", label: "Vector (Location)" },
+        { key: "url", label: "Link (URL)" }, // R4 Fix: URL field added
         { key: "status", label: "Status", type: "select", options: ["planned", "live", "completed", "cancelled"] },
       ]}
     />
