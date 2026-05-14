@@ -45,15 +45,15 @@ const SUGGESTIONS = [
   "Top 10 services by revenue, this quarter",
 ];
 
-// P7: Derived from semantic theme tokens
+// P7: Derived from real semantic theme tokens (only tokens that exist in index.css)
 const CHART_COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
   "hsl(var(--success))",
   "hsl(var(--warning))",
-  "hsl(var(--blue-500))",
-  "hsl(var(--indigo-500))",
-  "hsl(var(--orange-500))",
+  "hsl(var(--secondary))",
+  "hsl(var(--destructive))",
+  "hsl(var(--ring))",
 ];
 
 // P8: Shared tooltip styling for dark/light mode consistency
