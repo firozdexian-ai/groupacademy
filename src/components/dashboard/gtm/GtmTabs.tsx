@@ -801,6 +801,4 @@ function ClusterCityPicker({
     </div>
   );
 }
-    </>
-  );
-}
+
