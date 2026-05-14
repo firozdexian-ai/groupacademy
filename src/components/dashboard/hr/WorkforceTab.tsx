@@ -31,7 +31,7 @@ import {
   Coins,
   TrendingUp,
   UserCog,
-  Link2,
+  
   Zap,
   ShieldCheck,
   MapPin,
