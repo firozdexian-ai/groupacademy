@@ -18,7 +18,7 @@ export function AnalystChatTab() {
      * and standardized tools available in the main chat interface.
      */
     const timer = setTimeout(() => {
-      navigate("/dashboard/chat?agent=business-analyst");
+      navigate("/dashboard/chat?agent=business-analyst", { replace: true });
     }, 800);
 
     return () => clearTimeout(timer);
