@@ -340,13 +340,9 @@ export function GtmStatesTab() {
             </TableCell>
             <TableCell className="text-right">
               <RowActions
-                onEdit={() => {
-                  setDraft(row);
-                  setOpen(true);
-                }}
-                onDelete={() => {
-                  deleteRegion.mutate(row.id);
-                }}
+                label="region"
+                onEdit={() => { setDraft(row); setOpen(true); }}
+                onDelete={() => deleteRegion.mutate(row.id)}
               />
             </TableCell>
           </TableRow>
