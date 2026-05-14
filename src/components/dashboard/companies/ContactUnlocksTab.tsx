@@ -1,14 +1,15 @@
 /**
  * Contact Unlocks Ledger — Phase Z0 Hardened
  * CTO Version: May 2026
- * Fixes: A7 (Server-side KPI Aggregation), P2 (Layout Deduplication)
+ * Fixes: A7 (Server-side KPI Aggregation), R1 (Missing Button Import)
+ * Restored: Artifact Trace (Email/Phone) for Audit Visibility
  */
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Lock, TrendingUp, Coins, KeyRound, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button"; // R1 Fix: Critical import restored
+import { Loader2, Search, Lock, TrendingUp, Coins, KeyRound, RefreshCw, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -23,20 +24,16 @@ export function ContactUnlocksTab() {
   const loadLedger = useCallback(async () => {
     setLoading(true);
     try {
-      // A7 Fix: Fetch global aggregates server-side, bypassing the 500-row table limit
+      // A7 Fix: Fetch global aggregates server-side, bypassing the client 500-row limit
       const [statsRes, ledgerRes] = await Promise.all([
         supabase.rpc("get_contact_unlocks_summary"),
-        supabase
-          .from("talent_contact_unlocks")
-          .select("id, company_id, talent_id, credits_spent, full_name, email, phone, created_at, unlocked_by")
-          .order("created_at", { ascending: false })
-          .limit(500),
+        supabase.from("talent_contact_unlocks").select("*").order("created_at", { ascending: false }).limit(500),
       ]);
 
-      if (statsRes.data) setStats(statsRes.data as any);
+      if (statsRes.data) setStats(statsRes.data);
 
       if (ledgerRes.data) {
-        // Enrichment Logic: Map IDs to human-readable identities
+        // Enrichment Logic: Mapping raw UUIDs to human-readable identities
         const companyIds = Array.from(new Set(ledgerRes.data.map((r) => r.company_id).filter(Boolean)));
         const userIds = Array.from(new Set(ledgerRes.data.map((r) => r.unlocked_by).filter(Boolean)));
 
@@ -50,14 +47,14 @@ export function ContactUnlocksTab() {
 
         const enriched = ledgerRes.data.map((r) => ({
           ...r,
-          company_name: compMap[r.company_id] || "Unknown Entity",
-          unlocker_email: r.unlocked_by ? userMap[r.unlocked_by] || "Internal System" : "—",
+          company_name: compMap[r.company_id] || "Independent Entity",
+          unlocker_email: r.unlocked_by ? userMap[r.unlocked_by] || "Internal Agent" : "—",
         }));
 
         setRows(enriched);
       }
     } catch (err) {
-      toast.error("Ledger sync fault. Protocol bypassed.");
+      toast.error("Ledger synchronization fault.");
     } finally {
       setLoading(false);
     }
@@ -72,19 +69,20 @@ export function ContactUnlocksTab() {
       !searchQuery ||
       r.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.unlocker_email.toLowerCase().includes(searchQuery.toLowerCase()),
+      r.unlocker_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Action Row */}
+      {/* Header Action Bar */}
       <div className="flex justify-between items-center bg-muted/10 p-6 rounded-[32px] border-2 border-border/40">
         <div className="text-left">
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-2">
-            <Lock className="h-6 w-6 text-primary" /> Contact Ledger
+          <h2 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-2 text-primary">
+            <Lock className="h-6 w-6" /> Contact Ledger
           </h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-            Audit Log of Institutional Credit Burn
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 italic">
+            Institutional Audit Trail · Institutional Credit Burn
           </p>
         </div>
         <Button variant="outline" size="icon" onClick={loadLedger} className="rounded-xl h-12 w-12 border-2">
@@ -92,7 +90,7 @@ export function ContactUnlocksTab() {
         </Button>
       </div>
 
-      {/* KPI HUD powered by RPC */}
+      {/* Scalable KPI HUD powered by RPC */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricTile
           label="Lifetime Unlocks"
@@ -120,19 +118,16 @@ export function ContactUnlocksTab() {
       <Card className="rounded-[40px] border-2 overflow-hidden shadow-2xl bg-card/30 backdrop-blur-xl">
         <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-primary to-blue-500" />
 
-        <div className="p-6 border-b border-border/10 flex items-center justify-between gap-4">
-          <div className="relative flex-1 group">
+        <div className="p-6 border-b border-border/10">
+          <div className="relative max-w-md group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Search by company, talent, or unlocker handle..."
+              placeholder="Search employer, talent, or handle..."
               className="pl-12 h-12 rounded-xl border-2 bg-muted/10 font-bold text-xs"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <p className="hidden md:block text-[9px] font-black uppercase text-muted-foreground/40 italic">
-            Telemetry capped at 500 nodes
-          </p>
         </div>
 
         <div className="overflow-x-auto">
@@ -141,8 +136,8 @@ export function ContactUnlocksTab() {
               <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                 <th className="px-8 py-6">Timestamp</th>
                 <th className="px-6 py-6">Employer Node</th>
-                <th className="px-6 py-6">Authorized By</th>
                 <th className="px-6 py-6">Target Talent</th>
+                <th className="px-6 py-6">Artifact Trace</th> {/** Restored Feature */}
                 <th className="px-6 py-6 text-right pr-8">Burn Rate</th>
               </tr>
             </thead>
@@ -163,14 +158,26 @@ export function ContactUnlocksTab() {
                       <p className="font-black text-sm uppercase italic group-hover:text-primary transition-colors">
                         {r.company_name}
                       </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-muted px-2 py-1 rounded-md text-[10px] font-mono border border-border/20">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">
                         {r.unlocker_email}
-                      </span>
+                      </p>
                     </td>
                     <td className="px-6 py-4 font-bold text-xs uppercase tracking-tight">
-                      {r.full_name || "Anonymous ID"}
+                      {r.full_name || "Anonymous Node"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        {r.email && (
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-foreground/70">
+                            <Mail className="h-3 w-3 opacity-40" /> {r.email}
+                          </div>
+                        )}
+                        {r.phone && (
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-foreground/70">
+                            <Phone className="h-3 w-3 opacity-40" /> {r.phone}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right pr-8">
                       <Badge
@@ -193,7 +200,7 @@ export function ContactUnlocksTab() {
 
 function MetricTile({ label, value, icon: Icon, color, bg }: any) {
   return (
-    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 p-6 text-left group hover:border-primary/30 transition-all">
+    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 p-6 text-left group hover:border-primary/30 transition-all shadow-xl">
       <div className="flex items-center gap-5">
         <div
           className={cn(
@@ -206,7 +213,7 @@ function MetricTile({ label, value, icon: Icon, color, bg }: any) {
         </div>
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic mb-1">{label}</p>
-          <p className="text-2xl font-black italic tracking-tighter text-foreground">{value}</p>
+          <p className="text-2xl font-black italic tracking-tighter text-foreground">{value.toLocaleString()}</p>
         </div>
       </div>
     </Card>
