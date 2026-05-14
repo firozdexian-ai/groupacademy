@@ -18070,6 +18070,7 @@ export type Database = {
         Args: { _days?: number; _instructor_id: string }
         Returns: Json
       }
+      get_companies_overview: { Args: never; Returns: Json }
       get_companies_with_signal: {
         Args: { p_country?: string; p_limit?: number }
         Returns: {
@@ -18092,6 +18093,7 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: string[]
       }
+      get_contact_unlocks_summary: { Args: never; Returns: Json }
       get_countries_with_signal: {
         Args: { p_limit?: number }
         Returns: {
@@ -18170,6 +18172,14 @@ export type Database = {
       get_hiring_stats: {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
+      }
+      get_industry_rollup: {
+        Args: never
+        Returns: {
+          company_count: number
+          industry: string
+          job_count: number
+        }[]
       }
       get_instructor_dashboard_v2: {
         Args: { _user_id?: string }
@@ -18500,6 +18510,10 @@ export type Database = {
           signals: Json
           talent_id: string
         }[]
+      }
+      merge_industries: {
+        Args: { p_sources: string[]; p_target: string }
+        Returns: undefined
       }
       move_to_dlq: {
         Args: {
