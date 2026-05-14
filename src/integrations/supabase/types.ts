@@ -17840,6 +17840,15 @@ export type Database = {
         Returns: Json
       }
       boost_profile: { Args: never; Returns: Json }
+      broadcast_notifications: {
+        Args: {
+          p_created_by: string
+          p_message: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       can_operate_messaging_channel: {
         Args: { _channel: string; _user: string }
         Returns: boolean
@@ -18093,6 +18102,15 @@ export type Database = {
           top_companies: Json
         }[]
       }
+      get_creator_economy_leaderboard: {
+        Args: { window_days?: number }
+        Returns: {
+          full_name: string
+          share_count: number
+          talent_id: string
+          total_hype: number
+        }[]
+      }
       get_creator_scorecard: {
         Args: { _days?: number; _talent_id: string }
         Returns: Json
@@ -18148,6 +18166,7 @@ export type Database = {
         }[]
       }
       get_gigs_hub_dashboard: { Args: never; Returns: Json }
+      get_global_crm_overview: { Args: never; Returns: Json }
       get_hiring_stats: {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
