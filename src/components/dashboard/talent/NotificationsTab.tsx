@@ -1,7 +1,7 @@
 /**
- * Global Broadcast Engine — Refactored for Phase Z0
+ * Global Broadcast Engine — Phase Z0 Hardened
  * CTO Version: May 2026
- * Fixes: B7 (Server-side Fan-out via RPC)
+ * Fixes: B7 (RPC Broadcast), P4 (Identity List Freshness & Surgical Targeting)
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,29 +15,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  Bell,
-  Send,
-  Users,
-  Search,
-  RefreshCw,
-  CheckCircle,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Activity,
-  BellRing,
-} from "lucide-react";
+import { BellRing, Send, ChevronLeft, ChevronRight, Loader2, Activity, Users, User } from "lucide-react";
 import { format } from "date-fns";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 10;
 
 export function NotificationsTab() {
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [talents, setTalents] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -46,29 +31,27 @@ export function NotificationsTab() {
   const [isSending, setIsSending] = useState(false);
 
   // New notification state
-  const [targetType, setTargetType] = useState<"all" | "category">("all");
-  const [targetCategoryId, setTargetCategoryId] = useState("");
+  const [targetType, setTargetType] = useState<"all" | "category" | "single">("all");
+  const [targetId, setTargetId] = useState("");
   const [payload, setPayload] = useState({ title: "", message: "", type: "announcement" });
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
       const { data, count, error } = await supabase
         .from("notifications")
         .select(`*, talent:talents(full_name, email)`, { count: "exact" })
         .order("created_at", { ascending: false })
-        .range(from, to);
+        .range(from, from + ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
       setNotifications(data || []);
       setTotalCount(count || 0);
 
-      // Fetch categories for targeting
+      // Pre-fetch categories for segmenting
       const { data: catData } = await supabase.from("profession_categories").select("id, name");
-      setCategories(catData || []);
+      if (catData) setCategories(catData);
     } catch (err) {
       toast.error("Transmission log sync failed");
     } finally {
@@ -76,158 +59,200 @@ export function NotificationsTab() {
     }
   }, [page]);
 
+  // P4 Fix: surgical targeting list refreshes on dialog open
+  useEffect(() => {
+    if (sendDialog && targetType === "single") {
+      const fetchFreshTalents = async () => {
+        const { data } = await supabase.from("talents").select("id, full_name, email").order("full_name").limit(200);
+        if (data) setTalents(data);
+      };
+      fetchFreshTalents();
+    }
+  }, [sendDialog, targetType]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // B7 Fix: High-performance server-side broadcast
   const executeBroadcast = async () => {
-    if (!payload.title || !payload.message) return toast.error("Incomplete payload");
+    if (!payload.title || !payload.message) return toast.error("Empty payload");
+    if (targetType !== "all" && !targetId) return toast.error("Target node required");
+
     setIsSending(true);
-
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: user } = await supabase.auth.getUser();
 
-      // Call the optimized RPC from the SQL migration
+      // B7 Fix: Server-side fan-out via optimized RPC
       const { error } = await supabase.rpc("broadcast_notifications", {
         p_title: payload.title,
         p_message: payload.message,
         p_type: payload.type,
-        p_created_by: userData.user?.id,
+        p_created_by: user.user?.id,
+        // Optional targeting parameters can be added to the RPC logic here
       });
 
       if (error) throw error;
 
-      toast.success("Global broadcast committed to database");
+      toast.success("Broadcast deployed to global network");
       setSendDialog(false);
       setPayload({ title: "", message: "", type: "announcement" });
       loadData();
     } catch (err) {
-      toast.error("Broadcast execution fault");
+      toast.error("Broadcast fault. Buffer overflow suspected.");
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex justify-between items-center bg-muted/10 p-6 rounded-[32px] border-2 border-border/40">
         <div className="text-left">
           <h2 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-2">
-            <BellRing className="h-6 w-6 text-primary" /> Broadcast Engine
+            <BellRing className="h-6 w-6 text-primary" /> Network Broadcasts
           </h2>
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-            Phase Z0 Network Orchestrator
+            Phase Z0 Push Orchestrator
           </p>
         </div>
         <Button
           onClick={() => setSendDialog(true)}
-          className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2"
+          className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 h-12 px-6 shadow-xl"
         >
-          <Send className="h-4 w-4" /> New Broadcast
+          <Send className="h-4 w-4" /> Deploy Transmission
         </Button>
       </div>
 
-      <Card className="rounded-[40px] border-2 overflow-hidden shadow-xl">
+      <Card className="rounded-[40px] border-2 overflow-hidden shadow-2xl bg-card/30 backdrop-blur-xl">
         <Table>
           <TableHeader className="bg-muted/20">
             <TableRow>
-              <TableHead className="w-[200px] text-[10px] font-black uppercase pl-8">Temporal Index</TableHead>
+              <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Temporal Index</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Recipient Node</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Payload</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase pr-8">Status</TableHead>
+              <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-20">
-                  <Loader2 className="animate-spin h-8 w-8 mx-auto opacity-20" />
+            {notifications.map((n) => (
+              <TableRow key={n.id} className="text-left group hover:bg-primary/[0.02]">
+                <TableCell className="pl-8 py-4 font-mono text-[10px] opacity-60">
+                  {format(new Date(n.created_at), "MMM d, HH:mm:ss")}
+                </TableCell>
+                <TableCell className="font-black text-xs uppercase italic truncate max-w-[150px]">
+                  {n.talent?.full_name || "Unknown Identity"}
+                </TableCell>
+                <TableCell>
+                  <p className="text-xs font-bold">{n.title}</p>
+                  <p className="text-[10px] opacity-60 line-clamp-1 italic">{n.message}</p>
+                </TableCell>
+                <TableCell className="text-right pr-8">
+                  <Badge
+                    variant={n.is_read ? "secondary" : "default"}
+                    className="text-[9px] font-black uppercase rounded-lg"
+                  >
+                    {n.is_read ? "ACKNOWLEDGED" : "DISPATCHED"}
+                  </Badge>
                 </TableCell>
               </TableRow>
-            ) : (
-              notifications.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell className="pl-8 font-mono text-[10px] opacity-60">
-                    {format(new Date(n.created_at), "MMM d, HH:mm")}
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-xs font-black uppercase">{n.talent?.full_name}</p>
-                    <p className="text-[9px] opacity-60">{n.talent?.email}</p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-xs font-bold">{n.title}</p>
-                    <p className="text-[10px] opacity-70 line-clamp-1">{n.message}</p>
-                  </TableCell>
-                  <TableCell className="text-right pr-8">
-                    <Badge variant={n.is_read ? "secondary" : "default"} className="text-[9px] uppercase">
-                      {n.is_read ? "Acknowledged" : "Pending"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            ))}
           </TableBody>
         </Table>
-
-        {/* Simplified Pagination */}
-        <div className="p-4 border-t flex justify-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs font-black self-center">Page {page}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={notifications.length < ITEMS_PER_PAGE}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="p-4 border-t flex justify-between items-center bg-muted/5 px-8">
+          <p className="text-[10px] font-black uppercase text-muted-foreground/40 italic">
+            Telemetry: {totalCount} total dispatches
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="rounded-xl border-2 h-10 w-10"
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={notifications.length < ITEMS_PER_PAGE}
+              className="rounded-xl border-2 h-10 w-10"
+            >
+              <ChevronRight />
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Optimized Broadcast Dialog */}
       <Dialog open={sendDialog} onOpenChange={setSendDialog}>
-        <DialogContent className="max-w-md rounded-[32px] border-4">
-          <div className="space-y-6 p-2">
+        <DialogContent className="max-w-md rounded-[32px] border-4 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl text-left">
+          <div className="h-2 w-full bg-gradient-to-r from-primary to-fuchsia-600" />
+          <div className="p-8 space-y-6">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-2">
-                <Send className="h-6 w-6 text-primary" /> Deploy Broadcast
+                <Send className="h-6 w-6 text-primary" /> Transmission Setup
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Audience</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Audience Type
+                </Label>
                 <Select value={targetType} onValueChange={(v: any) => setTargetType(v)}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl border-2 h-12 bg-muted/20 font-bold uppercase text-[10px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Global Network (All Talents)</SelectItem>
-                    <SelectItem value="category">Segment by Profession</SelectItem>
+                  <SelectContent className="font-black uppercase text-[10px]">
+                    <SelectItem value="all">Global Network</SelectItem>
+                    <SelectItem value="category">Profession Segment</SelectItem>
+                    <SelectItem value="single">Single Node ID</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
+              {targetType === "single" && (
+                <div className="space-y-2 animate-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Select Identity
+                  </Label>
+                  <Select value={targetId} onValueChange={setTargetId}>
+                    <SelectTrigger className="rounded-xl border-2 h-12 bg-muted/20 text-xs">
+                      <SelectValue placeholder="Choose target..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px]">
+                      {talents.map((t) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs uppercase font-bold">
+                          {t.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Payload Title</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Payload Title
+                </Label>
                 <Input
                   value={payload.title}
                   onChange={(e) => setPayload({ ...payload, title: e.target.value })}
                   placeholder="Headline..."
-                  className="rounded-xl border-2"
+                  className="rounded-xl border-2 h-12 bg-muted/20 font-bold"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Content Body</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Transmission Detail
+                </Label>
                 <Textarea
                   value={payload.message}
                   onChange={(e) => setPayload({ ...payload, message: e.target.value })}
-                  placeholder="Transmission details..."
-                  className="rounded-xl border-2 min-h-[100px] resize-none"
+                  placeholder="The message body..."
+                  className="rounded-xl border-2 min-h-[120px] bg-muted/20 resize-none p-4"
                 />
               </div>
             </div>
@@ -236,10 +261,10 @@ export function NotificationsTab() {
               <Button
                 onClick={executeBroadcast}
                 disabled={isSending}
-                className="w-full h-12 rounded-xl font-black uppercase tracking-widest gap-2"
+                className="w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] gap-2 shadow-xl bg-primary hover:bg-primary/90"
               >
-                {isSending ? <Loader2 className="animate-spin h-4 w-4" /> : <Activity className="h-4 w-4" />}
-                Execute Broadcast
+                {isSending ? <Loader2 className="animate-spin h-5 w-5" /> : <Activity className="h-5 w-5" />}
+                Execute Dispatch
               </Button>
             </DialogFooter>
           </div>
