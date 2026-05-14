@@ -1,18 +1,18 @@
+/**
+ * GroUp Academy: Investor Outreach Terminal
+ * CTO Version: May 2026 (Phase IR-Z0 Hardened)
+ * Fixes: P1 (Log + mailto Fallback), Visual Unification
+ * Standard: Logs telemetry to ir_outreach_log and initializes native mail client.
+ */
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, X, ShieldCheck, Mail, Zap, Loader2 } from "lucide-react";
+import { Send, X, ShieldCheck, Mail, Zap, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Investor Outreach Terminal
- * CTO Reference: High-fidelity orchestrator for secure investor communications.
- * 2024 Standard: Logs telemetry to ir_outreach_log table upon dispatch.
- */
 
 interface EmailComposerProps {
   selectedInvestor?: { email: string; full_name?: string };
@@ -24,67 +24,69 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
   const [body, setBody] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
 
-  const handleSendUpdate = async () => {
+  const handleLogAndOpenClient = async () => {
     if (!selectedInvestor?.email) {
-      toast.error("Registry Fault: Recipient email undefined.");
+      toast.error("Registry Fault: Recipient identity undefined.");
       return;
     }
 
     if (!subject.trim() || !body.trim()) {
-      toast.error("Protocol Fault: Subject and Message body required.");
+      toast.error("Protocol Fault: Transmission requires subject and payload.");
       return;
     }
 
     setIsDeploying(true);
-    const toastId = toast.loading("Queueing update via GroUp platform...");
+    const toastId = toast.loading("Logging telemetry and preparing client...");
 
     try {
-      // 1. Get current admin session
+      // 1. Authenticate Administrative Session
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
+
       if (sessionError || !session) throw new Error("Unauthorized Dispatch");
 
-      // 2. Log to IR Outreach Telemetry
-      const { error: logError } = await supabase.from("ir_outreach_log").insert([{
-        channel: "email",
-        target_type: "investor",
-        target_label: selectedInvestor.full_name || selectedInvestor.email,
-        subject: subject,
-        body: body,
-        created_by: session.user.id,
-        // Since we don't have the investor ID directly in this component, we
-        // rely on the backend triggering an email via webhook based on this log insert,
-        // or we can invoke a specific Edge Function. For now, logging guarantees telemetry.
-      }]);
+      // 2. Commit to IR Outreach Telemetry (ir_outreach_log)
+      const { error: logError } = await supabase.from("ir_outreach_log").insert([
+        {
+          channel: "email",
+          target_type: "investor",
+          target_label: selectedInvestor.full_name || selectedInvestor.email,
+          subject: subject,
+          body: body,
+          created_by: session.user.id,
+        },
+      ]);
 
       if (logError) throw logError;
 
-      // 3. Optional: Trigger Edge Function directly if webhooks aren't configured
-      // await supabase.functions.invoke('send-investor-email', {
-      //   body: { email: selectedInvestor.email, subject, body }
-      // });
+      // 3. P1 Fix: Initialize Native Handshake (mailto fallback)
+      const mailtoUrl = `mailto:${selectedInvestor.email}?subject=${encodeURIComponent(
+        subject,
+      )}&body=${encodeURIComponent(body)}`;
 
-      toast.success("Protocol Successful: Investor update enqueued.", { id: toastId });
+      window.open(mailtoUrl, "_blank");
+
+      toast.success("Protocol Registered: Opening mail client.", { id: toastId });
       onClose();
     } catch (error: any) {
-      toast.error(`System Error: ${error.message || "Failed to dispatch update."}`, { id: toastId });
+      toast.error(`System Error: ${error.message || "Transmission fault."}`, { id: toastId });
     } finally {
       setIsDeploying(false);
     }
   };
 
   return (
-    <div className="space-y-6 p-8 rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl animate-in zoom-in-95 duration-300">
+    <div className="space-y-6 p-8 rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl animate-in zoom-in-95 duration-300 text-left">
       {/* HEADER NODES */}
       <div className="flex justify-between items-start border-b border-border/10 pb-6">
-        <div className="text-left space-y-1">
+        <div className="space-y-1">
           <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
             <ShieldCheck className="h-6 w-6 text-primary" /> Investor Pulse
           </h3>
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Secure Platform Dispatch System
+            Phase IR-Z0 Secure Dispatch
           </p>
         </div>
         <Button
@@ -98,7 +100,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       </div>
 
       {/* RECIPIENT NODE */}
-      <div className="space-y-2 text-left">
+      <div className="space-y-2">
         <label className="text-[10px] font-black uppercase italic tracking-widest text-primary ml-2 flex items-center gap-2">
           <Mail className="h-3 w-3" /> Target Identity
         </label>
@@ -106,7 +108,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
           <Input
             value={selectedInvestor?.email || ""}
             disabled
-            className="h-12 rounded-xl border-2 font-bold bg-muted/30 border-border/40 pl-4 text-foreground/80 cursor-not-allowed"
+            className="h-12 rounded-xl border-2 font-bold bg-muted/30 border-border/40 pl-4 text-foreground/80"
           />
           {selectedInvestor?.full_name && (
             <Badge className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary/10 text-primary border-none font-black italic text-[9px] px-3">
@@ -117,7 +119,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       </div>
 
       {/* SUBJECT NODE */}
-      <div className="space-y-2 text-left">
+      <div className="space-y-2">
         <label className="text-[10px] font-black uppercase italic tracking-widest text-primary ml-2">
           Transmission Subject
         </label>
@@ -130,7 +132,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       </div>
 
       {/* MESSAGE PAYLOAD */}
-      <div className="space-y-2 text-left">
+      <div className="space-y-2">
         <label className="text-[10px] font-black uppercase italic tracking-widest text-primary ml-2">
           Core Payload (Message Body)
         </label>
@@ -144,7 +146,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
 
       {/* DISPATCH ACTION */}
       <Button
-        onClick={handleSendUpdate}
+        onClick={handleLogAndOpenClient}
         disabled={isDeploying || !subject.trim() || !body.trim()}
         className={cn(
           "w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] text-[11px] gap-3 shadow-2xl transition-all",
@@ -153,8 +155,8 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
             : "bg-gradient-to-r from-primary via-blue-600 to-primary hover:scale-[1.02] text-white shadow-primary/20",
         )}
       >
-        {isDeploying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5 fill-current" />}
-        {isDeploying ? "Synchronizing..." : "Initialize Transmission"}
+        {isDeploying ? <Loader2 className="h-5 w-5 animate-spin" /> : <ExternalLink className="h-5 w-5 fill-current" />}
+        {isDeploying ? "Committing..." : "Log Outreach & Open Client"}
       </Button>
     </div>
   );
