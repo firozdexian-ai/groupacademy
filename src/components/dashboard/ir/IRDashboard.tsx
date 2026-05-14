@@ -1,3 +1,8 @@
+/**
+ * GroUp Academy: IR Nexus & Intelligence Hub
+ * CTO Version: May 2026 (Phase IR-Z0 Hardened)
+ * Fixes: B2 (Hardcoded placeholders), P4 (Consolidated Overview), B1 (Schema Alignment)
+ */
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +10,20 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, Users, Mail, Building2, Target, UserCheck, ArrowUpRight, Zap } from "lucide-react";
+import {
+  TrendingUp,
+  Users,
+  Mail,
+  Building2,
+  Target,
+  UserCheck,
+  ArrowUpRight,
+  Zap,
+  Activity,
+  Globe,
+  MessageSquare,
+  UserPlus,
+} from "lucide-react";
 import {
   IR_CONFIG,
   formatUSD,
@@ -15,12 +33,6 @@ import {
   type ServiceMix,
 } from "@/lib/irConfig";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Stakeholder Capital Dashboard (IRDashboard)
- * CTO Reference: Authoritative telemetry hub for fundraising and growth KPIs.
- * 2024 Standard: Executive Logic geometry with reinforced interaction analysis.
- */
 
 interface IRDashboardProps {
   onNavigate: (tab: string) => void;
@@ -32,94 +44,114 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  // FETCH PROTOCOLS
-  const { data: target, isLoading: targetLoading } = useQuery({
-    queryKey: ["ir-target", currentMonth],
+  // B1 & B2 Fix: Unified Fetch Protocol for Live Telemetry
+  const { data: telemetry, isLoading: statsLoading } = useQuery({
+    queryKey: ["ir-unified-telemetry", currentMonth],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_monthly_targets")
-        .select("*")
-        .eq("month", currentMonth)
-        .maybeSingle();
-      if (error && error.code !== "PGRST116") throw error;
-      return data || null;
-    },
-  });
+      const now = new Date();
+      const last30d = new Date(now.setDate(now.getDate() - 30)).toISOString();
 
-  const { data: creditUsage, isLoading: creditsLoading } = useQuery({
-    queryKey: ["ir-credit-usage", currentMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("credit_transactions")
-        .select("amount, service_type, talent_id")
-        .in("transaction_type", ["service_usage", "usage"])
-        .gte("created_at", startOfMonth.toISOString());
-      if (error) throw error;
+      const [targetRes, usageRes, vcRes, invRes, talentRes, outreachRes] = await Promise.all([
+        // B1: Correct table mapping for ir_monthly_targets
+        supabase.from("ir_monthly_targets").select("*").eq("month", currentMonth).maybeSingle(),
+        // Real-time credit utilization
+        supabase
+          .from("credit_transactions")
+          .select("amount, service_type, talent_id")
+          .in("transaction_type", ["service_usage", "usage"])
+          .gte("created_at", startOfMonth.toISOString()),
+        // B2: Real counts vs hardcoded firms
+        supabase.from("ir_vc_firms").select("id", { count: "exact", head: true }),
+        // B2: Real counts vs hardcoded investors
+        supabase.from("ir_investors").select("id", { count: "exact", head: true }),
+        // B2: Real global talent pool count
+        supabase.from("talents").select("id", { count: "exact", head: true }),
+        // P6: 30D Outreach activity
+        supabase.from("ir_outreach_log").select("id", { count: "exact", head: true }).gt("created_at", last30d),
+      ]);
 
-      const totalCredits = data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+      const totalCredits = usageRes.data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
       const byService: Record<string, number> = {};
-      data?.forEach((t) => {
+      usageRes.data?.forEach((t) => {
         if (t.service_type) byService[t.service_type] = (byService[t.service_type] || 0) + Math.abs(t.amount);
       });
-      const activeTalents = new Set(data?.map((d) => d.talent_id).filter(Boolean)).size;
-      return { totalCredits, byService, activeTalents };
+
+      return {
+        target: targetRes.data || null,
+        usage: {
+          totalCredits,
+          byService,
+          activeTalents: new Set(usageRes.data?.map((d) => d.talent_id).filter(Boolean)).size,
+        },
+        registry: {
+          vcs: vcRes.count || 0,
+          investors: invRes.count || 0,
+          talents: talentRes.count || 0,
+          outreach30: outreachRes.count || 0,
+        },
+      };
     },
   });
 
   // KPI CALIBRATION
-  const mrrTarget = Number(target?.mrr_target_usd) || 0;
+  const mrrTarget = Number(telemetry?.target?.mrr_target_usd) || 0;
   const totalCreditsTarget = mrrTarget * IR_CONFIG.USD_TO_CREDITS;
-  const currentCredits = creditUsage?.totalCredits || 0;
+  const currentCredits = telemetry?.usage.totalCredits || 0;
   const currentMRR = creditsToUsd(currentCredits);
   const progressPercent = totalCreditsTarget > 0 ? Math.min(100, (currentCredits / totalCreditsTarget) * 100) : 0;
-  const serviceMix = (target?.service_mix as ServiceMix) || (IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix);
+  const serviceMix = (telemetry?.target?.service_mix as ServiceMix) || (IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix);
   const serviceTargets = calculateServiceTargets(mrrTarget, serviceMix);
   const autoKPIs = calculateAutoKPIs(mrrTarget);
 
-  if (targetLoading || creditsLoading) return <SkeletonGrid />;
+  if (statsLoading) return <SkeletonGrid />;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6 text-left">
       {/* EXECUTIVE COMMAND HEADER */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1 text-left">
+        <div className="space-y-1">
           <div className="flex items-center gap-3 text-primary">
             <TrendingUp className="h-8 w-8 text-primary fill-primary/20" />
             <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Intelligence Hub</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Strategic Growth Registry & Fundraising Telemetry
+            Consolidated Operational Telemetry & Stakeholder Nexus
           </p>
         </div>
         <Button
           onClick={() => onNavigate("ir-targets")}
-          className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg shadow-primary/20"
+          className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg"
         >
-          <Target className="h-4 w-4" /> {target ? "Recalibrate Targets" : "Initialize Targets"}
+          <Target className="h-4 w-4" /> {telemetry?.target ? "Recalibrate Targets" : "Initialize Targets"}
         </Button>
       </header>
 
-      {/* PRIMARY KPI NODES */}
+      {/* P4 Consolidated KPI Ribbon */}
       <div className="grid gap-6 md:grid-cols-4">
         <KPICard
           title="MRR Target"
           value={formatUSD(mrrTarget)}
           icon={Target}
-          subtext={`${formatUSD(autoKPIs.arrUsd)} ARR Target`}
+          subtext={`${formatUSD(autoKPIs.arrUsd)} ARR Benchmark`}
         />
         <KPICard
-          title="Current MRR"
+          title="Revenue Volume"
           value={formatUSD(currentMRR)}
           icon={Zap}
-          subtext={`${progressPercent.toFixed(1)}% of Protocol`}
+          subtext={`${progressPercent.toFixed(1)}% Synchronization`}
           variant="accent"
         />
-        <KPICard title="Total Talents" value="2,211" icon={Users} subtext="Registered Nodes" />
         <KPICard
-          title="Active Nodes"
-          value={creditUsage?.activeTalents || 0}
-          icon={UserCheck}
-          subtext="Credit Utilization"
+          title="30D Activity"
+          value={telemetry?.registry.outreach30 || 0}
+          icon={Activity}
+          subtext="Institutional Interactions"
+        />
+        <KPICard
+          title="Global Nodes"
+          value={telemetry?.registry.talents.toLocaleString() || 0}
+          icon={Globe}
+          subtext="Verified Network Pool"
         />
       </div>
 
@@ -127,18 +159,18 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
         {/* MRR PROGRESS TRACKER */}
         <Card className="lg:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden backdrop-blur-xl flex flex-col h-full">
           <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500" />
-          <CardHeader className="p-8 border-b border-border/10 bg-muted/5">
+          <CardHeader className="p-8 border-b border-border/10">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-black uppercase italic tracking-tighter text-emerald-600">
                   Monetization Pulse
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                  Credit-to-USD conversion protocol active
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                  Live Credit-to-USD Protocol
                 </CardDescription>
               </div>
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black italic px-3 py-1 shadow-sm">
-                Q2_TARGET_ALPHA
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black italic px-3 py-1 shadow-sm uppercase tracking-widest">
+                Phase_Z1_Active
               </Badge>
             </div>
           </CardHeader>
@@ -154,12 +186,11 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
               </div>
               <p className="text-2xl md:text-3xl font-black text-muted-foreground/40 italic text-right">
                 <span className="text-[10px] block font-bold uppercase tracking-widest not-italic text-muted-foreground/30 mb-1">
-                  Target
+                  Benchmark
                 </span>
                 {formatUSD(mrrTarget)}
               </p>
             </div>
-
             <div className="space-y-5 bg-muted/5 p-6 rounded-[24px] border border-border/10 shadow-inner">
               <Progress
                 value={progressPercent}
@@ -180,16 +211,26 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
           </CardContent>
         </Card>
 
-        {/* QUICK ACCESS CHANNELS */}
+        {/* B2 & P6: DYNAMIC QUICK ACCESS CHANNELS */}
         <div className="flex flex-col justify-between h-full gap-4">
-          <ActionNode icon={Building2} label="VC Firm Registry" count="12 Firms" onClick={() => onNavigate("ir-vcs")} />
+          <ActionNode
+            icon={Building2}
+            label="VC Firm Registry"
+            count={`${telemetry?.registry.vcs} Institutional Firms`}
+            onClick={() => onNavigate("ir-vcs")}
+          />
           <ActionNode
             icon={Users}
             label="Stakeholder Map"
-            count="48 Investors"
+            count={`${telemetry?.registry.investors} Active Investors`}
             onClick={() => onNavigate("ir-investors")}
           />
-          <ActionNode icon={Mail} label="Outreach Registry" count="Sent Logs" onClick={() => onNavigate("ir-emails")} />
+          <ActionNode
+            icon={Mail}
+            label="Outreach Registry"
+            count={`${telemetry?.registry.outreach30} Sent Logs (30D)`}
+            onClick={() => onNavigate("ir-emails")}
+          />
         </div>
       </div>
 
@@ -207,7 +248,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
         <CardContent className="p-8">
           <div className="grid gap-6 md:grid-cols-2">
             {serviceTargets.map((service) => {
-              const actualUsage = creditUsage?.byService?.[service.service] || 0;
+              const actualUsage = telemetry?.usage.byService?.[service.service] || 0;
               const serviceProgress =
                 service.creditTarget > 0 ? Math.min(100, (actualUsage / service.creditTarget) * 100) : 0;
               return (
@@ -242,7 +283,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
 // ATOMIC SUB-COMPONENTS
 function KPICard({ title, value, icon: Icon, subtext, variant = "default" }: any) {
   return (
-    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md shadow-xl overflow-hidden group hover:border-primary/30 hover:-translate-y-1 transition-all duration-300">
+    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md shadow-xl overflow-hidden group hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 text-left">
       <CardHeader className="flex flex-row items-center justify-between pb-2 p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic group-hover:text-foreground transition-colors">
           {title}
