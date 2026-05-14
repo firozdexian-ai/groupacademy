@@ -26,7 +26,7 @@ export default function InstructorInsights() {
   }, []);
 
   const instructorId = overrideId || meId;
-  const { data, loading } = useAuthoringTrends(instructorId, 30);
+  const { data, isLoading: loading } = useAuthoringTrends(instructorId, 30);
 
   const flagPie = useMemo(() => {
     if (!data?.flag_breakdown) return [];
