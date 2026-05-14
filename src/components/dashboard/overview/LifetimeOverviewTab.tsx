@@ -141,7 +141,7 @@ export function LifetimeOverviewTab() {
         },
         aiAgents: { totalSessions: sessionCount.count || 0 },
         credits: {
-          totalInCirculation: totalTalentBalance + totalCompanyBalance + totalGroBalance,
+          totalInCirculation: totalTalentBalance + totalCompanyBalance,
           transactionsToday: txTodayResult.count || 0,
         },
         topMarket: {
