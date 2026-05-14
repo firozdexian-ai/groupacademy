@@ -18181,6 +18181,16 @@ export type Database = {
           job_count: number
         }[]
       }
+      get_institution_rollups: {
+        Args: never
+        Returns: {
+          competition_count: number
+          event_count: number
+          institution_id: string
+          program_count: number
+          talent_count: number
+        }[]
+      }
       get_instructor_dashboard_v2: {
         Args: { _user_id?: string }
         Returns: Json
