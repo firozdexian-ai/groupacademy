@@ -1,62 +1,78 @@
-## Companies Tab — Re-audit (Phase Z1)
+## Investors & IR — Re-audit (Phase IR-Z1)
 
-### Scope
-7 sub-tabs under the admin Companies group:
-`companies-overview` · `companies` (CRM) · `companies-unlocks` · `companies-agents` · `industries` · `contacts` · `companies-wa-channel`
+10 tabs · 23 files · ~4,780 LOC. Since last audit, **4 of 6 fixes landed**; **B1 is still broken**, **2 polish items pending**, and **3 features look ripped/orphaned**.
 
 ---
 
-### Verdict per file
+### ✅ Already fixed since IR-Z0
 
-| File | Lines | Status | Notes |
-|---|---|---|---|
-| `CompaniesOverviewTab.tsx` | 237 | ✅ Lock-ready | Single-RPC (`get_companies_overview`), all icons imported, `unknown` cast applied. |
-| `CompaniesTab.tsx` (CRM) | 574 | ✅ Lock-ready | Search/industry filters wired, RPC KPIs, full edit dialog, outreach Select w/ template, delete AlertDialog, pagination correct. |
-| `IndustriesTab.tsx` | 413 | ✅ Lock-ready | `get_industry_rollup` + `merge_industries` RPCs, rename + unassigned KPI restored. |
-| `ContactUnlocksTab.tsx` | 223 | ✅ Lock-ready | `get_contact_unlocks_summary` RPC, `Button` imported, stats cast applied. |
-| `CompanyAgentsTab.tsx` | 927 | ✅ Lock-ready | Already react-query + bounded queries (verified prior audit, untouched since). |
-| `EmployerMessagingChannelTab.tsx` | 17 | 🟡 1-line cleanup | Title still hard-codes `01708459008` (S3 from prior audit). |
-| `talent/ContactsTab.tsx` (mounted as `contacts`) | — | 🟡 Misplaced | Owned by Companies group but lives in `talent/`. Cosmetic only — works as-is. |
-
-No 🔴 runtime crashes remain. No regressions vs the pre-Z0 feature set.
+| ID | Fix | Verified |
+|---|---|---|
+| B2 | `IRDashboard` now pulls live counts (`ir_vc_firms`, `ir_investors`, `talents`, 30d `ir_outreach_log`) via single `useQuery(["ir-unified-telemetry"])` | IRDashboard.tsx:48-94 |
+| B3 | `InvestorsManager` search input is wired (`searchQuery` + `filteredInvestors` memo over name/email/title/firm) | InvestorsManager.tsx:114-127, 261 |
+| P1 | `EmailComposer` logs to `ir_outreach_log` **and** opens `mailto:` per email memory | EmailComposer.tsx:64-69 |
+| P2 | `KeyInfluencersTab` now has edit + delete (file grew 246 → 327 LOC) | KeyInfluencersTab.tsx:103-121 |
 
 ---
 
-### Two cleanup items before lock
+### 🔴 Still broken (regression risk)
 
-**C1 — Strip hard-coded phone from Employer WA tab title**
-```tsx
-// EmployerMessagingChannelTab.tsx line 10
-title="Employer WhatsApp Line"
+**B1 — `IROverviewTab` still queries non-existent tables.** Renders zeros silently behind a swallowed catch.
+```ts
+sb.from("vc_firms")        // ❌  → ir_vc_firms
+sb.from("investors")       // ❌  → ir_investors
+sb.from("ir_mrr_targets")  // ❌  → ir_monthly_targets  (col target_mrr_usd→mrr_target_usd, target_date→month)
 ```
-
-**C2 — Move `ContactsTab.tsx` into the companies folder**
-- `git mv src/components/dashboard/talent/ContactsTab.tsx src/components/dashboard/companies/ContactsTab.tsx`
-- Update lazy import in `src/pages/Dashboard.tsx:66` to `@/components/dashboard/companies/ContactsTab`.
-- No behavior change; pure re-org so the file lives with its group owner.
+This tab is mounted as `ir-overview` ("IR Overview") and is visible in the sidebar — every visit shows 0/0/0 unless the user happens to have an `ir_influencers` row.
 
 ---
 
-### After C1 + C2 → "Lock" the tab
+### 🟠 Removed / orphaned features (DB tables w/o code paths)
 
-Locking means:
-1. Mark all 7 sub-tabs as audited & frozen at this revision in `mem://admin/companies-stakeholder-structure`.
-2. Add a Phase Z1 entry: *Companies group hardened (RPC-backed KPIs, restored CRM depth, no scan storms, no 🔴 crashes).*
-3. Future edits to these files require a fresh audit pass before merging.
+Database tables exist but no client or edge function reads/writes them — strong candidates for previously-ripped features:
 
-This is documentation-only — no runtime gating. If you want a stronger lock (e.g. eslint rule or a CODEOWNERS entry), say the word and I'll add it.
+| Table | Status | Likely original purpose |
+|---|---|---|
+| `ir_email_communications` | Zero refs outside `types.ts` | A richer outbound email log (separate from `ir_outreach_log`) — possibly intended for the "Executive Updates" tab's send history. Probably superseded by `ir_outreach_log`. |
+| `ir_pipeline_events` | Zero refs outside `types.ts` | Stage-transition audit log. The `useIRPipeline.moveCard` mutation updates `pipeline_stage` directly with **no event log written** — losing IR history that this table was designed to capture. |
+| `ir_retention_cohorts` | Zero refs outside `types.ts` | Cohort-level NRR/GRR for the Unit Economics tab. `useUnitEconomics` currently only reads `ir_metrics_snapshots` — the cohort grid is gone. |
 
----
-
-### Out of scope (deferred, not blockers)
-- **S2:** `CompaniesTab.tsx` is 574 lines with 4 responsibilities (registry, edit dialog, outreach, batch upload). Splitting into 4 files is a refactor, not a fix — defer unless you want it now.
+These three should be either **wired back** or **dropped via migration with a memory note**. Recommend wiring `ir_pipeline_events` (cheap insert in `moveCard`) and re-evaluating the other two.
 
 ---
 
-### Proposed execution
-One small batch:
-1. Edit `EmployerMessagingChannelTab.tsx` title (C1)
-2. Move `ContactsTab.tsx` + update Dashboard import (C2)
-3. Update memory `mem://admin/companies-stakeholder-structure` with Phase Z1 lock note
+### 🟡 Polish still pending from IR-Z0
 
-Approve and I'll ship all three in one pass.
+**P3 — Folder fragmentation.** `IROverviewTab.tsx` + `KeyInfluencersTab.tsx` still live in `components/dashboard/investors/`; everything else in `components/dashboard/ir/`. Same issue we cleaned up for Companies. Move into `ir/` and update Dashboard imports.
+
+**P4 — Two overview screens.** `ir-overview` (KPI HUD) and `ir-dashboard` (Intelligence Hub) both summarize IR. Now that `IRDashboard` has a full 4-card KPI ribbon plus live counts, `ir-overview` is redundant. Recommend **delete `ir-overview`** from the sidebar and drop the file (after fixing B1 is moot if we're deleting it).
+
+**P5 — `supabase as any` casts.** `IROverviewTab` and `KeyInfluencersTab` still cast through any. If we delete `IROverviewTab` and consolidate Influencers into `ir/`, regenerate types and drop the casts.
+
+---
+
+### 🟢 Structural / deferred
+
+- **S1** — `InvestorsManager` (650 LOC) and `VCFirmsManager` (585 LOC) are still oversized. Split dialog + delete confirm into siblings. Defer.
+- **S2** — `ir_outreach_log` has no FK to `ir_investors` (composer admits it). Adds clean per-investor outreach history. Defer.
+- **S3** — Memory drift: `mem://admin/investors-stakeholder-structure` lists 9 tabs missing `ir-pipeline`, `ir-dataroom`, `ir-economics`. Update memory to match the 10-tab reality once we resolve P4.
+
+---
+
+### Proposed IR-Z1 execution plan
+
+**Decisions needed:** the lettered options below.
+
+1. **Fix B1** — one of:
+   - **(a)** Delete `IROverviewTab.tsx` + remove `ir-overview` entry from `Dashboard.tsx` (resolves P4 too). ← recommended
+   - **(b)** Rewrite queries to use real tables; keep tab.
+2. **Restore `ir_pipeline_events`** — in `useIRPipeline.moveCard`, after the update insert `{ investor_id, from_stage, to_stage, changed_by, changed_at }`. Adds audit trail that downstream IR FP&A agent can read.
+3. **Decide on `ir_email_communications` and `ir_retention_cohorts`:**
+   - **(c)** Wire them back (more work, more product surface).
+   - **(d)** Drop tables via migration and document in memory as deliberately removed.
+4. **P3** — move `IROverviewTab` (or just `KeyInfluencersTab` if we delete the overview) into `ir/`; update Dashboard imports; drop `as any` casts.
+5. **Memory** — update `mem://admin/investors-stakeholder-structure` to reflect the final tab set + Phase IR-Z1 lock note.
+
+**My recommendation:** 1a + 2 + 4 + 5; defer (c/d) until you tell me whether to revive Email Communications and Retention Cohorts. That's the minimum to lock the area cleanly without losing features that are actually orphaned.
+
+Tell me which letters you want (1a vs 1b, c vs d) and I'll execute.

@@ -174,7 +174,6 @@ const navGroups: NavGroup[] = [
     icon: Landmark,
     roles: ["admin"],
     items: [
-      { title: "IR Overview", icon: LayoutDashboard, value: "ir-overview" },
       { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
       { title: "MRR / ARR Targets", icon: Target, value: "ir-targets" },
       { title: "VC Firms", icon: Building2, value: "ir-vcs" },

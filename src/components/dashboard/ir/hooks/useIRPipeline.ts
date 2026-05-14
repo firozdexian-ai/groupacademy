@@ -61,6 +61,10 @@ export function useIRPipeline() {
       toStage: PipelineStage;
       toPosition: number;
     }) => {
+      // Capture from_stage for audit log before mutating
+      const prev = qc.getQueryData<PipelineInvestor[]>(PIPELINE_QUERY_KEY);
+      const fromStage = prev?.find((i) => i.id === params.investorId)?.pipeline_stage ?? null;
+
       const { error } = await (supabase as any)
         .from("ir_investors")
         .update({
@@ -69,6 +73,17 @@ export function useIRPipeline() {
         })
         .eq("id", params.investorId);
       if (error) throw error;
+
+      // IR-Z1: restore stage-transition audit trail
+      if (fromStage !== params.toStage) {
+        const { data: auth } = await supabase.auth.getUser();
+        await (supabase as any).from("ir_pipeline_events").insert({
+          investor_id: params.investorId,
+          from_stage: fromStage,
+          to_stage: params.toStage,
+          changed_by: auth.user?.id ?? null,
+        });
+      }
     },
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: PIPELINE_QUERY_KEY });

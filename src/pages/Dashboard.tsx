@@ -171,8 +171,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ir-economics": React.lazy(() =>
     import("@/components/dashboard/ir/economics/UnitEconomics").then((m) => ({ default: m.UnitEconomics })),
   ),
-  "ir-overview": React.lazy(() => import("@/components/dashboard/investors/IROverviewTab")),
-  "ir-influencers": React.lazy(() => import("@/components/dashboard/investors/KeyInfluencersTab")),
+  "ir-influencers": React.lazy(() => import("@/components/dashboard/ir/KeyInfluencersTab")),
   // Marketing banners/themes/access-codes legacy keys removed — see "marketing-*" block below.
   // Legacy "hr-team" route removed — superseded by "hr-teams".
   // Legacy "payments-legacy" + "invoices" keys removed — replaced by "finops-*" block below.
@@ -437,7 +436,6 @@ const TAB_TITLES: Record<string, string> = {
   "ir-emails": "Executive Updates",
   "ir-dataroom": "Data Room",
   "ir-economics": "Unit Economics",
-  "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
   
   // Marketing labels moved to "marketing-*" block above.
