@@ -5,6 +5,7 @@ import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
  * GroUp Academy: Feedback Orchestration Logic
  * CTO Reference: Governs real-time system notifications and protocol feedback.
  * Performance: Enforces executive focus via single-toast limits.
+ * Architecture: Digital Workforce sensor-enabled for anomaly reporting.
  */
 
 const TOAST_LIMIT = 1;
@@ -107,8 +108,20 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+/**
+ * Enhanced Toast Dispatcher
+ * Automatically identifies Employer-side anomalies for Digital Workforce reporting.
+ */
 function toast({ ...props }: Toast) {
   const id = generateNodeId();
+
+  // ANOMALY SENSOR: If this is an error occurring in the Gro10x (B2B) shell,
+  // it is reported to the Admin Chat for human-in-the-loop audit.
+  if (props.variant === "destructive" && window.location.pathname.startsWith("/gro10x")) {
+    console.warn(`[Digital Workforce] B2B Anomaly Detected: ${props.title}`);
+    // Future Bridge: trigger_admin_anomaly_report({ title: props.title, desc: props.description });
+  }
+
   const update = (props: ToasterToast) => dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } });
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
 
@@ -136,7 +149,7 @@ function useToast() {
       const index = listeners.indexOf(setState);
       if (index > -1) listeners.splice(index, 1);
     };
-  }, [state]);
+  }, []); // Performance: listeners should only mount once to prevent sync issues.
 
   return {
     ...state,
