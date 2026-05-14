@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<
 
 export function ApplicationHistoryCard() {
   const navigate = useNavigate();
-  const { applications, isLoading, error } = useApplicationHistory();
+  const { data: applications = [], isLoading, error } = useApplicationHistory();
 
   if (isLoading) {
     return (
@@ -79,7 +79,7 @@ export function ApplicationHistoryCard() {
       <CardContent className="p-6">
         {error ? (
           <div className="py-4 text-center">
-            <p className="text-[10px] font-black uppercase text-destructive italic">{error}</p>
+            <p className="text-[10px] font-black uppercase text-destructive italic">{error.message}</p>
           </div>
         ) : applications.length === 0 ? (
           <div className="text-center py-8 space-y-4">
