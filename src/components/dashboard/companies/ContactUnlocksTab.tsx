@@ -30,7 +30,7 @@ export function ContactUnlocksTab() {
         supabase.from("talent_contact_unlocks").select("*").order("created_at", { ascending: false }).limit(500),
       ]);
 
-      if (statsRes.data) setStats(statsRes.data);
+      if (statsRes.data) setStats(statsRes.data as any);
 
       if (ledgerRes.data) {
         // Enrichment Logic: Mapping raw UUIDs to human-readable identities
