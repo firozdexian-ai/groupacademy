@@ -1,0 +1,23 @@
+# GroUp Academy
+
+> AI-powered career acceleration platform. Career Readiness Scorecard, Mock Interviews, Salary Analysis, Digital Portfolio, Jobs Board, Learning Tracks, and an inbox of AI agents for hiring, learning, and ops.
+
+GroUp Academy helps talents land jobs and grow careers, and helps companies hire, train, and manage workforce — all through chat-first AI agents and verifiable skill credentials.
+
+## Pages
+
+- [Home](/): Platform overview and entry point.
+- [Services](/services): All career services (assessment, interview, salary, portfolio).
+- [Courses](/courses): Course catalog and learning tracks.
+- [Career Assessment](/service/career-assessment): AI-driven career readiness scorecard.
+- [Mock Interview](/service/mock-interview): Practice interviews with AI feedback.
+- [Salary Analysis](/service/salary-analysis): Market-rate salary insights.
+- [Digital Portfolio](/service/portfolio): Build a verifiable portfolio.
+- [Jobs](/jobs): Jobs board with verified-skill matching.
+- [Blog](/blog): Career insights, guides, and platform updates.
+- [Sign in](/auth): Authenticate to access the full app.
+
+## Optional
+
+- [Classic sign in](/auth/classic): Email/password fallback.
+- [Reset password](/reset-password): Account recovery.
