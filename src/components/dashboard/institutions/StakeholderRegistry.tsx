@@ -99,7 +99,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
         .select("*")
         .order("name", { ascending: true });
       if (error) throw error;
-      return data as StakeholderRow[];
+      return (data as unknown) as StakeholderRow[];
     },
   });
 

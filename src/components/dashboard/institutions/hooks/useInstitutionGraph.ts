@@ -39,7 +39,7 @@ export function useInstitutionGraph() {
 
       const query = id
         ? supabase.from("institution_types").update(data).eq("id", id)
-        : supabase.from("institution_types").insert([data]);
+        : supabase.from("institution_types").insert([data as any]);
 
       const { error } = await query;
       if (error) throw error;
