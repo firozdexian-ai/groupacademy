@@ -13,6 +13,27 @@ import { isPhoneNumber } from "@/lib/validations";
  * Phase: Z0 Code Freeze Hardened.
  */
 
+export async function createStudentProfile(
+  userId: string,
+  fullName: string,
+  email: string,
+  phone: string,
+  accountType: string = "free_learner",
+): Promise<boolean> {
+  const { error } = await (supabase as any).from("students").insert({
+    user_id: userId,
+    full_name: fullName,
+    email,
+    phone,
+    account_type: accountType,
+  });
+  if (error) {
+    console.error("[createStudentProfile] failed:", error.message);
+    return false;
+  }
+  return true;
+}
+
 export interface AuthState {
   user: User | null;
   session: Session | null;
