@@ -133,7 +133,8 @@ export function useCredits() {
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "TRANSACTION_DENIED");
+      const result = data as any;
+      if (!result?.success) throw new Error(result?.error || "TRANSACTION_DENIED");
 
       return data;
     },
