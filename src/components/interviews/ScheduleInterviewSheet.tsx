@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { createInterview, type InterviewMode } from "@/hooks/useInterviews";
+import { useCreateInterview, type InterviewMode } from "@/hooks/useInterviews";
 
 interface Props {
   open: boolean;
@@ -19,6 +19,7 @@ interface Props {
 }
 
 export function ScheduleInterviewSheet({ open, onOpenChange, applicationId, companyId, talentId, onCreated }: Props) {
+  const createInterview = useCreateInterview();
   const [mode, setMode] = useState<InterviewMode>("video");
   const [duration, setDuration] = useState(30);
   const [link, setLink] = useState("");
@@ -38,24 +39,25 @@ export function ScheduleInterviewSheet({ open, onOpenChange, applicationId, comp
       return;
     }
     setSaving(true);
-    const id = await createInterview({
-      application_id: applicationId,
-      company_id: companyId,
-      talent_id: talentId,
-      mode,
-      meeting_link: mode === "video" ? link : undefined,
-      location: mode === "onsite" ? location : undefined,
-      note,
-      duration_min: duration,
-      slots: validSlots,
-    });
-    setSaving(false);
-    if (id) {
-      toast.success("Interview proposed");
-      onCreated?.();
-      onOpenChange(false);
-    } else {
-      toast.error("Could not schedule interview");
+    try {
+      const id = await createInterview.mutateAsync({
+        application_id: applicationId,
+        company_id: companyId,
+        talent_id: talentId,
+        mode,
+        meeting_link: mode === "video" ? link : undefined,
+        location: mode === "onsite" ? location : undefined,
+        note,
+        duration_min: duration,
+        slots: validSlots,
+      });
+      setSaving(false);
+      if (id) {
+        onCreated?.();
+        onOpenChange(false);
+      }
+    } catch {
+      setSaving(false);
     }
   };
 
