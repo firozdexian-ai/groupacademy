@@ -7,32 +7,11 @@ import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
 
 /**
- * GroUp Academy: Identity & Access Orchestrator
- * CTO Reference: Primary sensor for session lifecycle and identity resolution.
- * Architecture: Digital Workforce enabled - anomaly detection on auth failure.
- * Phase: Z0 Code Freeze Hardened.
+ * Identity & session orchestrator.
+ * - Listener attached BEFORE getSession so INITIAL_SESSION is never missed.
+ * - Refresh-token failures clear local state and route to /auth.
+ * - Welcome email is fired by the auth-callback flow after email confirmation.
  */
-
-export async function createStudentProfile(
-  userId: string,
-  fullName: string,
-  email: string,
-  phone: string,
-  accountType: string = "free_learner",
-): Promise<boolean> {
-  const { error } = await (supabase as any).from("students").insert({
-    user_id: userId,
-    full_name: fullName,
-    email,
-    phone,
-    account_type: accountType,
-  });
-  if (error) {
-    console.error("[createStudentProfile] failed:", error.message);
-    return false;
-  }
-  return true;
-}
 
 export interface AuthState {
   user: User | null;
@@ -53,6 +32,17 @@ export interface AuthState {
   updatePassword: (newPassword: string) => Promise<void>;
 }
 
+function friendlyAuthError(msg: string): string {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("invalid login")) return "Email or password is incorrect.";
+  if (m.includes("email not confirmed")) return "Please verify your email — check your inbox for the link.";
+  if (m.includes("user already registered")) return "An account with this email already exists. Try signing in.";
+  if (m.includes("password") && m.includes("weak")) return "Choose a stronger password (at least 8 characters).";
+  if (m.includes("rate limit")) return "Too many attempts. Please wait a moment and try again.";
+  if (m.includes("network")) return "Network issue. Check your connection and try again.";
+  return msg || "Something went wrong. Please try again.";
+}
+
 export const useAuth = (): AuthState => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -63,32 +53,13 @@ export const useAuth = (): AuthState => {
   useEffect(() => {
     mounted.current = true;
 
-    // HUD: BOOTSTRAP_IDENTITY_NODE
-    (async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (mounted.current) {
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
-        }
-      } catch (err: any) {
-        console.warn("[Digital Workforce] Session handshake failed:", err);
-        if (mounted.current) {
-          setSession(null);
-          setUser(null);
-        }
-      } finally {
-        if (mounted.current) setIsLoading(false);
-      }
-    })();
-
+    // 1) Attach listener FIRST so we never miss INITIAL_SESSION / TOKEN_REFRESHED.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted.current) return;
 
-      // Protocol: Handle silent token expirations to prevent stale UI states
+      // Refresh-token failure / explicit sign-out → wipe local state.
       if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !nextSession)) {
         setSession(null);
         setUser(null);
@@ -99,16 +70,33 @@ export const useAuth = (): AuthState => {
       setUser(nextSession?.user ?? null);
     });
 
+    // 2) Then hydrate the existing session.
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (mounted.current) {
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+        }
+      } catch (err) {
+        console.warn("[useAuth] session hydrate failed:", err);
+        if (mounted.current) {
+          setSession(null);
+          setUser(null);
+        }
+      } finally {
+        if (mounted.current) setIsLoading(false);
+      }
+    })();
+
     return () => {
       mounted.current = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  /**
-   * HUD: IDENTITY_RESOLUTION_PROTOCOL
-   * Resolves phone digits to primary email node for login.
-   */
+  /** Resolve phone → email so users can sign in by phone. */
   const resolveIdentifier = async (phone: string): Promise<string | null> => {
     const cleanPhone = phone.replace(/[^\d+]/g, "");
     const variants = [cleanPhone, cleanPhone.startsWith("+") ? cleanPhone.substring(1) : `+${cleanPhone}`];
@@ -122,32 +110,25 @@ export const useAuth = (): AuthState => {
       .limit(2);
 
     if (error || !data || data.length === 0) return null;
-
-    // ANOMALY SENSOR: Multiple accounts detected for one phone node
     if (data.length > 1) {
-      console.error("[Digital Workforce] IDENTITY_COLLISION: Multiple emails for phone", cleanPhone);
-      throw new Error("MULTIPLE_NODES_DETECTED: Please sign in with email.");
+      throw new Error("Multiple accounts found for this phone. Please sign in with email.");
     }
-
     return data[0].email;
   };
 
   const signIn = async (identifier: string, password: string) => {
     try {
       let email = identifier.trim();
-
       if (isPhoneNumber(identifier)) {
         const resolved = await resolveIdentifier(identifier);
-        if (!resolved) throw new Error("NO_NODE_FOUND: No account assigned to this phone.");
+        if (!resolved) throw new Error("No account found for this phone number.");
         email = resolved;
       }
-
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
-      toast.success("Identity Verified: Welcome back.");
+      toast.success("Welcome back.");
     } catch (err: any) {
-      toast.error(err.message || "Identity verification failed.");
+      toast.error(friendlyAuthError(err.message));
       throw err;
     }
   };
@@ -161,7 +142,6 @@ export const useAuth = (): AuthState => {
     countryCode?: string,
   ) => {
     try {
-      // Identity Verify: CV fingerprinting check should ideally occur before this
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -171,47 +151,26 @@ export const useAuth = (): AuthState => {
             phone: phone || "",
             country: country || "BD",
             country_code: countryCode || "+880",
-            account_type: "talent", // Default protocol for this line
+            account_type: "talent",
           },
           emailRedirectTo: `${window.location.origin}/app/feed`,
         },
       });
 
       if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("IDENTITY_PROVISIONING_FAILED");
+      if (!authData.user) throw new Error("Could not create your account. Please try again.");
 
-      // HUD: REFERRAL_HANDSHAKE
+      // Stash referral for the auth callback to apply once the talent row exists & email is confirmed.
       const ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral");
-      if (ref && authData.user) {
-        const { data: referrer } = await supabase
-          .from("talents")
-          .select("id")
-          .or(`ref_code.eq.${ref},id.eq.${ref}`)
-          .maybeSingle();
-
-        if (referrer?.id) {
-          await supabase.from("talents").update({ referred_by: referrer.id }).eq("user_id", authData.user.id);
-
-          console.log("[Digital Workforce] REFERRAL_SYNC_SUCCESS");
-        }
-        localStorage.removeItem("pending_ref");
-        localStorage.removeItem("ga_referral");
+      if (ref) {
+        localStorage.setItem("pending_ref", ref);
       }
 
-      // HUD: WELCOME_TELEMETRY (Trigger Edge Function)
-      void supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "welcome",
-          recipientEmail: email.trim(),
-          idempotencyKey: `welcome-${authData.user.id}`,
-          templateData: { name: fullName?.split(" ")[0] || "Learner" },
-        },
-      });
-
-      toast.success("Registration Complete: Welcome to Group Academy.");
+      // Welcome email moved to /auth/callback (post email-confirmation).
+      toast.success("Almost done — check your email to verify your account.");
       return true;
     } catch (err: any) {
-      toast.error(err.message || "Registration failed.");
+      toast.error(friendlyAuthError(err.message));
       throw err;
     }
   };
@@ -224,15 +183,15 @@ export const useAuth = (): AuthState => {
       });
       if (result.error) throw result.error;
     } catch (err: any) {
-      console.error("[Digital Workforce] OAUTH_FAULT:", err);
-      toast.error("Social handshake failed.");
+      console.error("[useAuth] OAuth failed:", err);
+      toast.error("Google sign-in failed. Please try again.");
       throw err;
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Session Terminated.");
+    await supabase.auth.signOut({ scope: "local" });
+    toast.success("Signed out.");
     navigate("/", { replace: true });
   };
 
@@ -241,13 +200,13 @@ export const useAuth = (): AuthState => {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) throw error;
-    toast.success("Recovery Link Sent.");
+    toast.success("Password reset link sent.");
   };
 
   const updatePassword = async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
-    toast.success("Security Node Updated.");
+    toast.success("Password updated.");
   };
 
   return { user, session, isLoading, signIn, signUp, signInWithGoogle, signOut, resetPassword, updatePassword };
