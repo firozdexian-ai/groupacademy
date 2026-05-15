@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+/**
+ * GroUp Academy: Hiring Workflow & Interview Orchestrator (V5.6.0)
+ * CTO Reference: Authoritative system for scheduling, slot confirmation, and offer tracking.
+ * Architecture: Digital Workforce enabled - logs scheduling bottlenecks to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (2026 Launch Edition).
+ */
 
 export type InterviewMode = "video" | "phone" | "onsite";
-export type InterviewStatus =
-  | "proposed"
-  | "confirmed"
-  | "rescheduled"
-  | "completed"
-  | "no_show"
-  | "cancelled";
+export type InterviewStatus = "proposed" | "confirmed" | "rescheduled" | "completed" | "no_show" | "cancelled";
 
 export interface InterviewSlot {
   id: string;
@@ -40,80 +42,135 @@ export interface HireState {
   offer: any | null;
 }
 
+// --- SENSOR: APPLICATION_HIRE_STATE ---
 export function useApplicationHireState(applicationId: string | undefined) {
-  const [state, setState] = useState<HireState>({ interview: null, offer: null });
-  const [loading, setLoading] = useState(true);
+  return useQuery({
+    queryKey: ["application-hire-state", applicationId],
+    enabled: !!applicationId,
+    staleTime: 1000 * 60, // 1-minute consistency for active scheduling
+    queryFn: async (): Promise<HireState> => {
+      // HUD: EXECUTING_RPC_HIRE_STATE_SYNC
+      const { data, error } = await supabase.rpc("get_application_hire_state", {
+        p_application_id: applicationId,
+      });
 
-  const load = useCallback(async () => {
-    if (!applicationId) return;
-    setLoading(true);
-    const { data, error } = await supabase.rpc("get_application_hire_state", {
-      p_application_id: applicationId,
-    });
-    if (!error) setState((data as any) ?? { interview: null, offer: null });
-    setLoading(false);
-  }, [applicationId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { ...state, loading, reload: load };
+      if (error) {
+        console.error("[Digital Workforce] FAULT: get_application_hire_state query failed.", error);
+        throw error;
+      }
+      return (data as any) ?? { interview: null, offer: null };
+    },
+  });
 }
 
-export async function createInterview(input: {
-  application_id: string;
-  company_id: string;
-  talent_id: string;
-  mode: InterviewMode;
-  meeting_link?: string;
-  location?: string;
-  note?: string;
-  duration_min: number;
-  slots: string[]; // ISO timestamps
-}): Promise<string | null> {
-  const { data: u } = await supabase.auth.getUser();
-  const { data: iv, error } = await supabase
-    .from("interviews")
-    .insert({
-      application_id: input.application_id,
-      company_id: input.company_id,
-      talent_id: input.talent_id,
-      mode: input.mode,
-      meeting_link: input.meeting_link ?? null,
-      location: input.location ?? null,
-      note: input.note ?? null,
-      duration_min: input.duration_min,
-      created_by: u.user?.id,
-    })
-    .select("id")
-    .single();
-  if (error || !iv) return null;
-  if (input.slots.length) {
-    await supabase.from("interview_slots").insert(
-      input.slots.map((s) => ({
-        interview_id: iv.id,
-        starts_at: s,
-        duration_min: input.duration_min,
-        proposed_by_role: "recruiter",
-      })),
-    );
-  }
-  await supabase.functions.invoke("notify-hiring-event", {
-    body: { kind: "interview_proposed", ref: { interview_id: iv.id } },
+// --- ACTION: CREATE_INTERVIEW_ORCHESTRATION ---
+export function useCreateInterview() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      application_id: string;
+      company_id: string;
+      talent_id: string;
+      mode: InterviewMode;
+      meeting_link?: string;
+      location?: string;
+      note?: string;
+      duration_min: number;
+      slots: string[]; // ISO timestamps
+    }) => {
+      const { data: u } = await supabase.auth.getUser();
+
+      // Step 1: Create Master Interview Record
+      const { data: iv, error: ivError } = await supabase
+        .from("interviews")
+        .insert({
+          application_id: input.application_id,
+          company_id: input.company_id,
+          talent_id: input.talent_id,
+          mode: input.mode,
+          meeting_link: input.meeting_link ?? null,
+          location: input.location ?? null,
+          note: input.note ?? null,
+          duration_min: input.duration_min,
+          created_by: u.user?.id,
+        })
+        .select("id")
+        .single();
+
+      if (ivError || !iv) throw ivError;
+
+      // Step 2: Ingress Proposed Slots
+      if (input.slots.length) {
+        const { error: slotError } = await supabase.from("interview_slots").insert(
+          input.slots.map((s) => ({
+            interview_id: iv.id,
+            starts_at: s,
+            duration_min: input.duration_min,
+            proposed_by_role: "recruiter",
+          })),
+        );
+        if (slotError) throw slotError;
+      }
+
+      // Step 3: Trigger Hiring Event Notification
+      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
+        body: { kind: "interview_proposed", ref: { interview_id: iv.id } },
+      });
+
+      if (funcError) {
+        console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for interview_proposed.", funcError);
+      }
+
+      return iv.id;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["application-hire-state", variables.application_id] });
+      toast.success("Interview proposed and slots sent to candidate.");
+    },
+    onError: (err: any) => {
+      toast.error(err.message ?? "Failed to propose interview.");
+    },
   });
-  return iv.id;
 }
 
-export async function confirmInterviewSlot(interviewId: string, slotId: string) {
-  const { error } = await supabase.rpc("confirm_interview_slot", {
-    p_interview_id: interviewId,
-    p_slot_id: slotId,
+// --- ACTION: CONFIRM_SLOT_TRANSACTION ---
+export function useConfirmInterviewSlot() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      interviewId,
+      slotId,
+      applicationId,
+    }: {
+      interviewId: string;
+      slotId: string;
+      applicationId: string;
+    }) => {
+      // HUD: EXECUTING_RPC_SLOT_CONFIRMATION
+      const { error: rpcError } = await supabase.rpc("confirm_interview_slot", {
+        p_interview_id: interviewId,
+        p_slot_id: slotId,
+      });
+
+      if (rpcError) throw rpcError;
+
+      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
+        body: { kind: "interview_confirmed", ref: { interview_id: interviewId } },
+      });
+
+      if (funcError) {
+        console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for interview_confirmed.", funcError);
+      }
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["application-hire-state", variables.applicationId] });
+      toast.success("Interview confirmed! Calendar invites sent.");
+    },
+    onError: (err: any) => {
+      console.error("[Digital Workforce] FAULT: confirm_interview_slot transaction failed.", err);
+      toast.error("Handshake failed. The slot may no longer be available.");
+    },
   });
-  if (!error) {
-    await supabase.functions.invoke("notify-hiring-event", {
-      body: { kind: "interview_confirmed", ref: { interview_id: interviewId } },
-    });
-  }
-  return !error;
 }
