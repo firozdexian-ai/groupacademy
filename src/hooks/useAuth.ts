@@ -13,6 +13,21 @@ import { isPhoneNumber } from "@/lib/validations";
  * - Welcome email is fired by the auth-callback flow after email confirmation.
  */
 
+/**
+ * @deprecated Legacy `students` table shim. New flows use the `talents` table
+ * (auto-created by the handle_new_user trigger). Kept as a no-op so legacy
+ * call sites (AccessCodeDialog, CourseDetail) keep compiling.
+ */
+export async function createStudentProfile(
+  _userId: string,
+  _fullName: string,
+  _email: string,
+  _phone: string,
+  _accountType: string = "free_learner",
+): Promise<boolean> {
+  return true;
+}
+
 export interface AuthState {
   user: User | null;
   session: Session | null;
