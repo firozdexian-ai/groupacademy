@@ -246,7 +246,7 @@ export function useSaveSession() {
         const { error } = await supabase.from("course_sessions").update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("course_sessions").insert(rest);
+        const { error } = await supabase.from("course_sessions").insert(rest as any);
         if (error) throw error;
       }
     },
