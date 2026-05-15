@@ -22,7 +22,7 @@ const TONE: Record<NextActionType, string> = {
 
 export function NextActionsCard() {
   const navigate = useNavigate();
-  const { data, loading } = useNextActions();
+  const { data, isLoading: loading } = useNextActions();
 
   if (loading && !data) {
     return <Skeleton className="h-40 rounded-2xl" />;
