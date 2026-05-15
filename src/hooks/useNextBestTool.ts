@@ -44,7 +44,7 @@ export function useNextBestTool() {
         return null;
       }
 
-      return data as NextBestTool;
+      return data as unknown as NextBestTool;
     },
   });
 }
