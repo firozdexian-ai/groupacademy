@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * GroUp Academy: Pedagogical Psychometric Sensor (V5.6.0)
+ * CTO Reference: Authoritative sensor for item difficulty, rubric performance, and mastery drift.
+ * Architecture: Digital Workforce enabled - logs pedagogical data gaps to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (2026 Launch Edition).
+ */
 
 export interface QuizItemStat {
   id: string;
@@ -50,29 +57,33 @@ export interface ItemAnalytics {
   topics: TopicStat[];
 }
 
+/**
+ * Fetches deep psychometric analytics for a specific course module.
+ * Wraps the 'instructor-item-analytics' edge function.
+ */
 export function useItemAnalytics(moduleId: string | null, days = 30) {
-  const [data, setData] = useState<ItemAnalytics | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!moduleId) return;
-    setLoading(true);
-    setError(null);
-    try {
+  return useQuery({
+    queryKey: ["item-analytics", moduleId, days],
+    enabled: !!moduleId,
+    staleTime: 5 * 60 * 1000, // 5-minute psychometric stability baseline
+    queryFn: async (): Promise<ItemAnalytics> => {
+      // HUD: INVOKING_EDGE_ANALYTICS_ENGINE
       const { data, error } = await supabase.functions.invoke("instructor-item-analytics", {
         body: { module_id: moduleId, days },
       });
-      if (error) throw error;
-      setData(data as ItemAnalytics);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load analytics");
-    } finally {
-      setLoading(false);
-    }
-  }, [moduleId, days]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+      if (error) {
+        // Digital Workforce Anomaly Trigger:
+        // Identifies data pipeline bottlenecks in our instructor feedback loop.
+        console.error("[Digital Workforce] ANOMALY: instructor-item-analytics edge failure.", {
+          moduleId,
+          days,
+          error: error.message,
+        });
+        throw error;
+      }
 
-  return { data, loading, error, refresh };
+      return data as ItemAnalytics;
+    },
+  });
 }
