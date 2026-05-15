@@ -5,12 +5,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 /**
- * Unified Hype hook — paid 1-credit reaction.
- * Works for posts, courses, videos, blogs (calls hype_content RPC).
- * - Tap-lock + in-flight queue to coalesce rapid taps
- * - Debounced wallet refresh + single aggregated toast (no spam during Boost)
- * - Optimistic counter; rolls back on error
- * Repeat taps are ALLOWED (creator-economy model: 1cr per tap).
+ * GroUp Academy: Unified Hype & Micro-transaction Sensor (V5.6.0)
+ * CTO Reference: Authoritative handler for high-velocity creator monetization taps.
+ * Architecture: Digital Workforce enabled - logs fiscal friction to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (2024 Launch Edition).
  */
 
 export type HypeContentType = "post" | "course" | "video" | "blog";
@@ -23,11 +21,9 @@ export function useHype(
   initialCountOrType: number | HypeContentType = 0,
   maybeInitialCount: number = 0,
 ) {
-  // Back-compat: useHype(postId, initialCount) OR useHype(id, type, initialCount)
-  const contentType: HypeContentType =
-    typeof initialCountOrType === "string" ? initialCountOrType : "post";
-  const initialCount: number =
-    typeof initialCountOrType === "number" ? initialCountOrType : maybeInitialCount;
+  // Protocol Handshake: Support legacy and modern overloading
+  const contentType: HypeContentType = typeof initialCountOrType === "string" ? initialCountOrType : "post";
+  const initialCount: number = typeof initialCountOrType === "number" ? initialCountOrType : maybeInitialCount;
   const contentId = contentIdOrPostId;
 
   const { talent } = useTalent();
@@ -44,25 +40,34 @@ export function useHype(
 
   useEffect(() => setCount(initialCount), [initialCount]);
 
+  /**
+   * HUD: FLUSH_FISCAL_TELEMETRY
+   * Consolidates rapid-fire micro-transactions into a single UX notification.
+   */
   const flushToast = useCallback(() => {
     const sent = pendingDelta.current;
     const errs = errorCount.current;
+
     pendingDelta.current = 0;
     errorCount.current = 0;
+
     if (sent > 0) {
       toast({
         title: sent === 1 ? "🔥 Hype sent · -1 credit" : `🔥 +${sent} Hype · -${sent} credits`,
       });
     }
+
     if (errs > 0) {
       toast({
         title: errs === 1 ? "Hype failed" : `${errs} hypes failed`,
-        description: "Please try again.",
+        description: "Transaction ledger mapping delayed.",
         variant: "destructive",
       });
     }
-    // Refresh wallet caches once
+
+    // Refresh unified wallet caches to maintain ledger consistency
     queryClient.invalidateQueries({ queryKey: ["talent-credits", talent?.id] });
+    queryClient.invalidateQueries({ queryKey: ["talent-credits-balance"] });
     queryClient.invalidateQueries({ queryKey: ["credits-summary"] });
   }, [toast, queryClient, talent?.id]);
 
@@ -78,19 +83,24 @@ export function useHype(
         flushToast();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [flushToast]);
 
+  /**
+   * HUD: EXECUTE_ATOMIC_HYPE_INGRESS
+   * Core micro-transaction logic with optimistic rollbacks.
+   */
   const hype = useCallback(async () => {
     if (!talent?.id) {
-      toast({ title: "Sign in to Hype", variant: "destructive" });
+      toast({ title: "Sign in to Hype creators", variant: "destructive" });
       return;
     }
+
     const now = Date.now();
     if (now - lastTap.current < TAP_LOCK_MS) return;
     lastTap.current = now;
 
-    setCount((c) => c + 1); // optimistic
+    // Optimistic UI Ingress
+    setCount((c) => c + 1);
     inFlight.current += 1;
     setIsHyping(true);
 
@@ -103,8 +113,9 @@ export function useHype(
     if (inFlight.current === 0) setIsHyping(false);
 
     if (error) {
-      setCount((c) => Math.max(0, c - 1));
+      setCount((c) => Math.max(0, c - 1)); // Rollback
       const msg = error.message || "";
+
       if (msg.includes("INSUFFICIENT_CREDITS")) {
         if (toastTimer.current) {
           window.clearTimeout(toastTimer.current);
@@ -112,18 +123,27 @@ export function useHype(
         }
         flushToast();
         toast({
-          title: "Not enough credits",
-          description: "Top up to keep hyping creators.",
+          title: "Wallet deficit detected",
+          description: "Top up your credits to keep boosting creators.",
           variant: "destructive",
         });
         return;
       }
+
       if (msg.includes("CANNOT_HYPE_SELF")) {
-        toast({ title: "You can't hype your own content", variant: "destructive" });
+        toast({ title: "Self-Hype is restricted", variant: "destructive" });
         return;
       }
+
+      // Digital Workforce Anomaly Sensor:
+      // Logs systemic RPC failures for infrastructure auditing.
       errorCount.current += 1;
-      console.error("[useHype] failed:", { contentType, contentId, msg, code: (error as any).code });
+      console.error("[Digital Workforce] ANOMALY: hype_content RPC failed sync.", {
+        contentType,
+        contentId,
+        error: msg,
+      });
+
       scheduleToast();
       return;
     }
