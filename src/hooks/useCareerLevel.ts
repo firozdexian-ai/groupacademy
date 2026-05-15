@@ -47,11 +47,12 @@ export function useCareerLevel() {
         throw error;
       }
 
+      const row = data as any;
       return {
-        lifetime_volume: Number(data?.lifetime_volume ?? 0),
-        lifetime_earned: Number(data?.lifetime_earned ?? 0),
-        lifetime_spent: Number(data?.lifetime_spent ?? 0),
-        transaction_count: Number(data?.transaction_count ?? 0),
+        lifetime_volume: Number(row?.lifetime_volume ?? 0),
+        lifetime_earned: Number(row?.lifetime_earned ?? 0),
+        lifetime_spent: Number(row?.lifetime_spent ?? 0),
+        transaction_count: Number(row?.transaction_count ?? 0),
       };
     },
   });
