@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * GroUp Academy: Learner Cognitive Mastery Sensor (V5.6.0)
+ * CTO Reference: Authoritative sensor for topic retention, SR decay, and sparkline trends.
+ * Architecture: Digital Workforce enabled - logs mastery calculation gaps to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ */
 
 export interface MasteryWeakItem {
   module_id: string | null;
@@ -29,37 +36,40 @@ export interface MasterySummary {
   now?: string;
 }
 
-export function useMasterySummary(opts?: {
-  moduleId?: string;
-  contentId?: string;
-  days?: number;
-}) {
-  const [data, setData] = useState<MasterySummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { data: res, error: err } = await supabase.functions.invoke(
-      "learner-mastery-summary",
-      {
+/**
+ * Orchestrates the retrieval of a learner's personalized mastery trajectory.
+ * Wraps the 'learner-mastery-summary' edge function.
+ */
+export function useMasterySummary(opts?: { moduleId?: string; contentId?: string; days?: number }) {
+  return useQuery({
+    queryKey: ["mastery-summary", opts?.moduleId, opts?.contentId, opts?.days],
+    // Performance Baseline: 5-minute stability for cognitive metrics
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<MasterySummary> => {
+      // HUD: INVOKING_COGNITIVE_ANALYTICS_ENGINE
+      const { data: res, error: err } = await supabase.functions.invoke("learner-mastery-summary", {
         body: {
           module_id: opts?.moduleId,
           content_id: opts?.contentId,
           days: opts?.days ?? 7,
         },
-      },
-    );
-    setLoading(false);
-    if (err || (res as any)?.error) {
-      setError((res as any)?.error || err?.message || "Failed to load summary");
-      return;
-    }
-    setData(res as MasterySummary);
-  }, [opts?.moduleId, opts?.contentId, opts?.days]);
+      });
 
-  useEffect(() => { load(); }, [load]);
+      if (err) {
+        // Digital Workforce Anomaly Trigger:
+        // Identifies failures in the learner retention calculation pipeline.
+        console.error("[Digital Workforce] ANOMALY: learner-mastery-summary edge failure.", {
+          moduleId: opts?.moduleId,
+          error: err.message,
+        });
+        throw err;
+      }
 
-  return { data, loading, error, reload: load };
+      if ((res as any)?.error) {
+        throw new Error((res as any).error);
+      }
+
+      return res as MasterySummary;
+    },
+  });
 }
