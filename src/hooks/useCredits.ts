@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
-import { emailNotifications } from "@/lib/emailNotifications";
 
 /**
- * GroUp Academy: Fiscal Ingress & Ledger Node
- * CTO Reference: Authoritative controller for institutional economy.
- * Fix Log: Exposed deductCustomAmount and addCredits to the public interface.
+ * GroUp Academy: Fiscal Ingress & Ledger Node (V4.7.0)
+ * CTO Reference: Authoritative transactional store tracking fractional credit models.
+ * Architecture: Digital Workforce enabled - logs checkout bottlenecks directly to Admin OS.
+ * Phase: Z0 Code Freeze Hardened.
  */
 
 export interface CreditTransaction {
@@ -21,10 +21,9 @@ export interface CreditTransaction {
   createdAt: string;
 }
 
-interface CreditBalance {
+export interface CreditBalanceNode {
   balance: number;
-  earnedBalance: number;
-  isLoading: boolean;
+  earned_balance: number;
 }
 
 const isValidUUID = (id: any): boolean => {
@@ -36,176 +35,222 @@ const isValidUUID = (id: any): boolean => {
 export function useCredits() {
   const { talent } = useTalent();
   const { toast } = useToast();
-  const [creditData, setCreditData] = useState<CreditBalance>({ balance: 0, earnedBalance: 0, isLoading: true });
-  const [transactionHistory, setTransactionHistory] = useState<CreditTransaction[]>([]);
+  const queryClient = useQueryClient();
 
-  const fetchBalance = useCallback(async () => {
-    if (!talent?.id) {
-      setCreditData({ balance: 0, earnedBalance: 0, isLoading: false });
-      return;
-    }
+  // --------------------------------------------------------
+  // PHASE: Core Financial Query Sensors
+  // --------------------------------------------------------
 
-    try {
+  // Hydrates wallet balance directly from public database schema nodes
+  const {
+    data: balanceData,
+    isLoading: isBalanceLoading,
+    refetch: refreshBalance,
+  } = useQuery({
+    queryKey: ["talent-credits-balance", talent?.id],
+    enabled: !!talent?.id,
+    staleTime: 30000, // 30-second ledger consistency window
+    queryFn: async (): Promise<CreditBalanceNode> => {
       const { data, error } = await supabase
         .from("talent_credits")
         .select("balance, earned_balance")
-        .eq("talent_id", talent.id)
+        .eq("talent_id", talent!.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Digital Workforce] FAULT: talent_credits wallet node read failure.", error);
+        throw error;
+      }
+      return data || { balance: 0, earned_balance: 0 };
+    },
+  });
 
-      setCreditData({
-        balance: data?.balance ?? 0,
-        earnedBalance: (data as any)?.earned_balance ?? 0,
-        isLoading: false,
-      });
-
-      const { data: txData } = await supabase
+  // Pulls transactional logs with safety bounds enforced
+  const { data: txHistory = [] } = useQuery({
+    queryKey: ["talent-credit-transactions", talent?.id],
+    enabled: !!talent?.id,
+    staleTime: 60000,
+    queryFn: async (): Promise<CreditTransaction[]> => {
+      const { data, error } = await supabase
         .from("credit_transactions")
         .select("*")
-        .eq("talent_id", talent.id)
+        .eq("talent_id", talent!.id)
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (txData) {
-        setTransactionHistory(
-          txData.map((tx) => ({
-            id: tx.id,
-            amount: tx.amount,
-            balanceAfter: tx.balance_after,
-            transactionType: tx.transaction_type,
-            serviceType: tx.service_type,
-            description: tx.description,
-            createdAt: tx.created_at,
-          })),
-        );
+      if (error) {
+        console.error("[Digital Workforce] FAULT: credit_transactions stream read failure.", error);
+        throw error;
       }
-    } catch (err) {
-      console.error("FISCAL_SYNC_FAULT:", err);
-    }
-  }, [talent?.id]);
 
-  useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
+      return (data ?? []).map((tx) => ({
+        id: tx.id,
+        amount: tx.amount,
+        balanceAfter: tx.balance_after,
+        transactionType: tx.transaction_type,
+        serviceType: tx.service_type,
+        description: tx.description,
+        createdAt: tx.created_at,
+      }));
+    },
+  });
 
-  const executeDirectDeduction = async (
+  // --------------------------------------------------------
+  // PHASE: Central Fiscal Transaction Mutations
+  // --------------------------------------------------------
+
+  /**
+   * Safe Atomic Deduction Mutation. Encapsulates business logic splits
+   * away from unsafe client calculation routines.
+   */
+  const deductMutation = useMutation({
+    mutationFn: async ({
+      amount,
+      serviceType,
+      referenceId,
+      description,
+    }: {
+      amount: number;
+      serviceType: string;
+      referenceId?: string | null;
+      description?: string;
+    }) => {
+      if (!talent?.id) throw new Error("AUTH_REQUIRED");
+
+      const currentBalance = balanceData?.balance ?? 0;
+      if (currentBalance < amount) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+
+      const safeRefId = isValidUUID(referenceId) ? referenceId : null;
+
+      // HUD: EXECUTING_RPC_ATOMIC_DEDUCTION
+      const { data, error } = await supabase.rpc("deduct_credits", {
+        p_amount: amount,
+        p_service_type: serviceType,
+        p_reference_id: safeRefId,
+        p_description: description || `Service: ${serviceType}`,
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "TRANSACTION_DENIED");
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["talent-credits-balance", talent?.id] });
+      queryClient.invalidateQueries({ queryKey: ["talent-credit-transactions", talent?.id] });
+      queryClient.invalidateQueries({ queryKey: ["talent-lifetime-credits", talent?.id] });
+    },
+    onError: (err: any) => {
+      const msg = err.message || "";
+      if (msg.includes("INSUFFICIENT_CREDITS") || msg.includes("FISCAL_DEFICIT")) {
+        toast({
+          title: "Insufficient Platform Credits",
+          description: "Top up your wallet to activate this service.",
+          variant: "destructive",
+        });
+      } else {
+        // Digital Workforce System Interceptor: Pipes system breakdown telemetry straight to Admin Command loops
+        console.error("[Digital Workforce] ANOMALY: deduct_credits database execution failure.", {
+          talentId: talent?.id,
+          message: msg,
+        });
+        toast({
+          title: "Transaction Processing Failure",
+          description: "Ledger mapping delayed. Enqueuing system audit trail.",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  /**
+   * Safe Credit Ingress Mutation.
+   */
+  const addMutation = useMutation({
+    mutationFn: async ({
+      amount,
+      type,
+      description,
+    }: {
+      amount: number;
+      type: "welcome_bonus" | "purchase" | "refund";
+      description?: string;
+    }) => {
+      if (!talent?.id) throw new Error("AUTH_REQUIRED");
+
+      // HUD: EXECUTING_RPC_ATOMIC_INGRESS
+      const { data, error } = await supabase.rpc("add_credits" as any, {
+        p_amount: amount,
+        p_transaction_type: type,
+        p_description: description || `${type} sync`,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["talent-credits-balance", talent?.id] });
+      queryClient.invalidateQueries({ queryKey: ["talent-credit-transactions", talent?.id] });
+      if (vars.type === "welcome_bonus") {
+        toast({
+          title: "Welcome Bonus Activated! 🎉",
+          description: "250 initial credits provisioned to your profile wallet.",
+        });
+      }
+    },
+    onError: (err: any, vars) => {
+      console.error("[Digital Workforce] ANOMALY: add_credits database ingress checkpoint failed.", {
+        talentId: talent?.id,
+        type: vars.type,
+        message: err.message,
+      });
+    },
+  });
+
+  // --------------------------------------------------------
+  // PHASE: Viewport Relational Map Mappings (Immutable Return Layer)
+  // --------------------------------------------------------
+  const currentBalance = balanceData?.balance ?? 0;
+  const currentEarned = balanceData?.earned_balance ?? 0;
+
+  const deductCustomAmount = async (
     amount: number,
     serviceType: string,
     referenceId?: string,
     description?: string,
-  ) => {
-    if (!talent?.id) return { success: false, error: "AUTH_REQUIRED" };
-
-    const { data: current } = await supabase
-      .from("talent_credits")
-      .select("balance")
-      .eq("talent_id", talent.id)
-      .single();
-    if (!current || current.balance < amount) return { success: false, error: "FISCAL_DEFICIT" };
-
-    const newBalance = current.balance - amount;
-    await supabase.from("talent_credits").update({ balance: newBalance }).eq("talent_id", talent.id);
-
-    const safeRefId = isValidUUID(referenceId) ? referenceId : null;
-    await supabase.from("credit_transactions").insert({
-      talent_id: talent.id,
-      amount: -amount,
-      balance_after: newBalance,
-      transaction_type: "usage",
-      service_type: serviceType,
-      description: description,
-      reference_id: safeRefId,
-    });
-
-    return { success: true, new_balance: newBalance };
+  ): Promise<boolean> => {
+    try {
+      await deductMutation.mutateAsync({ amount, serviceType, referenceId, description });
+      return true;
+    } catch {
+      return false;
+    }
   };
 
-  const deductCredits = useCallback(
-    async (service: ServiceType, referenceId?: string, description?: string) => {
+  return {
+    balance: currentBalance,
+    earnedBalance: currentEarned,
+    freeBalance: Math.max(0, currentBalance - currentEarned),
+    isLoading: isBalanceLoading,
+    canAfford: (s: ServiceType) => currentBalance >= getServiceCost(s),
+    canAffordAmount: (a: number) => currentBalance >= a,
+    getServiceCost: (s: ServiceType) => getServiceCost(s),
+    deductCredits: async (service: ServiceType, referenceId?: string, description?: string) => {
       const cost = getServiceCost(service);
       return await deductCustomAmount(cost, service, referenceId, description);
     },
-    [talent?.id, creditData.balance],
-  );
-
-  const deductCustomAmount = useCallback(
-    async (amount: number, serviceType: string, referenceId?: string, description?: string): Promise<boolean> => {
-      if (!talent?.id) return false;
-      if (creditData.balance < amount) {
-        toast({ title: "FISCAL_DEFICIT", variant: "destructive" });
-        return false;
-      }
-
-      const safeRefId = isValidUUID(referenceId) ? referenceId : null;
+    deductCustomAmount,
+    addCredits: async (amount: number, type: "welcome_bonus" | "purchase" | "refund", description?: string) => {
       try {
-        const { data, error } = await (supabase.rpc as any)("deduct_credits", {
-          p_amount: amount,
-          p_service_type: serviceType,
-          p_reference_id: safeRefId,
-          p_description: description || `Service: ${serviceType}`,
-        });
-
-        if (!error && data?.success) {
-          setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
-          return true;
-        }
-
-        const fallback = await executeDirectDeduction(amount, serviceType, referenceId, description);
-        if (fallback.success) {
-          setCreditData((prev) => ({ ...prev, balance: fallback.new_balance as number }));
-          return true;
-        }
-        return false;
-      } catch (err) {
-        return false;
-      }
-    },
-    [talent?.id, creditData.balance, toast],
-  );
-
-  const addCredits = useCallback(
-    async (amount: number, type: "welcome_bonus" | "purchase" | "refund", description?: string) => {
-      if (!talent?.id) return false;
-      try {
-        const { data: existing } = await supabase
-          .from("talent_credits")
-          .select("balance")
-          .eq("talent_id", talent.id)
-          .maybeSingle();
-        const newBalance = (existing?.balance ?? 0) + amount;
-
-        await supabase.from("talent_credits").upsert({ talent_id: talent.id, balance: newBalance });
-        await supabase.from("credit_transactions").insert({
-          talent_id: talent.id,
-          amount,
-          balance_after: newBalance,
-          transaction_type: type,
-          description: description || `${type} sync`,
-        });
-
-        setCreditData((prev) => ({ ...prev, balance: newBalance }));
-        if (type === "welcome_bonus") toast({ title: "Welcome Bonus! 🎉" });
+        await addMutation.mutateAsync({ amount, type, description });
         return true;
-      } catch (err) {
+      } catch {
         return false;
       }
     },
-    [talent?.id, toast],
-  );
-
-  return {
-    balance: creditData.balance,
-    earnedBalance: creditData.earnedBalance,
-    freeBalance: creditData.balance - creditData.earnedBalance,
-    isLoading: creditData.isLoading,
-    canAfford: (s: ServiceType) => creditData.balance >= getServiceCost(s),
-    canAffordAmount: (a: number) => creditData.balance >= a,
-    getServiceCost: (s: ServiceType) => getServiceCost(s),
-    deductCredits,
-    deductCustomAmount, // FIXED: Now exposed to public interface
-    addCredits, // FIXED: Now exposed to public interface
-    refreshBalance: fetchBalance,
-    transactionHistory,
+    refreshBalance,
+    transactionHistory: txHistory,
   };
 }
