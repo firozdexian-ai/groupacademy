@@ -28,10 +28,10 @@ const REACTION_CONFIG: Record<
     activeBg: string;
   }
 > = {
-  like: { icon: ThumbsUp, label: "AGREE", color: "text-blue-500", activeBg: "bg-blue-500/10" },
-  insightful: { icon: Lightbulb, label: "STRATEGIC", color: "text-amber-500", activeBg: "bg-amber-500/10" },
-  celebrate: { icon: PartyPopper, label: "BULLISH", color: "text-emerald-500", activeBg: "bg-emerald-500/10" },
-  support: { icon: Heart, label: "EMPATHY", color: "text-rose-500", activeBg: "bg-rose-500/10" },
+  like: { icon: ThumbsUp, label: "Like", color: "text-blue-500", activeBg: "bg-blue-500/10" },
+  insightful: { icon: Lightbulb, label: "Insightful", color: "text-amber-500", activeBg: "bg-amber-500/10" },
+  celebrate: { icon: PartyPopper, label: "Celebrate", color: "text-emerald-500", activeBg: "bg-emerald-500/10" },
+  support: { icon: Heart, label: "Support", color: "text-rose-500", activeBg: "bg-rose-500/10" },
 };
 
 export function ReactionBar({ reactions, userReaction, onReact, disabled, inline = false }: ReactionBarProps) {
@@ -65,7 +65,7 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
           <Icon
             className={cn("h-4 w-4 transition-all duration-500", isActive && "fill-current scale-110 drop-shadow-sm")}
           />
-          <span className={cn("hidden md:inline uppercase tracking-widest")}>{config.label}</span>
+          <span className="hidden md:inline">{config.label}</span>
         </Button>
       );
     },

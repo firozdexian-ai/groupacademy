@@ -8,6 +8,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useHype } from "@/hooks/useHype";
+import { usePostReactions } from "@/hooks/usePostReactions";
+import { ReactionBar } from "./ReactionBar";
 import { CommentList } from "./CommentList";
 import { HypeBoostSheet } from "./HypeBoostSheet";
 import { recordShare } from "@/hooks/useCreatorAnalytics";
@@ -33,6 +35,8 @@ const HOLD_MS = 450;
 
 export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl, postDescription }: Props) {
   const { count, hype, isHyping } = useHype(postId, initialHypeCount);
+  const { reactions, userReaction, toggleReaction, isLoading: reactionsLoading } = usePostReactions(postId);
+  const totalReactions = Object.values(reactions).reduce((s, n) => s + n, 0);
   const [hasHyped, setHasHyped] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -111,6 +115,24 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
 
   return (
     <>
+      {totalReactions > 0 && (
+        <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground">
+          <span>
+            {totalReactions.toLocaleString()} {totalReactions === 1 ? "reaction" : "reactions"}
+          </span>
+        </div>
+      )}
+
+      <div className="pt-1">
+        <ReactionBar
+          reactions={reactions}
+          userReaction={userReaction}
+          onReact={(t) => toggleReaction(t)}
+          disabled={reactionsLoading}
+          inline
+        />
+      </div>
+
       <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/40">
         <Button
           type="button"

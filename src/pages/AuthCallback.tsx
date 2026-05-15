@@ -4,6 +4,9 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
+import { supabase } from "@/integrations/supabase/client";
+
+const WELCOME_KEY_PREFIX = "ga_welcome_sent_";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -18,12 +21,34 @@ const AuthCallback = () => {
       navigate("/auth", { replace: true });
       return;
     }
-    // For brand-new OAuth users, the talents row may not exist yet — retry once.
+
+    // Brand-new OAuth users: talents row may not exist yet — retry once.
     if (accountType === "unknown" && !retried) {
       setRetried(true);
       const t = setTimeout(() => setRetried(false), 600);
       return () => clearTimeout(t);
     }
+
+    // Fire-and-forget welcome email (idempotent, once per user).
+    const welcomeKey = `${WELCOME_KEY_PREFIX}${user.id}`;
+    if (!localStorage.getItem(welcomeKey)) {
+      const fullName = (user.user_metadata as any)?.full_name || "Learner";
+      void supabase.functions
+        .invoke("send-transactional-email", {
+          body: {
+            templateName: "welcome",
+            recipientEmail: user.email,
+            idempotencyKey: `welcome-${user.id}`,
+            templateData: { name: fullName.split(" ")[0] || "Learner" },
+          },
+        })
+        .catch(() => {});
+      localStorage.setItem(welcomeKey, "1");
+      // Clear stale referral once it's been consumed by the trigger.
+      localStorage.removeItem("pending_ref");
+      localStorage.removeItem("ga_referral");
+    }
+
     const dest = resolvePostAuthRoute(accountType, params.get("returnTo")) || "/app/feed";
     navigate(dest, { replace: true });
   }, [user, authLoading, accountType, accountTypeLoading, navigate, params, retried]);
