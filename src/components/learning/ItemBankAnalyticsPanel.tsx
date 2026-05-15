@@ -31,7 +31,8 @@ export interface ItemBankAnalyticsPanelProps {
 }
 
 export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps) {
-  const { data, isLoading: loading, error, refetch: refresh } = useItemAnalytics(moduleId);
+  const { data, isLoading: loading, error, refetch } = useItemAnalytics(moduleId);
+  const refresh = () => { void refetch(); };
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [rewrite, setRewrite] = useState<{ kind: "quiz" | "scenario"; itemId: string; flags: string[] } | null>(null);
 
