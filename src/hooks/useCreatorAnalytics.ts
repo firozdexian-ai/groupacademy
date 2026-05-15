@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,20 +10,29 @@ import { supabase } from "@/integrations/supabase/client";
  */
 
 export interface CreatorScorecard {
-  totals: {
+  totals?: {
     total_views: number;
     total_shares: number;
     total_hype: number;
     earned_credits: number;
   };
-  growth_pct: Record<string, number>;
+  growth_pct?: Record<string, number>;
+  current?: any;
+  previous?: any;
+  post_count?: number;
+  [key: string]: any;
 }
 
 export interface PostInsightData {
-  views_count: number;
-  shares_count: number;
-  hype_count: number;
-  engagement_rate: number;
+  views_count?: number;
+  shares_count?: number;
+  hype_count?: number;
+  engagement_rate?: number;
+  totals?: any;
+  credits_earned?: number;
+  daily?: any[];
+  top_hypers?: any[];
+  [key: string]: any;
 }
 
 /**
@@ -128,12 +137,14 @@ export function useImpressionTracker(postId?: string, surface: string = "feed") 
             seenPosts.add(key);
 
             // Execute the impression collection pipeline cleanly via public schema bounds
-            supabase.rpc("record_impression" as any, { _post_id: postId, _surface: surface }).catch((err) => {
-              console.error("[Digital Workforce] ANOMALY: record_impression background tracking failure.", {
-                postId,
-                surface,
-                error: err?.message,
-              });
+            (supabase.rpc("record_impression" as any, { _post_id: postId, _surface: surface }) as any).then?.((res: any) => {
+              if (res?.error) {
+                console.error("[Digital Workforce] ANOMALY: record_impression background tracking failure.", {
+                  postId,
+                  surface,
+                  error: res.error?.message,
+                });
+              }
             });
 
             obs.disconnect();
