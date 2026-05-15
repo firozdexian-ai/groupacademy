@@ -12,6 +12,7 @@ import { toast } from "sonner";
 export default function AppInterviewSchedule() {
   const { id: applicationId, interviewId } = useParams<{ id: string; interviewId: string }>();
   const nav = useNavigate();
+  const confirmSlot = useConfirmInterviewSlot();
   const [interview, setInterview] = useState<any>(null);
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,12 +37,14 @@ export default function AppInterviewSchedule() {
 
   const pick = async (slotId: string) => {
     setSaving(slotId);
-    const ok = await confirmInterviewSlot(interviewId!, slotId);
-    setSaving(null);
-    if (ok) {
-      toast.success("Interview confirmed");
+    try {
+      await confirmSlot.mutateAsync({ interviewId: interviewId!, slotId, applicationId: applicationId! });
       void load();
-    } else toast.error("Could not confirm");
+    } catch {
+      // toast handled by hook
+    } finally {
+      setSaving(null);
+    }
   };
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
