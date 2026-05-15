@@ -15,10 +15,13 @@ interface Props {
 }
 
 export function InterviewPanel({ applicationId, companyId, talentId, actorRole }: Props) {
-  const { interview, offer, reload, loading } = useApplicationHireState(applicationId);
+  const { data, isLoading, refetch } = useApplicationHireState(applicationId);
+  const interview = data?.interview ?? null;
+  const offer = data?.offer ?? null;
+  const reload = () => { void refetch(); };
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  if (loading) return <div className="text-xs text-muted-foreground">Loading hire state…</div>;
+  if (isLoading) return <div className="text-xs text-muted-foreground">Loading hire state…</div>;
 
   return (
     <div className="space-y-3">
