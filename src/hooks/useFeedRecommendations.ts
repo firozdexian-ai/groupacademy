@@ -1,168 +1,273 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { useMemo } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 /**
- * GroUp Academy: Social Feed Batch Engagement & Action Engine (V5.6.0)
- * CTO Reference: Unified controller for engagement sensors and interaction mutations.
- * Architecture: Digital Workforce enabled - streams lookup and cache exceptions directly to Admin OS.
- * Phase: Z0 Code Freeze Hardened.
+ * Feed Recommendations — React Query powered with infinite pagination.
+ * v3.0: Migrated from useState/useEffect to useInfiniteQuery for caching,
+ * dedup, and proper pagination via createdAt cursor.
  */
 
-export type ReactionType = "like" | "insightful" | "celebrate" | "support";
-
-export interface PostEngagement {
-  reactionCounts: Record<ReactionType, number>;
-  userReaction: ReactionType | null;
-  pollCounts: Record<string, number>;
-  userVote: string | null;
+export interface FeedItem {
+  id: string;
+  type: "course" | "video" | "blog" | "post";
+  title: string;
+  description: string;
+  company?: string;
+  thumbnail?: string;
+  createdAt: string;
+  slug?: string;
+  matchScore?: number;
+  matchReason?: string;
+  skills?: string[];
+  location?: string;
+  companyLogo?: string;
+  mediaUrl?: string;
+  mediaType?: "image" | "youtube";
+  youtubeUrl?: string;
+  category?: string;
+  externalUrl?: string;
+  authorName?: string;
+  authorAvatar?: string;
+  authorTitle?: string;
+  contentType?: "text" | "poll" | "tip" | "news" | "announcement" | "media";
+  textContent?: string;
+  pollOptions?: { id: string; text: string }[];
+  pollEndsAt?: string;
+  linkUrl?: string;
+  linkPreview?: { title: string; description?: string; image?: string };
+  tags?: string[];
+  isPinned?: boolean;
+  authorCountry?: string;
+  authorProfession?: string;
 }
 
-export const EMPTY_REACTIONS: Record<ReactionType, number> = {
-  like: 0,
-  insightful: 0,
-  celebrate: 0,
-  support: 0,
+export type FeedFilterType = "all" | "course" | "video" | "blog" | "post" | "poll";
+export type FeedSortType = "match" | "newest";
+export type FeedScope = "global" | "country" | "profession";
+
+export interface FeedFilters {
+  type: FeedFilterType;
+  sort: FeedSortType;
+  scope: FeedScope;
+}
+
+const STORAGE_KEY_FILTERS = "feed_filters_v5";
+const PAGE_SIZE_POSTS = 30;
+const PAGE_SIZE_COURSES = 20;
+const PAGE_SIZE_BLOGS = 15;
+
+const STATIC_INSIGHTS = [
+  "Keep your profile fresh to stay visible to recruiters",
+  "Practice mock interviews to sharpen your delivery",
+  "Check the Jobs board daily for matches in your field",
+  "Update your portfolio to showcase recent achievements",
+  "Connect with peers in your career track to grow faster",
+];
+
+const getYoutubeThumbnail = (url: string): string | null => {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
 };
 
-// --- HUD: REGISTRY_KEYS ---
-export function feedEngagementKey(talentId: string | undefined) {
-  return ["feed-engagement", talentId || "anon"];
-}
+async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; nextCursor?: string }> {
+  let coursesQuery = supabase.from("content").select("*").eq("is_published", true).limit(PAGE_SIZE_COURSES);
+  let blogsQuery = supabase.from("blog_posts").select("*").eq("status", "published").limit(PAGE_SIZE_BLOGS);
+  let postsQuery = supabase
+    .from("feed_posts")
+    .select("*")
+    .eq("is_active", true)
+    .eq("status", "published")
+    .limit(PAGE_SIZE_POSTS);
 
-// --- SENSOR: BATCH_ENGAGEMENT_QUERY ---
-export function useFeedEngagement(postIds: string[]) {
-  const { talent } = useTalent();
+  if (olderThan) {
+    coursesQuery = coursesQuery.lt("created_at", olderThan);
+    blogsQuery = blogsQuery.lt("created_at", olderThan);
+    postsQuery = postsQuery.lt("created_at", olderThan);
+  }
 
-  const sortedKey = useMemo(() => [...postIds].sort().join(","), [postIds]);
+  const [coursesRes, blogsRes, postsRes] = await Promise.all([
+    coursesQuery.order("created_at", { ascending: false }),
+    blogsQuery.order("created_at", { ascending: false }),
+    postsQuery.order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
+  ]);
 
-  return useQuery({
-    queryKey: [...feedEngagementKey(talent?.id), sortedKey],
-    enabled: postIds.length > 0,
-    staleTime: 1000 * 30,
-    gcTime: 1000 * 60 * 5,
-    queryFn: async (): Promise<Record<string, PostEngagement>> => {
-      if (postIds.length === 0) return {};
+  const items: FeedItem[] = [];
 
-      const { data, error } = await supabase.rpc("get_feed_engagement", {
-        _post_ids: postIds,
-        _talent_id: talent?.id || null,
-      });
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: get_feed_engagement failed.", error);
-        throw error;
-      }
-
-      const map: Record<string, PostEngagement> = {};
-      (data || []).forEach((row: any) => {
-        const rc = row.reaction_counts || {};
-        map[row.post_id] = {
-          reactionCounts: {
-            like: Number(rc.like || 0),
-            insightful: Number(rc.insightful || 0),
-            celebrate: Number(rc.celebrate || 0),
-            support: Number(rc.support || 0),
-          },
-          userReaction: (row.user_reaction as ReactionType) || null,
-          pollCounts: row.poll_counts || {},
-          userVote: row.user_vote || null,
-        };
-      });
-
-      return map;
-    },
+  coursesRes.data?.forEach((c: any) => {
+    const ytThumb = c.youtube_url ? getYoutubeThumbnail(c.youtube_url) : null;
+    items.push({
+      id: c.id,
+      type: c.content_type === "free_video" ? "video" : "course",
+      title: c.title,
+      description: c.description?.substring(0, 150) + "..." || "",
+      createdAt: c.created_at || "",
+      slug: c.slug,
+      mediaUrl: ytThumb || c.cover_image_url || c.thumbnail_url || undefined,
+      mediaType: c.youtube_url ? "youtube" : "image",
+      youtubeUrl: c.youtube_url || undefined,
+    });
   });
-}
 
-// --- CACHE_ORCHESTRATOR: OPTIMISTIC_UPDATES ---
-export function patchEngagementCache(
-  queryClient: any,
-  talentId: string | undefined,
-  postId: string,
-  patch: (curr: PostEngagement) => PostEngagement,
-) {
-  const prefix = feedEngagementKey(talentId);
-  const queries = queryClient.getQueriesData({ queryKey: prefix });
-
-  queries.forEach(([key, data]: [any, any]) => {
-    if (!data) return;
-    const curr = data[postId] || {
-      reactionCounts: { ...EMPTY_REACTIONS },
-      userReaction: null,
-      pollCounts: {},
-      userVote: null,
-    };
-    queryClient.setQueryData(key, { ...data, [postId]: patch(curr) });
+  blogsRes.data?.forEach((b: any) => {
+    items.push({
+      id: b.id,
+      type: "blog",
+      title: b.title,
+      description: b.excerpt || "",
+      createdAt: b.created_at || "",
+      slug: b.slug,
+      mediaUrl: b.featured_image || undefined,
+      mediaType: "image",
+      category: b.category,
+    });
   });
+
+  // Batch author enrichment
+  const authorIds = Array.from(
+    new Set((postsRes.data || []).map((p: any) => p.author_user_id).filter(Boolean)),
+  );
+  const authorMeta = new Map<string, { country?: string; profession?: string }>();
+  if (authorIds.length > 0) {
+    const { data: authors } = await supabase
+      .from("talents")
+      .select("user_id, country, custom_profession")
+      .in("user_id", authorIds);
+    authors?.forEach((a: any) =>
+      authorMeta.set(a.user_id, { country: a.country, profession: a.custom_profession }),
+    );
+  }
+
+  postsRes.data?.forEach((p: any) => {
+    const meta = p.author_user_id ? authorMeta.get(p.author_user_id) : undefined;
+    items.push({
+      id: p.id,
+      type: "post",
+      title: p.text_content?.substring(0, 60) || "Post",
+      description: p.text_content || "",
+      createdAt: p.created_at || "",
+      mediaUrl: p.media_url || undefined,
+      mediaType: "image",
+      authorName: p.author_name,
+      authorAvatar: p.author_avatar,
+      authorTitle: p.author_title,
+      contentType: p.content_type,
+      isPinned: p.is_pinned,
+      authorCountry: meta?.country,
+      authorProfession: meta?.profession,
+      pollOptions: p.poll_options as unknown as { id: string; text: string }[],
+    });
+  });
+
+  items.sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const nextCursor = items.length > 0 ? items[items.length - 1].createdAt : undefined;
+  // Stop paging when both sources return empty
+  const hasMore = (postsRes.data?.length || 0) >= PAGE_SIZE_POSTS ||
+                  (coursesRes.data?.length || 0) >= PAGE_SIZE_COURSES;
+
+  return { items, nextCursor: hasMore ? nextCursor : undefined };
 }
 
-// --- ACTIONS: FEED_MUTATIONS ---
-export function useFeedActions() {
+export function useFeedRecommendations() {
   const { talent } = useTalent();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const toggleReaction = useMutation({
-    mutationFn: async ({ postId, reaction }: { postId: string; reaction: ReactionType }) => {
-      if (!talent?.id) throw new Error("AUTH_REQUIRED");
-      const { data, error } = await supabase.rpc("toggle_post_reaction", {
-        p_post_id: postId,
-        p_talent_id: talent.id,
-        p_reaction: reaction,
-      });
-      if (error) throw error;
-      return data;
-    },
-    onMutate: async ({ postId, reaction }) => {
-      await queryClient.cancelQueries({ queryKey: feedEngagementKey(talent?.id) });
-      patchEngagementCache(queryClient, talent?.id, postId, (curr) => {
-        const isSame = curr.userReaction === reaction;
-        const nextReaction = isSame ? null : reaction;
-        const updatedCounts = { ...curr.reactionCounts };
-        if (curr.userReaction)
-          updatedCounts[curr.userReaction] = Math.max(0, (updatedCounts[curr.userReaction] || 0) - 1);
-        if (!isSame) updatedCounts[reaction] = (updatedCounts[reaction] || 0) + 1;
-        return { ...curr, reactionCounts: updatedCounts, userReaction: nextReaction };
-      });
-    },
-    onError: (err: any) => {
-      console.error("[Digital Workforce] ANOMALY: Reaction failed.", err);
-      toast.error("Handshake failed. Reverting.");
-      queryClient.invalidateQueries({ queryKey: feedEngagementKey(talent?.id) });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedEngagementKey(talent?.id) });
-    },
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const [filters, setFiltersState] = useState<FeedFilters>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_FILTERS);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return { type: "all", sort: "newest", scope: "global", ...(parsed || {}) };
+    } catch {
+      return { type: "all", sort: "newest", scope: "global" };
+    }
   });
 
-  const castPollVote = useMutation({
-    mutationFn: async ({ postId, optionKey }: { postId: string; optionKey: string }) => {
-      if (!talent?.id) throw new Error("AUTH_REQUIRED");
-      const { error } = await supabase.rpc("cast_poll_vote", {
-        p_post_id: postId,
-        p_talent_id: talent.id,
-        p_option_key: optionKey,
-      });
-      if (error) throw error;
-    },
-    onMutate: async ({ postId, optionKey }) => {
-      await queryClient.cancelQueries({ queryKey: feedEngagementKey(talent?.id) });
-      patchEngagementCache(queryClient, talent?.id, postId, (curr) => {
-        const updatedPoll = { ...curr.pollCounts };
-        if (curr.userVote && updatedPoll[curr.userVote])
-          updatedPoll[curr.userVote] = Math.max(0, updatedPoll[curr.userVote] - 1);
-        updatedPoll[optionKey] = (updatedPoll[optionKey] || 0) + 1;
-        return { ...curr, pollCounts: updatedPoll, userVote: optionKey };
-      });
-    },
-    onError: (err: any) => {
-      console.error("[Digital Workforce] ANOMALY: Poll failed.", err);
-      toast.error("Vote failed. Syncing...");
-      queryClient.invalidateQueries({ queryKey: feedEngagementKey(talent?.id) });
-    },
+  const setFilters = useCallback((newFilters: FeedFilters) => {
+    setFiltersState(newFilters);
+    localStorage.setItem(STORAGE_KEY_FILTERS, JSON.stringify(newFilters));
+  }, []);
+
+  const query = useInfiniteQuery({
+    queryKey: ["feed-recommendations"],
+    queryFn: ({ pageParam }) => fetchFeedPage(pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor,
+    staleTime: 1000 * 60 * 2, // 2 min
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
   });
 
-  return { toggleReaction, castPollVote };
+  const allItems: FeedItem[] = useMemo(
+    () => query.data?.pages.flatMap((p) => p.items) || [],
+    [query.data],
+  );
+
+  const talentCountry = talent?.country;
+  const talentProfession = (talent as any)?.customProfession || (talent as any)?.custom_profession;
+
+  // Stable randomized insights — generated once
+  const insightsRef = useRef<string[]>();
+  if (!insightsRef.current) {
+    insightsRef.current = [...STATIC_INSIGHTS].sort(() => 0.5 - Math.random()).slice(0, 3);
+  }
+
+  const filteredItems = useMemo(
+    () =>
+      allItems
+        .filter((i) => !dismissedIds.has(i.id))
+        .filter((i) => {
+          if (filters.type === "all") return true;
+          if (filters.type === "poll") return i.type === "post" && i.contentType === "poll";
+          return i.type === filters.type;
+        })
+        .filter((i) => {
+          if (filters.scope === "global") return true;
+          if (i.type !== "post") return false;
+          if (filters.scope === "country") return !!talentCountry && i.authorCountry === talentCountry;
+          if (filters.scope === "profession")
+            return !!talentProfession && i.authorProfession === talentProfession;
+          return true;
+        }),
+    [allItems, dismissedIds, filters, talentCountry, talentProfession],
+  );
+
+  return {
+    items: filteredItems,
+    insights: insightsRef.current,
+    isLoading: query.isLoading,
+    isRefreshing: query.isRefetching && !query.isFetchingNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+    hasNextPage: query.hasNextPage,
+    error: query.error ? String((query.error as Error).message || "Feed error") : null,
+    filters,
+    setFilters,
+    refresh: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["feed-recommendations"] });
+      toast({ title: "Feed refreshed" });
+    },
+    loadMore: () => {
+      if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage();
+    },
+    markInterested: async (item: FeedItem) => {
+      if (talent?.id)
+        await supabase
+          .from("feed_interactions")
+          .upsert({ talent_id: talent.id, item_id: item.id, item_type: item.type, interaction_type: "interested" });
+    },
+    markNotInterested: (itemId: string) => {
+      setDismissedIds((prev) => new Set([...prev, itemId]));
+      toast({ title: "Got it — we'll show less like this" });
+    },
+    hasGeneratedOnce: true,
+  };
 }
