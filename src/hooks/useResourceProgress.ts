@@ -78,7 +78,7 @@ export function useResourceProgress({ enrollmentId, moduleId }: UseResourceProgr
       // HUD: EXECUTING_JSONB_DOCUMENT_UPDATE_SYNC
       const { error } = await supabase
         .from("enrollment_stage_progress")
-        .update({ resource_state: payload })
+        .update({ resource_state: payload as any })
         .eq("enrollment_id", enrollmentId)
         .eq("module_id", moduleId);
 
