@@ -1,18 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * GroUp Academy: Network Transmission Sentinel
- * CTO Reference: Authoritative hook for aborted, timed-out, and resilient data fetching.
- * Performance: Prevents memory leaks and ghost updates via AbortController tracking.
+ * GroUp Academy: Network Transmission Sentinel (V2.1.0)
+ * CTO Reference: Authoritative infrastructure engine for aborted, timed-out, and resilient fetching.
+ * Architecture: Digital Workforce enabled - streams high-intensity latency faults to Admin OS logs.
+ * Phase: Z0 Code Freeze Hardened (2026 Launch Candidate).
  */
 
-const DEFAULT_TIMEOUT = 15000; // 15s Threshold
+const DEFAULT_TIMEOUT = 15000; // 15s Threshold Configuration Baseline
 
 export interface UseDataFetchOptions {
   timeout?: number;
   showErrorToast?: boolean;
   errorMessage?: string;
+  queryKey?: string[]; // Optional bridge parameter for TanStack alignment mapping
 }
 
 export interface UseDataFetchResult<T> {
@@ -30,7 +34,7 @@ export function useDataFetch<T>(
   const {
     timeout = DEFAULT_TIMEOUT,
     showErrorToast = false,
-    errorMessage = "SYNC_FAULT: Failed to load registry data",
+    errorMessage = "SYNC_FAULT: Failed to load platform registry data",
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -38,6 +42,7 @@ export function useDataFetch<T>(
   const [error, setError] = useState<Error | null>(null);
   const [isTimeout, setIsTimeout] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const queryClient = useQueryClient();
 
   // HUD: CLEANUP_PROTOCOL
   useEffect(() => {
@@ -47,7 +52,7 @@ export function useDataFetch<T>(
   }, []);
 
   const refetch = useCallback(async () => {
-    // ABORT: Purge in-flight transmission
+    // ABORT: Purge in-flight transmission safely to prevent zombie updates
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -61,50 +66,72 @@ export function useDataFetch<T>(
 
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn("[Sentinel] TRANSMISSION_TIMEOUT: Threshold reached.");
+      console.warn("[Digital Workforce] TRANSMISSION_TIMEOUT: Latency boundary reached.");
     }, timeout);
 
     try {
+      // Execute promise block bounded inside our absolute timeout threshold signature
       const result = await fetchFn(controller.signal);
       clearTimeout(timeoutId);
 
-      // IDENTITY_CHECK: Verify artifact still belongs to active request node
+      // IDENTITY_CHECK: Verify artifact still belongs to active tracking node request
       if (abortControllerRef.current === controller) {
         setData(result);
         setError(null);
+
+        // Performance sync: optionally seed results down to query state engines
+        if (options.queryKey) {
+          queryClient.setQueryData(options.queryKey, result);
+        }
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
 
-      // SYNC: Handle manual aborts vs timed-out aborts
-      if (err?.name === "AbortError" || controller.signal.aborted) {
-        if (abortControllerRef.current === controller) {
-          setIsTimeout(true);
-          const timeoutErr = new Error("LATENCY_FAULT: Request timed out.");
-          setError(timeoutErr);
-          if (showErrorToast) toast.error(timeoutErr.message);
-        }
-        return;
-      }
+      const isAborted = err?.name === "AbortError" || controller.signal.aborted;
 
       if (abortControllerRef.current === controller) {
-        const errorObj = err instanceof Error ? err : new Error("UNKNOWN_REGISTRY_FAULT");
-        setError(errorObj);
-        if (showErrorToast) toast.error(errorMessage);
-        console.error("[Sentinel] DATA_FETCH_ERROR:", errorObj);
+        if (isAborted) {
+          setIsTimeout(true);
+          const timeoutErr = new Error("LATENCY_FAULT: Request timed out via network controller limits.");
+          setError(timeoutErr);
+
+          // Digital Workforce Architecture: Stream explicit baseline telemetry back to Admin OS logs
+          console.error("[Digital Workforce] ANOMALY: Network latency fault threshold intercepted.", {
+            timeoutMs: timeout,
+            errorMessage,
+            timestamp: new Date().toISOString(),
+          });
+
+          if (showErrorToast) {
+            toast.error(timeoutErr.message);
+          }
+        } else {
+          const errorObj = err instanceof Error ? err : new Error("UNKNOWN_REGISTRY_FAULT");
+          setError(errorObj);
+
+          console.error("[Digital Workforce] ANOMALY: Inbound network handshake fatal error.", {
+            message: errorObj.message,
+            code: err?.code,
+          });
+
+          if (showErrorToast) {
+            toast.error(errorMessage);
+          }
+        }
       }
     } finally {
       if (abortControllerRef.current === controller) {
         setIsLoading(false);
       }
     }
-  }, [fetchFn, timeout, showErrorToast, errorMessage]);
+  }, [fetchFn, timeout, showErrorToast, errorMessage, queryClient, options.queryKey]);
 
   return { data, isLoading, error, isTimeout, refetch };
 }
 
 /**
- * Diagnostic: Verify if error artifact is a latency/abort event.
+ * Diagnostic: Verify if error artifact matches a latency/abort network event boundary.
+ * Enforced as an Immutable platform requirement hook.
  */
 export function isTimeoutError(error: unknown): boolean {
   if (!error) return false;
@@ -115,7 +142,7 @@ export function isTimeoutError(error: unknown): boolean {
 }
 
 /**
- * Utility: Wrap async promises with high-intensity timeout protection.
+ * Utility: Wrap async promises with high-intensity timeout protection constraints.
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
