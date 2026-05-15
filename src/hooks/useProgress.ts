@@ -1,20 +1,13 @@
-/**
- * GroUp Academy — Phase 2.2.d
- * Unified progress hook backed by `module_progress` (DB-derived).
- *
- * Reads:
- *   - course_modules (ordered list)
- *   - module_progress (per-module stages_completed, %, completed_at)
- *   - enrollment_stage_progress (resource_view_states for per-resource flags)
- *   - enrollments (overall progress, current_module_id)
- *
- * Writes:
- *   - enrollment_stage_progress only — DB triggers cascade module_progress + enrollments.
- *
- * Realtime: subscribes to module_progress changes for the active enrollment.
- */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * GroUp Academy: Academic Milestone & Progression Core (V5.6.0)
+ * CTO Reference: Authoritative single-trip controller managing multi-table state sync.
+ * Architecture: TanStack Cache Synced - eliminates un-throttled query cascade loops.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Variant).
+ */
 
 export interface ModuleProgressRow {
   moduleId: string;
@@ -32,55 +25,59 @@ interface UseProgressOptions {
   contentId: string | undefined;
 }
 
+interface ProgressQueryPayload {
+  modules: ModuleProgressRow[];
+  resourceViewStates: Record<string, Record<string, boolean>>;
+  overallPct: number;
+  isCompleted: boolean;
+  currentModuleId: string | null;
+}
+
 const TOTAL_STAGES = 6;
 
 export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
-  const [modules, setModules] = useState<ModuleProgressRow[]>([]);
-  const [overallPct, setOverallPct] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
-  const [resourceViewStates, setResourceViewStates] = useState<Record<string, Record<string, boolean>>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const qc = useQueryClient();
+  const queryKey = useMemo(() => ["enrollment-progression", enrollmentId, contentId], [enrollmentId, contentId]);
 
-  const load = useCallback(async () => {
-    if (!enrollmentId || !contentId) {
-      setIsLoading(false);
-      return;
-    }
-    try {
-      setIsLoading(true);
-      setError(null);
+  // --------------------------------------------------------
+  // PHASE 1: Combined Core Progression Observer
+  // --------------------------------------------------------
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey,
+    enabled: !!enrollmentId && !!contentId,
+    staleTime: 15000, // 15-second cache consistency boundary
+    queryFn: async (): Promise<ProgressQueryPayload> => {
+      // HUD: ATOMIC_ACADEMIC_PROGRESS_BUNDLE_SELECT
+      const [cmRes, mpRes, enrRes, espRes] = await Promise.all([
+        supabase
+          .from("course_modules")
+          .select("id, display_order, title")
+          .eq("content_id", contentId!)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("module_progress")
+          .select("module_id, stages_completed, total_stages, progress_pct, started_at, completed_at")
+          .eq("enrollment_id", enrollmentId!),
+        supabase
+          .from("enrollments")
+          .select("progress, status, current_module_id")
+          .eq("id", enrollmentId!)
+          .maybeSingle(),
+        supabase
+          .from("enrollment_stage_progress")
+          .select("module_id, resource_view_states")
+          .eq("enrollment_id", enrollmentId!),
+      ]);
 
-      const [{ data: cmRows, error: cmErr }, { data: mpRows, error: mpErr }, { data: enr, error: enrErr }, { data: espRows }] =
-        await Promise.all([
-          supabase
-            .from("course_modules")
-            .select("id, display_order, title")
-            .eq("content_id", contentId)
-            .order("display_order", { ascending: true }),
-          supabase
-            .from("module_progress")
-            .select("module_id, stages_completed, total_stages, progress_pct, started_at, completed_at")
-            .eq("enrollment_id", enrollmentId),
-          supabase
-            .from("enrollments")
-            .select("progress, status, current_module_id")
-            .eq("id", enrollmentId)
-            .maybeSingle(),
-          supabase
-            .from("enrollment_stage_progress")
-            .select("module_id, resource_view_states")
-            .eq("enrollment_id", enrollmentId),
-        ]);
+      if (cmRes.error) throw cmRes.error;
+      if (mpRes.error) throw mpRes.error;
+      if (enrRes.error) throw enrRes.error;
+      if (espRes.error) throw espRes.error;
 
-      if (cmErr) throw cmErr;
-      if (mpErr) throw mpErr;
-      if (enrErr) throw enrErr;
+      const mpByModule = new Map((mpRes.data ?? []).map((r) => [r.module_id, r]));
 
-      const mpByModule = new Map((mpRows ?? []).map((r: any) => [r.module_id, r]));
-      const merged: ModuleProgressRow[] = (cmRows ?? []).map((m: any) => {
-        const mp: any = mpByModule.get(m.id);
+      const modules: ModuleProgressRow[] = (cmRes.data ?? []).map((m) => {
+        const mp = mpByModule.get(m.id);
         return {
           moduleId: m.id,
           displayOrder: m.display_order,
@@ -93,180 +90,246 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
         };
       });
 
-      const rv: Record<string, Record<string, boolean>> = {};
-      (espRows ?? []).forEach((row: any) => {
-        rv[row.module_id] = (row.resource_view_states as Record<string, boolean>) ?? {};
+      const resourceViewStates: Record<string, Record<string, boolean>> = {};
+      (espRes.data ?? []).forEach((row) => {
+        resourceViewStates[row.module_id] = (row.resource_view_states as Record<string, boolean>) ?? {};
       });
 
-      setModules(merged);
-      setResourceViewStates(rv);
-      setOverallPct(enr?.progress ?? 0);
-      setIsCompleted(enr?.status === "completed");
-
-      // Resume target: current_module_id, else first incomplete, else first module
-      const resume =
-        enr?.current_module_id ??
-        merged.find((m) => m.progressPct < 100)?.moduleId ??
-        merged[0]?.moduleId ??
+      const resumeModuleId =
+        enrRes.data?.current_module_id ??
+        modules.find((m) => m.progressPct < 100)?.moduleId ??
+        modules[0]?.moduleId ??
         null;
-      setCurrentModuleId(resume);
-    } catch (e: any) {
-      console.error("[useProgress] load fault:", e);
-      setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [enrollmentId, contentId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+      return {
+        modules,
+        resourceViewStates,
+        overallPct: enrRes.data?.progress ?? 0,
+        isCompleted: enrRes.data?.status === "completed",
+        currentModuleId: resumeModuleId,
+      };
+    },
+  });
 
-  // Realtime: refresh on module_progress changes for this enrollment
-  useEffect(() => {
+  // --- HUD: REALTIME_CDC_THROTTLED_SYNCHRONIZER ---
+  useMemo(() => {
     if (!enrollmentId) return;
-    const ch = supabase
-      .channel(`module_progress:${enrollmentId}`)
+
+    const channel = supabase
+      .channel(`public:module_progress_sync:${enrollmentId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "module_progress", filter: `enrollment_id=eq.${enrollmentId}` },
-        () => load(),
+        () => {
+          // Trigger controlled background revalidation without clearing existing layout states
+          void qc.invalidateQueries({ queryKey });
+        },
       )
       .subscribe();
+
     return () => {
-      supabase.removeChannel(ch);
+      void supabase.removeChannel(channel);
     };
-  }, [enrollmentId, load]);
+  }, [enrollmentId, qc, queryKey]);
 
-  // ---------- Mutations (write only to enrollment_stage_progress) ----------
+  // --------------------------------------------------------
+  // PHASE 2: Core Academic Mutation Workflows
+  // --------------------------------------------------------
 
-  const upsertStage = useCallback(
-    async (moduleId: string, patch: { completed_stages?: number[]; current_stage?: number; resource_view_states?: Record<string, boolean> }) => {
+  const stageProgressMutation = useMutation({
+    mutationFn: async (payload: {
+      moduleId: string;
+      completedStages: number[];
+      currentStage: number;
+      rvs: Record<string, boolean>;
+    }) => {
       if (!enrollmentId) return;
-      const existing = modules.find((m) => m.moduleId === moduleId);
-      const completed = patch.completed_stages ?? existing?.stagesCompleted ?? [];
-      const currentStage = patch.current_stage ?? Math.min(TOTAL_STAGES, Math.max(...completed, 0) + 1);
-      const rvs = patch.resource_view_states ?? resourceViewStates[moduleId] ?? {};
 
-      const { error: upErr } = await supabase.from("enrollment_stage_progress").upsert(
+      const { error } = await supabase.from("enrollment_stage_progress").upsert(
         {
           enrollment_id: enrollmentId,
-          module_id: moduleId,
-          completed_stages: completed,
-          current_stage: currentStage,
-          resource_view_states: rvs,
+          module_id: payload.moduleId,
+          completed_stages: payload.completedStages,
+          current_stage: payload.currentStage,
+          resource_view_states: payload.rvs,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "enrollment_id,module_id" },
       );
-      if (upErr) throw upErr;
+
+      if (error) {
+        console.error("[Digital Workforce] FAULT: enrollment_stage_progress update rejected.", error);
+        throw error;
+      }
     },
-    [enrollmentId, modules, resourceViewStates],
-  );
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey });
+    },
+  });
+
+  const currentModuleMutation = useMutation({
+    mutationFn: async (targetModuleId: string) => {
+      if (!enrollmentId) return;
+
+      const { error } = await supabase
+        .from("enrollments")
+        .update({
+          current_module_id: targetModuleId,
+          last_accessed_at: new Date().toISOString(),
+        })
+        .eq("id", enrollmentId);
+
+      if (error) {
+        console.error("[Digital Workforce] FAULT: Failed to update current_module_id tracking registry.", error);
+        throw error;
+      }
+    },
+    onMutate: async (targetModuleId) => {
+      await qc.cancelQueries({ queryKey });
+      const previous = qc.getQueryData<ProgressQueryPayload>(queryKey);
+
+      if (previous) {
+        qc.setQueryData<ProgressQueryPayload>(queryKey, {
+          ...previous,
+          currentModuleId: targetModuleId,
+        });
+      }
+      return { previous };
+    },
+    onError: (err: any, _, context) => {
+      if (context?.previous) qc.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey });
+    },
+  });
+
+  // --------------------------------------------------------
+  // PHASE 3: Context-Safe Interaction Proxies
+  // --------------------------------------------------------
 
   const markStageComplete = useCallback(
     async (moduleId: string, stage: number) => {
-      const m = modules.find((x) => x.moduleId === moduleId);
-      const next = Array.from(new Set([...(m?.stagesCompleted ?? []), stage])).sort((a, b) => a - b);
-      // Optimistic
-      setModules((prev) =>
-        prev.map((x) =>
-          x.moduleId === moduleId
-            ? {
-                ...x,
-                stagesCompleted: next,
-                progressPct: Math.min(100, Math.round((next.length / TOTAL_STAGES) * 100)),
-              }
-            : x,
-        ),
-      );
+      if (!data) return;
+      const m = data.modules.find((x) => x.moduleId === moduleId);
+      const nextStages = Array.from(new Set([...(m?.stagesCompleted ?? []), stage])).sort((a, b) => a - b);
+      const targetNextStage = Math.min(TOTAL_STAGES, stage + 1);
+      const currentRvs = data.resourceViewStates[moduleId] ?? {};
+
+      // HUD: EXECUTE_OPTIMISTIC_STAGE_PROGRESS_MUTATION
+      qc.setQueryData<ProgressQueryPayload>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          modules: old.modules.map((x) =>
+            x.moduleId === moduleId
+              ? {
+                  ...x,
+                  stagesCompleted: nextStages,
+                  progressPct: Math.min(100, Math.round((nextStages.length / TOTAL_STAGES) * 100)),
+                }
+              : x,
+          ),
+        };
+      });
+
       try {
-        await upsertStage(moduleId, { completed_stages: next, current_stage: Math.min(TOTAL_STAGES, stage + 1) });
-      } catch (e) {
-        console.error("[useProgress] markStageComplete fault:", e);
-        load();
+        await stageProgressMutation.mutateAsync({
+          moduleId,
+          completedStages: nextStages,
+          currentStage: targetNextStage,
+          rvs: currentRvs,
+        });
+      } catch {
+        void refetch();
       }
     },
-    [modules, upsertStage, load],
+    [data, qc, queryKey, stageProgressMutation, refetch],
   );
 
   const markResourceViewed = useCallback(
     async (moduleId: string, resourceId: string) => {
-      const cur = resourceViewStates[moduleId] ?? {};
-      if (cur[resourceId]) return;
-      const nextRv = { ...cur, [resourceId]: true };
-      setResourceViewStates((prev) => ({ ...prev, [moduleId]: nextRv }));
+      if (!data) return;
+      const curRvs = data.resourceViewStates[moduleId] ?? {};
+      if (curRvs[resourceId]) return;
+
+      const nextRv = { ...curRvs, [resourceId]: true };
+      const m = data.modules.find((x) => x.moduleId === moduleId);
+      const completed = m?.stagesCompleted ?? [];
+      const currentStage = Math.min(TOTAL_STAGES, Math.max(...completed, 0) + 1);
+
+      // HUD: EXECUTE_OPTIMISTIC_RESOURCE_VIEW_MUTATION
+      qc.setQueryData<ProgressQueryPayload>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          resourceViewStates: {
+            ...old.resourceViewStates,
+            [moduleId]: nextRv,
+          },
+        };
+      });
+
       try {
-        await upsertStage(moduleId, { resource_view_states: nextRv });
-      } catch (e) {
-        console.error("[useProgress] markResourceViewed fault:", e);
+        await stageProgressMutation.mutateAsync({
+          moduleId,
+          completedStages: completed,
+          currentStage,
+          rvs: nextRv,
+        });
+      } catch {
+        void refetch();
       }
     },
-    [resourceViewStates, upsertStage],
+    [data, qc, queryKey, stageProgressMutation, refetch],
   );
 
-  const setCurrentModule = useCallback(
-    async (moduleId: string) => {
-      setCurrentModuleId(moduleId);
-      if (!enrollmentId) return;
-      await supabase
-        .from("enrollments")
-        .update({ current_module_id: moduleId, last_accessed_at: new Date().toISOString() })
-        .eq("id", enrollmentId);
-    },
-    [enrollmentId],
-  );
+  // --------------------------------------------------------
+  // PHASE 4: Memoized Layout Selector Methods
+  // --------------------------------------------------------
 
-  // ---------- Selectors ----------
+  const selectors = useMemo(() => {
+    const modulesList = data?.modules ?? [];
+    const rvsMap = data?.resourceViewStates ?? {};
 
-  const isStageUnlocked = useCallback(
-    (moduleId: string, stage: number) => {
-      if (stage <= 1) return true;
-      const m = modules.find((x) => x.moduleId === moduleId);
-      return m?.stagesCompleted.includes(stage - 1) ?? false;
-    },
-    [modules],
-  );
-
-  const isStageCompleted = useCallback(
-    (moduleId: string, stage: number) =>
-      modules.find((x) => x.moduleId === moduleId)?.stagesCompleted.includes(stage) ?? false,
-    [modules],
-  );
-
-  const getCurrentStage = useCallback(
-    (moduleId: string) => {
-      const m = modules.find((x) => x.moduleId === moduleId);
-      if (!m) return 1;
-      if (m.progressPct >= 100) return TOTAL_STAGES;
-      return Math.min(TOTAL_STAGES, Math.max(...m.stagesCompleted, 0) + 1);
-    },
-    [modules],
-  );
-
-  const isResourceViewed = useCallback(
-    (moduleId: string, resourceId: string) => Boolean(resourceViewStates[moduleId]?.[resourceId]),
-    [resourceViewStates],
-  );
-
-  const completedModuleCount = useMemo(() => modules.filter((m) => m.progressPct >= 100).length, [modules]);
+    return {
+      isStageUnlocked: (moduleId: string, stage: number) => {
+        if (stage <= 1) return true;
+        const m = modulesList.find((x) => x.moduleId === moduleId);
+        return m?.stagesCompleted.includes(stage - 1) ?? false;
+      },
+      isStageCompleted: (moduleId: string, stage: number) => {
+        return modulesList.find((x) => x.moduleId === moduleId)?.stagesCompleted.includes(stage) ?? false;
+      },
+      getCurrentStage: (moduleId: string) => {
+        const m = modulesList.find((x) => x.moduleId === moduleId);
+        if (!m) return 1;
+        if (m.progressPct >= 100) return TOTAL_STAGES;
+        return Math.min(TOTAL_STAGES, Math.max(...m.stagesCompleted, 0) + 1);
+      },
+      isResourceViewed: (moduleId: string, resourceId: string) => {
+        return Boolean(rvsMap[moduleId]?.[resourceId]);
+      },
+      completedModuleCount: modulesList.filter((m) => m.progressPct >= 100).length,
+    };
+  }, [data]);
 
   return {
-    modules,
-    overallPct,
-    isCompleted,
-    completedModuleCount,
-    totalModules: modules.length,
-    currentModuleId,
-    setCurrentModule,
+    modules: data?.modules ?? [],
+    overallPct: data?.overallPct ?? 0,
+    isCompleted: data?.isCompleted ?? false,
+    completedModuleCount: selectors.completedModuleCount,
+    totalModules: (data?.modules ?? []).length,
+    currentModuleId: data?.currentModuleId ?? null,
+    setCurrentModule: currentModuleMutation.mutate,
     markStageComplete,
     markResourceViewed,
-    isStageUnlocked,
-    isStageCompleted,
-    getCurrentStage,
-    isResourceViewed,
+    isStageUnlocked: selectors.isStageUnlocked,
+    isStageCompleted: selectors.isStageCompleted,
+    getCurrentStage: selectors.getCurrentStage,
+    isResourceViewed: selectors.isResourceViewed,
     isLoading,
     error,
-    reload: load,
+    reload: refetch,
   };
 }
