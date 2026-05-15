@@ -157,6 +157,8 @@ export const useAuth = (): AuthState => {
     countryCode?: string,
   ) => {
     try {
+      const ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral") || "";
+
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -167,21 +169,16 @@ export const useAuth = (): AuthState => {
             country: country || "BD",
             country_code: countryCode || "+880",
             account_type: "talent",
+            referral_code: ref || undefined,
           },
-          emailRedirectTo: `${window.location.origin}/app/feed`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Could not create your account. Please try again.");
 
-      // Stash referral for the auth callback to apply once the talent row exists & email is confirmed.
-      const ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral");
-      if (ref) {
-        localStorage.setItem("pending_ref", ref);
-      }
-
-      // Welcome email moved to /auth/callback (post email-confirmation).
+      // Welcome email + post-signup side effects fire from /auth/callback after email confirmation.
       toast.success("Almost done — check your email to verify your account.");
       return true;
     } catch (err: any) {
