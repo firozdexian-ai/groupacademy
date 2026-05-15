@@ -35,7 +35,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
   useEffect(() => {
     if (open && itemId) {
       setPicked(null); setDraft(null); setNotes("");
-      generate(kind, itemId, flags);
+      generate({ kind, itemId, flags });
     }
     if (!open) reset();
   }, [open, itemId, kind, flags.join(","), generate, reset]);
@@ -51,7 +51,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
     if (!itemId || !draft) return;
     setApplying(true);
     try {
-      const res = await apply(kind, itemId, draft, flags);
+      const res = await apply({ kind, itemId, patch: draft, flagsAddressed: flags });
       toast.success("Item updated. Serve counters reset.");
       onApplied?.();
       onOpenChange(false);
@@ -97,7 +97,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
               <Button
                 size="sm" variant="outline"
                 disabled={loading || !itemId}
-                onClick={() => itemId && generate(kind, itemId, flags, notes)}
+                onClick={() => itemId && generate({ kind, itemId, flags, notes })}
               >
                 Regenerate with notes
               </Button>
@@ -115,7 +115,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
             <Card><CardContent className="py-4 text-center space-y-2">
               <AlertTriangle className="h-5 w-5 mx-auto text-destructive" />
               <p className="text-xs text-muted-foreground">{error}</p>
-              <Button size="sm" variant="outline" onClick={() => itemId && generate(kind, itemId, flags, notes)}>
+              <Button size="sm" variant="outline" onClick={() => itemId && generate({ kind, itemId, flags, notes })}>
                 Retry
               </Button>
             </CardContent></Card>
