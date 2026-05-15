@@ -261,7 +261,7 @@ export function ReviewQueueRunner() {
       <Card className="rounded-3xl">
         <CardContent className="py-8 text-center space-y-2">
           <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" size="sm" onClick={reload}>
+          <Button variant="outline" size="sm" onClick={() => reload()}>
             <RefreshCw className="h-3 w-3 mr-2" /> Retry
           </Button>
         </CardContent>
