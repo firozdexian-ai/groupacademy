@@ -74,9 +74,11 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
   }, []);
 
   const sendBoost = async (qty: number) => {
+    // useHype debounces toasts and aggregates them, so we can fire in parallel.
+    // Stagger slightly to satisfy the 120ms tap-lock inside useHype.
     for (let i = 0; i < qty; i++) {
-      // sequential to keep credit math safe
-      await hype();
+      void hype();
+      await new Promise((r) => setTimeout(r, 130));
     }
     setHasHyped(true);
   };
