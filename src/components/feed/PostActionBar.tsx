@@ -8,6 +8,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useHype } from "@/hooks/useHype";
+import { usePostReactions } from "@/hooks/usePostReactions";
+import { ReactionBar } from "./ReactionBar";
 import { CommentList } from "./CommentList";
 import { HypeBoostSheet } from "./HypeBoostSheet";
 import { recordShare } from "@/hooks/useCreatorAnalytics";
