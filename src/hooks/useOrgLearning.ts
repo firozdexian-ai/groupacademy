@@ -10,10 +10,16 @@ import { toast } from "sonner";
  */
 
 export interface OrgLearningHealth {
-  completion_rate: number;
-  active_learners: number;
-  total_hours_spent: number;
-  overdue_assignments_count: number;
+  completion_rate?: number;
+  active_learners?: number;
+  total_hours_spent?: number;
+  overdue_assignments_count?: number;
+  active?: number;
+  on_track_pct?: number;
+  overdue?: number;
+  completed?: number;
+  wallet_balance?: number;
+  credits_burned_mtd?: number;
 }
 
 export interface OrgAssignment {
@@ -30,11 +36,12 @@ export interface OrgAssignment {
 }
 
 export interface OrgTeamMastery {
-  talent_id: string;
-  talent_name: string;
-  topic_tag: string;
-  mastery_score: number;
-  last_evaluated_at: string;
+  talent_id?: string;
+  talent_name?: string;
+  user_id?: string;
+  topic_tag?: string;
+  mastery_score?: number;
+  last_evaluated_at?: string;
 }
 
 export interface OrgSeat {
@@ -69,7 +76,7 @@ export function useOrgLearningHealth(companyId: string | undefined) {
         console.error("[Digital Workforce] FAULT: org_learning_health calculation rejected.", error);
         throw error;
       }
-      return data as OrgLearningHealth;
+      return data as unknown as OrgLearningHealth;
     },
   });
 }
@@ -110,7 +117,7 @@ export function useOrgTeamMastery(companyId: string | undefined, contentId?: str
         console.error("[Digital Workforce] FAULT: org_team_mastery query rejected.", error);
         throw error;
       }
-      return (data as OrgTeamMastery[]) ?? [];
+      return ((data as unknown) as OrgTeamMastery[]) ?? [];
     },
   });
 }
