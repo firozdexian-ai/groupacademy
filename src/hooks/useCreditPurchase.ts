@@ -1,12 +1,11 @@
 import { useSyncExternalStore } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Global "Buy Credits" sheet opener.
- * Lets any component anywhere in the talent app trigger the
- * CreditPurchaseSheet (mounted once in TalentAppShell).
- *
- * Implemented with a tiny external store + useSyncExternalStore
- * to avoid pulling in a state library.
+ * GroUp Academy: Credit Purchase UI Sheet State Orchestrator (V5.5.0)
+ * CTO Reference: Global programmatic interceptor for triggering monetization viewports.
+ * Architecture: Digital Workforce enabled - logs checkout node entry telemetry to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (2026 Launch Candidate).
  */
 
 let isOpenState = false;
@@ -21,9 +20,39 @@ const subscribe = (fn: () => void) => {
 
 const getSnapshot = () => isOpenState;
 
+/**
+ * Mutates state nodes globally across the single-page shell execution timeline.
+ */
 const setOpen = (next: boolean) => {
   if (isOpenState === next) return;
   isOpenState = next;
+
+  // Digital Workforce Telemetry: Enqueue monetization intent signals on initialization
+  if (next) {
+    try {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          // HUD: Pipeline conversion track telemetry dispatch
+          supabase
+            .from("platform_events" as any)
+            .insert({
+              event_type: "monetization_intent_detected",
+              user_id: user.id,
+              metadata: {
+                surface: "CreditPurchaseSheet",
+                timestamp: new Date().toISOString(),
+              },
+            })
+            .then(() => {
+              console.log("[Digital Workforce] SIGNAL: Monetization intent enqueued for lead tracking.");
+            });
+        }
+      });
+    } catch {
+      /* Safeguard backdrop tracing execution loops */
+    }
+  }
+
   listeners.forEach((l) => l());
 };
 
@@ -32,6 +61,7 @@ export const closeCreditPurchase = () => setOpen(false);
 
 export function useCreditPurchase() {
   const isOpen = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
   return {
     isOpen,
     open: openCreditPurchase,
