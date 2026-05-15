@@ -64,7 +64,7 @@ function Sparkline({ points }: { points: Array<{ date: string; quiz: number; sce
 }
 
 export function AdaptiveSnapshotCard({ moduleId, contentId, compact, className }: AdaptiveSnapshotCardProps) {
-  const { data, loading } = useMasterySummary({ moduleId, contentId, days: 7 });
+  const { data, isLoading: loading } = useMasterySummary({ moduleId, contentId, days: 7 });
 
   const nextDueLabel = useMemo(() => {
     if (!data?.totals.next_due_at) return null;
