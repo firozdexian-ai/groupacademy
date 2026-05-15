@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "./useTalent";
 
 /**
- * GroUp Academy: Pedagogical Telemetry Sentinel
- * CTO Reference: Authoritative controller for talent engagement and streak metrics.
- * Logic: Implements temporal streak calculation and relational hydration.
+ * GroUp Academy: Pedagogical Telemetry Sentinel (V5.6.0)
+ * CTO Reference: Unified analytical controller tracking gamified metrics and streaks.
+ * Architecture: Digital Workforce enabled - streams lookup errors directly to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Variant).
  */
 
-interface EnrollmentContent {
+export interface EnrollmentContent {
   id: string;
   title: string;
   slug: string;
@@ -18,7 +19,7 @@ interface EnrollmentContent {
   estimated_hours: number | null;
 }
 
-interface CourseModule {
+export interface CourseModule {
   id: string;
   title: string;
   display_order: number | null;
@@ -32,10 +33,10 @@ export interface ActiveEnrollment {
   current_module_id: string | null;
   last_accessed_at: string | null;
   content: EnrollmentContent | null;
-  modules?: CourseModule[];
+  modules: CourseModule[];
 }
 
-interface LearningActivity {
+export interface LearningActivity {
   activity_date: string;
   minutes_learned: number;
   modules_completed: number;
@@ -53,33 +54,50 @@ export interface LearningStats {
 
 /**
  * HUD: STREAK_ALGORITHM
- * Logic: Calculates consecutive daily activity artifacts.
+ * Logic: Analyzes activity records to compile consecutive daily participation streaks.
+ * Hardened to prevent client timezone desynchronization.
  */
 function calculateStreak(activities: LearningActivity[]): number {
   if (!activities.length) return 0;
 
-  const sorted = [...activities].sort(
-    (a, b) => new Date(b.activity_date).getTime() - new Date(a.activity_date).getTime(),
-  );
+  // Deduplicate and normalize timestamps to absolute calendar days (Midnight Boundary)
+  const uniqueDates = new Set<string>();
+  activities.forEach((a) => {
+    if (a.activity_date) {
+      const dateStr = a.activity_date.split("T")[0]; // Fast ISO-date isolate
+      uniqueDates.add(dateStr);
+    }
+  });
 
+  const sortedDates = Array.from(uniqueDates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  // Establish regional boundary markers relative to local user context (Dhaka Baseline)
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  // If the user hasn't learned today or yesterday, the consecutive streak has broken
+  if (sortedDates[0] !== todayStr && sortedDates[0] !== yesterdayStr) {
+    return 0;
+  }
 
   let streak = 0;
-  let currentDate = today;
+  let expectedDate = new Date(sortedDates[0]);
 
-  for (const activity of sorted) {
-    const activityDate = new Date(activity.activity_date);
-    activityDate.setHours(0, 0, 0, 0);
+  for (const dateStr of sortedDates) {
+    const currentActDate = new Date(dateStr);
+    const diffTime = expectedDate.getTime() - currentActDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-    const diffDays = Math.floor((currentDate.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    // SYNC: Check for today or immediate previous day (consecutive)
-    if (diffDays === 0 || diffDays === 1) {
+    if (diffDays === 0) {
       streak++;
-      currentDate = activityDate;
-    } else if (diffDays > 1) {
-      break; // Gap detected: Streak termination
+      // Set target parameters back precisely by 1 day
+      expectedDate.setDate(expectedDate.getDate() - 1);
+    } else if (diffDays > 0) {
+      break; // Gap encountered: consecutive chain broken
     }
   }
 
@@ -89,11 +107,17 @@ function calculateStreak(activities: LearningActivity[]): number {
 export function useLearningStats(): LearningStats {
   const { talent } = useTalent();
 
-  // PHASE: ENROLLMENT_HYDRATION
+  // --------------------------------------------------------
+  // PHASE 1: Combined Relational Enrollment Hydration
+  // Optimizes network pipeline by resolving N+1 database hits.
+  // --------------------------------------------------------
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
     queryKey: ["learning-stats-enrollments", talent?.id],
-    queryFn: async () => {
-      const { data: enrollments, error } = await supabase
+    enabled: !!talent?.id,
+    staleTime: 45000, // 45s analytics hydration window
+    queryFn: async (): Promise<ActiveEnrollment[]> => {
+      // HUD: CORE_SINGLE_ROUNDTRIP_RELATIONAL_SELECT
+      const { data, error } = await supabase
         .from("enrollments")
         .select(
           `
@@ -109,7 +133,13 @@ export function useLearningStats(): LearningStats {
             thumbnail_url,
             content_type,
             modules_count,
-            estimated_hours
+            estimated_hours,
+            modules:course_modules (
+              id,
+              title,
+              display_order,
+              estimated_time_minutes
+            )
           )
         `,
         )
@@ -118,50 +148,73 @@ export function useLearningStats(): LearningStats {
         .order("last_accessed_at", { ascending: false, nullsFirst: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Digital Workforce] ANOMALY: Failed to compile unified enrollment analytics schema.", error);
+        throw error;
+      }
 
-      return await Promise.all(
-        (enrollments || []).map(async (enrollment) => {
-          if (!enrollment.content) return enrollment as unknown as ActiveEnrollment;
+      // Format nested structure to conform strictly to target frontend interface definitions
+      return (data || []).map((row: any) => {
+        const contentRaw = row.content;
+        let mappedModules: CourseModule[] = [];
 
-          const contentData = enrollment.content as unknown as EnrollmentContent;
-          const { data: modules } = await supabase
-            .from("course_modules")
-            .select("id, title, display_order, estimated_time_minutes")
-            .eq("content_id", contentData.id)
-            .order("display_order");
+        if (contentRaw && Array.isArray(contentRaw.modules)) {
+          mappedModules = [...contentRaw.modules].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        }
 
-          return {
-            ...enrollment,
-            content: contentData,
-            modules: modules || [],
-          } as ActiveEnrollment;
-        }),
-      );
+        return {
+          id: row.id,
+          status: row.status,
+          progress: Number(row.progress || 0),
+          current_module_id: row.current_module_id,
+          last_accessed_at: row.last_accessed_at,
+          content: contentRaw
+            ? {
+                id: contentRaw.id,
+                title: contentRaw.title,
+                slug: contentRaw.slug,
+                thumbnail_url: contentRaw.thumbnail_url,
+                content_type: contentRaw.content_type,
+                modules_count: contentRaw.modules_count,
+                estimated_hours: contentRaw.estimated_hours,
+              }
+            : null,
+          modules: mappedModules,
+        };
+      });
     },
-    enabled: !!talent?.id,
   });
 
-  // PHASE: STATUS_AGGREGATION
+  // --------------------------------------------------------
+  // PHASE 2: Graduation & Completed Counter Metrics
+  // --------------------------------------------------------
   const { data: completedCount = 0 } = useQuery({
     queryKey: ["learning-stats-completed", talent?.id],
-    queryFn: async () => {
+    enabled: !!talent?.id,
+    staleTime: 60000,
+    queryFn: async (): Promise<number> => {
       const { count, error } = await supabase
         .from("enrollments")
         .select("*", { count: "exact", head: true })
         .eq("talent_id", talent!.id)
         .eq("status", "completed");
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Digital Workforce] ANOMALY: Completed courses aggregation check failed.", error);
+        throw error;
+      }
       return count || 0;
     },
-    enabled: !!talent?.id,
   });
 
-  // PHASE: ACTIVITY_LEDGER_SYNC
+  // --------------------------------------------------------
+  // PHASE 3: Activity Tracking History Ledgers
+  // --------------------------------------------------------
   const { data: activities = [] } = useQuery({
     queryKey: ["learning-activity", talent?.id],
-    queryFn: async () => {
+    enabled: !!talent?.id,
+    staleTime: 30000,
+    queryFn: async (): Promise<LearningActivity[]> => {
       const { data, error } = await supabase
         .from("learning_activity")
         .select("activity_date, minutes_learned, modules_completed, stages_completed")
@@ -169,16 +222,21 @@ export function useLearningStats(): LearningStats {
         .order("activity_date", { ascending: false })
         .limit(30);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Digital Workforce] ANOMALY: Learning activity ledger fetch dropped.", error);
+        throw error;
+      }
       return data as LearningActivity[];
     },
-    enabled: !!talent?.id,
   });
 
-  // HUD: METRIC_COMPILATION
+  // --------------------------------------------------------
+  // HUD: METRIC COMPILATION SUMMARY PACK
+  // --------------------------------------------------------
   const currentStreak = calculateStreak(activities);
-  const totalHoursLearned = activities.reduce((sum, a) => sum + (a.minutes_learned || 0), 0) / 60;
-  const modulesCompleted = activities.reduce((sum, a) => sum + (a.modules_completed || 0), 0);
+  const totalMinutes = activities.reduce((sum, act) => sum + (act.minutes_learned || 0), 0);
+  const totalHoursLearned = totalMinutes / 60;
+  const modulesCompleted = activities.reduce((sum, act) => sum + (act.modules_completed || 0), 0);
 
   return {
     currentStreak,
