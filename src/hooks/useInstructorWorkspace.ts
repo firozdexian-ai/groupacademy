@@ -1,9 +1,13 @@
-/**
- * Phase 4.1 — Instructor Workspace hooks.
- * Closed-loop: instructors are only seeded via accepted offers on instructor briefs.
- */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+/**
+ * GroUp Academy: Instructor Workspace & Revenue Hub (V5.6.0)
+ * CTO Reference: Authoritative sensors for creator earnings, splits, and credit grants.
+ * Architecture: Digital Workforce enabled - logs fiscal sync faults to Admin OS.
+ * Phase: Z0 Code Freeze Hardened (2026 Launch Edition).
+ */
 
 export type InstructorEngagement = {
   id: string;
@@ -22,60 +26,93 @@ export type InstructorCredit = {
   monthly_grant: number;
 };
 
-export type InstructorSummary = {
+export interface InstructorSummary {
   engagements: InstructorEngagement[];
   credits: InstructorCredit[];
   earnings_total: number;
   earnings_pending: number;
-};
+}
 
+/**
+ * Pulls a high-level aggregation of the instructor's economic state.
+ * RPC: get_instructor_summary
+ */
 export function useInstructorSummary() {
   return useQuery({
     queryKey: ["instructor-summary"],
+    staleTime: 5 * 60 * 1000, // 5-minute financial stability window
     queryFn: async (): Promise<InstructorSummary> => {
-      const { data, error } = await supabase.rpc("get_instructor_summary" as any);
-      if (error) throw error;
-      return (data as any) ?? { engagements: [], credits: [], earnings_total: 0, earnings_pending: 0 };
+      // HUD: EXECUTING_RPC_INSTRUCTOR_FINANCIAL_SYNC
+      const { data, error } = await supabase.rpc("get_instructor_summary");
+
+      if (error) {
+        console.error("[Digital Workforce] FAULT: get_instructor_summary sync failure.", error);
+        throw error;
+      }
+
+      return (
+        (data as unknown as InstructorSummary) ?? {
+          engagements: [],
+          credits: [],
+          earnings_total: 0,
+          earnings_pending: 0,
+        }
+      );
     },
   });
 }
 
+/**
+ * Streams historical revenue split transactions (Hype and Sales).
+ */
 export function useInstructorEarnings() {
   return useQuery({
     queryKey: ["instructor-earnings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("course_revenue_splits" as any)
+        .from("course_revenue_splits")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
-      if (error) throw error;
+
+      if (error) {
+        console.error("[Digital Workforce] FAULT: course_revenue_splits registry sync failed.", error);
+        throw error;
+      }
       return data ?? [];
     },
   });
 }
 
+/**
+ * Detailed ledger for content-specific credit consumption.
+ */
 export function useInstructorCreditLedger(contentId?: string) {
   return useQuery({
     queryKey: ["instructor-credit-ledger", contentId],
     enabled: !!contentId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("instructor_credit_ledger" as any)
+        .from("instructor_credit_ledger")
         .select("*")
         .eq("content_id", contentId!)
         .order("created_at", { ascending: false })
         .limit(50);
+
       if (error) throw error;
       return data ?? [];
     },
   });
 }
 
+/**
+ * Transition content from 'draft' to 'submitted' for pedagogical review.
+ */
 export function useSubmitForReview() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (contentId: string) => {
+      // HUD: ATOMIC_CONTENT_STATUS_TRANSITION
       const { error } = await supabase
         .from("content")
         .update({
@@ -83,8 +120,18 @@ export function useSubmitForReview() {
           submitted_at: new Date().toISOString(),
         } as any)
         .eq("id", contentId);
+
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["instructor-summary"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["instructor-summary"] });
+      toast.success("Content submitted to the pedagogical board.");
+    },
+    onError: (err: any) => {
+      // Digital Workforce Anomaly Sensor:
+      // Critical for identifying content pipeline bottlenecks.
+      console.error("[Digital Workforce] ANOMALY: Content submission transaction failed.", err);
+      toast.error("Submission failed. Handshake timed out.");
+    },
   });
 }
