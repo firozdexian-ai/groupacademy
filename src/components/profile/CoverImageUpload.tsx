@@ -82,7 +82,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
 
       const {
         data: { publicUrl },
-      } = supabase.supabase.storage.from("portfolio-uploads").getPublicUrl(fullTargetObjectStoragePathStr);
+      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fullTargetObjectStoragePathStr);
 
       // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
@@ -141,7 +141,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
     <div className="space-y-4 text-left max-w-full w-full transform-gpu antialiased">
       {/* HUD LEVEL 1: DRAG CAPTURE INTERACTIVE PREVIEW PANEL EDGE */}
       <div
-        type="button"
+        role="button"
         onClick={() => !isUploading && fileInputRef.current?.click()}
         className={cn(
           "relative w-full h-40 rounded-xl overflow-hidden border border-dashed transition-all duration-300 group/cover outline-none focus-visible:ring-1 focus-visible:ring-ring shadow-sm flex items-center justify-center select-none",
