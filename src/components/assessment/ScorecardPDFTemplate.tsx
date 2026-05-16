@@ -173,7 +173,7 @@ export function ScorecardPDFTemplate({ assessment }: { assessment: Assessment })
               {sanitizedStringsLedger.fullNameUppercase}
             </p>
           </div>
-          <div style={{ textAlign: "right", shrink: 0 }}>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
             <p
               style={{
                 margin: 0,
