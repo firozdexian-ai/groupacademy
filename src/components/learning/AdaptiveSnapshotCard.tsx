@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Brain, Sparkles, ChevronRight, Clock, MessageSquare } from "lucide-react";
 import { useMasterySummary } from "@/hooks/useMasterySummary";
 import { formatDistanceToNowStrict } from "date-fns";
