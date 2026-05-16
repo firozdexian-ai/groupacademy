@@ -182,7 +182,7 @@ export function TracksTab() {
                 return (
                   <Card
                     key={enrollmentItem.id}
-                    type="button"
+                   
                     className="group relative cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm select-none sm:select-text text-left w-full min-w-0 flex flex-col overflow-hidden transition-all duration-300 transform-gpu hover:border-primary/20 hover:bg-card/80 outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     onClick={() =>
                       handleTrackNavigationRedirect(
@@ -230,7 +230,7 @@ export function TracksTab() {
                 return (
                   <Card
                     key={enrollmentItem.id}
-                    type="button"
+                   
                     className="group relative cursor-pointer rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.001] text-left shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden transition-all duration-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 flex items-center"
                     onClick={() =>
                       handleTrackNavigationRedirect(
@@ -277,7 +277,7 @@ export function TracksTab() {
             </p>
             <Button
               size="sm"
-              type="button"
+             
               onClick={() => {
                 trackEvent("academy_tracks_cold_start_browse_catalog_clicked");
                 setSelectedCategory("executive");
@@ -345,7 +345,7 @@ export function TracksTab() {
               return (
                 <Card
                   key={schoolItem.id}
-                  type="button"
+                 
                   className="group relative cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden transition-all duration-300 transform-gpu hover:border-primary/20 hover:bg-card/80 flex flex-col justify-between text-left"
                   onClick={() =>
                     handleTrackNavigationRedirect(
@@ -418,7 +418,7 @@ export function TracksTab() {
           return (
             <button
               key={key}
-              type="button"
+             
               onClick={() => setSelectedCategory(key)}
               className={cn(
                 "flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-ring shadow-none",
