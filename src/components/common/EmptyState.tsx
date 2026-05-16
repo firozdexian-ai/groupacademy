@@ -61,14 +61,14 @@ export function EmptyState({
       </div>
 
       {/* ACTION TRIGGER SECTOR: DEFENSIVE EXPLICIT BEHAVIOR LOOKUPS */}
-      {actionLabel && onActionClick && (
+      {resolvedActionLabel && resolvedActionClick && (
         <Button
           size="sm"
-          type="button" // Enforces explicit protection blocking parental form submission triggers
-          onClick={onActionClick}
+          type="button"
+          onClick={resolvedActionClick}
           className="h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-6 shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-[0.98]"
         >
-          {String(actionLabel).trim()}
+          {String(resolvedActionLabel).trim()}
         </Button>
       )}
     </div>
