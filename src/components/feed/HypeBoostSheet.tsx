@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Flame, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
