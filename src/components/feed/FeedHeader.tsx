@@ -7,7 +7,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCareerLevel } from "@/hooks/useCareerLevel";
 import { ProfileCardBackdrop } from "./ProfileCardBackdrop";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { supabase } from "@/integrations/supabase/client";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
