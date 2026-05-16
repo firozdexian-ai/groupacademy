@@ -1,38 +1,35 @@
 import * as React from "react";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Binary Logic Gate
- * High-fidelity state controller for mutually exclusive system parameters.
- * Synchronized with the 2026 'Executive Logic' interaction physics.
+ * GroUp Academy: Authoritative Binary Logic Gate Interface Node (Switch)
+ * Hardened WAI-ARIA compliant boolean switch ensuring zero visual layout shift and absolute token symmetry.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
  */
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
+    ref={ref}
     className={cn(
-      "peer inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-500",
-      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10",
-      "disabled:cursor-not-allowed disabled:opacity-20",
-      "data-[state=checked]:bg-primary data-[state=unchecked]:bg-primary/10 data-[state=unchecked]:backdrop-blur-sm",
+      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors duration-150 outline-none select-none antialiased transform-gpu focus:outline-none focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-20 disabled:pointer-events-none",
+      "data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted/60",
       className,
     )}
     {...props}
-    ref={ref}
   >
+    {/* HUD LEVEL 1: ISOLATED KINETIC THUMB STATE VECTOR INDICATOR */}
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-lg bg-background shadow-xl ring-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-        "data-[state=checked]:translate-x-5 data-[state=checked]:scale-110",
-        "data-[state=unchecked]:translate-x-0.5",
-        "shadow-primary/5 group-hover:shadow-primary/20",
+        "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-xs transition-transform duration-150 ease-out transform-gpu shrink-0 p-0 m-0",
+        "data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[1px]",
       )}
     />
   </SwitchPrimitives.Root>
 ));
-Switch.displayName = SwitchPrimitives.Root.displayName;
+
+Switch.displayName = "Switch_Core_Binary_Gate_Node";
 
 export { Switch };

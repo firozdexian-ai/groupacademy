@@ -5,35 +5,32 @@ import { cn } from "@/lib/utils";
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 /**
- * Platform Logic: Event Disclosure Protocol
- * High-fidelity notification system for real-time system feedback and logic handshakes.
- * Synchronized with the 2026 'Executive Logic' depth and geometry tokens.
+ * GroUp Academy: Technical Event Disclosure Notification Protocol Interface (Toaster)
+ * Hardened toast layer optimizing multi-toast overlay stacks and protecting description fields from layout distortions.
+ * Version: Launch Candidate · Phase Z0 Lifecycle & Stack Bounds Locked
  */
-const Toaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({ className, ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className={cn("toaster group block antialiased select-none font-sans pointer-events-auto", className)}
       toastOptions={{
         classNames: {
           toast: cn(
-            "group toast",
-            // Executive Logic Geometry & Depth
-            "group-[.toaster]:bg-background/80 group-[.toaster]:backdrop-blur-2xl",
-            "group-[.toaster]:text-foreground group-[.toaster]:border-border/40",
-            "group-[.toaster]:shadow-[0_20px_50px_rgba(0,0,0,0.1)] group-[.toaster]:rounded-[28px]",
-            "group-[.toaster]:p-6 group-[.toaster]:gap-4",
+            "group toast w-full flex items-start gap-3 rounded-xl border border-border/40 bg-popover/95 text-popover-foreground backdrop-blur-md p-4 shadow-md text-left leading-none transform-gpu",
+            "data-[disabled='true']:pointer-events-none data-[disabled='true']:opacity-30",
           ),
-          title:
-            "group-[.toast]:font-black group-[.toast]:uppercase group-[.toast]:tracking-tighter group-[.toast]:text-sm",
+          title: "text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide block leading-none pt-0.5",
           description:
-            "group-[.toast]:text-[10px] group-[.toast]:font-bold group-[.toast]:uppercase group-[.toast]:tracking-[0.2em] group-[.toast]:text-muted-foreground/60 group-[.toast]:italic",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-xl group-[.toast]:font-black group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:tracking-widest group-[.toast]:h-10 group-[.toast]:px-4",
-          cancelButton:
-            "group-[.toast]:bg-muted/50 group-[.toast]:text-muted-foreground group-[.toast]:rounded-xl group-[.toast]:font-black group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:tracking-widest group-[.toast]:h-10 group-[.toast]:px-4",
+            "text-[11px] font-mono font-medium leading-normal text-muted-foreground/60 block pt-1 select-text selection:bg-primary/10",
+          actionButton: cn(
+            "h-8 px-3 rounded-lg font-mono text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shrink-0 cursor-pointer pt-0.5",
+          ),
+          cancelButton: cn(
+            "h-8 px-3 rounded-lg font-mono text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-accent border border-border/40 bg-background/50 transition-colors shrink-0 cursor-pointer pt-0.5",
+          ),
         },
       }}
       {...props}
