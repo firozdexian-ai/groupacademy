@@ -170,7 +170,7 @@ export function CareerTracksPreview() {
             return (
               <Card
                 key={trackItem.id}
-                type="button"
+                
                 className={cn(
                   "group relative cursor-pointer transition-all duration-300 shrink-0 min-w-[110px] sm:w-[125px] rounded-2xl border border-border/40 overflow-hidden bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring transform-gpu text-center",
                   "hover:shadow-md hover:-translate-y-1 active:scale-95",
