@@ -3,13 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Briefcase, Zap, Compass } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Contextual Opportunity Recommender
- * CTO Reference: Authoritative engine for tier-based job fallbacks.
- */
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { Zap, Compass } from "lucide-react";
 
 interface RelatedJobsProps {
   currentJobId: string;
@@ -27,6 +22,11 @@ function extractInstitutionalGeography(location: string | null): string | null {
   return countryCluster.length >= 2 ? countryCluster : null;
 }
 
+/**
+ * GroUp Academy: Contextual Opportunity Recommender (RelatedJobs)
+ * CTO Reference: Authoritative tiered engine for institutional, regional, and fallback job matching.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }: RelatedJobsProps) {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobCardData[]>([]);
@@ -38,53 +38,61 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
   }, [currentJobId, companyName, location]);
 
   const executeDiscoveryProtocol = async () => {
+    if (!currentJobId || !companyName) return;
+
     setLoading(true);
+    trackEvent("opportunity_discovery_initiated", { currentJobId, companyName });
+
     try {
       const trajectoryBuffer: JobCardData[] = [];
       const filterRegistry = new Set<string>([currentJobId]);
+
       const baseFields =
-        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max";
+        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency";
 
       // PHASE 1: Institutional Core Sync (Same Company)
-      const { data: institutionalNodes } = await supabase
+      const { data: institutionalNodes, error: instError } = await supabase
         .from("jobs")
         .select(baseFields)
-        .ilike("company_name", companyName)
+        .ilike("company_name", companyName.trim())
         .neq("id", currentJobId)
         .eq("is_active", true)
         .limit(3);
 
+      if (instError) throw instError;
+
       if (institutionalNodes?.length) {
         institutionalNodes.forEach((node) => {
-          trajectoryBuffer.push(node);
+          trajectoryBuffer.push(node as unknown as JobCardData);
           filterRegistry.add(node.id);
         });
-        setSectionTitle(`Institutional_Sync: ${companyName.toUpperCase()}`);
+        setSectionTitle(`Institutional_Sync: ${companyName.trim().toUpperCase()}`);
       }
 
       // PHASE 2: Geographic Vector Sync (Same Country)
       const targetCountry = extractInstitutionalGeography(location);
       if (targetCountry && trajectoryBuffer.length < 6) {
         const quota = 6 - trajectoryBuffer.length;
-        let geoQuery = supabase
+        const exclusionArray = Array.from(filterRegistry);
+
+        // Optimization: Use array operations instead of iterative .neq loops
+        const { data: geographicNodes, error: geoError } = await supabase
           .from("jobs")
           .select(baseFields)
-          .ilike("location", `%${targetCountry}%`)
+          .ilike("location", `%${targetCountry.trim()}%`)
           .eq("is_active", true)
+          .not("id", "in", `(${exclusionArray.join(",")})`)
           .limit(quota);
 
-        filterRegistry.forEach((id) => {
-          geoQuery = geoQuery.neq("id", id);
-        });
+        if (geoError) throw geoError;
 
-        const { data: geographicNodes } = await geoQuery;
         if (geographicNodes?.length) {
           geographicNodes.forEach((node) => {
-            trajectoryBuffer.push(node);
+            trajectoryBuffer.push(node as unknown as JobCardData);
             filterRegistry.add(node.id);
           });
           if (!institutionalNodes?.length) {
-            setSectionTitle(`Regional_Sync: ${targetCountry.toUpperCase()}`);
+            setSectionTitle(`Regional_Sync: ${targetCountry.trim().toUpperCase()}`);
           }
         }
       }
@@ -92,36 +100,56 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
       // PHASE 3: High-Intensity Fallback (Featured Nodes)
       if (trajectoryBuffer.length < 3) {
         const fallbackQuota = 6 - trajectoryBuffer.length;
-        let fallbackQuery = supabase
+        const exclusionArray = Array.from(filterRegistry);
+
+        const { data: featuredNodes, error: fallbackError } = await supabase
           .from("jobs")
           .select(baseFields)
           .eq("is_featured", true)
           .eq("is_active", true)
+          .not("id", "in", `(${exclusionArray.join(",")})`)
           .order("created_at", { ascending: false })
           .limit(fallbackQuota);
 
-        filterRegistry.forEach((id) => {
-          fallbackQuery = fallbackQuery.neq("id", id);
-        });
+        if (fallbackError) throw fallbackError;
 
-        const { data: featuredNodes } = await fallbackQuery;
         if (featuredNodes?.length) {
-          featuredNodes.forEach((node) => trajectoryBuffer.push(node));
+          featuredNodes.forEach((node) => trajectoryBuffer.push(node as unknown as JobCardData));
           if (!institutionalNodes?.length && !targetCountry) {
             setSectionTitle("Strategic_Deployments");
           }
         }
       }
 
-      setJobs(trajectoryBuffer.slice(0, 6));
-    } catch (err) {
-      console.error("DISCOVERY_ENGINE_FAULT:", err);
+      const finalizedCollection = trajectoryBuffer.slice(0, 6);
+      setJobs(finalizedCollection);
+
+      trackEvent("opportunity_discovery_success", {
+        currentJobId,
+        yieldedCount: finalizedCollection.length,
+        strategyMode: sectionTitle,
+      });
+    } catch (err: any) {
+      const exceptionMsg = err instanceof Error ? err.message : String(err);
+
+      trackError(exceptionMsg, {
+        component: "RelatedJobs",
+        action: "execute_discovery_protocol",
+        currentJobId,
+        companyName,
+      });
+
+      setSectionTitle("Recommended_Syncs");
     } finally {
       setLoading(false);
     }
   };
 
   const initializeJobHandshake = (jobId: string) => {
+    if (!jobId) return;
+
+    trackEvent("opportunity_discovery_navigation_redirect", { targetJobId: jobId, prefixMode: linkPrefix });
+
     if (linkPrefix === "/app/jobs") {
       navigate(`${linkPrefix}/${jobId}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -130,45 +158,53 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="mt-12 space-y-6">
-        <Skeleton className="h-6 w-64 bg-muted/20 rounded-full" />
+      <div className="mt-12 space-y-6 select-none w-full animate-in fade-in duration-200">
+        <Skeleton className="h-5 w-56 bg-muted/30 rounded-lg opacity-80" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-44 rounded-[28px] bg-muted/10" />
+          {[1, 2, 3].map((skeletonIndex) => (
+            <Skeleton key={skeletonIndex} className="h-40 rounded-2xl bg-card/40 opacity-60" />
           ))}
         </div>
       </div>
     );
+  }
 
   if (jobs.length === 0) return null;
 
   return (
-    <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center justify-between mb-6 px-1">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 shadow-inner">
-            <Compass className="h-4 w-4 text-primary animate-pulse" />
+    <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full w-full">
+      {/* HUD: SECTION COMPLIANCE HEADER STRIP */}
+      <div className="flex items-center justify-between mb-5 px-0.5 select-none w-full">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="p-1.5 rounded-xl bg-primary/10 border border-primary/5 shadow-inner shrink-0">
+            <Compass className="h-4 w-4 text-primary animate-pulse stroke-[2.2]" />
           </div>
-          <h2 className="text-sm font-black uppercase italic tracking-widest text-foreground/80">{sectionTitle}</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-foreground/80 truncate">
+            {sectionTitle.replace(/_/g, " ")}
+          </h2>
         </div>
-        <div className="flex items-center gap-1 opacity-30">
-          <Zap className="h-3 w-3 fill-current" />
-          <span className="text-[8px] font-bold uppercase tracking-[0.3em]">Discovery_v3</span>
+        <div className="flex items-center gap-1 opacity-40 shrink-0 text-muted-foreground">
+          <Zap className="h-3 w-3 fill-primary/10 text-primary stroke-[2.2]" />
+          <span className="text-[9px] font-extrabold uppercase tracking-widest leading-none">Discovery Active</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {jobs.map((job) => (
-          <JobCard
-            key={job.id}
-            job={job}
-            variant="default"
-            className="hover:scale-[1.02] transition-transform duration-500 shadow-xl"
-            onClick={() => initializeJobHandshake(job.id)}
-          />
-        ))}
+      {/* COMPONENT CARDS COMPILING GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+        {jobs.map((jobItem) => {
+          if (!jobItem || !jobItem.id) return null;
+          return (
+            <JobCard
+              key={jobItem.id}
+              job={jobItem}
+              variant="default"
+              className="hover:shadow-md transition-all duration-300"
+              onClick={() => initializeJobHandshake(jobItem.id)}
+            />
+          );
+        })}
       </div>
     </section>
   );
