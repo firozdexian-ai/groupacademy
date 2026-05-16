@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, useMemo, ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useCredits } from "@/hooks/useCredits";
-import { useToast } from "@/components/ui/use-toast"; // Aligned to semantic toast tokens
+import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Globe } from "lucide-react";
 
 /**
  * GroUp Academy: Career Abroad Roadmap Builder Sheet (V5.6.0)
  * CTO Reference: Primary B2C intake funnel capturing prospective international student pipelines.
- * Architecture: Digital Workforce enabled - streams pipeline bottlenecks directly to Admin Chat.
- * Core Rule: 100 Credit Gated, enforces Automated Efficiency during execution loops.
+ * Architecture: Hardened overlay interaction locks preventing session exit interruptions.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
 
 export interface RoadmapBuilderSheetProps {
@@ -21,7 +21,18 @@ export interface RoadmapBuilderSheetProps {
   children: ReactNode;
 }
 
-export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: string; children: ReactNode }) {
+export interface IntakePayloadForm {
+  full_name: string;
+  field_of_study: string;
+  degree_level: "bachelors" | "masters" | "phd";
+  target_intake: string;
+  budget_level: "low" | "medium" | "high";
+  ielts_score: string;
+  gpa: string;
+  years_experience: string;
+}
+
+export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderSheetProps) {
   const [open, setOpen] = useState(false);
   const { balance, deductCustomAmount } = useCredits();
   const { toast } = useToast();
@@ -31,7 +42,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
   const ROADMAP_CREDIT_COST = 100;
 
   // Immutable Requirements: Intact data structures matching the database public schema
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<IntakePayloadForm>({
     full_name: "",
     field_of_study: "",
     degree_level: "masters",
@@ -42,13 +53,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
     years_experience: "0",
   });
 
-  /**
-   * PHASE: Orchestration_Handshake
-   * Declarative mutation model running serverless edge invocations safely.
-   * Leverages transaction error tracking signatures.
-   */
+  // --- ACTION: TRANSACTION_ISOLATED_MUTATION ---
   const roadmapMutation = useMutation({
-    mutationFn: async () => {
+    mutationKey: ["generate-abroad-roadmap", countryCode],
+    mutationFn: async (): Promise<{ roadmap_id: string }> => {
       // Pre-flight Fiscal Audit validation layer
       if (balance < ROADMAP_CREDIT_COST) {
         throw new Error("INSUFFICIENT_CREDITS: Wallet balance below target gate constraint.");
@@ -66,37 +74,50 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
         throw new Error("LEDGER_MUTATION_DENIED: Fiscal deduction transaction handshake rejected.");
       }
 
-      // HUD: CORE_SWARM_INVOCATION
+      // HUD: CORE_SWARM_INVOCATION_EDGE_ROUTING
       const { data, error } = await supabase.functions.invoke("ai-destination-agent", {
         body: {
           country_code: countryCode,
           intent: "roadmap",
           roadmap_payload: {
-            ...form,
+            full_name: form.full_name.trim(),
+            field_of_study: form.field_of_study.trim(),
+            degree_level: form.degree_level,
+            target_intake: form.target_intake.trim(),
+            budget_level: form.budget_level,
             ielts_score: form.ielts_score ? Number(form.ielts_score) : null,
-            years_experience: Number(form.years_experience) || 0,
+            gpa: form.gpa ? String(form.gpa).trim() : null,
+            years_experience: Math.max(0, Number(form.years_experience) || 0),
           },
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        throw error;
+      }
 
-      return data;
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data as { roadmap_id: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
         title: "🔥 Roadmap Generated!",
         description: `Successfully consumed ${ROADMAP_CREDIT_COST} credits from your profile wallet.`,
       });
 
-      // Synchronize state caches universally via React Query invalidation map keys
-      queryClient.invalidateQueries({ queryKey: ["talent-credits-balance"] });
-      queryClient.invalidateQueries({ queryKey: ["roadmap-leads"] });
+      // Synchronize state caches universally via React Query invalidation map keys before redirecting
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["talent-credits-balance"] }),
+        queryClient.invalidateQueries({ queryKey: ["roadmap-leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["talent-profile"] }),
+      ]);
 
       setOpen(false);
 
-      // Clean redirect route to matching personalized results deck viewport
+      // HUD: EXECUTING_PROGRAMMATIC_VIEWPORT_NAVIGATION
       window.location.assign(`/app/abroad/roadmap/${data.roadmap_id}`);
     },
     onError: (err: any) => {
@@ -104,7 +125,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
 
       if (msg.includes("INSUFFICIENT_CREDITS") || msg.includes("LEDGER_MUTATION_DENIED")) {
         toast({
-          title: "低 Wallet Deficit",
+          title: "Wallet Deficit",
           description: `This automated agent service requires ${ROADMAP_CREDIT_COST} credits. Please top up your balance.`,
           variant: "destructive",
         });
@@ -114,6 +135,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
           countryCode,
           formData: form,
           message: msg,
+          timestamp: new Date().toISOString(),
         });
 
         toast({
@@ -125,14 +147,28 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
     },
   });
 
-  const handleFormChange = (field: string, value: string) => {
+  const handleFormChange = (field: keyof IntakePayloadForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isPending = roadmapMutation.isPending;
+
+  // Intercept open modal toggle actions explicitly while credit transactions are moving down the wire
+  const handleOpenChange = (nextOpenState: boolean) => {
+    if (isPending) return; // Completely seals interaction borders against background process disruptions
+    setOpen(nextOpenState);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh] overflow-y-auto sm:max-w-xl mx-auto rounded-t-xl border-t">
+      <SheetContent
+        side="bottom"
+        // Secure interaction settings blocking modal swipe closes during background active transits
+        onPointerDownOutside={(e) => isPending && e.preventDefault()}
+        onEscapeKeyDown={(e) => isPending && e.preventDefault()}
+        className="h-[85vh] overflow-y-auto sm:max-w-xl mx-auto rounded-t-xl border-t select-none"
+      >
         <SheetHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-primary" />
@@ -146,8 +182,9 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
             <Label className="text-sm font-medium">Full Name</Label>
             <Input
               value={form.full_name}
+              disabled={isPending}
               onChange={(e) => handleFormChange("full_name", e.target.value)}
-              className="w-full h-10 transition-all focus:ring-2"
+              className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
             />
           </div>
 
@@ -156,9 +193,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
             <Label className="text-sm font-medium">Field of Study</Label>
             <Input
               value={form.field_of_study}
+              disabled={isPending}
               onChange={(e) => handleFormChange("field_of_study", e.target.value)}
               placeholder="e.g. Computer Science"
-              className="w-full h-10 transition-all focus:ring-2"
+              className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
             />
           </div>
 
@@ -166,9 +204,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
           <div className="space-y-1">
             <Label className="text-sm font-medium">Target Degree Level</Label>
             <select
-              className="w-full h-10 border rounded-md px-3 bg-background font-normal select-none shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              disabled={isPending}
+              className="w-full h-10 border rounded-md px-3 bg-background font-normal shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               value={form.degree_level}
-              onChange={(e) => handleFormChange("degree_level", e.target.value)}
+              onChange={(e) => handleFormChange("degree_level", e.target.value as any)}
             >
               <option value="bachelors">Bachelors Degree</option>
               <option value="masters">Masters Degree</option>
@@ -181,8 +220,9 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
             <Label className="text-sm font-medium">Target Intake Window</Label>
             <Input
               value={form.target_intake}
+              disabled={isPending}
               onChange={(e) => handleFormChange("target_intake", e.target.value)}
-              className="w-full h-10 transition-all focus:ring-2"
+              className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
             />
           </div>
 
@@ -190,9 +230,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
           <div className="space-y-1">
             <Label className="text-sm font-medium">Estimated Budget Level</Label>
             <select
-              className="w-full h-10 border rounded-md px-3 bg-background font-normal select-none shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              disabled={isPending}
+              className="w-full h-10 border rounded-md px-3 bg-background font-normal shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               value={form.budget_level}
-              onChange={(e) => handleFormChange("budget_level", e.target.value)}
+              onChange={(e) => handleFormChange("budget_level", e.target.value as any)}
             >
               <option value="low">Low Budget Scale</option>
               <option value="medium">Medium Budget Scale</option>
@@ -207,19 +248,21 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
               <Input
                 type="number"
                 step="0.5"
+                disabled={isPending}
                 value={form.ielts_score}
                 onChange={(e) => handleFormChange("ielts_score", e.target.value)}
                 placeholder="6.5"
-                className="w-full h-10 transition-all focus:ring-2"
+                className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium">Current CGPA</Label>
               <Input
+                disabled={isPending}
                 value={form.gpa}
                 onChange={(e) => handleFormChange("gpa", e.target.value)}
                 placeholder="3.50"
-                className="w-full h-10 transition-all focus:ring-2"
+                className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
               />
             </div>
           </div>
@@ -229,9 +272,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
             <Label className="text-sm font-medium">Professional Work Experience (Years)</Label>
             <Input
               type="number"
+              disabled={isPending}
               value={form.years_experience}
               onChange={(e) => handleFormChange("years_experience", e.target.value)}
-              className="w-full h-10 transition-all focus:ring-2"
+              className="w-full h-10 transition-all focus:ring-2 disabled:opacity-50"
             />
           </div>
 
@@ -239,11 +283,11 @@ export function RoadmapBuilderSheet({ countryCode, children }: { countryCode: st
           <div className="pt-2">
             <Button
               onClick={() => roadmapMutation.mutate()}
-              disabled={roadmapMutation.isPending}
-              className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99]"
+              disabled={isPending}
+              className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99] disabled:cursor-not-allowed"
             >
-              {roadmapMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Generate AI Roadmap ({ROADMAP_CREDIT_COST} Credits)
+              {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isPending ? "Configuring AI Swarm Pipeline..." : `Generate AI Roadmap (${ROADMAP_CREDIT_COST} Credits)`}
             </Button>
           </div>
         </div>
