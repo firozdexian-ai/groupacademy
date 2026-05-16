@@ -160,7 +160,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
       {safeExperienceEntriesList.length === 0 ? (
         /* COLD START COLD INVITATION ACTION FRAME */
         <div
-          type="button"
+          role="button"
           onClick={addExperienceNode}
           className="group border border-dashed border-border/40 rounded-xl p-8 sm:p-12 text-center select-none cursor-pointer bg-card/20 hover:bg-card/40 hover:border-border/80 transition-all w-full flex flex-col justify-center items-center py-12 overflow-hidden shadow-xs relative"
         >
