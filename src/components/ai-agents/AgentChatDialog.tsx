@@ -125,7 +125,8 @@ export function AgentChatDialog({
             const isUser = msg.role === "user";
 
             // Fix: Construct reference stable identification keys preventing token array re-render thrashing
-            const msgStableKey = msg.id ? String(msg.id) : `thread-node-${idx}-${msg.role}`;
+            const msgId = (msg as any).id;
+            const msgStableKey = msgId ? String(msgId) : `thread-node-${idx}-${msg.role}`;
 
             return (
               <div
