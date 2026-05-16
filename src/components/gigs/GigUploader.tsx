@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileIcon, ImageIcon, Video, Music, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -122,16 +123,8 @@ export function GigUploader({
             cacheControl: "3600",
             upsert: false,
             contentType: f.type || "application/octet-stream",
-            // Automated Efficiency: True network byte-stream conversion progress tracking
-            onUploadProgress: (progressEvent) => {
-              const totalBytesUploaded = progressEvent.loaded;
-              const totalBytesExpected = progressEvent.total;
-              if (totalBytesExpected > 0) {
-                const calculatedPercentage = Math.round((totalBytesUploaded / totalBytesExpected) * 100);
-                setProgress(calculatedPercentage);
-              }
-            },
           });
+          setProgress(Math.round(((i + 1) / files.length) * 100));
 
           if (error) {
             trackError(error, {
