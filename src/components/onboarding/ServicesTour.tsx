@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck,
   MessageSquare,
@@ -13,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 
@@ -24,167 +26,230 @@ const SERVICE_REGISTRY = [
   {
     icon: ClipboardCheck,
     name: "Career Readiness Audit",
-    description: "Get a personalised analysis of where your career stands and how to improve.",
-    cost: CREDIT_CONFIG.SERVICES.CAREER_ASSESSMENT.cost,
-    bgClass: "bg-blue-50",
-    iconColor: "text-blue-500",
+    description: "Get a personalized analysis of where your career stands and actionable feedback to improve.",
+    cost: CREDIT_CONFIG.SERVICES.CAREER_ASSESSMENT?.cost || 100,
+    bgClass: "bg-blue-500/10 border-blue-500/20",
+    iconColor: "text-blue-600 dark:text-blue-400",
   },
   {
     icon: MessageSquare,
     name: "AI Mock Interviews",
-    description: "Practise interviews with realistic simulations and instant feedback.",
-    cost: CREDIT_CONFIG.SERVICES.MOCK_INTERVIEW.cost,
-    bgClass: "bg-purple-50",
-    iconColor: "text-purple-500",
+    description: "Practice specialized interviews with realistic simulated agents and receive instant scoring.",
+    cost: CREDIT_CONFIG.SERVICES.MOCK_INTERVIEW?.cost || 150,
+    bgClass: "bg-purple-500/10 border-purple-500/20",
+    iconColor: "text-purple-600 dark:text-purple-400",
   },
   {
     icon: TrendingUp,
     name: "Salary Analysis",
-    description: "See your real market value with AI insights and negotiation tips.",
-    cost: CREDIT_CONFIG.SERVICES.SALARY_ANALYSIS.cost,
-    bgClass: "bg-emerald-50",
-    iconColor: "text-emerald-500",
+    description: "Evaluate your actual market compensation threshold with data insights and negotiation tactics.",
+    cost: CREDIT_CONFIG.SERVICES.SALARY_ANALYSIS?.cost || 100,
+    bgClass: "bg-emerald-500/10 border-emerald-500/20",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
     icon: Send,
     name: "Smart Job Applications",
-    description: "Speed up applications with AI-written cover letters tailored to each job.",
-    cost: CREDIT_CONFIG.SERVICES.JOB_APPLICATION.cost,
-    bgClass: "bg-orange-50",
-    iconColor: "text-orange-500",
+    description: "Accelerate custom submission pipelines with context-aware cover letters mapped to positions.",
+    cost: CREDIT_CONFIG.SERVICES.JOB_APPLICATION?.cost || 50,
+    bgClass: "bg-orange-500/10 border-orange-500/20",
+    iconColor: "text-orange-600 dark:text-orange-400",
   },
   {
     icon: Globe,
-    name: "Digital Portfolio",
-    description: "Generate a polished portfolio site to showcase your work.",
-    cost: CREDIT_CONFIG.SERVICES.PORTFOLIO.cost,
-    bgClass: "bg-rose-50",
-    iconColor: "text-rose-500",
+    name: "Digital Portfolio Engine",
+    description: "Construct a sleek, production-ready portfolio landing page to demonstrate tracking assets.",
+    cost: CREDIT_CONFIG.SERVICES.PORTFOLIO?.cost || 200,
+    bgClass: "bg-rose-500/10 border-rose-500/20",
+    iconColor: "text-rose-600 dark:text-rose-400",
   },
   {
     icon: Bot,
-    name: "AI Career Agents",
-    description: "Chat with specialised AI advisors for career guidance, anytime.",
-    cost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost,
-    bgClass: "bg-sky-50",
-    iconColor: "text-sky-500",
+    name: "AI Career Advisors",
+    description: "Consult with automated domain experts for persistent trajectory advice and guidance maps.",
+    cost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT?.cost || 20,
+    bgClass: "bg-sky-500/10 border-sky-500/20",
+    iconColor: "text-sky-600 dark:text-sky-400",
   },
 ];
 
 export function ServicesTour({ onComplete }: ServicesTourProps) {
+  const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const goNext = () => currentIndex < SERVICE_REGISTRY.length - 1 && setCurrentIndex(currentIndex + 1);
-  const goPrev = () => currentIndex > 0 && setCurrentIndex(currentIndex - 1);
+  // Monitor onboarding toolkit overview slide interactions via tracking metrics
+  useEffect(() => {
+    trackEvent("onboarding_services_tour_mounted");
+  }, []);
 
-  const currentService = SERVICE_REGISTRY[currentIndex];
-  const Icon = currentService.icon;
+  useEffect(() => {
+    trackEvent("onboarding_services_tour_slide_changed", {
+      slideIndex: currentIndex,
+      serviceName: SERVICE_REGISTRY[currentIndex]?.name,
+    });
+  }, [currentIndex]);
+
+  const goNext = () => {
+    if (currentIndex < SERVICE_REGISTRY.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
+
+  const handleFinishTour = async () => {
+    trackEvent("onboarding_services_tour_completed");
+    try {
+      // Automated Efficiency: Invalidate baseline states to refresh dashboard content layout frames instantly
+      await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+      onComplete();
+    } catch (err) {
+      trackError(err, { component: "ServicesTour", action: "execute_on_complete_callback" });
+      onComplete(); // Safe fallback
+    }
+  };
+
+  const currentService = SERVICE_REGISTRY[currentIndex] || SERVICE_REGISTRY[0];
+  const Icon = currentService.icon || Bot;
   const isTerminalNode = currentIndex === SERVICE_REGISTRY.length - 1;
 
   return (
-    <div className="flex flex-col items-center px-4 py-8 max-w-xl mx-auto min-h-[70vh] text-left w-full animate-in fade-in duration-700">
-      <div className="mb-12 space-y-3 text-center">
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">
-          What you can do here
+    <div className="flex flex-col items-center px-4 py-6 max-w-xl mx-auto w-full antialiased text-left select-none sm:select-text transform-gpu animate-in fade-in duration-300">
+      {/* HUD HEADER COVER SLIDE BANNER */}
+      <div className="mb-6 space-y-1.5 text-center select-none w-full leading-none">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground/90 uppercase tracking-wide">
+          Ecosystem Toolkit Architecture
         </h2>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          A quick look at your AI career toolkit.
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none pt-0.5">
+          An overview summary of available generative AI tools assigned to your profile.
         </p>
       </div>
 
-      {/* PROGRESS INDICATORS */}
-      <div className="flex gap-2 mb-10">
-        {SERVICE_REGISTRY.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={cn(
-              "h-2 rounded-full transition-all duration-500",
-              index === currentIndex ? "w-8 bg-blue-500" : "w-2 bg-slate-200 hover:bg-slate-300",
-            )}
-          />
-        ))}
+      {/* METRIC HORIZON INDEX TICKERS BUTTON BAR */}
+      <div className="flex items-center justify-center gap-2 mb-6 select-none">
+        {SERVICE_REGISTRY.map((_, index) => {
+          const isCurrentActiveIndicator = index === currentIndex;
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setCurrentIndex(index)}
+              className={cn(
+                "h-2 rounded-full transition-all duration-300 transform-gpu cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                isCurrentActiveIndicator ? "w-6 bg-primary" : "w-2 bg-muted hover:bg-muted-foreground/30",
+              )}
+              aria-label={`Maps to feature model description panel index target row #${index + 1}`}
+            />
+          );
+        })}
       </div>
 
-      {/* COMPONENT: SERVICE_ARTIFACT_CARD */}
-      <div className="flex-1 w-full flex items-center justify-center">
-        <div className="w-full bg-white rounded-[40px] border border-slate-100 p-10 md:p-12 transition-all duration-500 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none"></div>
+      {/* PRESENTATION DISPLAY CORE DATA FRAME CONTAINER */}
+      <div className="w-full flex items-center justify-center min-h-[280px]">
+        <Card className="w-full border border-border/40 bg-card/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 transition-all duration-300 shadow-sm relative overflow-hidden text-center flex flex-col justify-center items-center">
+          {/* Atmospheric background glow vector layout */}
+          <div
+            className={cn(
+              "absolute -top-16 -right-16 w-36 h-36 blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-full pointer-events-none select-none",
+              currentService.bgClass,
+            )}
+          />
 
-          <div className="flex justify-center mb-8 relative z-10">
+          <div className="flex justify-center mb-4 select-none shrink-0 relative z-10">
             <div
               className={cn(
-                "w-24 h-24 rounded-full flex items-center justify-center transition-transform duration-500 hover:scale-105",
+                "w-16 h-16 rounded-xl border flex items-center justify-center shadow-inner transition-transform duration-500 transform hover:rotate-2",
                 currentService.bgClass,
               )}
             >
-              <Icon className={cn("h-10 w-10", currentService.iconColor)} />
+              <Icon className={cn("h-7 w-7 stroke-[2.2]", currentService.iconColor)} />
             </div>
           </div>
 
-          <div className="space-y-4 text-center relative z-10">
-            <h3 className="text-2xl font-black tracking-tighter text-slate-900">{currentService.name}</h3>
-            <p className="text-sm font-medium text-slate-500 leading-relaxed px-2 md:px-6 h-12">
+          <div className="space-y-2 text-center relative z-10 w-full min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-foreground/90 uppercase tracking-wide leading-none select-all selection:bg-primary/10">
+              {currentService.name}
+            </h3>
+            {/* Hardened Fluid Geometry: Removed static heights to handle variable localized lines cleanly */}
+            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/80 leading-relaxed max-w-md mx-auto select-text selection:bg-primary/10 min-h-[40px] flex items-center justify-center">
               {currentService.description}
             </p>
 
-            <div className="pt-8">
-              <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-slate-50 border border-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-widest">
-                <Zap className="h-4 w-4 text-amber-500 fill-amber-500" /> {currentService.cost} credits per use
+            <div className="pt-4 select-none">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 border border-border/40 bg-background/50 rounded-full font-mono text-[9px] font-extrabold uppercase tracking-wide tabular-nums text-muted-foreground/70 shadow-sm leading-none">
+                <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2]" />
+                <span>
+                  Processing consumes <span className="text-primary font-black">{currentService.cost} credits</span> per
+                  pass
+                </span>
               </span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* HUD: NAVIGATION_INGRESS */}
-      <div className="flex items-center justify-between w-full mt-10 gap-4">
+      {/* COMMAND CONTROL NAVIGATION OPERATIONS BAR */}
+      <div className="flex items-center justify-between w-full mt-6 gap-3 select-none">
         <Button
           variant="outline"
           size="icon"
+          type="button"
           onClick={goPrev}
           disabled={currentIndex === 0}
-          className="h-14 w-14 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all active:scale-95 shrink-0 shadow-sm"
+          className="h-10 w-10 rounded-xl border border-border/60 text-muted-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95"
+          aria-label="Return back to previous toolkit model index description"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
         </Button>
 
         {isTerminalNode ? (
           <Button
             size="lg"
-            onClick={onComplete}
-            className="flex-1 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase text-[10px] tracking-widest shadow-sm transition-all active:scale-95 gap-3"
+            type="button"
+            onClick={handleFinishTour}
+            className="flex-1 h-10 rounded-xl font-bold text-xs uppercase tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.99] transition-transform bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            Enter the platform <ShieldCheck className="h-4 w-4" />
+            <span>Activate Trajectory Platform</span>
+            <ShieldCheck className="h-4 w-4 shrink-0 stroke-[2.5]" />
           </Button>
         ) : (
           <Button
             size="lg"
             variant="outline"
+            type="button"
             onClick={goNext}
-            className="flex-1 h-14 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold uppercase text-[10px] tracking-widest shadow-sm transition-all active:scale-95 gap-3"
+            className="flex-1 h-10 rounded-xl font-bold text-xs uppercase tracking-wide gap-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95"
           >
-            Next <ArrowRight className="h-4 w-4" />
+            <span>Next System Tool</span>
+            <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.5]" />
           </Button>
         )}
 
         <Button
           variant="outline"
           size="icon"
+          type="button"
           onClick={goNext}
           disabled={isTerminalNode}
-          className="h-14 w-14 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all active:scale-95 shrink-0 shadow-sm"
+          className="h-10 w-10 rounded-xl border border-border/60 text-muted-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95"
+          aria-label="Advance forward to next platform tool element panel"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-5 w-5 stroke-[2.5]" />
         </Button>
       </div>
 
       <Button
         variant="ghost"
-        onClick={onComplete}
-        className="mt-8 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors rounded-full h-10 px-6"
+        type="button"
+        onClick={handleFinishTour}
+        className="mt-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 hover:text-primary transition-colors rounded-xl h-8 px-4 cursor-pointer shadow-none"
       >
-        Skip tour
+        Skip System Tour Protocol
       </Button>
     </div>
   );
