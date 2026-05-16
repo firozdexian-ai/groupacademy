@@ -1,15 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Camera, Loader2, Trash2, ShieldCheck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Identity Artifact Provisioner (ProfilePhotoUpload)
- * CTO Reference: Authoritative node for profile photo ingestion and sync.
- */
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string | null;
@@ -17,107 +15,182 @@ interface ProfilePhotoUploadProps {
   onPhotoChange: (url: string | null) => void;
 }
 
+/**
+ * GroUp Academy: Identity Avatar Resource Ingress Node (ProfilePhotoUpload)
+ * An authoritative operational sandbox layer parsing image formats and updating master account asset states.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }: ProfilePhotoUploadProps) {
+  const queryClient = useQueryClient();
+  const isMountedRef = useRef<boolean>(true);
+
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // PROTOCOL: Neural Identity Initials
-  const getInitials = (name?: string) => {
-    if (!name) return "??";
-    return name
+  // Synchronize component lifecycles to safely discard dangling background updates
+  useEffect(() => {
+    isMountedRef.current = true;
+    trackEvent("profile_photo_uploader_mounted");
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Sync internal preview state if underlying backend profile context mutations occur
+  useEffect(() => {
+    if (currentPhotoUrl !== undefined) {
+      setPreviewUrl(currentPhotoUrl);
+    }
+  }, [currentPhotoUrl]);
+
+  // PROTOCOL LOCK: Deterministic Initials Generation Map
+  const initialsFallbackStr = useMemo(() => {
+    const fallbackString = "??";
+    if (!fullName || typeof fullName !== "string") return fallbackString;
+
+    const parsedInitials = fullName
       .split(" ")
       .filter(Boolean)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+      .map((nameBlock) => nameBlock[0]);
+
+    if (parsedInitials.length === 0) return fallbackString;
+    return parsedInitials.join("").toUpperCase().slice(0, 2);
+  }, [fullName]);
 
   const handleArtifactIngestion = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const targetedFileItem = e.target.files?.[0];
+    if (!targetedFileItem) return;
 
-    // VALIDATION: Format Protocol
-    if (!file.type.startsWith("image/")) {
-      toast.error("Format Rejected: Node requires image artifact.");
+    // VALIDATION PROTOCOL: Image MIME Type Check
+    if (!targetedFileItem.type.startsWith("image/")) {
+      toast.error("Format Rejected: Ingress pipeline requires a valid image binary node asset.");
+      trackEvent("profile_photo_invalid_type_intercepted", { fileType: targetedFileItem.type });
       return;
     }
 
-    // VALIDATION: Payload Threshold
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Payload Exceeded: Artifact must be < 5MB.");
+    // VALIDATION PROTOCOL: Quantitative Volume Payload Verification Check (Max 5MB)
+    const MAX_AVATAR_BYTE_SIZE_CEILING = 5 * 1024 * 1024;
+    if (targetedFileItem.size > MAX_AVATAR_BYTE_SIZE_CEILING) {
+      toast.error("Payload Exceeded: Avatar image binary node configuration must remain < 5MB.");
+      trackEvent("profile_photo_size_overflow_intercepted", { fileSize: targetedFileItem.size });
       return;
     }
 
     setIsUploading(true);
-    const toastId = toast.loading("Synchronizing identity artifact...");
+    trackEvent("profile_photo_upload_initiated");
+    const dynamicToastTrackerId = toast.loading("Synchronizing avatar binary asset with storage registry index...");
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `profile-photos/${fileName}`;
+      const fileExtensionString = targetedFileItem.name.split(".").pop();
+      const nonCollidingUniqueFileNameStr = `${crypto.randomUUID()}.${fileExtensionString}`;
+      const fullTargetObjectStoragePathStr = `profile-photos/${nonCollidingUniqueFileNameStr}`;
 
-      // STORAGE EXECUTION
-      const { error: uploadError } = await supabase.storage.from("portfolio-uploads").upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+      // STORAGE TRANSACT EXECUTION: Push binary object to bucket allocation
+      const { error: storageUploadRegistryError } = await supabase.storage
+        .from("portfolio-uploads")
+        .upload(fullTargetObjectStoragePathStr, targetedFileItem, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-      if (uploadError) throw uploadError;
+      if (storageUploadRegistryError) throw storageUploadRegistryError;
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
+      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fullTargetObjectStoragePathStr);
 
-      setPreviewUrl(publicUrl);
-      onPhotoChange(publicUrl);
-      toast.success("Identity Node Synced", { id: toastId });
-    } catch (error: any) {
-      console.error("[Registry Fault]:", error);
-      toast.error(error.message || "Transmission Fault", { id: toastId });
+      // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
+      await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      if (isMountedRef.current) {
+        setPreviewUrl(publicUrl);
+        onPhotoChange(publicUrl);
+        toast.success("Identity visual token successfully validated down profile rows.", { id: dynamicToastTrackerId });
+        trackEvent("profile_photo_upload_success");
+      }
+    } catch (caughtPipelineExceptionErr: any) {
+      const formattedExceptionMsgStr =
+        caughtPipelineExceptionErr instanceof Error
+          ? caughtPipelineExceptionErr.message
+          : String(caughtPipelineExceptionErr);
+
+      trackError(formattedExceptionMsgStr, {
+        component: "ProfilePhotoUpload",
+        action: "commit_profile_photo_storage_ingress_api",
+      });
+
+      toast.error(`Ecosystem validation error: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (isMountedRef.current) {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
     }
   };
 
-  const handleTermination = () => {
-    setPreviewUrl(null);
-    onPhotoChange(null);
-    toast.success("Identity Artifact Purged");
+  const handleTermination = async () => {
+    trackEvent("profile_photo_purge_requested");
+    const dynamicToastTrackerId = toast.loading("Purging asset coefficients from registry indices...");
+
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      if (isMountedRef.current) {
+        setPreviewUrl(null);
+        onPhotoChange(null);
+        toast.success("Identity photo path successfully expunged.", { id: dynamicToastTrackerId });
+      }
+    } catch (err) {
+      trackError(err, { component: "ProfilePhotoUpload", action: "execute_photo_purge_callback" });
+      toast.error("Ecosystem sync exception: Failed to flush indices.", { id: dynamicToastTrackerId });
+    }
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 animate-in fade-in duration-500">
-      <div className="relative group">
-        {/* IDENTITY: Visual Node */}
-        <div className="relative">
-          <Avatar className="w-32 h-32 border-4 border-background shadow-2xl transition-all duration-500 group-hover:ring-4 group-hover:ring-primary/20">
-            <AvatarImage src={previewUrl || undefined} alt={fullName || "Identity"} className="object-cover" />
-            <AvatarFallback className="text-3xl font-black italic bg-primary/5 text-primary border-2 border-primary/20 backdrop-blur-md">
-              {getInitials(fullName)}
+    <div className="flex flex-col items-center justify-center gap-5 w-full select-none transform-gpu antialiased">
+      <div className="relative group/avatar shrink-0 select-none">
+        {/* IDENTITY MAP DISPLAY GAUGE LAYER */}
+        <div className="relative transform-gpu transition-transform duration-300 group-hover/avatar:scale-[1.01]">
+          <Avatar className="w-28 h-28 border border-border/40 shadow-md transition-all duration-300 group-hover/avatar:ring-4 group-hover/avatar:ring-primary/10">
+            <AvatarImage
+              src={previewUrl || undefined}
+              alt={fullName || "Identity avatar profile image layer holder pointer"}
+              className="object-cover"
+            />
+            <AvatarFallback className="text-xl font-black italic bg-primary/5 text-primary border border-primary/10 backdrop-blur-md uppercase tracking-wider select-text selection:bg-primary/20">
+              {initialsFallbackStr}
             </AvatarFallback>
           </Avatar>
 
-          {/* SYNC INDICATOR */}
-          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 shadow-lg">
+          {/* DYNAMIC ROW SYNCHRONIZATION SHIELD BADGE MARKS */}
+          <div className="absolute -bottom-0.5 -right-0.5 bg-background rounded-full p-0.5 shadow-sm select-none pointer-events-none z-10">
             <div
               className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center",
-                previewUrl ? "bg-emerald-500" : "bg-primary/20",
+                "h-5 w-5 rounded-full flex items-center justify-center border transition-colors duration-300",
+                previewUrl
+                  ? "bg-emerald-500 border-emerald-600/10 text-white"
+                  : "bg-muted border-border/40 text-muted-foreground/30",
               )}
             >
-              <ShieldCheck className="h-3 w-3 text-white" />
+              <ShieldCheck
+                className={cn("h-3.5 w-3.5 stroke-[2.5]", previewUrl ? "text-white" : "text-muted-foreground/40")}
+              />
             </div>
           </div>
         </div>
 
-        {/* LOADING OVERLAY */}
+        {/* PROCESSING LOADER OVERLAY DECK TRANSITION */}
         {isUploading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-xl rounded-full z-10 border-4 border-primary/20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary mt-2">Syncing...</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md rounded-full z-20 animate-in fade-in duration-200 border border-primary/20">
+            <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
+            <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-primary mt-1.5 animate-pulse leading-none">
+              Syncing…
+            </span>
           </div>
         )}
       </div>
@@ -126,43 +199,43 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handleArtifactIngestion}
-        className="hidden"
         disabled={isUploading}
+        className="hidden select-none sr-only pointer-events-none"
+        aria-hidden="true"
+        onChange={handleArtifactIngestion}
       />
 
-      <div className="flex gap-3">
+      {/* ACTION MANAGEMENT DISPATCH MODAL ROW */}
+      <div className="flex items-center gap-2 font-bold text-xs select-none">
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          className="h-10 px-6 rounded-xl border-2 font-black uppercase italic text-[10px] tracking-widest gap-2 shadow-lg active:scale-95 transition-all"
-          onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
+          onClick={() => fileInputRef.current?.click()}
+          className="h-9 px-4 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors gap-1.5 flex items-center justify-center"
         >
-          <Camera className="h-4 w-4" />
-          {previewUrl ? "Update_Artifact" : "Ingest_Identity"}
+          <Camera className="h-4 w-4 stroke-[2.2]" />
+          <span>{previewUrl ? "Update Asset" : "Ingest Identity Profile Token"}</span>
         </Button>
 
         {previewUrl && (
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            onClick={handleTermination}
             disabled={isUploading}
-            className="h-10 w-10 rounded-xl text-destructive hover:bg-destructive/10 transition-colors active:scale-90"
+            onClick={handleTermination}
+            className="h-9 w-9 rounded-xl text-muted-foreground/40 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer shrink-0 transition-colors flex items-center justify-center p-0 border-none shadow-none"
+            title="Expunge visual identity element properties from ledger indices"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4 stroke-[2.2]" />
           </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-2 bg-muted/20 rounded-full border border-border/10">
-        <Zap className="h-3 w-3 text-amber-500 fill-current animate-pulse" />
-        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">
-          Optimized JPG/PNG/GIF | Max 5MB
-        </p>
+      {/* METRIC INFORMATION FOOTER COMPONENT */}
+      <div className="flex items-center gap-1.5 px-3.5 h-6 rounded-full bg-muted/40 border border-border/10 text-[9px] font-mono font-extrabold uppercase text-muted-foreground/70 tracking-wide select-none shadow-inner leading-none shrink-0 pointer-events-none">
+        <Zap className="h-3 w-3 text-amber-500 fill-amber-500/10 stroke-[2.2] shrink-0 animate-pulse" />
+        <span>Optimized Extensions Mapped: JPG | PNG | GIF &bull; Max 5MB Payload Bounds</span>
       </div>
     </div>
   );
