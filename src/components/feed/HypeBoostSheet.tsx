@@ -74,15 +74,6 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
         attemptedQuantity: picked,
       });
 
-      // Forward transactional anomalies directly to our central credit management desk
-      supabase.from("admin_chat_messages").insert([
-        {
-          sender_type: "system_agent",
-          agent_key: "fin-credits-ops", // Routes error frame natively into our Credits Operations desk
-          message_text: `❌ **Hype Multiplier Transaction Fault** ❌\n\nFailed to finalize monetization split ledger for ${picked} hypes.\n**Exception Context:** ${parsedError}\n**Sender Talent ID:** ${contextData?.senderTalentId || "Unknown"}`,
-          metadata: { error: parsedError, ...contextData },
-        },
-      ]);
 
       toast.error("Ledger settlement delayed. Please verify your credit balance.");
     } finally {
