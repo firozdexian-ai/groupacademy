@@ -212,7 +212,6 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
                 return (
                   <Card
                     key={moduleItem.id}
-                    type="button"
                     className="p-3.5 border border-border/40 hover:border-primary/20 hover:bg-primary/[0.01] dark:hover:bg-primary/[0.001] transition-all duration-200 rounded-xl shadow-sm shrink-0 w-[240px] lg:w-full snap-start group/node cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring text-left"
                     onClick={handleResumeProtocol}
                   >
