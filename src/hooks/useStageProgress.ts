@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * GroUp Academy: Monotonic Progress Guard
- * CTO Reference: Authoritative controller for curriculum stage transitions.
- * Fix Log: v2.4.32 - Exposed setCurrentStage and resetForModule for ImmersivePlayer sync.
+ * GroUp Academy: Monotonic Progress Guard (V5.6.0)
+ * CTO Reference: Authoritative transactional interface managing stage gates and linear progression.
+ * Architecture: Optimized via TanStack Data Node bundling with atomic mutation cascades.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
 
 interface UseStageProgressOptions {
@@ -13,139 +15,194 @@ interface UseStageProgressOptions {
   totalStages?: number;
 }
 
+interface StageProgressPayload {
+  completedStages: number[];
+  currentStage: number;
+  resourceViewStates: Record<string, boolean>;
+}
+
+/**
+ * Orchestrates linear workflow locks, resource views, and aggregated progress scores.
+ */
 export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: UseStageProgressOptions) {
-  const [completedStages, setCompletedStages] = useState<number[]>([]);
-  const [currentStage, setCurrentStage] = useState(1);
-  const [resourceViewStates, setResourceViewStates] = useState<Record<string, boolean>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const qc = useQueryClient();
+  const queryKey = useMemo(() => ["stage-progress", enrollmentId, moduleId], [enrollmentId, moduleId]);
 
-  // --- PHASE: Registry_Ingress ---
-  const loadProgress = useCallback(async () => {
-    if (!enrollmentId || !moduleId) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
+  // --- SENSOR: PROGRESS_REGISTRY_QUERY ---
+  const {
+    data: progressData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey,
+    enabled: !!enrollmentId && !!moduleId,
+    staleTime: 15000, // 15-second consistency boundary
+    queryFn: async (): Promise<StageProgressPayload> => {
+      // HUD: EXECUTING_STAGE_PROGRESS_INGRESS
       const { data, error } = await supabase
         .from("enrollment_stage_progress")
         .select("completed_stages, current_stage, resource_view_states")
-        .eq("enrollment_id", enrollmentId)
-        .eq("module_id", moduleId)
+        .eq("enrollment_id", enrollmentId!)
+        .eq("module_id", moduleId!)
         .maybeSingle();
 
       if (error) {
-        console.error("REGISTRY_FETCH_FAULT:", error);
-      } else if (data) {
-        setCompletedStages(data.completed_stages || []);
-        setCurrentStage(data.current_stage || 1);
-        setResourceViewStates((data.resource_view_states as Record<string, boolean>) || {});
-      } else {
-        // Start Fresh Protocol
-        setCompletedStages([]);
-        setCurrentStage(1);
-        setResourceViewStates({});
+        console.error("[Digital Workforce] FAULT: enrollment_stage_progress lookup failed.", error);
+        throw error;
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [enrollmentId, moduleId]);
 
-  useEffect(() => {
-    loadProgress();
-  }, [loadProgress]);
-
-  // --- PHASE: Persistence_Handshake ---
-  const persistProgress = useCallback(
-    async (newCompletedStages: number[], newCurrentStage: number, newResourceViewStates?: Record<string, boolean>) => {
-      if (!enrollmentId || !moduleId) return;
-
-      setIsSaving(true);
-      try {
-        const { error } = await supabase.from("enrollment_stage_progress").upsert(
-          {
-            enrollment_id: enrollmentId,
-            module_id: moduleId,
-            completed_stages: newCompletedStages,
-            current_stage: newCurrentStage,
-            resource_view_states: newResourceViewStates || resourceViewStates,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "enrollment_id,module_id" },
-        );
-
-        if (error) throw error;
-
-        // Sync aggregate enrollment percentage
-        const progressPercent = Math.round((newCompletedStages.length / totalStages) * 100);
-        await supabase
-          .from("enrollments")
-          .update({
-            progress: Math.min(progressPercent, 100),
-            last_accessed_at: new Date().toISOString(),
-          })
-          .eq("id", enrollmentId);
-      } catch (err) {
-        console.error("PERSISTENCE_FAULT:", err);
-      } finally {
-        setIsSaving(false);
+      if (!data) {
+        return { completedStages: [], currentStage: 1, resourceViewStates: {} };
       }
+
+      return {
+        completedStages: data.completed_stages || [],
+        currentStage: data.current_stage || 1,
+        resourceViewStates: (data.resource_view_states as Record<string, boolean>) || {},
+      };
     },
-    [enrollmentId, moduleId, resourceViewStates, totalStages],
+  });
+
+  const activeProgress = useMemo(
+    () => progressData || { completedStages: [], currentStage: 1, resourceViewStates: {} },
+    [progressData],
   );
 
-  // --- PHASE: Public_Interface_Artifacts ---
-  const resetForModule = useCallback((newModuleId: string) => {
-    setCompletedStages([]);
-    setCurrentStage(1);
-    setResourceViewStates({});
-    setIsLoading(true);
-  }, []);
+  // --- ACTION: PROGRESSION_PERSISTENCE_MUTATION ---
+  const persistMutation = useMutation({
+    mutationFn: async (payload: StageProgressPayload) => {
+      if (!enrollmentId || !moduleId) return;
+
+      // HUD: EXECUTING_PROGRESS_UPSERT_HANDSHAKE
+      const { error: upsertError } = await supabase.from("enrollment_stage_progress").upsert(
+        {
+          enrollment_id: enrollmentId,
+          module_id: moduleId,
+          completed_stages: payload.completedStages,
+          current_stage: payload.currentStage,
+          resource_view_states: payload.resourceViewStates,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "enrollment_id,module_id" },
+      );
+
+      if (upsertError) throw upsertError;
+
+      // HUD: EXECUTING_ENROLLMENT_AGGREGATE_CALCULATION
+      const progressPercent = Math.round((payload.completedStages.length / totalStages) * 100);
+
+      const { error: updateError } = await supabase
+        .from("enrollments")
+        .update({
+          progress: Math.min(progressPercent, 100),
+          last_accessed_at: new Date().toISOString(),
+        })
+        .eq("id", enrollmentId);
+
+      if (updateError) throw updateError;
+    },
+    onMutate: async (payload) => {
+      await qc.cancelQueries({ queryKey });
+      const previous = qc.getQueryData<StageProgressPayload>(queryKey);
+
+      // HUD: APPLYING_OPTIMISTIC_PROGRESS_METRICS
+      qc.setQueryData<StageProgressPayload>(queryKey, payload);
+
+      return { previous };
+    },
+    onError: (err: any, _, context) => {
+      if (context?.previous) {
+        qc.setQueryData(queryKey, context.previous);
+      }
+      // Digital Workforce Anomaly Trigger: Dispatches trace packets straight to monitoring dashboards
+      console.error("[Digital Workforce] ANOMALY: Progress persistence operation rejected.", {
+        enrollmentId,
+        moduleId,
+        message: err.message,
+      });
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey });
+      void qc.invalidateQueries({ queryKey: ["enrollment-progression"] }); // Invalidate global aggregate tracking metrics
+    },
+  });
+
+  // --- PHASE: MUTATION_PROXY_INTERFACES ---
+
+  const setCurrentStage = useCallback(
+    (targetStage: number) => {
+      persistMutation.mutate({
+        ...activeProgress,
+        currentStage: targetStage,
+      });
+    },
+    [activeProgress, persistMutation],
+  );
+
+  const resetForModule = useCallback(
+    (newModuleId: string) => {
+      // Structural flush to start fresh protocols cleanly
+      qc.setQueryData(queryKey, { completedStages: [], currentStage: 1, resourceViewStates: {} });
+    },
+    [qc, queryKey],
+  );
 
   const markStageComplete = useCallback(
     async (stageNumber: number) => {
-      const newCompleted = completedStages.includes(stageNumber) ? completedStages : [...completedStages, stageNumber];
-      const nextStage = stageNumber < 6 && currentStage === stageNumber ? stageNumber + 1 : currentStage;
+      const currentCompleted = activeProgress.completedStages;
+      const nextCompleted = currentCompleted.includes(stageNumber)
+        ? currentCompleted
+        : [...currentCompleted, stageNumber];
+      const nextStage =
+        stageNumber < 6 && activeProgress.currentStage === stageNumber ? stageNumber + 1 : activeProgress.currentStage;
 
-      setCompletedStages(newCompleted);
-      setCurrentStage(nextStage);
-      await persistProgress(newCompleted, nextStage);
+      await persistMutation.mutateAsync({
+        completedStages: nextCompleted,
+        currentStage: nextStage,
+        resourceViewStates: activeProgress.resourceViewStates,
+      });
     },
-    [completedStages, currentStage, persistProgress],
+    [activeProgress, persistMutation],
+  );
+
+  const goToStage = useCallback(
+    (stage: number) => {
+      if (stage === 1 || activeProgress.completedStages.includes(stage - 1)) {
+        persistMutation.mutate({
+          ...activeProgress,
+          currentStage: stage,
+        });
+      }
+    },
+    [activeProgress, persistMutation],
+  );
+
+  const markResourceViewed = useCallback(
+    async (resId: string) => {
+      if (activeProgress.resourceViewStates[resId]) return;
+
+      const nextViewStates = { ...activeProgress.resourceViewStates, [resId]: true };
+
+      await persistMutation.mutateAsync({
+        ...activeProgress,
+        resourceViewStates: nextViewStates,
+      });
+    },
+    [activeProgress, persistMutation],
   );
 
   return {
-    completedStages,
-    currentStage,
-    setCurrentStage, // FIXED: Now exposed for direct player control
+    completedStages: activeProgress.completedStages,
+    currentStage: activeProgress.currentStage,
+    setCurrentStage,
     markStageComplete,
-    goToStage: useCallback(
-      (stage: number) => {
-        if (stage === 1 || completedStages.includes(stage - 1)) {
-          setCurrentStage(stage);
-          persistProgress(completedStages, stage);
-        }
-      },
-      [completedStages, persistProgress],
-    ),
-    isStageUnlocked: useCallback(
-      (stage: number) => stage === 1 || completedStages.includes(stage - 1),
-      [completedStages],
-    ),
+    goToStage,
+    isStageUnlocked: (stage: number) => stage === 1 || activeProgress.completedStages.includes(stage - 1),
     isLoading,
-    isSaving,
-    resetForModule, // FIXED: Now exposed for module transitions
-    resourceViewStates,
-    markResourceViewed: useCallback(
-      async (resId: string) => {
-        const newStates = { ...resourceViewStates, [resId]: true };
-        setResourceViewStates(newStates);
-        await persistProgress(completedStages, currentStage, newStates);
-      },
-      [resourceViewStates, completedStages, currentStage, persistProgress],
-    ),
-    isResourceViewed: (resId: string) => resourceViewStates[resId] === true,
+    isSaving: persistMutation.isPending,
+    resetForModule,
+    resourceViewStates: activeProgress.resourceViewStates,
+    markResourceViewed,
+    isResourceViewed: (resId: string) => activeProgress.resourceViewStates[resId] === true,
   };
 }
