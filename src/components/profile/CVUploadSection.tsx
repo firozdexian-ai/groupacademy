@@ -156,7 +156,7 @@ export function CVUploadSection() {
 
       const { data: urlPublicPayloadData } = supabase.storage
         .from("portfolio-uploads")
-        .getPublicUrl(fullTargetObjectStoragePathStr);
+        .getPublicUrl(fullTargetStoragePathStr);
 
       const generatedPublicCvUrlStr = urlPublicPayloadData?.publicUrl;
 
@@ -375,7 +375,7 @@ export function CVUploadSection() {
         ) : (
           /* COLD COLD-START COLD INVITATION INITIAL ENGAGEMENT BOARD */
           <div
-            type="button"
+            role="button"
             onClick={() => fileInputRef.current?.click()}
             className="group relative border border-dashed border-border/40 rounded-xl p-8 sm:p-12 text-center select-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring transition-all bg-card/20 hover:bg-card/40 hover:border-border/80 group/cvbox shadow-sm w-full flex flex-col justify-center items-center overflow-hidden"
           >
