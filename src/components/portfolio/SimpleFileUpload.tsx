@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
@@ -190,7 +191,6 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     return (
       <div className="space-y-4 text-left max-w-full w-full transform-gpu antialiased">
         <div
-          type="button"
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
