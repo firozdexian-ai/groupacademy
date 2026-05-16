@@ -1,135 +1,211 @@
-import { useState, useEffect, useCallback } from "react";
-import { X, Download, Share, Zap, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePWADetect } from "@/hooks/usePWADetect";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { X, Download, Share, Zap, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Mobile Native Sync Ingress
- * CTO Reference: Authoritative gateway for PWA installation and offline-readiness.
- */
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const REGISTRY_DISMISS_KEY = "pwa_sync_dismissed_v4";
-const SYNC_COOLDOWN_DAYS = 7;
+const REGISTRY_DISMISS_KEY_TOKEN = "pwa_sync_dismissed_v4";
+const SYNC_COOLDOWN_TIMEFRAME_DAYS = 7;
 
+/**
+ * GroUp Academy: PWA Mobile Native Synchronization Ingress (PWAInstallPrompt)
+ * Authoritative interceptor capturing application installation queries and managing local deployment cooldown caches.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function PWAInstallPrompt() {
+  const queryClient = useQueryClient();
+  const isMobileViewport = useIsMobile();
+  const { isPWA } = usePWADetect();
+  const isMountedRef = useRef<boolean>(true);
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const isMobile = useIsMobile();
-  const { isPWA } = usePWADetect();
+  const [isIOSDevicePlatform, setIsIOSDevicePlatform] = useState(false);
+
+  // Synchronize component lifecycles to insulate background operations from state drops
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
-    // PROTOCOL: Already synchronized
-    if (isPWA) return;
-
-    // PROTOCOL: Registry Cooldown Check
-    const dismissed = localStorage.getItem(REGISTRY_DISMISS_KEY);
-    if (dismissed) {
-      const timestamp = parseInt(dismissed, 10);
-      if (Date.now() - timestamp < SYNC_COOLDOWN_DAYS * 24 * 60 * 60 * 1000) return;
-    }
-
-    // PROTOCOL: WebKit/iOS Instructional Detection
-    const ua = navigator.userAgent;
-    const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    const isSafari = /Safari/.test(ua) && !/CriOS|Chrome/.test(ua);
-
-    if (isIOSDevice && isSafari) {
-      setIsIOS(true);
-      setShowBanner(true);
+    // Phase 1: Already synchronized within PWA standalone wrappers
+    if (isPWA) {
+      if (isMountedRef.current) setShowBanner(false);
       return;
     }
 
-    // PROTOCOL: Chromium Neural Prompt Handshake
-    const ingressHandler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    // Phase 2: Registry Retention Cooldown Validation Check
+    try {
+      const systemicDismissedTimestampStr = localStorage.getItem(REGISTRY_DISMISS_KEY_TOKEN);
+      if (systemicDismissedTimestampStr) {
+        const parsedDismissedEpochNum = parseInt(systemicDismissedTimestampStr, 10) || 0;
+        const compiledCooldownThresholdNum = SYNC_COOLDOWN_TIMEFRAME_DAYS * 24 * 60 * 60 * 1000;
+
+        if (Date.now() - parsedDismissedEpochNum < compiledCooldownThresholdNum) {
+          if (isMountedRef.current) setShowBanner(false);
+          return;
+        }
+      }
+    } catch (storageExceptionErr) {
+      trackError(storageExceptionErr, { component: "PWAInstallPrompt", action: "local_storage_cooldown_read" });
+    }
+
+    // Phase 3: WebKit/iOS Instructional User Agent Analysis Parsing Pass
+    const targetUserAgentSignatureStr = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isIOSDetectedBool = /iPad|iPhone|iPod/.test(targetUserAgentSignatureStr) && !(window as any).MSStream;
+    const isSafariDetectedBool =
+      /Safari/.test(targetUserAgentSignatureStr) && !/CriOS|Chrome/.test(targetUserAgentSignatureStr);
+
+    if (isIOSDetectedBool && isSafariDetectedBool) {
+      if (isMountedRef.current) {
+        setIsIOSDevicePlatform(true);
+        setShowBanner(true);
+        trackEvent("pwa_prompt_ios_safari_surfaced");
+      }
+      return;
+    }
+
+    // Phase 4: Chromium Handshake Ingress Event Binding Allocation
+    const handleChromiumPromptIngressEvent = (nativeEventTarget: Event) => {
+      nativeEventTarget.preventDefault();
+      if (!isMountedRef.current) return;
+
+      setDeferredPrompt(nativeEventTarget as BeforeInstallPromptEvent);
       setShowBanner(true);
+      trackEvent("pwa_prompt_chromium_intercepted");
     };
 
-    window.addEventListener("beforeinstallprompt", ingressHandler);
-    return () => window.removeEventListener("beforeinstallprompt", ingressHandler);
+    window.addEventListener("beforeinstallprompt", handleChromiumPromptIngressEvent);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleChromiumPromptIngressEvent);
+    };
   }, [isPWA]);
 
-  const executeInstallSync = useCallback(async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setShowBanner(false);
-    setDeferredPrompt(null);
-  }, [deferredPrompt]);
+  const executeInstallSyncProtocol = useCallback(async () => {
+    const activeDeferredPromptObj = deferredPrompt;
+    if (!activeDeferredPromptObj) return;
 
-  const handleRegistryDismiss = () => {
-    localStorage.setItem(REGISTRY_DISMISS_KEY, Date.now().toString());
-    setShowBanner(false);
+    trackEvent("pwa_installation_handshake_initiated");
+
+    try {
+      await activeDeferredPromptObj.prompt();
+      const { outcome: targetUserDecisionOutcomeKeyStr } = await activeDeferredPromptObj.userChoice;
+
+      trackEvent("pwa_installation_user_decision_resolved", { outcome: targetUserDecisionOutcomeKeyStr });
+
+      if (targetUserDecisionOutcomeKeyStr === "accepted") {
+        await queryClient.invalidateQueries({ queryKey: ["pwa-status-metrics"] });
+        if (isMountedRef.current) {
+          setShowBanner(false);
+        }
+      }
+    } catch (caughtPromptExceptionErr) {
+      trackError(caughtPromptExceptionErr, { component: "PWAInstallPrompt", action: "execute_install_sync_protocol" });
+    } finally {
+      if (isMountedRef.current) {
+        setDeferredPrompt(null);
+      }
+    }
+  }, [deferredPrompt, queryClient]);
+
+  const handleRegistryDismissalProtocol = () => {
+    trackEvent("pwa_prompt_dismissal_logged", { cooldownDays: SYNC_COOLDOWN_TIMEFRAME_DAYS });
+    try {
+      localStorage.setItem(REGISTRY_DISMISS_KEY_TOKEN, Date.now().toString());
+    } catch (storageExceptionErr) {
+      trackError(storageExceptionErr, { component: "PWAInstallPrompt", action: "local_storage_dismissal_write" });
+    }
+    if (isMountedRef.current) {
+      setShowBanner(false);
+    }
   };
 
-  if (!showBanner || !isMobile) return null;
+  const shouldRenderPanelLayoutBool = useMemo(() => {
+    return showBanner && isMobileViewport;
+  }, [showBanner, isMobileViewport]);
+
+  if (!shouldRenderPanelLayoutBool) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in slide-in-from-bottom-6 fade-in duration-700">
-      <div className="relative bg-card/80 backdrop-blur-2xl border-2 border-primary/20 rounded-[28px] p-5 shadow-[0_20px_50px_rgba(var(--primary),0.15)] overflow-hidden">
-        {/* HUD: DECORATIVE_SYNC_GLOW */}
-        <div className="absolute -right-8 -top-8 h-24 w-24 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
+    <div className="fixed bottom-24 left-4 right-4 z-[100] font-bold text-xs select-none transform-gpu animate-in slide-in-from-bottom-5 fade-in duration-300 max-w-md mx-auto">
+      <div className="relative rounded-xl border border-border/40 bg-card/95 backdrop-blur-xl p-4 sm:p-5 shadow-xl overflow-hidden text-left flex flex-col justify-center">
+        {/* HUD LEVEL 1: TOP ATMOSPHERIC SYNCHRONIZATION LIGHT BLOB */}
+        <div
+          className="absolute -right-6 -top-6 h-20 w-20 bg-primary/5 blur-2xl rounded-full pointer-events-none select-none"
+          aria-hidden="true"
+        />
 
+        {/* HUD LEVEL 2: CLOSE DISMISS OVERLAY TRIGGER CONTROL ACTION BUTTON */}
         <button
-          onClick={handleRegistryDismiss}
-          className="absolute top-4 right-4 h-8 w-8 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="SYNC_ABORT"
+          type="button"
+          onClick={handleRegistryDismissalProtocol}
+          className="absolute top-3.5 right-3.5 h-7 w-7 rounded-lg bg-muted/30 border border-border/5 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          aria-label="Abort application synchronization prompt layout"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4 stroke-[2.5]" />
         </button>
 
-        <div className="flex items-start gap-4 mb-5">
-          {/* COMPONENT: SYNC_NODE_ICON */}
-          <div className="relative shrink-0">
-            <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg">
-              <Download className="h-6 w-6 text-primary animate-pulse" />
+        {/* HUD LEVEL 3: COMPOSITE METADATA IDENTIFICATION CONTAINER SPLIT VIEW */}
+        <div className="flex items-start gap-3.5 mb-4 w-full min-w-0 pr-6">
+          <div className="relative shrink-0 select-none pointer-events-none">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 border border-primary/5 text-primary flex items-center justify-center shadow-inner">
+              <Download className="h-5 w-5 text-primary stroke-[2.2] animate-pulse" />
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 border-2 border-card shadow-sm">
-              <ShieldCheck className="h-2.5 w-2.5 text-white" />
+            <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-md p-0.5 border border-card shadow-xs">
+              <ShieldCheck className="h-2.5 w-2.5 text-white stroke-[2.5]" />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="text-[13px] font-black uppercase italic tracking-tight text-foreground leading-none">
-              Deploy_Institutional_App
+          <div className="space-y-1 min-w-0 flex-1 flex flex-col justify-center leading-none">
+            <h3 className="text-xs sm:text-sm font-black uppercase italic tracking-tight text-foreground/90 block leading-none">
+              Deploy Native Workspace Node
             </h3>
-            <p className="text-[10px] font-medium text-muted-foreground/80 leading-relaxed italic">
-              Offline-ready trajectory tracking, high-velocity sync, and instant curriculum access.
+            <p className="text-[10px] font-semibold text-muted-foreground/60 leading-normal block italic pr-0.5 pt-0.5 select-text selection:bg-primary/10">
+              Authorize offline-ready career track syncing, standalone app velocity, and immediate classroom ledger
+              access variables.
             </p>
           </div>
         </div>
 
-        {isIOS ? (
-          <div className="flex items-center gap-3 bg-primary/5 rounded-2xl px-4 py-3 border border-primary/10 animate-pulse">
-            <Share className="h-4 w-4 shrink-0 text-primary" />
-            <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest leading-none">
-              TAP <strong className="text-primary italic">SHARE</strong> THEN{" "}
-              <strong className="text-primary italic">"ADD TO HOME SCREEN"</strong>
+        {/* HUD LEVEL 4: PLATFORM INTERACTIVE CONTEXT FORKING INTERACTION STRIPS */}
+        {isIOSDevicePlatform ? (
+          /* SAFARI / WEBKIT TARGET CHANNEL DIRECTIONS SLAT */
+          <div className="flex items-center gap-2.5 bg-primary/[0.01] rounded-xl px-3 py-2.5 border border-primary/10 select-none leading-none text-left w-full min-w-0 shadow-xs h-9 shrink-0">
+            <Share className="h-3.5 w-3.5 text-primary stroke-[2.5] shrink-0" />
+            <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide text-muted-foreground/80 block pt-0.5 truncate text-ellipsis max-w-full">
+              Tap <strong className="text-primary font-black italic">"Share"</strong> icon then select{" "}
+              <strong className="text-primary font-black italic">"Add to Home Screen"</strong>
             </span>
           </div>
         ) : (
+          /* CHROMIUM STANDALONE SHELL ENGINE TRIGGER SUBMISSION LINK */
           <Button
-            onClick={executeInstallSync}
-            size="xl"
-            className="w-full h-14 rounded-2xl font-black uppercase italic text-[11px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all active:scale-95 gap-3"
+            type="button"
+            onClick={executeInstallSyncProtocol}
+            className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transform-gpu active:scale-[0.995] transition-transform flex items-center justify-center cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 select-none"
           >
-            <Zap className="h-4 w-4 fill-current" />
-            INITIALIZE_APP_DEPLOYMENT
+            <Zap className="h-4 w-4 fill-primary-foreground/10 stroke-[2.5]" />
+            <span>Initialize Standalone Application Deployment</span>
           </Button>
         )}
 
-        <div className="flex items-center justify-center gap-2 mt-4 opacity-30">
-          <ShieldCheck className="h-3 w-3" />
-          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Neural_Sync_v4.2 // Verified_Edge</span>
+        {/* HUD LEVEL 5: OVERLAY BOTTOM OMNIPRESENCE SHIELD RIBBON FOOTER */}
+        <div className="flex items-center justify-center gap-1.5 py-1 opacity-25 select-none pointer-events-none tracking-normal font-bold text-[8px] text-muted-foreground/50 font-mono leading-none shrink-0 uppercase w-full mt-3">
+          <ShieldCheck className="h-3 w-3 stroke-[2.5]" />
+          <span>Neural Ingress Matrix Pipeline Sync Core Verified</span>
         </div>
       </div>
     </div>
