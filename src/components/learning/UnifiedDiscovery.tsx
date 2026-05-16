@@ -216,7 +216,7 @@ export function UnifiedDiscovery() {
         <Button
           variant="ghost"
           size="sm"
-          type="button"
+         
           className="h-8 px-2.5 rounded-xl font-bold uppercase text-[10px] tracking-wider text-muted-foreground/80 hover:text-primary hover:bg-primary/5 cursor-pointer shadow-none shrink-0 flex items-center gap-0.5"
           onClick={handleAuditFullCatalogClick}
         >
@@ -234,7 +234,7 @@ export function UnifiedDiscovery() {
           return (
             <button
               key={optionItem.value}
-              type="button"
+             
               onClick={() => setActiveFilter(optionItem.value)}
               className={cn(
                 "h-8 px-3.5 rounded-xl text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-ring flex items-center gap-2 shadow-sm border transform-gpu active:scale-95",
@@ -284,7 +284,7 @@ export function UnifiedDiscovery() {
             return (
               <Card
                 key={itemRecord.id}
-                type="button"
+               
                 className="group relative cursor-pointer text-left rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden flex flex-col justify-between transition-all duration-300 transform-gpu hover:border-primary/20 hover:bg-card/80 hover:shadow-md"
                 onClick={() => handleDiscoveryRoutingProtocol(itemRecord)}
               >
