@@ -23,7 +23,7 @@ export function SaveToListSheet({ companyId, talentId, talentName, onClose }: Pr
   const [note, setNote] = useState("");
 
   const save = async (listId: string) => {
-    await addToList.mutateAsync({ listId, talentId, note: note || undefined });
+    await addToList.mutateAsync({ listId, talentId, note: note || undefined, companyId });
     toast.success("Saved to list");
     onClose();
   };
