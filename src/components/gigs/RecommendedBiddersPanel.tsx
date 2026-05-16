@@ -261,7 +261,8 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
                 </Button>
               </div>
             );
-          })}
+          })
+        )}
       </CardContent>
     </Card>
   );
