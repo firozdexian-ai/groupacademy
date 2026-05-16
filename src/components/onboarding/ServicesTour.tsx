@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
