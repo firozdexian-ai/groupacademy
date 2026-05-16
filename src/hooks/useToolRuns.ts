@@ -122,6 +122,28 @@ export function useRecordToolRun() {
 }
 
 /**
+ * Fire-and-forget ledger insert for non-hook call sites.
+ */
+export async function recordToolRun(opts: RecordToolRunInput): Promise<void> {
+  try {
+    const { data: userRes, error: authError } = await supabase.auth.getUser();
+    if (authError || !userRes.user) return;
+    const { error } = await supabase.from("tool_runs").insert({
+      user_id: userRes.user.id,
+      tool_key: opts.toolKey,
+      cost_credits: opts.costCredits,
+      payload: opts.payload ?? {},
+      job_id: opts.jobId ?? null,
+    });
+    if (error) {
+      console.error("[Digital Workforce] ANOMALY: tool_runs ledger logging rejected.", error);
+    }
+  } catch (e) {
+    console.error("[Digital Workforce] FAULT: recordToolRun threw.", e);
+  }
+}
+
+/**
  * Explicit callback proxy to trigger manual billing query invalidations when necessary.
  */
 export function useInvalidateToolRuns() {
