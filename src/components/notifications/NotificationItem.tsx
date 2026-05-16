@@ -101,7 +101,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete, onClose
 
   return (
     <div
-      type="button"
       onClick={handleHandshakeNavigationSequence}
       className={cn(
         "group relative flex items-start gap-4 p-4 transition-all duration-300 border-l-4 outline-none focus-visible:bg-muted/30 cursor-pointer transform-gpu text-left select-none sm:select-text w-full min-w-0 overflow-hidden",
@@ -167,7 +166,7 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete, onClose
           size="icon"
           type="button"
           className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-500 active:scale-90 cursor-pointer shadow-none flex items-center justify-center border border-transparent hover:border-rose-500/10"
-          onClick={handlePruningErase}
+          onClick={handlePruningRegistryErase}
           aria-label={`Erase system log parameter notification artifact row for ${notification.title}`}
         >
           <X className="h-4 w-4 stroke-[2.5]" />
