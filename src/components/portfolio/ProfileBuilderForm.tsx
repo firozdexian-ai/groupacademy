@@ -217,7 +217,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                         <SelectTrigger className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground px-3 cursor-pointer">
                           <SelectValue placeholder="Select credential layer tier..." />
                         </SelectTrigger>
-                        <SelectTriggerContent className="rounded-xl border border-border/40 bg-background font-bold text-xs">
+                        <SelectContent className="rounded-xl border border-border/40 bg-background font-bold text-xs">
                           {["SSC", "HSC", "Diploma", "Bachelor's", "Master's", "PhD", "Certificate"].map(
                             (degreeTypeStr) => (
                               <SelectItem
@@ -229,7 +229,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                               </SelectItem>
                             ),
                           )}
-                        </SelectTriggerContent>
+                        </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5 text-left">
@@ -336,7 +336,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                         <SelectTrigger className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground px-3 cursor-pointer">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectTriggerContent className="rounded-xl border border-border/40 bg-background font-bold text-xs">
+                        <SelectContent className="rounded-xl border border-border/40 bg-background font-bold text-xs">
                           {["beginner", "intermediate", "advanced", "expert"].map((proficiencyTierStr) => (
                             <SelectItem
                               key={proficiencyTierStr}
@@ -346,7 +346,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                               {proficiencyTierStr}
                             </SelectItem>
                           ))}
-                        </SelectTriggerContent>
+                        </SelectContent>
                       </Select>
                     </div>
                   </div>
