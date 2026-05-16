@@ -1,10 +1,14 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { toast } from "sonner";
+import { downloadFile } from "@/lib/downloadFile";
 import {
   Upload,
   FileText,
@@ -16,14 +20,7 @@ import {
   Zap,
   ShieldCheck,
 } from "lucide-react";
-import { toast } from "sonner";
-import { downloadFile } from "@/lib/downloadFile";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Neural Artifact Ingress (CVUploadSection)
- * CTO Reference: Authoritative node for CV ingestion and automated profile hydration.
- */
 
 interface ParsedCVData {
   fullName?: string;
@@ -53,48 +50,87 @@ const PARSING_STAGES = [
   { progress: 95, message: "HYDRATING_PROFILE_LEDGER..." },
 ];
 
+/**
+ * GroUp Academy: Psychometric CV Artifact Ingress Terminal (CVUploadSection)
+ * An authoritative operational sandbox managing dynamic PDF/Word storage commits and automated AI parsing steps.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function CVUploadSection() {
+  const queryClient = useQueryClient();
   const { talent, updateTalent, refreshTalent } = useTalent();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStage, setCurrentStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const hasCV = !!talent?.cvUrl;
+  // Synchronize component lifecycles to safely drop dangling background updates
+  useEffect(() => {
+    isMountedRef.current = true;
+    trackEvent("cv_ingress_node_mounted");
+    return () => {
+      isMountedRef.current = false;
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const hasCV = useMemo(() => !!talent?.cvUrl, [talent?.cvUrl]);
+
+  const clearSyncInterval = () => {
+    if (syncIntervalRef.current) {
+      clearInterval(syncIntervalRef.current);
+      syncIntervalRef.current = null;
+    }
+  };
 
   const simulateHandshake = () => {
-    let stage = 0;
-    const interval = setInterval(() => {
-      if (stage < PARSING_STAGES.length - 1) {
-        stage++;
-        setCurrentStage(stage);
-        setUploadProgress(PARSING_STAGES[stage].progress);
-      } else {
-        clearInterval(interval);
+    clearSyncInterval();
+    let currentStageIndex = 0;
+
+    syncIntervalRef.current = setInterval(() => {
+      if (!isMountedRef.current) {
+        clearSyncInterval();
+        return;
       }
-    }, 2000);
-    return interval;
+
+      if (currentStageIndex < PARSING_STAGES.length - 1) {
+        currentStageIndex++;
+        setCurrentStage(currentStageIndex);
+        setUploadProgress(PARSING_STAGES[currentStageIndex].progress);
+      } else {
+        clearSyncInterval();
+      }
+    }, 1800);
   };
 
   const handleArtifactIngestion = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const selectedFileNode = event.target.files?.[0];
+    if (!selectedFileNode) return;
 
-    // PROTOCOL: Payload Validation
-    const allowedMime = [
+    // PROTOCOL LOCK: Quantitative Ingress Format Validation Check
+    const allowedMimeTypesCollection = [
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/msword",
     ];
 
-    if (!allowedMime.includes(file.type)) {
-      toast.error("Format Rejected: Ingest PDF or Word artifacts only.");
+    if (!allowedMimeTypesCollection.includes(selectedFileNode.type)) {
+      toast.error("Format Rejected: Ingest premium PDF or Word artifacts (.doc, .docx) only.");
+      trackEvent("cv_ingress_invalid_format_intercepted", { fileType: selectedFileNode.type });
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Payload Threshold Exceeded: Max 5MB per ingestion.");
+    // PROTOCOL LOCK: Quantitative Volume Payload Verification Check (Ceiling Standard: 5MB)
+    const MAX_CV_BYTE_SIZE_CEILING = 5 * 1024 * 1024;
+    if (selectedFileNode.size > MAX_CV_BYTE_SIZE_CEILING) {
+      toast.error("Payload Threshold Exceeded: Max 5MB per file ingestion pass.");
+      trackEvent("cv_ingress_size_overflow_intercepted", { fileSize: selectedFileNode.size });
       return;
     }
 
@@ -103,202 +139,274 @@ export function CVUploadSection() {
     setUploadProgress(0);
     setCurrentStage(0);
 
-    const syncInterval = simulateHandshake();
+    trackEvent("cv_ingress_upload_initiated", { size: selectedFileNode.size });
+    simulateHandshake();
 
     try {
-      // REGISTRY: Supabase Storage Synchronisation
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${talent?.id || "node"}-${Date.now()}.${fileExt}`;
-      const filePath = `cvs/${fileName}`;
+      // STORAGE PIPELINE TRANSACT EXECUTION
+      const fileExtensionString = selectedFileNode.name.split(".").pop();
+      const nonCollidingUniqueFileNameStr = `${talent?.id || "node"}-${Date.now()}.${fileExtensionString}`;
+      const fullTargetStoragePathStr = `cvs/${nonCollidingUniqueFileNameStr}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: storageUploadRegistryError } = await supabase.storage
         .from("portfolio-uploads")
-        .upload(filePath, file, { cacheControl: "3600", upsert: true });
+        .upload(fullTargetObjectStoragePathStr, selectedFileNode, { cacheControl: "3600", upsert: true });
 
-      if (uploadError) throw new Error(`Transmission Fault: ${uploadError.message}`);
+      if (storageUploadRegistryError) throw new Error(`Transmission Fault: ${storageUploadRegistryError.message}`);
 
-      const { data: urlData } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
+      const { data: urlPublicPayloadData } = supabase.storage
+        .from("portfolio-uploads")
+        .getPublicUrl(fullTargetObjectStoragePathStr);
 
-      const cvUrl = urlData?.publicUrl;
+      const generatedPublicCvUrlStr = urlPublicPayloadData?.publicUrl;
 
-      // INTELLIGENCE: Execute Neural Extraction Edge Function
-      setCurrentStage(2);
-      setUploadProgress(40);
-
-      const { data: parseData, error: parseError } = await supabase.functions.invoke("parse-cv", { body: { cvUrl } });
-
-      if (parseError) throw parseError;
-
-      clearInterval(syncInterval);
-      setCurrentStage(5);
-      setUploadProgress(95);
-
-      // HYDRATION: Update Talent Registry
-      if (parseData?.success && parseData?.parsedData) {
-        const parsed: ParsedCVData = parseData.parsedData;
-        const syncPayload: any = { cvUrl, cvParsedAt: new Date().toISOString() };
-
-        if (parsed.fullName) syncPayload.fullName = parsed.fullName;
-        if (parsed.phone) syncPayload.phone = parsed.phone;
-        if (parsed.education?.length) syncPayload.education = parsed.education;
-        if (parsed.experience?.length) syncPayload.experience = parsed.experience;
-        if (parsed.skills?.length) syncPayload.skills = parsed.skills;
-        if (parsed.linkedinUrl) syncPayload.linkedinUrl = parsed.linkedinUrl;
-        if (parsed.customProfession) syncPayload.customProfession = parsed.customProfession;
-        if (parsed.professionCategoryId) syncPayload.professionCategoryId = parsed.professionCategoryId;
-
-        await updateTalent(syncPayload);
-        await refreshTalent();
-
-        setUploadProgress(100);
-        toast.success("Identity Matrix Synced: Profile hydrated from CV.");
-      } else {
-        await updateTalent({ cvUrl, cvParsedAt: new Date().toISOString() });
-        await refreshTalent();
-        toast.success("Artifact Stored: Full extraction incomplete, node saved.");
+      if (!generatedPublicCvUrlStr) {
+        throw new Error("Registry Error: Storage bucket failed to compile a public route path.");
       }
-    } catch (err: any) {
-      clearInterval(syncInterval);
-      console.error("[Ingress Node Error]:", err);
-      setError(err.message || "Encryption/Processing Error. Protocol Aborted.");
-      toast.error("Handshake Failed", { description: err.message });
+
+      // COGNITIVE INTELLIGENCE LAYER: Execute Neural Parser Edge Function
+      if (isMountedRef.current) {
+        setCurrentStage(2);
+        setUploadProgress(40);
+      }
+
+      const { data: edgeFunctionResponsePayload, error: parseEdgeFunctionRpcError } = await supabase.functions.invoke(
+        "parse-cv",
+        { body: { cvUrl: generatedPublicCvUrlStr } },
+      );
+
+      if (parseEdgeFunctionRpcError) throw parseEdgeFunctionRpcError;
+
+      clearSyncInterval();
+
+      if (isMountedRef.current) {
+        setCurrentStage(5);
+        setUploadProgress(95);
+      }
+
+      // PROFILE HYDRATION LAYER: Commit parsed matrices down configuration rows
+      if (edgeFunctionResponsePayload?.success && edgeFunctionResponsePayload?.parsedData) {
+        const parsedNodePayload: ParsedCVData = edgeFunctionResponsePayload.parsedData;
+        const compiledSyncPayloadBlock: Record<string, any> = {
+          cvUrl: generatedPublicCvUrlStr,
+          cvParsedAt: new Date().toISOString(),
+        };
+
+        if (parsedNodePayload.fullName) compiledSyncPayloadBlock.fullName = parsedNodePayload.fullName.trim();
+        if (parsedNodePayload.phone) compiledSyncPayloadBlock.phone = parsedNodePayload.phone.trim();
+        if (Array.isArray(parsedNodePayload.education) && parsedNodePayload.education.length)
+          compiledSyncPayloadBlock.education = parsedNodePayload.education;
+        if (Array.isArray(parsedNodePayload.experience) && parsedNodePayload.experience.length)
+          compiledSyncPayloadBlock.experience = parsedNodePayload.experience;
+        if (Array.isArray(parsedNodePayload.skills) && parsedNodePayload.skills.length)
+          compiledSyncPayloadBlock.skills = parsedNodePayload.skills;
+        if (parsedNodePayload.linkedinUrl) compiledSyncPayloadBlock.linkedinUrl = parsedNodePayload.linkedinUrl.trim();
+        if (parsedNodePayload.customProfession)
+          compiledSyncPayloadBlock.customProfession = parsedNodePayload.customProfession.trim();
+        if (parsedNodePayload.professionCategoryId)
+          compiledSyncPayloadBlock.professionCategoryId = parsedNodePayload.professionCategoryId;
+
+        await updateTalent(compiledSyncPayloadBlock);
+        trackEvent("cv_ingress_profile_hydrated_completely");
+      } else {
+        // Fallback pass: Commit raw document parameters to secure active file links cleanly
+        await updateTalent({ cvUrl: generatedPublicCvUrlStr, cvParsedAt: new Date().toISOString() });
+        trackEvent("cv_ingress_file_saved_without_hydration");
+      }
+
+      // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
+      await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+      await refreshTalent();
+
+      if (isMountedRef.current) {
+        setUploadProgress(100);
+        toast.success("Identity Matrix Synchronized: Profile variables fully hydrated.");
+      }
+    } catch (caughtPipelineExceptionErr: any) {
+      clearSyncInterval();
+      const formattedExceptionMsgStr =
+        caughtPipelineExceptionErr instanceof Error
+          ? caughtPipelineExceptionErr.message
+          : String(caughtPipelineExceptionErr);
+
+      trackError(formattedExceptionMsgStr, {
+        component: "CVUploadSection",
+        action: "commit_cv_artifact_ingress_pipeline",
+      });
+
+      if (isMountedRef.current) {
+        setError(formattedExceptionMsgStr);
+        toast.error("Ecosystem sync exception: Data processing protocol aborted.");
+      }
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (isMountedRef.current) {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
     }
   };
 
   return (
-    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md shadow-2xl overflow-hidden transition-all duration-500 hover:border-primary/20">
-      <CardHeader className="p-8 border-b border-border/10 bg-muted/5">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-              <Zap className="h-7 w-7 text-primary fill-current" /> Neural_Artifact_Sync
+    <Card className="w-full text-left rounded-xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm antialiased transform-gpu overflow-hidden transition-colors hover:border-border/60">
+      {/* HUD LEVEL 1: TOP SUMMARY TEXT LABELS ROW HEADER */}
+      <CardHeader className="p-4 sm:p-5 border-b border-border/10 bg-muted/10 select-none leading-none w-full shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full leading-none">
+          <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
+            <CardTitle className="text-sm sm:text-base font-bold text-foreground/90 uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
+              <Zap className="h-4 w-4 text-primary fill-primary/10 stroke-[2.2] shrink-0 animate-pulse" />
+              <span>Neural Artifact Sync</span>
             </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
-              Automated profile hydration via AI-orchestrated artifact parsing
+            <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
+              Automated profile hydration variables via AI-orchestrated psychometric parsing sequences
             </CardDescription>
           </div>
           {hasCV && (
             <Badge
               variant="outline"
-              className="h-10 px-5 rounded-xl border-2 font-black italic gap-2 bg-background/50 uppercase text-emerald-500 border-emerald-500/20"
+              className="rounded px-2 h-5.5 text-[9px] font-extrabold tracking-wider uppercase border border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1 flex items-center leading-none shadow-xs shrink-0 select-none"
             >
-              <ShieldCheck className="h-4 w-4" /> Node_Verified
+              <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Node Verified</span>
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="p-8">
+      <CardContent className="p-4 sm:p-5 w-full min-w-0 flex flex-col justify-center">
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.doc,.docx"
-          className="hidden"
-          onChange={handleArtifactIngestion}
           disabled={isUploading}
+          className="hidden select-none sr-only pointer-events-none"
+          aria-hidden="true"
+          onChange={handleArtifactIngestion}
         />
 
+        {/* LOADING PROCESSING OVERLAY TIMELINE VIEW */}
         {isUploading ? (
-          <div className="space-y-6 py-4 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="text-sm font-black uppercase italic tracking-widest">
-                  {PARSING_STAGES[currentStage]?.message}
+          <div className="space-y-3 py-2 animate-in fade-in duration-200 select-none w-full leading-none">
+            <div className="flex items-center justify-between gap-4 font-bold text-xs uppercase tracking-wider font-mono w-full text-muted-foreground/60">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5] shrink-0" />
+                <span className="truncate text-ellipsis animate-pulse italic block">
+                  {PARSING_STAGES[currentStage]?.message || "PROCESSING..."}
                 </span>
               </div>
-              <span className="text-xs font-black tabular-nums text-primary">{uploadProgress}%</span>
+              <span className="text-primary font-black bg-primary/5 px-1.5 py-0.5 rounded border border-primary/5 shadow-xs tabular-nums">
+                {uploadProgress}%
+              </span>
             </div>
-            <Progress value={uploadProgress} className="h-3 rounded-full bg-primary/10 shadow-inner" />
-            <p className="text-[10px] text-muted-foreground uppercase font-black text-center tracking-[0.3em] opacity-50 animate-pulse">
-              EXTRACTING_IDENTITY_NODES...
+            <Progress
+              value={uploadProgress}
+              className="h-2 rounded-full border-none bg-primary/10 shadow-inner w-full block"
+            />
+            <p className="text-[9px] text-primary/40 uppercase font-bold text-center tracking-widest leading-none pt-1 animate-pulse select-none">
+              Extracting specialized identity mapping coefficients…
             </p>
           </div>
         ) : error ? (
-          <div className="space-y-6 animate-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center gap-4 p-6 bg-destructive/5 border-2 border-destructive/20 rounded-[24px]">
-              <AlertCircle className="h-8 w-8 text-destructive shrink-0" />
-              <div className="flex-1">
-                <p className="font-black text-sm uppercase italic text-destructive">PROTOCOL_FAULT</p>
-                <p className="text-xs font-bold text-muted-foreground/70 uppercase leading-relaxed mt-1">{error}</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="w-full h-14 rounded-2xl border-2 font-black uppercase text-xs tracking-widest gap-2 hover:bg-destructive/5 hover:text-destructive"
-            >
-              <RefreshCw className="h-4 w-4" /> RE_INITIALIZE_SYNC
-            </Button>
-          </div>
-        ) : hasCV ? (
-          <div className="space-y-6 animate-in zoom-in-95 duration-500">
-            <div className="flex items-center gap-5 p-6 bg-emerald-500/5 border-2 border-emerald-500/20 rounded-[24px]">
-              <div className="p-3 bg-emerald-500/10 rounded-2xl">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-sm uppercase italic text-emerald-600">ARTIFACT_SYNCED</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1 tracking-widest">
-                  Identity ledger updated via neural extraction
+          /* CORE CRITICAL PROCESSSING FAULT DISPLAY ROW */
+          <div className="space-y-4 animate-in slide-in-from-top-1 duration-200 w-full font-bold text-xs tracking-tight">
+            <div className="flex gap-3 items-start p-4 rounded-xl border border-rose-500/15 bg-rose-500/[0.015] leading-normal text-left w-full min-w-0">
+              <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.5] mt-0.5" />
+              <div className="space-y-1 flex-1 min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400 select-none leading-none">
+                  Ecosystem Ingress Sync Fault
+                </p>
+                <p className="text-[11px] font-semibold text-muted-foreground/60 max-w-full break-words select-text pt-0.5">
+                  {error}
                 </p>
               </div>
             </div>
-            <div className="flex gap-4">
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full h-10 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Re-Initialize Calibration Sync</span>
+            </Button>
+          </div>
+        ) : hasCV ? (
+          /* COGNITIVE ACTIVE FILE CONFIRMED TILES */
+          <div className="space-y-4 animate-in zoom-in-99 duration-200 w-full font-bold text-xs tracking-tight">
+            <div className="flex gap-3.5 items-center p-4 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.015] select-none leading-none w-full min-w-0">
+              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/5 flex items-center justify-center shrink-0 shadow-inner">
+                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+              </div>
+              <div className="space-y-1 flex-1 min-w-0 flex flex-col justify-center">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 leading-none">
+                  Ecosystem Ingress Verified
+                </p>
+                <p className="text-[10px] font-extrabold text-muted-foreground/50 uppercase tracking-wider block pt-1.5 leading-none">
+                  Identity ledger profile values fully populated from CV mapping lines
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full shrink-0 select-none font-bold text-xs">
               <Button
-                variant="outline"
-                className="flex-1 h-14 rounded-2xl border-2 font-black uppercase text-xs tracking-widest gap-3 shadow-lg active:scale-95 transition-all"
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
+                className="flex-1 h-10 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shadow-sm hover:bg-accent gap-1.5 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <Upload className="h-5 w-5" /> Protocol_Update
+                <Upload className="h-3.5 w-3.5 stroke-[2.2]" />
+                <span>Upload Replacement Document</span>
               </Button>
               {talent?.cvUrl && (
                 <Button
-                  variant="outline"
-                  className="h-14 w-14 rounded-2xl border-2 shadow-lg active:scale-95 transition-all"
-                  onClick={() => downloadFile(talent.cvUrl!, `${talent.fullName || "ARTIFACT"}.pdf`)}
+                  type="button"
+                  onClick={() => {
+                    trackEvent("cv_ingress_download_triggered");
+                    downloadFile(talent.cvUrl!, `${talent.fullName || "CV_ARTIFACT"}.pdf`);
+                  }}
+                  className="h-10 w-10 rounded-xl border border-border/60 text-muted-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95 flex items-center justify-center p-0"
+                  title="Pull verified file node from encrypted remote object storage repository"
                 >
-                  <Download className="h-5 w-5" />
+                  <Download className="h-4 w-4 stroke-[2.5]" />
                 </Button>
               )}
             </div>
           </div>
         ) : (
+          /* COLD COLD-START COLD INVITATION INITIAL ENGAGEMENT BOARD */
           <div
-            className="group relative border-2 border-dashed rounded-[32px] p-16 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all duration-500 overflow-hidden"
+            type="button"
             onClick={() => fileInputRef.current?.click()}
+            className="group relative border border-dashed border-border/40 rounded-xl p-8 sm:p-12 text-center select-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring transition-all bg-card/20 hover:bg-card/40 hover:border-border/80 group/cvbox shadow-sm w-full flex flex-col justify-center items-center overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative z-10 space-y-5">
-              <div className="h-20 w-20 bg-muted/20 border-2 border-border/10 rounded-[28px] flex items-center justify-center mx-auto transition-all duration-700 group-hover:rotate-6 group-hover:scale-110 shadow-xl group-hover:shadow-primary/10">
-                <Upload className="h-10 w-10 text-primary" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.015] via-transparent to-transparent pointer-events-none select-none transition-opacity duration-300" />
+            <div className="relative z-10 space-y-4 w-full flex flex-col items-center justify-center">
+              <div className="h-14 w-14 bg-background border border-border/40 rounded-xl flex items-center justify-center shadow-sm transition-transform duration-500 ease-out transform group-hover/cvbox:scale-102 group-hover/cvbox:rotate-2 shadow-sm shrink-0">
+                <Upload className="h-5 w-5 text-primary stroke-[2.2]" />
               </div>
-              <div>
-                <p className="font-black text-lg uppercase italic tracking-tighter text-foreground">
-                  Deploy_CV_Artifact
+              <div className="space-y-1.5 leading-none text-center font-bold text-xs tracking-tight">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground/80 leading-none">
+                  Deploy Professional CV Artifact
                 </p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 opacity-60">
-                  PDF_DOC_DOCX | MAX_PAYLOAD_5MB
+                <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-widest block leading-none pt-0.5">
+                  Authorized Extensions: PDF | DOC | DOCX &bull; Maximum Volume Limit: 5MB
                 </p>
               </div>
               <Button
+                type="button"
                 variant="secondary"
-                className="h-10 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md"
+                className="h-8 px-5 rounded-xl font-bold uppercase text-[9px] tracking-wider shadow-sm shrink-0 pointer-events-none bg-muted text-muted-foreground"
               >
-                Select_Source_Node
+                Select Source Node
               </Button>
             </div>
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-center gap-3 py-3 border-t border-border/10">
-          <Zap className="h-3.5 w-3.5 text-amber-500 fill-current animate-pulse" />
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 italic">
-            Neural Engine: Professional Data Ingress Protocol v2.6
-          </p>
+        {/* BOTTOM METRIC RIBBON OVERLAY LABEL */}
+        <div className="mt-6 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
+          <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2] shrink-0 animate-pulse" />
+          <span>Neural Engine Vector Ingress Protocol Alignment Core v2.6 Mapped</span>
         </div>
       </CardContent>
     </Card>
