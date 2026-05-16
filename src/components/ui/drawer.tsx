@@ -1,16 +1,16 @@
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Mobile BottomSheet Protocol
- * High-performance drawer system built on Vaul, optimized for tactile mobile interactions.
+ * GroUp Academy: Tactile Mobile Bottom Sheet Enclosure Protocol (Drawer)
+ * Hardened gesture-driven overlay container optimizing mobile layout boundaries and stabilizing tactile drag tracks.
+ * Version: Launch Candidate · Phase Z0 Dynamic Calculation Hardened
  */
 const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
 );
-Drawer.displayName = "Drawer";
+Drawer.displayName = "Drawer_Core_Platform_Node";
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
 
@@ -24,11 +24,11 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-background/80 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-50 bg-background/40 backdrop-blur-md", className)}
     {...props}
   />
 ));
-DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
+DrawerOverlay.displayName = "Drawer_Core_Overlay_Node";
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
@@ -39,27 +39,40 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[32px] border border-border/40 bg-background shadow-[0_-12px_40px_-12px_rgba(0,0,0,0.1)]",
+        "fixed inset-x-0 bottom-0 z-50 flex h-auto flex-col rounded-t-xl border border-border/40 bg-card/95 backdrop-blur-xl shadow-lg transform-gpu select-none text-left antialiased outline-none focus:outline-none",
         className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-muted transition-opacity hover:opacity-100 opacity-40" />
+      {/* HUD LEVEL 1: STRUCTURAL GESTURE INDICATOR HINGE DRAG TRACK HANDLE */}
+      <div
+        className="mx-auto mt-3 h-1 w-10 rounded-full bg-muted/40 shrink-0 pointer-events-none select-none"
+        aria-hidden="true"
+      />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
 ));
-DrawerContent.displayName = "DrawerContent";
+DrawerContent.displayName = "Drawer_Core_Content_Node";
 
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("grid gap-2 p-6 text-center sm:text-left", className)} {...props} />
+  <div
+    className={cn("grid gap-1.5 p-4 sm:p-5 text-left select-none shrink-0 leading-none w-full", className)}
+    {...props}
+  />
 );
-DrawerHeader.displayName = "DrawerHeader";
+DrawerHeader.displayName = "Drawer_Core_Header_Node";
 
 const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("mt-auto flex flex-col gap-3 p-6", className)} {...props} />
+  <div
+    className={cn(
+      "mt-auto flex flex-col gap-2 p-4 sm:p-5 select-none border-t border-border/10 pt-4 w-full shrink-0 font-bold text-xs",
+      className,
+    )}
+    {...props}
+  />
 );
-DrawerFooter.displayName = "DrawerFooter";
+DrawerFooter.displayName = "Drawer_Core_Footer_Node";
 
 const DrawerTitle = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
@@ -67,11 +80,14 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn("text-2xl font-black tracking-tighter uppercase leading-none text-foreground", className)}
+    className={cn(
+      "text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none pt-0.5",
+      className,
+    )}
     {...props}
   />
 ));
-DrawerTitle.displayName = DrawerPrimitive.Title.displayName;
+DrawerTitle.displayName = "Drawer_Core_Title_Node";
 
 const DrawerDescription = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
@@ -79,11 +95,14 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn("text-sm font-medium leading-relaxed text-muted-foreground/80 italic", className)}
+    className={cn(
+      "text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-normal pt-1 block select-text",
+      className,
+    )}
     {...props}
   />
 ));
-DrawerDescription.displayName = DrawerPrimitive.Description.displayName;
+DrawerDescription.displayName = "Drawer_Core_Description_Node";
 
 export {
   Drawer,
