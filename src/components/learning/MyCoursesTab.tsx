@@ -79,7 +79,6 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
 
   return (
     <Card
-      type="button"
       className="group relative cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm text-left select-none sm:select-text w-full min-w-0 flex flex-col overflow-hidden transition-all duration-300 transform-gpu hover:border-primary/30 hover:bg-card/60 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
       onClick={handleCardNavigationTrigger}
     >
