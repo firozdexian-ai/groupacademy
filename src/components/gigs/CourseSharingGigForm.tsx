@@ -71,7 +71,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const cutoffTimestamp = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const permissibleTypes = ["recorded_course", "live_webinar", "batch_class"];
+      const permissibleTypes = ["recorded_course", "live_webinar", "batch_class"] as const;
 
       // Single server-side pass fetching combined attributes efficiently
       const { data: blendedContent, error: combinedError } = await supabase
