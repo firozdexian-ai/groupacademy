@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { BookOpen, MessageCircle, Award, PlayCircle, Loader2, Compass } from "lucide-react";
+import { BookOpen, MessageCircle, Award, PlayCircle, Loader2, Compass, RefreshCw, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
 import { NextActionsCard } from "@/components/learning/NextActionsCard";
