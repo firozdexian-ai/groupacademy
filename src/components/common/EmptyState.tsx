@@ -16,6 +16,7 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string; // Decomposed parameter shields component against object inline literals references
   onActionClick?: () => void; // Isolated click callback preventing child element layout loops
+  action?: { label: string; onClick: () => void }; // Convenience grouped action prop
   className?: string;
 }
 
@@ -25,8 +26,11 @@ export function EmptyState({
   description,
   actionLabel,
   onActionClick,
+  action,
   className,
 }: EmptyStateProps) {
+  const resolvedActionLabel = actionLabel ?? action?.label;
+  const resolvedActionClick = onActionClick ?? action?.onClick;
   // Clean string title normalization ensures crisp typography alignment natively
   const standardizedTitleToken = useMemo(() => {
     return String(title || "").trim();
