@@ -347,7 +347,6 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
               {competitions.map((compItem) => (
                 <Card
                   key={compItem.id}
-                  type="button"
                   className="cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all duration-300 transform-gpu hover:border-primary/30 hover:bg-card/80 outline-none focus-visible:ring-1 focus-visible:ring-ring overflow-hidden group w-full text-left flex flex-col"
                   onClick={() => {
                     trackEvent("academy_competition_selected", { slug: compItem.slug });
