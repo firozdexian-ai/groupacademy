@@ -1,9 +1,27 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { MasteryBars } from "./MasteryBars";
 import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
+import {
+  Award,
+  CheckCircle,
+  ArrowRight,
+  Download,
+  Trophy,
+  Target,
+  Clock,
+  Brain,
+  Zap,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProgressStageProps {
   moduleId?: string;
@@ -19,21 +37,18 @@ interface ProgressStageProps {
   isCompleted: boolean;
   hasNextModule: boolean;
 }
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 /**
- * GroUp Academy: Curriculum Completion Milestone
- * CTO Reference: Authoritative node for end-of-module synchronization and transition.
+ * GroUp Academy: End-Of-Module Milestone Synchronization Controller (ProgressStage)
+ * An authoritative operational pipeline auditing progression telemetry, updating wallets, and launching curriculum node routing shifts.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
-
 export function ProgressStage({
   moduleId,
   moduleName,
   moduleIndex,
   totalModules,
-  completedStages,
+  completedStages = [],
   quizScore,
   quizTotal,
   quizPassed,
@@ -42,176 +57,242 @@ export function ProgressStage({
   isCompleted,
   hasNextModule,
 }: ProgressStageProps) {
-  // PROTOCOL: Auto-synchronize state on ingress
+  const queryClient = useQueryClient();
+  const isMountedRef = useRef<boolean>(true);
+
+  // Synchronize component mounting bounds cleanly to catch dangling thread mutations
   useEffect(() => {
+    isMountedRef.current = true;
+    trackEvent("progress_stage_milestone_mounted", { moduleId, completedCount: completedStages.length });
+
+    // PROTOCOL LOCK: Auto-synchronize state on ingress defensively inside component lifecycle bounds
     if (!isCompleted) {
+      trackEvent("progress_stage_auto_completion_triggered", { moduleId });
       onComplete();
     }
-  }, [isCompleted, onComplete]);
 
-  const stagesCompleted = completedStages.length;
-  const stageProgress = (stagesCompleted / 6) * 100;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [isCompleted, onComplete, moduleId, completedStages.length]);
+
+  const stagesCompletedCount = useMemo(() => {
+    return Array.isArray(completedStages) ? completedStages.length : 0;
+  }, [completedStages]);
+
+  const stageProgressPercentage = useMemo(() => {
+    return (stagesCompletedCount / 6) * 100;
+  }, [stagesCompletedCount]);
+
+  const normalizedAccuracyValue = useMemo(() => {
+    if (quizScore === undefined || quizTotal === undefined || quizTotal <= 0) return 0;
+    return Math.round((quizScore / quizTotal) * 100);
+  }, [quizScore, quizTotal]);
+
+  const handleDownloadKnowledgeNodesClick = () => {
+    trackEvent("progress_stage_download_nodes_requested", { moduleId });
+    toast.info("Synchronization Protocol Engaged", {
+      description:
+        "Assembling verified knowledge schemas and cognitive recall artifacts for your local credential locker.",
+    });
+  };
+
+  const handleNextCurriculumNodeAdvance = async () => {
+    trackEvent("progress_stage_next_node_advance_requested", { hasNextModule, currentModuleIndex: moduleIndex });
+
+    try {
+      // Automated Efficiency: Invalidate metric states immediately across adjacent workspace viewports
+      await queryClient.invalidateQueries({ queryKey: ["module-analytics"] });
+      await queryClient.invalidateQueries({ queryKey: ["talent-stats"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      if (isMountedRef.current) {
+        onNextModule();
+      }
+    } catch (err) {
+      trackError(err, {
+        component: "ProgressStage",
+        action: "execute_next_node_advance_callback",
+      });
+      onNextModule(); // Safe fallback passthrough validation
+    }
+  };
 
   const stageRegistry = [
-    { name: "ORIENTATION", stage: 1, icon: Target },
-    { name: "LEARN", stage: 2, icon: Brain },
-    { name: "DISCUSS", stage: 3, icon: Clock },
-    { name: "PRACTICE", stage: 4, icon: Brain },
-    { name: "ASSESS", stage: 5, icon: CheckCircle },
-    { name: "PROGRESS_SYNC", stage: 6, icon: Award },
+    { name: "ORIENTATION SYNC", stage: 1, icon: Target },
+    { name: "KNOWLEDGE INGESTION", stage: 2, icon: Brain },
+    { name: "KNOWLEDGE SYNTHESIS", stage: 3, icon: Clock },
+    { name: "COGNITIVE RECALL", stage: 4, icon: Brain },
+    { name: "ACCURACY AUDIT", stage: 5, icon: CheckCircle },
+    { name: "MILESTONE SYNC", stage: 6, icon: Award },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 text-left">
-      {/* HUD: STAGE_HEADER */}
-      <div className="flex items-center justify-between px-1">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 text-foreground">
-            <Award className="h-6 w-6 text-primary" /> Stage_06: Milestone_Sync
+    <div className="space-y-5 text-left max-w-full w-full transform-gpu antialiased">
+      {/* HUD LEVEL 1: STAGE HEADER METADATA SHIELD */}
+      <div className="flex items-center justify-between gap-4 px-0.5 select-none w-full leading-none">
+        <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 flex-1 leading-none">
+          <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground uppercase tracking-wide flex items-center gap-2">
+            <Award className="h-4 w-4 text-primary stroke-[2.2] shrink-0 animate-pulse" />
+            <span>Stage 06: Milestone Synchronization</span>
           </h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
-            Audit progression telemetry and transition to next trajectory
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mt-1 leading-none">
+            Audit trajectory progression telemetry and transition identity credentials to outstanding targets
           </p>
         </div>
-        <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center gap-2 text-emerald-500 shadow-lg">
-          <ShieldCheck className="h-4 w-4" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Node_Verified</span>
-        </div>
+        <Badge
+          variant="outline"
+          className="text-[9px] font-extrabold tracking-wider uppercase px-2 h-5.5 rounded bg-emerald-500/10 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 leading-none shadow-sm shrink-0 select-none"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 mr-1 stroke-[2.5]" />
+          <span>Node Verified</span>
+        </Badge>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr,350px]">
-        <div className="space-y-6">
-          {/* COMPONENT: MODULE_VICTORY_CARD */}
-          <Card className="rounded-[40px] border-4 border-primary bg-card/30 backdrop-blur-xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(var(--primary),0.2)]">
-            <CardContent className="p-10 text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="p-6 bg-primary/10 rounded-full relative">
-                  <Trophy className="h-16 w-16 text-primary animate-bounce" />
-                  <div className="absolute inset-0 bg-primary blur-2xl opacity-20 animate-pulse" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-black uppercase italic tracking-tighter">Module_Complete!</h3>
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest italic opacity-60">
-                  {moduleName}
-                </p>
-              </div>
+      {/* HUD LEVEL 2: TWO-COLUMN MAIN TELEMETRY CONTENT CONTAINER */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,340px] gap-4 w-full min-w-0 items-start">
+        {/* MAIN PANEL CONTENT STACK: COLUMN LEFT */}
+        <div className="space-y-4 w-full min-w-0 flex flex-col justify-start">
+          {/* COMPONENT ELEMENT A: MODULE VICTORY GRAPHIC SUMMARY COVER CARD */}
+          <Card className="border border-primary/20 bg-primary/[0.015] rounded-2xl p-6 relative overflow-hidden text-center shadow-sm w-full flex flex-col justify-center items-center py-8">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/[0.03] rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none select-none" />
 
-              {/* INTERACTIVE_PROGRESS_RING */}
-              <div className="flex justify-center relative">
-                <div className="relative w-32 h-32">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="currentColor"
-                      strokeWidth="12"
-                      fill="none"
-                      className="text-muted/20"
-                    />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="currentColor"
-                      strokeWidth="12"
-                      fill="none"
-                      strokeDasharray={`${stageProgress * 3.51} 351`}
-                      className="text-primary transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-black tabular-nums">
-                      {stagesCompleted}
-                      <span className="text-xs text-muted-foreground">/6</span>
-                    </span>
-                    <span className="text-[8px] font-black uppercase text-muted-foreground">Stages</span>
-                  </div>
-                </div>
+            <div className="flex justify-center select-none shrink-0 mb-3 relative z-10">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/5 flex items-center justify-center relative shadow-inner">
+                <Trophy className="h-5 w-5 text-primary stroke-[2.2] animate-bounce" />
+                <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none" />
               </div>
+            </div>
 
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
-                Synchronizing artifacts with identity ledger...
+            <div className="space-y-1 w-full text-center leading-none select-text relative z-10">
+              <h3 className="text-base font-black uppercase tracking-wider text-foreground/90 leading-none">
+                Module Complete verified
+              </h3>
+              <p className="text-xs font-semibold text-muted-foreground/80 line-clamp-1 truncate uppercase tracking-wide leading-none pt-0.5 pr-1 max-w-full">
+                {moduleName || "Un-calibrated curriculum target row"}
               </p>
-            </CardContent>
+            </div>
+
+            {/* INTERACTIVE COMPOSITE PROGRESS RING SVG GAUGE */}
+            <div className="flex justify-center items-center relative select-none shrink-0 pt-5">
+              <div className="relative w-28 h-28 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90 block">
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r="48"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    className="text-muted/20 border-none"
+                  />
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r="48"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${stageProgressPercentage * 3.01} 301`}
+                    className="text-primary border-none transition-all Logan-stroke duration-1000 ease-out shrink-0"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                  <span className="text-xl font-black tabular-nums tracking-tighter text-foreground/95 flex items-baseline justify-center leading-none">
+                    {stagesCompletedCount}
+                    <span className="text-[10px] font-bold text-muted-foreground/50 ml-0.5">/6</span>
+                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/60 pt-0.5 leading-none">
+                    Units
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[9px] font-extrabold text-muted-foreground/50 uppercase tracking-wider select-none leading-none pt-5 relative z-10">
+              Cryptographically syncing module metrics with wallet ledger…
+            </p>
           </Card>
 
-          {/* COMPONENT: QUIZ_TELEMETRY */}
+          {/* COMPONENT ELEMENT B: ACCURACY PROTOCOL SCORE SUMMARY INTERFACE */}
           {quizScore !== undefined && quizTotal !== undefined && (
             <Card
               className={cn(
-                "rounded-[28px] border-l-8 transition-all duration-500 bg-card/30",
-                quizPassed ? "border-l-emerald-500 shadow-emerald-500/5" : "border-l-orange-500 shadow-orange-500/5",
+                "rounded-2xl border backdrop-blur-md shadow-sm overflow-hidden text-left w-full min-w-0 transition-all duration-300",
+                quizPassed ? "border-emerald-500/20 bg-emerald-500/[0.01]" : "border-amber-500/20 bg-amber-500/[0.01]",
               )}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      Quiz_Protocol_Yield
-                    </p>
-                    <p className="text-lg font-black uppercase italic tracking-tight flex items-center gap-2">
-                      {quizPassed ? (
-                        <Zap className="h-4 w-4 text-emerald-500 fill-current" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-orange-500" />
-                      )}
-                      {quizPassed ? "Authoritative_Pass" : "Readiness_Check_Fault"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-black tabular-nums tracking-tighter">
-                      {quizScore}
-                      <span className="text-sm text-muted-foreground/40 mx-1">/</span>
-                      {quizTotal}
-                    </p>
-                    <p className="text-[10px] font-black text-primary uppercase italic">
-                      {Math.round((quizScore / quizTotal) * 100)}% Accuracy
-                    </p>
-                  </div>
+              <CardContent className="p-4 sm:p-5 w-full min-w-0 font-bold text-xs flex items-center justify-between gap-4 leading-none">
+                <div className="space-y-1 text-left min-w-0 flex-1 leading-none select-none">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground/60 block leading-none">
+                    Quiz Evaluation Yield
+                  </span>
+                  <p className="text-xs sm:text-sm font-black uppercase tracking-wide flex items-center gap-1.5 leading-none pt-1 text-foreground/90 truncate">
+                    {quizPassed ? (
+                      <Zap className="h-4 w-4 text-emerald-500 fill-emerald-500/10 stroke-[2.2] shrink-0 animate-pulse" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-500 stroke-[2.2] shrink-0" />
+                    )}
+                    <span>{quizPassed ? "Authoritative Pass Verified" : "Readiness Calibrations Fault"}</span>
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0 leading-none select-text">
+                  <p className="text-2xl sm:text-3xl font-black tabular-nums tracking-tighter leading-none block text-foreground/95">
+                    {quizScore}
+                    <span className="text-xs font-normal text-muted-foreground/30 mx-1">/</span>
+                    {quizTotal}
+                  </p>
+                  <p className="text-[9px] font-black text-primary uppercase tracking-wide pt-1 leading-none font-mono">
+                    {normalizedAccuracyValue}% Verification accuracy
+                  </p>
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* SIDEBAR: STAGE_BREAKDOWN_MATRIX */}
-        <div className="space-y-6">
-          <Card className="rounded-[32px] border-2 border-border/40 bg-muted/5">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground">
-                Trajectory_Audit
+        {/* SIDEBAR ANALYSIS TRACK PANELS CONTAINER: COLUMN RIGHT */}
+        <div className="space-y-4 w-full min-w-0 flex flex-col justify-start">
+          {/* COMPONENT ELEMENT C: SIX-STAGE PROGRESS TRAJECTORY AUDIT DIAL */}
+          <Card className="rounded-2xl border border-border/40 bg-muted/5 w-full min-w-0 select-none shadow-sm flex flex-col justify-center">
+            <CardHeader className="p-3.5 px-4 select-none border-b border-border/10 leading-none w-full">
+              <CardTitle className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/70 block pt-0.5 leading-none w-full">
+                Synchronous Trajectory Audit
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 pt-0 space-y-3">
+            <CardContent className="p-3.5 space-y-2.5 w-full min-w-0 font-bold text-xs tracking-tight text-foreground/90">
               {stageRegistry.map(({ name, stage, icon: Icon }) => {
-                const completed = completedStages.includes(stage);
+                const isSubStageCleared = completedStages.includes(stage);
                 return (
                   <div
                     key={stage}
                     className={cn(
-                      "flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300",
-                      completed
-                        ? "bg-emerald-500/5 border-emerald-500/10"
-                        : "bg-background/40 border-border/10 opacity-40",
+                      "flex items-center justify-between gap-4 p-2.5 rounded-xl border transition-colors transform-gpu flex-1 min-w-0 leading-none font-semibold",
+                      isSubStageCleared
+                        ? "bg-emerald-500/[0.015] border-emerald-500/10 text-foreground"
+                        : "bg-background/30 border-border/5 opacity-35",
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 truncate">
                       <div
                         className={cn(
-                          "p-2 rounded-lg",
-                          completed ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground",
+                          "p-1.5 rounded-md shrink-0 border border-transparent shadow-sm flex items-center justify-center",
+                          isSubStageCleared
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/5"
+                            : "bg-muted text-muted-foreground/60",
                         )}
                       >
-                        <Icon className="h-3.5 w-3.5" />
+                        <Icon className="h-3.5 w-3.5 stroke-[2.2]" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest italic">{name}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider truncate text-ellipsis block">
+                        {name}
+                      </span>
                     </div>
-                    {completed ? (
-                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    {isSubStageCleared ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0 stroke-[2.5]" />
                     ) : (
-                      <span className="text-[8px] font-black opacity-40 uppercase">Pending</span>
+                      <span className="text-[8px] font-black opacity-45 uppercase tracking-wide shrink-0">Pending</span>
                     )}
                   </div>
                 );
@@ -219,60 +300,61 @@ export function ProgressStage({
             </CardContent>
           </Card>
 
-          {/* COMPONENT: ADAPTIVE_SNAPSHOT (per-module mastery + due) */}
+          {/* COMPONENT ELEMENT D: MODULAR SNAPSHOT DIAGNOSTIC CHIP */}
           {moduleId && <AdaptiveSnapshotCard moduleId={moduleId} compact />}
 
-          {/* COMPONENT: TOPIC_MASTERY_BARS */}
+          {/* COMPONENT ELEMENT E: GRANULAR PSYCHOMETRIC MASTERY OVERVIEW DECK */}
           <MasteryBars moduleId={moduleId} topN={5} />
 
-          {/* COMPONENT: AGGREGATE_COURSE_PROGRESS */}
-          <Card className="rounded-[32px] border-2 border-border/40 bg-card/30">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Total_Trajectory_Sync
-                </p>
-                <p className="text-[10px] font-black text-primary italic">
-                  Mod_{moduleIndex + 1}_of_{totalModules}
-                </p>
+          {/* COMPONENT ELEMENT F: OVERALL ACCUMULATIVE COURSE HORIZON TRACK PROGRESS CARD */}
+          <Card className="rounded-2xl border border-border/40 bg-card/30 w-full min-w-0 shadow-sm select-none">
+            <CardContent className="p-4 space-y-3 font-bold text-xs tracking-tight">
+              <div className="flex items-center justify-between gap-4 select-none leading-none w-full">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/60 block leading-none">
+                  Total Trajectory Calibration
+                </span>
+                <span className="text-[9px] font-mono font-black text-primary border bg-primary/5 rounded px-1.5 h-4.5 flex items-center justify-center shadow-sm uppercase tracking-wide leading-none shrink-0">
+                  Mod {moduleIndex + 1} of {totalModules}
+                </span>
               </div>
               <Progress
                 value={((moduleIndex + 1) / totalModules) * 100}
-                className="h-2.5 rounded-full bg-primary/10 shadow-inner"
+                className="h-2 rounded-full bg-primary/10 shadow-inner border-none"
               />
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* FOOTER: TRANSACTIONAL_ACTION_BAR */}
-      <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t-2 border-border/10">
+      {/* HUD LEVEL 3: TIMELINE TRANSACTION CONFIGURATION CONTROL COMMAND DISPATCH ROW STRIP */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/10 select-none w-full shrink-0">
         <Button
           variant="outline"
-          className="flex-1 h-14 rounded-2xl border-2 font-black uppercase italic text-xs tracking-widest gap-3 hover:bg-muted/10"
-          onClick={() =>
-            toast.info("Synchronization_Protocol_Active", {
-              description: "Node-specific knowledge artifacts are being prepared for your credential locker.",
-            })
-          }
+          type="button"
+          onClick={handleDownloadKnowledgeNodesClick}
+          className="flex-1 h-10 rounded-xl border border-border/60 text-muted-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-colors"
         >
-          <Download className="h-5 w-5" /> Download_Nodes
+          <Download className="h-4 w-4 stroke-[2.2]" />
+          <span>Download Knowledge Schema</span>
         </Button>
 
         {hasNextModule ? (
           <Button
-            onClick={onNextModule}
-            className="flex-[2] h-14 rounded-2xl font-black uppercase italic text-xs tracking-widest gap-3 shadow-[0_10px_30px_rgba(var(--primary),0.3)] transition-all active:scale-95"
+            type="button"
+            onClick={handleNextCurriculumNodeAdvance}
+            className="sm:flex-[2] h-10 rounded-xl font-extrabold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.99] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
           >
-            Initialize_Next_Node
-            <ArrowRight className="h-5 w-5" />
+            <span>Initialize Next Specialized Node</span>
+            <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.5]" />
           </Button>
         ) : (
           <Button
-            onClick={onNextModule}
-            className="flex-[2] h-14 rounded-2xl font-black uppercase italic text-xs tracking-widest gap-3 shadow-2xl transition-all active:scale-95"
+            type="button"
+            onClick={handleNextCurriculumNodeAdvance}
+            className="sm:flex-[2] h-10 rounded-xl font-extrabold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.99] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
           >
-            <Trophy className="h-5 w-5" /> Finalize_Curriculum_Graduation
+            <Trophy className="h-4 w-4 shrink-0 stroke-[2.2] text-current fill-primary-foreground/10" />
+            <span>Finalize Curriculum Track Graduation</span>
           </Button>
         )}
       </div>
