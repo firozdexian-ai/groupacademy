@@ -81,7 +81,7 @@ export function WeeklyLeaderboardWidget() {
               <Skeleton className="h-3 w-8 rounded-sm opacity-40 shrink-0" />
             </div>
           ))}
-        </div>
+        </CardContent>
       </Card>
     );
   }
