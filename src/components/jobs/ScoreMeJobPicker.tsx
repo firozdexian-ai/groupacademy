@@ -10,6 +10,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Search, Briefcase, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface JobLite {
   id: string;
@@ -61,8 +62,8 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
 
         if (uid) {
           // Pull raw item ids cleanly from relational saved listings tables
-          const { data: savedData, error: savedError } = await supabase
-            .from("saved_items")
+          const { data: savedData, error: savedError } = await (supabase
+            .from("saved_items") as any)
             .select("item_id")
             .eq("user_id", uid)
             .eq("item_type", "job")
@@ -165,7 +166,7 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog
+    <Sheet
       open={open}
       onOpenChange={(v) => {
         onOpenChange(v);
@@ -267,6 +268,6 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
           )}
         </div>
       </SheetContent>
-    </Dialog>
+    </Sheet>
   );
 }
