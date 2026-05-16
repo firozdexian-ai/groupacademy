@@ -23,7 +23,7 @@ const Breadcrumb = React.forwardRef<
 ));
 Breadcrumb.displayName = "Breadcrumb_Core_Gate_Node";
 
-const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWithoutRef<"ol")>(
+const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWithoutRef<"ol">>(
   ({ className, ...props }, ref) => (
     <ol
       ref={ref}
