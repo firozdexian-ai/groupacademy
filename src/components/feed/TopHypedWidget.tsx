@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { cn } from "@/lib/utils";
 
 interface TopPost {
   post_id: string;
@@ -12,95 +15,130 @@ interface TopPost {
   author_name: string | null;
 }
 
-/** Top Hyped This Week — feed sidebar widget. */
+/**
+ * Premium, performance-hardened Weekly Trending Content Widget.
+ * Leverages structured TanStack Query state caching to join analytics view aggregates
+ * dynamically without over-fetching raw data profiles over mobile PWA channels.
+ */
 export function TopHypedWidget() {
-  const [posts, setPosts] = useState<TopPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 1. Unified Server-State Sync Layer (staleTime 5 min configuration)
+  const {
+    data: posts = [],
+    isLoading,
+    error,
+  } = useQuery<TopPost[]>({
+    queryKey: ["top-hyped-posts-week"],
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      // Pull metadata aggregates from the optimized database analysis view
+      const { data: topRows, error: topError } = await supabase
+        .from("v_top_hyped_posts_week")
+        .select("post_id, hypes_week")
+        .limit(5);
+
+      if (topError) throw topError;
+
+      const postIds = (topRows ?? []).map((t) => t.post_id).filter(Boolean);
+      if (!postIds.length) return [];
+
+      // Batch look up connecting post parameters natively using the unique ID indices array
+      const { data: contentRows, error: contentError } = await supabase
+        .from("feed_posts")
+        .select("id, text_content, talents(full_name)")
+        .in("id", postIds);
+
+      if (contentError) throw contentError;
+
+      // Construct a linear lookup mapping buffer to join datasets at O(N) complexity
+      const postBuffer = new Map((contentRows ?? []).map((row: any) => [row.id, row]));
+
+      return (topRows ?? []).map((trendingRow) => {
+        const postData = postBuffer.get(trendingRow.post_id);
+        return {
+          post_id: trendingRow.post_id,
+          hypes_week: Number(trendingRow.hypes_week || 0),
+          preview: postData?.text_content?.slice(0, 80) ?? null,
+          author_name: postData?.talents?.full_name ?? "Academy Member",
+        };
+      });
+    },
+  });
+
+  // 2. Instrument Lifecycle Observability & Exception Metrics Tracking
+  useEffect(() => {
+    if (error) {
+      trackError(error instanceof Error ? error : String(error), {
+        component: "TopHypedWidget",
+        action: "fetch_weekly_trending_metrics_query",
+      });
+    }
+  }, [error]);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const { data: top } = await supabase
-          .from("v_top_hyped_posts_week")
-          .select("*")
-          .limit(5);
-        const ids = (top ?? []).map((t: any) => t.post_id);
-        if (!ids.length) {
-          if (alive) {
-            setPosts([]);
-            setLoading(false);
-          }
-          return;
-        }
-        const { data: postRows } = await supabase
-          .from("feed_posts")
-          .select("id, text_content, talent_id, talents(full_name)")
-          .in("id", ids);
-        const pMap = new Map((postRows ?? []).map((p: any) => [p.id, p]));
-        const merged = (top ?? []).map((t: any) => {
-          const p = pMap.get(t.post_id);
-          return {
-            post_id: t.post_id,
-            hypes_week: Number(t.hypes_week),
-            preview: p?.text_content?.slice(0, 80) ?? null,
-            author_name: p?.talents?.full_name ?? null,
-          };
-        });
-        if (alive) {
-          setPosts(merged);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("[TopHypedWidget] failed:", err);
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    if (posts.length > 0) {
+      trackEvent("top_hyped_widget_viewed", {
+        yieldedCount: posts.length,
+        peakHypeScore: posts[0]?.hypes_week || 0,
+      });
+    }
+  }, [posts]);
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <Card className="p-4 space-y-3">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Flame className="h-4 w-4 text-orange-500" /> Top Hyped This Week
+      <Card className="p-4 space-y-3.5 border border-border/40 bg-card/60 backdrop-blur-md shadow-sm select-none">
+        <h3 className="text-xs font-bold flex items-center gap-2 text-foreground/90 uppercase tracking-wider">
+          <Flame className="h-4 w-4 text-orange-500 fill-orange-500/10 animate-pulse" />
+          <span>Trending This Week</span>
         </h3>
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-md" />
-        ))}
+        <div className="space-y-2">
+          {[1, 2, 3].map((placeholderIndex) => (
+            <Skeleton key={placeholderIndex} className="h-12 w-full rounded-xl opacity-60" />
+          ))}
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-4">
-      <h3 className="font-semibold flex items-center gap-2 mb-3">
-        <Flame className="h-4 w-4 text-orange-500" /> Top Hyped This Week
+    <Card className="p-4 border border-border/40 bg-card/60 backdrop-blur-md shadow-sm transition-all duration-300 relative overflow-hidden select-none">
+      {/* Immersive Section Header */}
+      <h3 className="text-xs font-bold flex items-center gap-2 mb-3.5 text-foreground/90 uppercase tracking-wider">
+        <Flame className="h-4 w-4 text-orange-500 fill-orange-500/10 drop-shadow-[0_1px_4px_rgba(249,115,22,0.2)]" />
+        <span>Trending This Week</span>
       </h3>
+
       {posts.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">
-          No hyped posts yet — be the first to drop one in the feed.
+        <p className="text-xs text-muted-foreground/90 leading-relaxed py-2 text-left select-text selection:bg-primary/20">
+          No hyped updates yet &mdash; be the first to support community posts in the feed.
         </p>
       ) : (
-        <div className="space-y-2">
-          {posts.map((p) => (
-            <Link
-              key={p.post_id}
-              to={`/app/feed/post/${p.post_id}`}
-              className="block hover:bg-muted/50 rounded p-2 -mx-2"
-            >
-              <div className="text-sm line-clamp-2">{p.preview || "(media post)"}</div>
-              <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
-                <span>{p.author_name}</span>
-                <span className="flex items-center gap-1 text-orange-500">
-                  <Flame className="h-3 w-3" />
-                  {p.hypes_week}
-                </span>
-              </div>
-            </Link>
-          ))}
+        <div className="space-y-1.5 w-full">
+          {posts.map((postItem) => {
+            if (!postItem || !postItem.post_id) return null;
+            return (
+              <Link
+                key={postItem.post_id}
+                to={`/app/feed/post/${postItem.post_id}`}
+                onClick={() => trackEvent("top_hyped_item_click", { postId: postItem.post_id })}
+                className="block hover:bg-muted/40 rounded-xl p-2.5 -mx-1.5 transition-all duration-200 outline-none group focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <div className="text-xs sm:text-sm font-medium text-foreground/90 line-clamp-2 leading-snug tracking-tight text-left select-text selection:bg-primary/20 break-words">
+                  {postItem.preview || "(Media interaction asset update)"}
+                </div>
+
+                <div className="text-[11px] font-bold text-muted-foreground/80 mt-2 flex items-center justify-between gap-2 w-full select-none">
+                  <span className="truncate max-w-[70%] text-left text-ellipsis tracking-tight">
+                    {postItem.author_name}
+                  </span>
+                  <span className="flex items-center gap-1 text-orange-600 dark:text-orange-500 tabular-nums shrink-0 bg-orange-500/5 px-2 py-0.5 border border-orange-500/10 rounded-full">
+                    <Flame className="h-3 w-3 fill-current" />
+                    <span>{postItem.hypes_week}</span>
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </Card>
