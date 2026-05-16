@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,16 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -54,6 +48,11 @@ const FUNNEL_KEYS = ["job_id", "ref", "utm_source", "utm_medium", "utm_campaign"
 
 type ProvisionResult = { instance_id: string; created: boolean };
 
+/**
+ * GroUp Academy: Multi-Stage Personalization Onboarding Wizard (OnboardingWizard)
+ * An authoritative system layout managing user segmentation, geo clusters, and automated campus agent allocations.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function OnboardingWizard({
   onComplete,
   funnelOverride,
@@ -62,10 +61,16 @@ export function OnboardingWizard({
   funnelOverride?: FunnelParams;
 }) {
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const funnelParamsRef = useRef<FunnelParams>({});
 
-  // Capture funnel params once on mount (or accept an explicit override from a parent)
+  // 1. Thread Hardening Gate: Protect against asynchronous execution writes over disconnected components
+  const isMountedRef = useRef<boolean>(true);
+
+  // Capture funnel attributes once on context setup mount pass safely
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (funnelOverride && Object.keys(funnelOverride).length > 0) {
       funnelParamsRef.current = { ...funnelOverride };
       return;
@@ -76,8 +81,13 @@ export function OnboardingWizard({
       if (value) captured[key] = value;
     }
     funnelParamsRef.current = captured;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    trackEvent("onboarding_wizard_mounted", { funnelKeysLogged: Object.keys(captured) });
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [funnelOverride, searchParams]);
 
   const [step, setStep] = useState(1);
   const [country, setCountry] = useState<Country | null>(null);
@@ -88,9 +98,10 @@ export function OnboardingWizard({
   const [submitting, setSubmitting] = useState(false);
   const [submittingPhase, setSubmittingPhase] = useState<string>("");
 
-  // Step 1: Countries
+  // Step 1 Ingress: Fetch authorized market operational countries
   const countriesQ = useQuery({
     queryKey: ["onboarding-countries"],
+    staleTime: 30 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gtm_countries")
@@ -102,9 +113,10 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 2: Career stages (with academy_id)
+  // Step 2 Ingress: Fetch structural candidate operational career stages
   const stagesQ = useQuery({
     queryKey: ["onboarding-stages"],
+    staleTime: 30 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("career_stages")
@@ -116,10 +128,11 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 3: Institutions (universities)
+  // Step 3 Ingress: Fetch academic higher institution models mapped under active countries
   const institutionsQ = useQuery({
     queryKey: ["onboarding-institutions", country?.name],
     enabled: step >= 3,
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       let q = supabase
         .from("institutions")
@@ -134,17 +147,17 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 4: Schools (filtered by selected stage's academy)
+  // Step 4 Ingress: Fetch professional sub-schools mapped via segment classifications
   const schoolsQ = useQuery({
     queryKey: ["onboarding-schools", stage?.academy_id],
     enabled: step >= 4,
+    staleTime: 15 * 60 * 1000,
     queryFn: async () => {
       let q = supabase
         .from("schools")
         .select("id, name, slug, description, icon, academy_id")
         .eq("is_active", true)
         .order("display_order");
-      // Strict filter when stage maps to an academy; fallback to all active schools otherwise
       if (stage?.academy_id) q = q.eq("academy_id", stage.academy_id);
       const { data, error } = await q;
       if (error) throw error;
@@ -152,12 +165,23 @@ export function OnboardingWizard({
     },
   });
 
-  // Reset downstream selections when stage changes (academy filter shifts)
+  // Instrument continuous analytical tracking maps over internal server sub-query exceptions
+  useEffect(() => {
+    const primaryWizardFetchError = countriesQ.error || stagesQ.error || institutionsQ.error || schoolsQ.error;
+    if (primaryWizardFetchError) {
+      trackError(primaryWizardFetchError, {
+        component: "OnboardingWizard",
+        action: "fetch_onboarding_wizard_lookups",
+      });
+    }
+  }, [countriesQ.error, stagesQ.error, institutionsQ.error, schoolsQ.error]);
+
+  // Reset downstream metrics sequentially when academy clusters drift
   useEffect(() => {
     setSchool(null);
   }, [stage?.academy_id]);
 
-  const progress = (step / STEPS.length) * 100;
+  const progress = useMemo(() => (step / STEPS.length) * 100, [step]);
 
   const canAdvance = useMemo(() => {
     if (step === 1) return !!country;
@@ -168,24 +192,22 @@ export function OnboardingWizard({
   }, [step, country, stage, institution, school]);
 
   const provisionOrGetInstance = async (institutionName: string): Promise<ProvisionResult | null> => {
-    // 1. Try canonical RPC first
     try {
-      const { data, error } = await supabase.rpc("provision_or_get_instance" as never, {
-        _cluster_geo_id: institutionName,
-        _funnel: funnelParamsRef.current as unknown as object,
-      } as never);
+      const { data, error } = await supabase.rpc(
+        "provision_or_get_instance" as never,
+        {
+          _cluster_geo_id: institutionName,
+          _funnel: funnelParamsRef.current as unknown as object,
+        } as never,
+      );
       if (!error && data) {
-        const id =
-          typeof data === "string"
-            ? data
-            : (data as { instance_id?: string })?.instance_id ?? null;
+        const id = typeof data === "string" ? data : ((data as { instance_id?: string })?.instance_id ?? null);
         if (id) return { instance_id: id, created: false };
       }
-    } catch {
-      // fall through to manual fallback
+    } catch (rpcErr) {
+      trackError(rpcErr, { component: "OnboardingWizard", action: "provisionOrGetInstance_rpc_fallback" });
     }
 
-    // 2. Lookup existing instance for this geo cluster
     const { data: existing } = await supabase
       .from("workforce_hired_instances")
       .select("id")
@@ -194,7 +216,6 @@ export function OnboardingWizard({
       .maybeSingle();
     if (existing?.id) return { instance_id: existing.id, created: false };
 
-    // 3. Provision a new B2C instance bound to this user as tenant
     const { data: tplRow } = await supabase
       .from("workforce_master_templates")
       .select("id")
@@ -223,6 +244,7 @@ export function OnboardingWizard({
 
   const handleNext = async () => {
     if (step < 4) {
+      trackEvent("onboarding_wizard_step_advanced", { currentStep: step, nextStep: step + 1 });
       setStep((s) => s + 1);
       return;
     }
@@ -230,11 +252,12 @@ export function OnboardingWizard({
 
     setSubmitting(true);
     const startedAt = Date.now();
+    trackEvent("onboarding_wizard_submission_started");
+
     try {
-      // --- Phase 1: persist selections to talents ---
-      setSubmittingPhase("Saving your profile…");
+      setSubmittingPhase("Saving your profile parameters…");
       const { data: authData, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !authData?.user?.id) throw new Error("Not signed in");
+      if (authErr || !authData?.user?.id) throw new Error("Authentication index token lost. Please log in.");
       const userId = authData.user.id;
 
       const { error: updateErr } = await supabase
@@ -253,11 +276,9 @@ export function OnboardingWizard({
         .eq("user_id", userId);
       if (updateErr) throw updateErr;
 
-      // --- Phase 2: provision/get the campus instance ---
       setSubmittingPhase(`Connecting to ${institution.name} Campus Agent…`);
       const provisioned = await provisionOrGetInstance(institution.name);
 
-      // --- Phase 3: fire-and-forget seed so the first prompt has context ---
       if (provisioned?.instance_id) {
         setSubmittingPhase("Almost ready…");
         try {
@@ -276,207 +297,247 @@ export function OnboardingWizard({
             },
           });
         } catch (e) {
-          // non-blocking
-          // eslint-disable-next-line no-console
-          console.warn("[OnboardingWizard] agent-runtime seed failed", e);
+          trackError(e, { component: "OnboardingWizard", action: "agent_runtime_seed_silent_invoke" });
         }
       }
 
-      // Loading floor: avoid jarring flash
+      // Smooth Animation Floor Base Guard: Defeat violent layout flickers
       const elapsed = Date.now() - startedAt;
       if (elapsed < 600) await new Promise((r) => setTimeout(r, 600 - elapsed));
 
-      toast.success(`Connected to ${institution.name} AI Campus Ambassador`, {
-        description: `Your ${school.name} pathway is ready.`,
-        icon: <Sparkles className="h-4 w-4 text-blue-500" />,
+      if (isMountedRef.current) {
+        toast.success(`Connected to ${institution.name} AI Campus Ambassador`, {
+          description: `Your ${school.name} specialization pathway is configured and live.`,
+          icon: <Sparkles className="h-4 w-4 text-blue-500 stroke-[2.2]" />,
+        });
+
+        trackEvent("onboarding_wizard_completed_success");
+
+        // Invalidate profile query client states to trigger fresh workspace hydration rolls
+        await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+        await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+        onComplete();
+      }
+    } catch (err: any) {
+      const errorStringParsed = err instanceof Error ? err.message : String(err);
+
+      trackError(errorStringParsed, {
+        component: "OnboardingWizard",
+        action: "commit_final_onboarding_wizard_data_api",
       });
-      onComplete();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[OnboardingWizard] Submission failed", err);
-      toast.error("Couldn't finish setup", {
-        description: "Please try again — your selections are saved.",
+
+      toast.error("Ecosystem sync error: Setup execution timed out.", {
+        description: "Please attempt confirmation again — your chosen options remain active.",
       });
     } finally {
-      setSubmitting(false);
-      setSubmittingPhase("");
+      if (isMountedRef.current) {
+        setSubmitting(false);
+        setSubmittingPhase("");
+      }
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 font-sans animate-in fade-in duration-500">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-        <div className="flex items-center gap-4 px-6 py-5 md:px-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50">
-            <Zap className="h-5 w-5 fill-blue-500 text-blue-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-slate-900">Set up your account</div>
-            <div className="text-xs text-slate-400">
-              Step {step} of {STEPS.length} · {STEPS[step - 1].label}
+    <div className="fixed inset-0 z-50 flex flex-col bg-background font-sans text-left select-none sm:select-text transform-gpu animate-in fade-in duration-300">
+      {/* HUD HEADER COVER BAR METRIC PLOTS ROW */}
+      <header className="border-b border-border/40 bg-card/90 backdrop-blur-xl shrink-0 select-none w-full">
+        <div className="flex items-center justify-between gap-4 px-5 py-4 md:px-8 max-w-7xl mx-auto w-full">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/10 bg-primary/5 shadow-inner">
+              <Zap className="h-5 w-5 fill-primary/10 text-primary stroke-[2.2] animate-pulse" />
+            </div>
+            <div className="min-w-0 flex flex-col justify-center leading-none">
+              <h1 className="text-sm font-bold text-foreground/90 uppercase tracking-wide leading-none">
+                Initialize Trajectory Index
+              </h1>
+              <span className="text-[11px] font-bold text-muted-foreground/60 block leading-none pt-1">
+                Stage {step} of {STEPS.length} &bull; {STEPS[step - 1].label} Analysis
+              </span>
             </div>
           </div>
-          <div className="hidden w-64 md:block">
-            <Progress value={progress} className="h-2 bg-slate-100" />
+          <div className="hidden w-64 md:block select-none leading-none">
+            <Progress value={progress} className="h-2 bg-muted rounded-full shadow-inner" />
           </div>
         </div>
-        <div className="flex items-center justify-center gap-6 pb-4">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            const active = step === s.id;
-            const done = step > s.id;
+
+        {/* PROGRESS STEPPER DOTS LAYER HEADER */}
+        <div className="flex items-center justify-center gap-5 pb-4 max-w-4xl mx-auto w-full px-4 border-t border-border/5 pt-3.5">
+          {STEPS.map((stepConfig, index) => {
+            const Icon = stepConfig.icon || MapPin;
+            const isStepActive = step === stepConfig.id;
+            const isStepDone = step > stepConfig.id;
+
             return (
               <div
-                key={s.id}
+                key={stepConfig.id}
                 className={cn(
-                  "flex items-center gap-2 transition-all duration-300",
-                  active ? "scale-105 opacity-100" : "opacity-60",
+                  "flex items-center gap-2 transition-all duration-300 select-none leading-none",
+                  isStepActive ? "scale-102 opacity-100 font-bold" : "opacity-50 font-medium",
                 )}
               >
                 <div
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-                    active && "border-blue-500 bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.45)]",
-                    done && "border-emerald-500 bg-emerald-500 text-white",
-                    !active && !done && "border-slate-200 bg-white text-slate-400",
+                    "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-mono font-bold transition-all shadow-sm leading-none shrink-0",
+                    isStepActive &&
+                      "border-primary bg-primary text-primary-foreground shadow-[0_0_10px_rgba(59,130,246,0.35)]",
+                    isStepDone && "border-emerald-500 bg-emerald-500 text-white",
+                    !isStepActive && !isStepDone && "border-border/40 bg-background text-muted-foreground/60",
                   )}
                 >
-                  {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                  {isStepDone ? (
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                  ) : (
+                    <Icon className="h-3.5 w-3.5 stroke-[2.2]" />
+                  )}
                 </div>
                 <span
                   className={cn(
-                    "hidden text-xs font-semibold sm:block",
-                    active ? "text-blue-600" : done ? "text-emerald-600" : "text-slate-400",
+                    "hidden text-[11px] uppercase tracking-wider sm:block leading-none",
+                    isStepActive ? "text-primary font-black" : "text-muted-foreground/60",
                   )}
                 >
-                  {s.label}
+                  {stepConfig.label}
                 </span>
-                {i < STEPS.length - 1 && <div className="ml-2 h-[2px] w-6 bg-slate-200" />}
+                {index < STEPS.length - 1 && <div className="ml-2 h-[1px] w-6 bg-border/20 shrink-0 hidden sm:block" />}
               </div>
             );
           })}
         </div>
       </header>
 
-      {/* Body */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col p-4 md:p-8">
-          <div key={step} className="flex-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* HUD CONTAINER BODY SECTION FOR INDIVIDUAL DISPLAY TILES */}
+      <main className="flex-1 overflow-y-auto w-full">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-col p-4 py-8 md:p-8 justify-between">
+          <div key={step} className="flex-1 animate-in fade-in slide-in-from-bottom-1 duration-200 w-full">
             {step === 1 && (
               <SectionHeader
-                title="Where are you based?"
-                subtitle="We'll tailor opportunities, salaries and academies to your country."
+                title="Determine Base Geographical Region"
+                subtitle="We match dynamic localized criteria indices, local baseline compensations, and regional operational academies based on your country parameters."
               />
             )}
             {step === 2 && (
               <SectionHeader
-                title="What stage are you at?"
-                subtitle="This helps us route you to the right academy and AI coach."
+                title="Identify Professional Persona Tier"
+                subtitle="Calibrate target experience curves so we can route alignment matrices to the correct organizational cluster and customized AI counselor."
               />
             )}
             {step === 3 && (
               <SectionHeader
-                title="What's your alma mater?"
-                subtitle="We'll connect you with your campus ambassador and alumni network."
+                title="Specify Academic Institutional Core"
+                subtitle="Synchronize your workspace ledger configuration to activate localized peer connections, network circles, and campus ambassador lines."
               />
             )}
             {step === 4 && (
               <SectionHeader
-                title="Which professional school fits you?"
+                title="Target Specific Specialization Sub-School"
                 subtitle={
                   stage?.academy_id
-                    ? `Curated for ${stage?.name} talent.`
-                    : "Pick the school closest to your professional path."
+                    ? `Curated specific instructional tracks optimized for ${stage?.name} candidate metrics.`
+                    : "Select the authoritative professional discipline matching your immediate path projection."
                 }
               />
             )}
 
-            <div className="mt-6">
+            <div className="mt-6 w-full min-w-0">
               {step === 1 && (
                 <CardGrid loading={countriesQ.isLoading}>
-                  {(countriesQ.data ?? []).map((c) => (
+                  {(countriesQ.data ?? []).map((countryItem) => (
                     <SelectableCard
-                      key={c.id}
-                      selected={country?.id === c.id}
-                      onClick={() => setCountry(c)}
-                      title={c.name}
-                      subtitle={c.iso2}
-                      emoji={isoToEmoji(c.iso2)}
+                      key={countryItem.id}
+                      selected={country?.id === countryItem.id}
+                      onClick={() => setCountry(countryItem)}
+                      title={countryItem.name}
+                      subtitle={countryItem.iso2}
+                      emoji={isoToEmoji(countryItem.iso2)}
                     />
                   ))}
                   {!countriesQ.isLoading && (countriesQ.data ?? []).length === 0 && (
-                    <EmptyState message="No countries available yet." />
+                    <EmptyState message="No baseline geographical clusters registered inside the active database map grid rows." />
                   )}
                 </CardGrid>
               )}
 
               {step === 2 && (
                 <CardGrid loading={stagesQ.isLoading}>
-                  {(stagesQ.data ?? []).map((s) => (
+                  {(stagesQ.data ?? []).map((stageItem) => (
                     <SelectableCard
-                      key={s.id}
-                      selected={stage?.id === s.id}
-                      onClick={() => setStage(s)}
-                      title={s.name}
-                      subtitle={s.academy_id ? "Academy mapped" : "General"}
-                      icon={<Briefcase className="h-5 w-5 text-blue-500" />}
+                      key={stageItem.id}
+                      selected={stage?.id === stageItem.id}
+                      onClick={() => setStage(stageItem)}
+                      title={stageItem.name}
+                      subtitle={stageItem.academy_id ? "Institutional Track Mapped" : "General Horizon Mapping"}
+                      icon={<Briefcase className="h-4.5 w-4.5 text-primary stroke-[2.2]" />}
                     />
                   ))}
                 </CardGrid>
               )}
 
               {step === 3 && (
-                <div className="mx-auto w-full max-w-xl">
+                <div className="mx-auto w-full max-w-xl animate-in zoom-in-99 duration-200 text-left font-bold text-xs tracking-tight">
                   <Popover open={comboOpen} onOpenChange={setComboOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
+                        type="button"
                         aria-expanded={comboOpen}
-                        className="h-14 w-full justify-between rounded-2xl border-slate-200 bg-white px-5 text-left text-base font-medium shadow-sm hover:bg-slate-50"
+                        className="h-14 w-full justify-between rounded-xl border border-border/40 bg-background px-4 text-left text-sm font-bold tracking-tight shadow-sm hover:bg-muted/10 outline-none focus:ring-1 focus:ring-ring select-none"
                       >
-                        <span className={cn("truncate", !institution && "text-slate-400")}>
-                          {institution?.name ?? "Search your university…"}
+                        <span className={cn("truncate text-ellipsis", !institution && "text-muted-foreground/50")}>
+                          {institution?.name ?? "Search academic university ledger matrix…"}
                         </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground/50 stroke-[2.2]" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-[--radix-popover-trigger-width] p-0"
+                      className="w-[--radix-popover-trigger-width] p-0 rounded-xl border border-border/40 bg-background shadow-2xl overflow-hidden font-semibold text-xs"
                       align="start"
                     >
                       <Command shouldFilter>
-                        <CommandInput placeholder="Type to search…" />
-                        <CommandList>
+                        <CommandInput
+                          placeholder="Type characters to query registry items…"
+                          className="text-xs h-10 border-none font-bold outline-none"
+                        />
+                        <CommandList className="max-h-64 font-bold text-xs select-none">
                           {institutionsQ.isLoading ? (
-                            <div className="flex items-center justify-center p-6 text-sm text-slate-500">
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading universities…
+                            <div className="flex items-center justify-center p-6 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 gap-1.5 animate-pulse">
+                              <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5]" />
+                              <span>Querying institutional arrays…</span>
                             </div>
                           ) : (
                             <>
-                              <CommandEmpty>No universities found.</CommandEmpty>
-                              <CommandGroup>
-                                {(institutionsQ.data ?? []).map((i) => (
+                              <CommandEmpty className="p-4 text-xs font-semibold text-muted-foreground text-center">
+                                No matching global university found.
+                              </CommandEmpty>
+                              <CommandGroup className="font-bold text-xs p-1">
+                                {(institutionsQ.data ?? []).map((instItem) => (
                                   <CommandItem
-                                    key={i.id}
-                                    value={i.name}
+                                    key={instItem.id}
+                                    value={instItem.name}
                                     onSelect={() => {
-                                      setInstitution(i);
+                                      trackEvent("onboarding_institution_node_selected", { name: instItem.name });
+                                      setInstitution(instItem);
                                       setComboOpen(false);
                                     }}
+                                    className="cursor-pointer font-bold text-xs rounded-lg py-2 flex items-center gap-2"
                                   >
                                     <Check
                                       className={cn(
-                                        "mr-2 h-4 w-4",
-                                        institution?.id === i.id ? "opacity-100" : "opacity-0",
+                                        "h-4 w-4 stroke-[2.5] text-primary shrink-0",
+                                        institution?.id === instItem.id ? "opacity-100" : "opacity-0",
                                       )}
                                     />
-                                    <span className="flex-1 truncate">{i.name}</span>
-                                    {i.country && (
-                                      <span className="ml-2 text-xs text-slate-400">
-                                        {i.country}
-                                      </span>
+                                    <span className="flex-1 truncate text-ellipsis select-text selection:bg-primary/10">
+                                      {instItem.name}
+                                    </span>
+                                    {instItem.country && (
+                                      <Badge
+                                        variant="outline"
+                                        className="ml-2 text-[9px] font-extrabold uppercase px-1.5 h-4 bg-muted/60 border-border/20 text-muted-foreground shrink-0 leading-none rounded"
+                                      >
+                                        {instItem.country}
+                                      </Badge>
                                     )}
                                   </CommandItem>
                                 ))}
@@ -487,57 +548,69 @@ export function OnboardingWizard({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  <p className="mt-3 text-center text-xs text-slate-400">
-                    Can't find yours? Pick the closest match — you can update it later.
+                  <p className="mt-3.5 text-center text-[11px] font-semibold text-muted-foreground/50 italic leading-normal select-none">
+                    Can&apos;t trace your absolute cluster node? Match closest approximate operational index bounds
+                    &mdash; profile maps remain variable later.
                   </p>
                 </div>
               )}
 
               {step === 4 && (
                 <CardGrid loading={schoolsQ.isLoading}>
-                  {(schoolsQ.data ?? []).map((s) => (
+                  {(schoolsQ.data ?? []).map((schoolItem) => (
                     <SelectableCard
-                      key={s.id}
-                      selected={school?.id === s.id}
-                      onClick={() => setSchool(s)}
-                      title={s.name}
-                      subtitle={s.description ?? undefined}
-                      emoji={s.icon ?? undefined}
-                      icon={!s.icon ? <Building2 className="h-5 w-5 text-blue-500" /> : undefined}
+                      key={schoolItem.id}
+                      selected={school?.id === schoolItem.id}
+                      onClick={() => setSchool(schoolItem)}
+                      title={schoolItem.name}
+                      subtitle={schoolItem.description ?? undefined}
+                      emoji={schoolItem.icon ?? undefined}
+                      icon={
+                        !schoolItem.icon ? <Building2 className="h-4.5 w-4.5 text-primary stroke-[2.2]" /> : undefined
+                      }
                     />
                   ))}
                   {!schoolsQ.isLoading && (schoolsQ.data ?? []).length === 0 && (
-                    <EmptyState message="No schools mapped yet for this academy." />
+                    <EmptyState message="No vocational sub-school structures mapped for this active academy pipeline group allocation." />
                   )}
                 </CardGrid>
               )}
             </div>
           </div>
 
-          {/* Footer actions */}
-          <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+          {/* HUD COMMAND TRANSACTION CONFIG NAVIGATION FOOTER ACTIONS STRIP */}
+          <div className="sticky bottom-0 mt-10 flex items-center justify-between gap-4 rounded-xl border border-border/40 bg-background/95 p-4 shadow-sm backdrop-blur select-none w-full shrink-0">
             <Button
               variant="ghost"
-              onClick={() => setStep((s) => Math.max(1, s - 1))}
+              type="button"
+              onClick={() => {
+                const prevStepNum = Math.max(1, step - 1);
+                trackEvent("onboarding_wizard_step_backtrack_clicked", { fromStep: step, toStep: prevStepNum });
+                setStep(prevStepNum);
+              }}
               disabled={step === 1 || submitting}
-              className="rounded-full"
+              className="rounded-xl h-9 px-4 font-bold uppercase text-[10px] tracking-wide text-muted-foreground hover:bg-accent shrink-0 cursor-pointer"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              <ArrowLeft className="mr-1.5 h-4 w-4 stroke-[2.5]" />
+              <span>Back</span>
             </Button>
 
             {submitting ? (
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                {submittingPhase || `Connecting you to the ${institution?.name} AI Campus Ambassador…`}
+              <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground/80 tabular-nums animate-pulse pl-1 flex-1 justify-end truncate">
+                <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5] shrink-0" />
+                <span className="truncate text-ellipsis block italic">
+                  {submittingPhase || `Connecting you to the ${institution?.name || "Target Cluster"} Campus Hub…`}
+                </span>
               </div>
             ) : (
               <Button
                 onClick={handleNext}
+                type="button"
                 disabled={!canAdvance}
-                className="rounded-full bg-blue-600 px-6 hover:bg-blue-700"
+                className="rounded-xl h-9 px-4 font-extrabold uppercase text-[10px] tracking-wider gap-1 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
               >
-                {step === 4 ? "Finish & Connect" : "Continue"}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <span>{step === 4 ? "Finalize Synchronization & Link" : "Continue Ingress"}</span>
+                <ArrowRight className="ml-1 h-4 w-4 shrink-0 stroke-[2.5]" />
               </Button>
             )}
           </div>
@@ -549,9 +622,13 @@ export function OnboardingWizard({
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="text-center">
-      <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
-      <p className="mt-2 text-sm text-slate-500 md:text-base">{subtitle}</p>
+    <div className="text-center select-none w-full leading-none mb-2">
+      <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground/90 uppercase tracking-wide leading-none">
+        {title}
+      </h2>
+      <p className="mt-2 text-[11px] font-semibold text-muted-foreground/70 leading-normal max-w-xl mx-auto italic">
+        {subtitle}
+      </p>
     </div>
   );
 }
@@ -559,13 +636,15 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle: string })
 function CardGrid({ children, loading }: { children: React.ReactNode; loading?: boolean }) {
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+      <div className="flex items-center justify-center py-16 w-full select-none">
+        <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
       </div>
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">{children}</div>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 w-full min-w-0 font-bold text-xs tracking-tight">
+      {children}
+    </div>
   );
 }
 
@@ -585,26 +664,34 @@ function SelectableCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <button type="button" onClick={onClick} className="text-left">
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left w-full outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl block transform-gpu active:scale-[0.995]"
+    >
       <Card
         className={cn(
-          "group relative h-full cursor-pointer rounded-2xl border-2 p-4 transition-all duration-200",
+          "group relative h-full cursor-pointer rounded-xl border p-4 transition-all duration-300 shadow-sm flex flex-col justify-start w-full min-w-0 leading-none overflow-hidden",
           selected
-            ? "border-blue-500 bg-blue-50/50 shadow-[0_0_0_4px_rgba(59,130,246,0.1)]"
-            : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md",
+            ? "border-primary bg-primary/5 shadow-inner"
+            : "border-border/40 bg-card/60 backdrop-blur-md hover:border-border/80 hover:shadow-md hover:-translate-y-0.5",
         )}
       >
         {selected && (
-          <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white">
-            <Check className="h-3 w-3" />
+          <div className="absolute right-2 top-2 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm select-none">
+            <Check className="h-3 w-3 stroke-[2.5]" />
           </div>
         )}
-        <div className="mb-2 text-2xl">
-          {emoji ? <span>{emoji}</span> : icon}
+        <div className="mb-3 text-xl leading-none select-none h-6 flex items-center shrink-0">
+          {emoji ? <span className="leading-none">{emoji}</span> : icon}
         </div>
-        <div className="text-sm font-semibold text-slate-900">{title}</div>
+        <div className="text-xs sm:text-sm font-bold text-foreground/90 tracking-tight leading-tight line-clamp-1 truncate select-text pr-2 w-full">
+          {title}
+        </div>
         {subtitle && (
-          <div className="mt-1 line-clamp-2 text-xs text-slate-500">{subtitle}</div>
+          <div className="mt-1.5 line-clamp-2 text-ellipsis text-[10px] font-semibold text-muted-foreground/60 leading-normal italic select-text pr-1 w-full">
+            {subtitle}
+          </div>
         )}
       </Card>
     </button>
@@ -613,7 +700,7 @@ function SelectableCard({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
+    <div className="col-span-full rounded-xl border border-dashed border-border/60 bg-background/50 p-10 text-center text-xs font-semibold text-muted-foreground/60 leading-normal max-w-md mx-auto select-none italic">
       {message}
     </div>
   );
@@ -621,6 +708,11 @@ function EmptyState({ message }: { message: string }) {
 
 function isoToEmoji(iso2?: string) {
   if (!iso2 || iso2.length !== 2) return "🌍";
-  const A = 0x1f1e6;
-  return String.fromCodePoint(...iso2.toUpperCase().split("").map((c) => A + c.charCodeAt(0) - 65));
+  const BASE_UNICODE_OFFSET = 0x1f1e6;
+  return String.fromCodePoint(
+    ...iso2
+      .toUpperCase()
+      .split("")
+      .map((c) => BASE_UNICODE_OFFSET + c.charCodeAt(0) - 65),
+  );
 }
