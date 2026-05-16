@@ -28,7 +28,7 @@ export function useTrendingJobs(limit = 10) {
         // Digital Workforce Anomaly Trigger: Essential for monitoring complex analytics function processing health
         console.error("[Digital Workforce] ANOMALY: get_trending_jobs RPC aggregation failed.", {
           limit,
-          message: error.error_description || error.message,
+          message: error.message,
           timestamp: new Date().toISOString(),
         });
         throw error;
