@@ -104,9 +104,9 @@ export function InfiniteGigsList({ talentId, search }: Props) {
   return (
     <div className="space-y-2.5 w-full antialiased select-none sm:select-text">
       {items.map((gigItem) => {
-        if (!gigItem || (!gigItem.gig_id && !gigItem.id)) return null;
+        if (!gigItem || !gigItem.gig_id) return null;
 
-        const runtimeGigIdentifier = gigItem.gig_id || gigItem.id;
+        const runtimeGigIdentifier = gigItem.gig_id;
         const rewardValue = gigItem.credits != null ? Number(gigItem.credits) : null;
         const scoreMatchValue = Math.round(Number(gigItem.match_score || 0));
 
