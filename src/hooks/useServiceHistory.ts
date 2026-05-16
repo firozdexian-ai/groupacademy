@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTalent } from "@/hooks/useTalent";
 
 /**
- * GroUp Academy: Service Trajectory Aggregator
- * CTO Reference: Authoritative controller for cross-registry service engagement tracking.
- * Logic: Implements parallel ingress and artifact normalization.
+ * GroUp Academy: Service Trajectory Aggregator (V5.6.0)
+ * CTO Reference: Authoritative polymorphic history tracking manager parsing service metrics.
+ * Architecture: Optimized via TanStack Data Node bundling with defensive schema boundaries.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
 
 export interface ServiceHistoryItem {
@@ -21,115 +22,126 @@ export interface ServiceHistoryItem {
 interface UseServiceHistoryReturn {
   history: ServiceHistoryItem[];
   isLoading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => void;
   getUsageCount: (serviceType: string) => number;
 }
 
-export function useServiceHistory(): UseServiceHistoryReturn {
-  const { talent } = useTalent();
-  const [history, setHistory] = useState<ServiceHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+/**
+ * Aggregates multi-table service footprints into a unified chronological user timeline feed.
+ */
+export function useServiceHistory(talentId?: string | null): UseServiceHistoryReturn {
+  const queryKey = ["service-history", talentId];
 
-  // PHASE: Parallel_Registry_Ingress
-  const fetchInstitutionalHistory = useCallback(async () => {
-    if (!talent?.id) {
-      setHistory([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // HUD: Synchronized multi-node query
-      const [assessments, interviews, salaryAnalyses, portfolios] = await Promise.all([
+  // --- SENSOR: PARALLEL_REGISTRY_INGRESS ---
+  const {
+    data: history = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey,
+    enabled: !!talentId,
+    staleTime: 60 * 1000, // 1-minute structural cache baseline to defend database thresholds
+    queryFn: async (): Promise<ServiceHistoryItem[]> => {
+      // HUD: ATOMIC_MULTI_NODE_REGISTRY_SELECT
+      const [assessmentsRes, interviewsRes, salaryRes, portfolioRes] = await Promise.all([
         supabase
           .from("career_assessments")
-          .select("*")
-          .eq("talent_id", talent.id)
+          .select("id, percentage, readiness_level, created_at")
+          .eq("talent_id", talentId!)
           .order("created_at", { ascending: false }),
         supabase
           .from("mock_interviews")
-          .select("*")
-          .eq("talent_id", talent.id)
+          .select("id, job_title, status, selection_percentage, created_at")
+          .eq("talent_id", talentId!)
           .order("created_at", { ascending: false }),
         supabase
           .from("salary_analyses")
-          .select("*")
-          .eq("talent_id", talent.id)
+          .select("id, job_title, status, created_at")
+          .eq("talent_id", talentId!)
           .order("created_at", { ascending: false }),
         supabase
           .from("portfolio_requests")
-          .select("*")
-          .eq("talent_id", talent.id)
+          .select("id, status, created_at")
+          .eq("talent_id", talentId!)
           .order("created_at", { ascending: false }),
       ]);
 
-      const items: ServiceHistoryItem[] = [];
+      // Handle individual query error captures defensively
+      if (assessmentsRes.error) {
+        console.error("[Digital Workforce] FAULT: career_assessments channel dropped.", assessmentsRes.error);
+        throw assessmentsRes.error;
+      }
+      if (interviewsRes.error) {
+        console.error("[Digital Workforce] FAULT: mock_interviews channel dropped.", interviewsRes.error);
+        throw interviewsRes.error;
+      }
+      if (salaryRes.error) {
+        console.error("[Digital Workforce] FAULT: salary_analyses channel dropped.", salaryRes.error);
+        throw salaryRes.error;
+      }
+      if (portfolioRes.error) {
+        console.error("[Digital Workforce] FAULT: portfolio_requests channel dropped.", portfolioRes.error);
+        throw portfolioRes.error;
+      }
+
+      const aggregatedItems: ServiceHistoryItem[] = [];
 
       // MAPPING: Assessment_Artifacts
-      assessments.data?.forEach((a) => {
-        items.push({
-          id: a.id,
+      (assessmentsRes.data || []).forEach((a) => {
+        aggregatedItems.push({
+          id: String(a.id),
           type: "career_assessment",
-          title: `${a.percentage}% - ${a.readiness_level}`,
-          date: a.created_at,
+          title: `${a.percentage ?? 0}% - ${a.readiness_level || "Evaluated"}`,
+          date: String(a.created_at),
           status: "completed",
-          score: a.percentage,
+          score: a.percentage ? Number(a.percentage) : undefined,
           href: `/assessment-results/${a.id}`,
         });
       });
 
       // MAPPING: Interview_Artifacts
-      interviews.data?.forEach((i) => {
-        items.push({
-          id: i.id,
+      (interviewsRes.data || []).forEach((i) => {
+        aggregatedItems.push({
+          id: String(i.id),
           type: "mock_interview",
-          title: i.job_title || "Mock Interview",
-          date: i.created_at,
-          status: i.status,
-          score: i.selection_percentage || undefined,
+          title: String(i.job_title || "Mock Interview Workspace"),
+          date: String(i.created_at),
+          status: String(i.status || "pending"),
+          score: i.selection_percentage ? Number(i.selection_percentage) : undefined,
           href: `/mock-interview/results/${i.id}`,
         });
       });
 
       // MAPPING: Salary_Artifacts
-      salaryAnalyses.data?.forEach((s) => {
-        items.push({
-          id: s.id,
+      (salaryRes.data || []).forEach((s) => {
+        aggregatedItems.push({
+          id: String(s.id),
           type: "salary_analysis",
-          title: s.job_title || "Salary Analysis",
-          date: s.created_at,
-          status: s.status,
+          title: String(s.job_title || "Market Salary Analysis"),
+          date: String(s.created_at),
+          status: String(s.status || "completed"),
           href: `/salary-analysis/results/${s.id}`,
         });
       });
 
       // MAPPING: Portfolio_Artifacts
-      portfolios.data?.forEach((p) => {
-        items.push({
-          id: p.id,
+      (portfolioRes.data || []).forEach((p) => {
+        aggregatedItems.push({
+          id: String(p.id),
           type: "portfolio",
-          title: "Institutional Portfolio",
-          date: p.created_at,
-          status: p.status,
+          title: "Institutional Portfolio Matrix",
+          date: String(p.created_at),
+          status: String(p.status || "pending"),
           href: `/portfolio-status`,
         });
       });
 
-      // HUD: Temporal_Reordering
-      items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setHistory(items);
-    } catch (err) {
-      console.error("SERVICE_HISTORY_INGRESS_FAULT:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [talent?.id]);
+      // HUD: CHRONOLOGICAL_TEMPORAL_REORDERING
+      return aggregatedItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    },
+  });
 
-  useEffect(() => {
-    fetchInstitutionalHistory();
-  }, [fetchInstitutionalHistory]);
-
-  // PHASE: Telemetry_Calculation
+  // --- HUD: SERVICE_TELEMETRY_CALCULATION ---
   const getUsageCount = useCallback(
     (serviceType: string): number => {
       const typeMap: Record<string, ServiceHistoryItem["type"]> = {
@@ -138,8 +150,8 @@ export function useServiceHistory(): UseServiceHistoryReturn {
         SALARY_ANALYSIS: "salary_analysis",
         PORTFOLIO: "portfolio",
       };
-      const mappedType = typeMap[serviceType];
-      return mappedType ? history.filter((h) => h.type === mappedType).length : 0;
+      const targetType = typeMap[serviceType];
+      return targetType ? history.filter((item) => item.type === targetType).length : 0;
     },
     [history],
   );
@@ -147,7 +159,7 @@ export function useServiceHistory(): UseServiceHistoryReturn {
   return {
     history,
     isLoading,
-    refresh: fetchInstitutionalHistory,
+    refresh: refetch,
     getUsageCount,
   };
 }
