@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { Coins, ArrowRight, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
 
 /**
- * GroUp Academy: Agent Messaging Ledger Node
- * CTO Audit: Wired `isCreatorAgent` through the prop chain to maintain Creator Economy aesthetics.
+ * GroUp Academy: Agent Messaging Ledger Node (V5.6.0)
+ * CTO Reference: High-performance dense list item tracking active agent conversational rows.
+ * Architecture: Optimized via global regex sanitizers eliminating layout text formatting fragments.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
 
 interface AgentListItemProps {
@@ -22,7 +25,7 @@ interface AgentListItemProps {
   category?: string;
   isActive?: boolean;
   isCompanyAgent?: boolean;
-  isCreatorAgent?: boolean; // CTO FIX: Propagated Creator Economy flag
+  isCreatorAgent?: boolean; // Propagated Creator Economy flag
   companyName?: string;
   lastMessage?: string;
   lastMessageTime?: string;
@@ -32,7 +35,7 @@ interface AgentListItemProps {
 
 export function AgentListItem({
   name = "AGENT_NODE",
-  description,
+  description = "No configuration parameters provided.",
   icon,
   bgColor,
   iconColor,
@@ -40,28 +43,43 @@ export function AgentListItem({
   creditCost = 10,
   isActive = false,
   isCompanyAgent = false,
-  isCreatorAgent = false, // CTO FIX: Default extraction
+  isCreatorAgent = false,
   companyName,
   lastMessage,
   lastMessageTime,
   expertise = [],
   onClick,
 }: AgentListItemProps) {
-  // PROTOCOL: Safe Temporal Resolution
-  const getTimeSync = () => {
+  // --- PHASE: SAFE_TEMPORAL_RESOLUTION ---
+  const timeSyncLabel = useMemo(() => {
     if (!lastMessageTime) return null;
-    const date = new Date(lastMessageTime);
-    return isValid(date) ? formatDistanceToNow(date, { addSuffix: false }) : null;
-  };
+    const resolvedDate = new Date(lastMessageTime);
 
-  const timeSyncLabel = getTimeSync();
+    if (!isValid(resolvedDate)) return null;
+
+    try {
+      return formatDistanceToNow(resolvedDate, { addSuffix: false });
+    } catch (err) {
+      console.error("[Digital Workforce] FAULT: Temporal sync computation failed.", err);
+      return null;
+    }
+  }, [lastMessageTime]);
+
+  // --- PHASE: LAYOUT_DESIGNATION_SANITIZATION ---
+  const standardizedNodeTitle = useMemo(() => {
+    // Clear trailing spaces and globally replace all empty spaces with strict underscores safely
+    return String(name || "AGENT_NODE")
+      .trim()
+      .replace(/\s+/g, "_");
+  }, [name]);
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         "w-full flex items-start gap-4 p-5 transition-all duration-500 border-b border-border/10",
-        "hover:bg-muted/30 active:scale-[0.99] group relative overflow-hidden text-left",
+        "hover:bg-muted/30 active:scale-[0.99] group relative overflow-hidden text-left outline-none focus:bg-muted/20 select-none",
         isActive && "bg-primary/[0.02]",
       )}
     >
@@ -80,26 +98,26 @@ export function AgentListItem({
         size="lg"
         isOnline={isActive}
         isCompanyAgent={isCompanyAgent}
-        isCreatorAgent={isCreatorAgent} // CTO FIX: Passed down to the visual layer
+        isCreatorAgent={isCreatorAgent}
         companyName={companyName}
         className="shrink-0 transition-transform duration-500 group-hover:scale-105"
       />
 
       {/* VIEWPORT: METADATA_LEDGER */}
-      <div className="flex-1 min-w-0 py-0.5">
+      <div className="flex-1 min-w-0 py-0.5 pr-1">
         <div className="flex items-center justify-between gap-3 mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="font-black text-[13px] uppercase italic tracking-tight truncate leading-none group-hover:text-primary transition-colors">
-              {name.replace(" ", "_")}
+              {standardizedNodeTitle}
             </h3>
             {isActive && (
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase tracking-widest h-4 px-1.5 animate-pulse">
+              <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase tracking-widest h-4 px-1.5 animate-pulse shrink-0">
                 SYNC_LIVE
               </Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 font-mono">
             {timeSyncLabel ? (
               <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest italic tabular-nums">
                 {timeSyncLabel}_AGO
@@ -115,7 +133,7 @@ export function AgentListItem({
           </div>
         </div>
 
-        {/* DYNAMIC_CONTENT: Thread vs Discovery */}
+        {/* DYNAMIC_CONTENT: Thread vs Discovery Rendering Blocks */}
         {lastMessage ? (
           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-1 duration-500">
             <MessageCircle className="h-3 w-3 shrink-0 text-primary/40 fill-current" />
@@ -126,16 +144,20 @@ export function AgentListItem({
             <p className="text-[11px] text-muted-foreground/60 line-clamp-1 leading-none font-bold uppercase tracking-wide">
               {description}
             </p>
-            {expertise.length > 0 && (
+            {Array.isArray(expertise) && expertise.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {expertise.slice(0, 3).map((node) => (
-                  <span
-                    key={node}
-                    className="text-[8px] px-1.5 py-0.5 rounded-sm font-black uppercase tracking-tighter bg-muted/50 text-muted-foreground/40 border border-border/20 group-hover:border-primary/20 group-hover:text-primary/60 transition-colors"
-                  >
-                    {node}
-                  </span>
-                ))}
+                {expertise.slice(0, 3).map((node, idx) => {
+                  // Construct compound unique keys to eliminate list duplication errors completely
+                  const tagStableKey = `expertise-tag-${node}-${idx}`;
+                  return (
+                    <span
+                      key={tagStableKey}
+                      className="text-[8px] px-1.5 py-0.5 rounded-sm font-black uppercase tracking-tighter bg-muted/50 text-muted-foreground/40 border border-border/20 group-hover:border-primary/20 group-hover:text-primary/60 transition-colors duration-300"
+                    >
+                      {node}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -144,7 +166,7 @@ export function AgentListItem({
 
       {/* HUD: TRANSACTION_AFFORDANCE */}
       <div className="flex items-center self-stretch pl-2">
-        <div className="p-2 rounded-xl bg-muted/0 group-hover:bg-primary/5 transition-colors">
+        <div className="p-2 rounded-xl bg-transparent group-hover:bg-primary/5 transition-colors duration-300">
           <ArrowRight className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary group-hover:translate-x-1.5 transition-all duration-500 ease-out" />
         </div>
       </div>
