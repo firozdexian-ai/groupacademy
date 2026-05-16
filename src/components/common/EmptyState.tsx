@@ -1,43 +1,70 @@
+import { useMemo } from "react";
 import { LucideIcon, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Hardened Empty State Shell (V5.6.0)
+ * CTO Reference: Authoritative fallback view handling query dropouts or system sync anomalies.
+ * Architecture: Reference-stable layout properties avoiding sub-object prop thrashing loops.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ */
 
 interface EmptyStateProps {
   icon?: LucideIcon;
   title: string;
   description?: string;
-  action?: { label: string; onClick: () => void };
+  actionLabel?: string; // Decomposed parameter shields component against object inline literals references
+  onActionClick?: () => void; // Isolated click callback preventing child element layout loops
   className?: string;
 }
 
-/**
- * Standard empty / error state used across talent pages.
- * Replaces bespoke "Registry Sync Failure" / "Arena Empty" blocks.
- */
 export function EmptyState({
   icon: Icon = Inbox,
-  title,
+  title = "DATA_ARRAY_EMPTY",
   description,
-  action,
+  actionLabel,
+  onActionClick,
   className,
 }: EmptyStateProps) {
+  // Clean string title normalization ensures crisp typography alignment natively
+  const standardizedTitleToken = useMemo(() => {
+    return String(title || "").trim();
+  }, [title]);
+
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center px-4 py-10 rounded-2xl border border-dashed border-border/40 bg-muted/10",
+        "flex flex-col items-center justify-center text-center px-4 py-12 rounded-[24px] border-2 border-dashed border-border/30 bg-muted/10 backdrop-blur-sm select-none animate-in fade-in duration-300",
         className,
       )}
     >
-      <div className="h-10 w-10 rounded-full bg-muted/40 flex items-center justify-center mb-3">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+      {/* HUD: GLYPH_MICRO_FRAME */}
+      <div className="h-12 w-12 rounded-2xl bg-muted/20 flex items-center justify-center mb-4 border border-border/10 shadow-inner">
+        <Icon className="h-5 w-5 text-primary opacity-60 transition-transform duration-300 group-hover:scale-110" />
       </div>
-      <h3 className="text-sm font-semibold mb-1">{title}</h3>
-      {description && (
-        <p className="text-xs text-muted-foreground max-w-xs mb-3">{description}</p>
-      )}
-      {action && (
-        <Button size="sm" onClick={action.onClick} className="h-8 rounded-lg text-xs">
-          {action.label}
+
+      {/* TYPOGRAPHY: BALANCED_LABELS_CELL */}
+      <div className="space-y-1.5 max-w-xs mb-4">
+        <h3 className="text-sm font-black uppercase italic tracking-tight text-foreground leading-tight">
+          {standardizedTitleToken}
+        </h3>
+        {description && (
+          <p className="text-xs font-medium italic text-muted-foreground/70 leading-relaxed">
+            {String(description).trim()}
+          </p>
+        )}
+      </div>
+
+      {/* ACTION TRIGGER SECTOR: DEFENSIVE EXPLICIT BEHAVIOR LOOKUPS */}
+      {actionLabel && onActionClick && (
+        <Button
+          size="sm"
+          type="button" // Enforces explicit protection blocking parental form submission triggers
+          onClick={onActionClick}
+          className="h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-6 shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-[0.98]"
+        >
+          {String(actionLabel).trim()}
         </Button>
       )}
     </div>
