@@ -17,6 +17,8 @@ import {
   MessageSquare,
   Zap,
   ArrowLeft,
+  MessageCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -237,7 +239,7 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
             </div>
 
             {normalizedItems.map((it, idx) => {
-              const r = result.results[idx] || { correct: false };
+              const r: any = result.results[idx] || { correct: false };
               const isCorrectNode = !!r.correct;
               return (
                 <div

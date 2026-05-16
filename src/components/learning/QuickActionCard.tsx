@@ -64,7 +64,6 @@ export function QuickActionCard({ icon: Icon, label, count, path, description, c
 
   return (
     <Card
-      type="button"
       onClick={handleActionNavigationTrigger}
       className={cn(
         "group relative cursor-pointer text-left rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring select-none sm:select-text w-full min-w-0 overflow-hidden transition-all duration-300 transform-gpu",
