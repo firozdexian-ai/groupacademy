@@ -237,7 +237,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
           </CardContent>
         </Card>
       ) : (
-        
+        <>
         {/* CARD LAYER STATE B: INTERACTIVE RUNTIME ENTRY MATRIX QUESTIONNAIRE SCREEN */}
         <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden w-full">
           <CardHeader className="p-4 px-5 border-b border-border/10 select-none bg-muted/20">
@@ -311,6 +311,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
             </Button>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   );
