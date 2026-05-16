@@ -206,17 +206,17 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
                         <span>{selectedOptionValue}</span>
                       </p>
                       
-                      {!isCorrectNode && r.correct_index !== undefined && it.options[r.correct_index] && (
+                      {!isCorrectNode && (r as any).correct_index !== undefined && it.options[(r as any).correct_index] && (
                         <p className="p-2 rounded-lg border border-emerald-500/10 bg-emerald-500/5 text-emerald-700 font-bold leading-tight select-text">
                           <span className="font-extrabold uppercase tracking-wide text-[9px] block mb-0.5 opacity-60">Reconciled Valid Lock Target</span>
-                          <span>{it.options[r.correct_index]}</span>
+                          <span>{it.options[(r as any).correct_index]}</span>
                         </p>
                       )}
                       
-                      {r.explanation && (
+                      {(r as any).explanation && (
                         <div className="p-3 rounded-lg border border-border/20 bg-muted/20 select-text font-medium text-muted-foreground/90 italic leading-relaxed break-words shadow-inner">
                           <span className="font-bold uppercase tracking-wider text-[9px] text-primary not-italic block mb-1 select-none leading-none pl-0.5">Ecosystem Synapse Rationale</span>
-                          <p className="pl-0.5">&ldquo;{r.explanation.trim()}&rdquo;</p>
+                          <p className="pl-0.5">&ldquo;{String((r as any).explanation).trim()}&rdquo;</p>
                         </div>
                       )}
                     </div>
