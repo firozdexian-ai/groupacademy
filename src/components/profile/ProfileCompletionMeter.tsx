@@ -143,7 +143,7 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
   if (variant === "mini") {
     return (
       <div
-        type="button"
+        role="button"
         onClick={handleEditHandshake}
         className="relative w-14 h-14 group cursor-pointer transform-gpu antialiased select-none block shrink-0"
         title={`Profile integration scale maps ${profileComplianceMetrics.percentage}% complete parameters. Trigger to edit configuration layers.`}
