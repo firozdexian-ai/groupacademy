@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Upload, X, FileText, Loader2, RefreshCw, XCircle, Zap, ShieldCheck } from "lucide-react";
@@ -271,7 +272,6 @@ export default function MultiFileUpload({
       {/* HUD LEVEL 2: COMPONENT CORE DRAG AND DROP INGRESS GATEWAY SLOT */}
       {normalizedArtifactsCount < maxFiles && (
         <div
-          type="button"
           onDragEnter={(e) => handleDragEventsHandshakePass(e, true)}
           onDragLeave={() => setDragActive(false)}
           onDragOver={(e) => e.preventDefault()}
