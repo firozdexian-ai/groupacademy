@@ -315,7 +315,6 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
       >
         <CardContent className="p-0 w-full min-w-0 flex flex-col justify-center">
           <div
-            type="button"
             className="relative cursor-zoom-in overflow-hidden w-full h-full block"
             onClick={() => {
               trackEvent("resource_visual_matrix_zoom_triggered", { type, title });
