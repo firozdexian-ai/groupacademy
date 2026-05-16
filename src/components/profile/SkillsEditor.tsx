@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { X, Plus, Sparkles, Zap, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SkillsEditorProps {
   skills: string[];
@@ -49,8 +50,7 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
     if (!sanitizedInputToken) return;
 
     if (safeSkillsCollection.includes(sanitizedInputToken)) {
-      toast({
-        title: "DUPLICATE_NODE_REJECTED",
+      toast("DUPLICATE_NODE_REJECTED", {
         description: "This proficiency token is already mapped to your matrix.",
       });
       setInputValue("");
