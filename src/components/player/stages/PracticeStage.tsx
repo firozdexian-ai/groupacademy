@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FlashcardPlayer, Flashcard } from "../FlashcardPlayer";
-import { AICcenarioPlayer, AIScenario } from "../AIScenarioPlayer";
+import { AIScenarioPlayer, AIScenario } from "../AIScenarioPlayer";
 import { ModuleQuizRunner } from "@/components/learning/ModuleQuizRunner";
 import { ModuleScenarioRunner } from "@/components/learning/ModuleScenarioRunner";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -293,7 +293,7 @@ export function PracticeStage({
               value="scenario"
               className="animate-in slide-in-from-bottom-1 duration-200 outline-none w-full"
             >
-              <AICcenarioPlayer
+              <AIScenarioPlayer
                 scenario={scenario}
                 professionLineId={professionLineId}
                 onComplete={handleScenarioSync}
