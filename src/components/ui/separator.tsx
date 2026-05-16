@@ -1,12 +1,11 @@
 import * as React from "react";
 import * as SeparatorPrimitive from "@radix-ui/react-separator";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Structural Delineator
- * Minimalist divider node used to establish spatial boundaries between registry segments.
- * Built on Radix UI for semantic accessibility (decorative vs. structural).
+ * GroUp Academy: Technical Structural Delineator Primitive (Separator)
+ * Hardened WAI-ARIA compliant layout divider providing crisp integer-pixel strokes and un-conflicted color composition grids.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
  */
 const Separator = React.forwardRef<
   React.ElementRef<typeof SeparatorPrimitive.Root>,
@@ -17,15 +16,16 @@ const Separator = React.forwardRef<
     decorative={decorative}
     orientation={orientation}
     className={cn(
-      "shrink-0 bg-border/40 transition-colors duration-300",
+      "shrink-0 block select-none pointer-events-none transform-gpu antialiased transition-colors duration-150",
       orientation === "horizontal"
-        ? "h-[1.5px] w-full bg-gradient-to-r from-transparent via-border/40 to-transparent"
-        : "h-full w-[1.5px] bg-gradient-to-b from-transparent via-border/40 to-transparent",
+        ? "h-px w-full bg-linear-to-r from-transparent via-border/20 to-transparent"
+        : "h-full w-px bg-linear-to-b from-transparent via-border/20 to-transparent",
       className,
     )}
     {...props}
   />
 ));
-Separator.displayName = SeparatorPrimitive.Root.displayName;
+
+Separator.displayName = "Separator_Core_Delineator_Node";
 
 export { Separator };
