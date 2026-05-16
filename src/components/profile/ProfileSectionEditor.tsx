@@ -412,6 +412,6 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
           </Button>
         </DialogFooter>
       </SheetContent>
-    </Dialog>
+    </Sheet>
   );
 }
