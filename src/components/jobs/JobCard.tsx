@@ -162,7 +162,6 @@ export function JobCard({
   if (isCompact) {
     return (
       <Card
-        type="button"
         className={cn(
           "cursor-pointer overflow-hidden transition-all duration-300 border border-border/40 bg-card/40 backdrop-blur-md hover:border-primary/30 shadow-sm w-full transform-gpu group focus-visible:ring-2 focus-visible:ring-ring select-none sm:select-text",
           isClosed && "opacity-40 grayscale pointer-events-none select-none",
