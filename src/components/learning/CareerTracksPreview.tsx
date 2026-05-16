@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -10,7 +11,6 @@ import {
   DollarSign,
   Palette,
   Gavel,
-  ChevronRight,
   Zap,
   Globe,
 } from "lucide-react";
@@ -19,11 +19,13 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeader } from "@/components/ui/section-header";
 import { supabase } from "@/integrations/supabase/client";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Career Specialization Router
+ * GroUp Academy: Career Specialization Router (CareerTracksPreview)
  * CTO Reference: Authoritative micro-ingress point for professional track segmentation.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
 
 const PROFESSION_ICONS: Record<string, React.ElementType> = {
@@ -44,7 +46,7 @@ const PROFESSION_ICONS: Record<string, React.ElementType> = {
 };
 
 function getIconForCategory(name: string = ""): React.ElementType {
-  const lowerName = name.toLowerCase();
+  const lowerName = name.toLowerCase().trim();
   const match = Object.keys(PROFESSION_ICONS).find((key) => lowerName.includes(key));
   return match ? PROFESSION_ICONS[match] : PROFESSION_ICONS.default;
 }
@@ -85,8 +87,15 @@ const TRACK_STYLES = [
 export function CareerTracksPreview() {
   const navigate = useNavigate();
 
-  const { data: tracks = [], isLoading } = useQuery({
+  // 1. TanStack Server State Synchronization Query Hook (1-hour stale data configuration)
+  const {
+    data: tracks = [],
+    isLoading,
+    error: queryFetchError,
+  } = useQuery({
     queryKey: ["career-tracks-preview"],
+    staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profession_categories")
@@ -98,19 +107,35 @@ export function CareerTracksPreview() {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 1000 * 60 * 60,
   });
+
+  // 2. Instrument Incident Telemetry Metrics Over Query Exceptions
+  useEffect(() => {
+    if (queryFetchError) {
+      trackError(queryFetchError, {
+        component: "CareerTracksPreview",
+        action: "fetch_profession_categories_preview",
+      });
+    }
+  }, [queryFetchError]);
+
+  // Log active visualization compilation parameters safely over metric streams
+  useEffect(() => {
+    if (tracks.length > 0) {
+      trackEvent("career_tracks_preview_compiled", { renderedCount: tracks.length });
+    }
+  }, [tracks.length]);
 
   if (isLoading) {
     return (
-      <section className="space-y-4 px-1">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-6 w-40 rounded-lg opacity-40" />
-          <Skeleton className="h-4 w-12 rounded-md opacity-20" />
+      <section className="space-y-4 px-1 select-none w-full animate-pulse">
+        <div className="flex items-center justify-between w-full">
+          <Skeleton className="h-5 w-36 rounded-lg opacity-60" />
+          <Skeleton className="h-4 w-12 rounded opacity-30" />
         </div>
-        <div className="flex gap-4 overflow-hidden">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-[140px] w-[110px] rounded-[28px] shrink-0" />
+        <div className="flex gap-4 overflow-hidden w-full">
+          {[1, 2, 3, 4, 5].map((skeletonIndex) => (
+            <Skeleton key={skeletonIndex} className="h-32 w-[110px] rounded-2xl shrink-0 opacity-50" />
           ))}
         </div>
       </section>
@@ -119,54 +144,68 @@ export function CareerTracksPreview() {
 
   if (tracks.length === 0) return null;
 
+  const handleTrackNavigationClick = (trackId: string, trackSlug: string) => {
+    if (!trackSlug) return;
+    trackEvent("career_tracks_preview_item_clicked", { trackId, trackSlug });
+    navigate(`/app/learning/tracks/${trackSlug}`);
+  };
+
   return (
-    <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="px-1">
+    <section className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-500 max-w-full w-full select-none sm:select-text antialiased">
+      {/* Dynamic Navigation Section Header Strip Component */}
+      <div className="px-0.5 select-none w-full">
         <SectionHeader icon={Target} title="Career Tracks" viewAllPath="/app/learning/tracks" />
       </div>
 
-      <ScrollArea className="w-full">
-        <div className="flex gap-4 pb-6 pt-1 px-1">
-          {tracks.map((track, index) => {
-            const Icon = getIconForCategory(track.name);
+      {/* Horizontal Multi-Track Portal Scroll Area Container */}
+      <ScrollArea className="w-full whitespace-nowrap overflow-visible">
+        <div className="flex gap-3.5 pb-4 pt-0.5 px-0.5 w-full">
+          {tracks.map((trackItem, index) => {
+            if (!trackItem || !trackItem.id) return null;
+
+            const Icon = getIconForCategory(trackItem.name || "");
             const style = TRACK_STYLES[index % TRACK_STYLES.length];
+            const displayLabel = trackItem.name ? trackItem.name.replace(/ /g, "_") : "Track_Node";
 
             return (
               <Card
-                key={track.id}
+                key={trackItem.id}
+                type="button"
                 className={cn(
-                  "group relative cursor-pointer transition-all duration-500 shrink-0 w-[115px] rounded-[28px] border-2 border-border/40 overflow-hidden bg-card/30 backdrop-blur-md",
-                  "hover:shadow-2xl hover:-translate-y-1.5 active:scale-90",
+                  "group relative cursor-pointer transition-all duration-300 shrink-0 min-w-[110px] sm:w-[125px] rounded-2xl border border-border/40 overflow-hidden bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring transform-gpu text-center",
+                  "hover:shadow-md hover:-translate-y-1 active:scale-95",
                   style.border,
                   style.shadow,
                 )}
-                onClick={() => navigate(`/app/learning/tracks/${track.slug}`)}
+                onClick={() => handleTrackNavigationClick(trackItem.id, trackItem.slug)}
               >
-                {/* Visual Glow Node */}
+                {/* Decorative Internal Vector Mesh Backdrop Glow Node */}
                 <div
                   className={cn(
-                    "absolute -top-10 -right-10 w-20 h-20 blur-3xl opacity-0 group-hover:opacity-20 transition-opacity",
+                    "absolute -top-12 -right-12 w-20 h-20 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none select-none",
                     style.bg,
                   )}
                 />
 
-                <CardContent className="p-5 flex flex-col items-center text-center gap-4">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3.5 w-full">
+                  {/* Category Mapped Graphic Icon Shield */}
                   <div
                     className={cn(
-                      "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-700 group-hover:rotate-6 shadow-inner border border-white/5",
+                      "h-12 w-12 rounded-xl flex items-center justify-center shadow-inner border border-white/5 transition-transform duration-500 group-hover:rotate-3 shrink-0 select-none",
                       style.bg,
                       style.text,
                     )}
                   >
-                    <Icon className="h-6 w-6 stroke-[2.5px]" />
+                    <Icon className="h-5 w-5 stroke-[2.2]" />
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="font-black text-[10px] uppercase tracking-widest leading-none text-foreground italic">
-                      {track.name.replace(" ", "_")}
+                  {/* Text Taxonomy Metadata Container */}
+                  <div className="space-y-1.5 min-w-0 w-full flex flex-col justify-center">
+                    <p className="font-bold text-[10px] sm:text-[11px] tracking-wider uppercase italic text-foreground/90 truncate max-w-full block leading-none pr-0.5 select-text selection:bg-primary/10">
+                      {displayLabel}
                     </p>
-                    <div className="flex items-center justify-center opacity-40 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1">
-                      <Zap className={cn("h-3 w-3 fill-current", style.text)} />
+                    <div className="flex items-center justify-center opacity-30 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-0.5 select-none leading-none">
+                      <Zap className={cn("h-3 w-3 fill-current stroke-[2.2]", style.text)} />
                     </div>
                   </div>
                 </CardContent>
@@ -174,7 +213,10 @@ export function CareerTracksPreview() {
             );
           })}
         </div>
-        <ScrollBar orientation="horizontal" className="invisible" />
+        <ScrollBar
+          orientation="horizontal"
+          className="h-1.5 opacity-0 group-hover:opacity-100 transition-opacity invisible"
+        />
       </ScrollArea>
     </section>
   );
