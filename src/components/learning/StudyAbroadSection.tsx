@@ -68,7 +68,7 @@ export function StudyAbroadSection() {
 
       {/* COMPONENT VECTOR A: AI SPECIALIST CHANNELS DISPATCH INTERCEPT CARD */}
       <Card
-        type="button"
+
         className="group relative cursor-pointer text-left rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden transition-all duration-300 hover:border-primary/20 hover:bg-card/80"
         onClick={() => handleGlobalNavigationTrigger("/app/agents?category=abroad", "country_specialist_agent")}
       >
@@ -100,7 +100,7 @@ export function StudyAbroadSection() {
       <div className="grid grid-cols-2 gap-3 w-full min-w-0 select-none">
         {/* SUB-BLOCK B1: UNIVERSITIES DIRECTORY INDEX */}
         <Card
-          type="button"
+
           className="group relative cursor-pointer text-left rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring overflow-hidden transition-all duration-300 hover:border-primary/20 hover:bg-card/80 w-full"
           onClick={() => handleGlobalNavigationTrigger("/app/abroad/study", "universities_catalog_hub")}
         >
@@ -121,7 +121,7 @@ export function StudyAbroadSection() {
 
         {/* SUB-BLOCK B2: IELTS PREPARATION TRACK ENVIRONMENT */}
         <Card
-          type="button"
+
           className="group relative cursor-pointer text-left rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring overflow-hidden transition-all duration-300 hover:border-primary/20 hover:bg-card/80 w-full"
           onClick={() => handleGlobalNavigationTrigger("/app/abroad/ielts", "ielts_preparation_hub")}
         >
@@ -152,7 +152,7 @@ export function StudyAbroadSection() {
             return (
               <Card
                 key={countryNodeItem.code}
-                type="button"
+
                 className="group relative cursor-pointer rounded-xl border border-border/40 bg-background/40 hover:bg-background backdrop-blur-sm transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-ring transform-gpu flex flex-col items-center justify-center p-2 text-center"
                 onClick={() =>
                   handleGlobalNavigationTrigger(
@@ -201,7 +201,7 @@ export function StudyAbroadSection() {
             <Button
               variant="outline"
               size="sm"
-              type="button"
+
               className="h-9 rounded-xl font-bold text-xs border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors gap-1.5 shadow-sm cursor-pointer"
               onClick={() => handleGlobalNavigationTrigger("/app/agents/study-abroad-advisor", "roadmap_chat_advisor")}
             >
@@ -211,7 +211,7 @@ export function StudyAbroadSection() {
 
             <Button
               size="sm"
-              type="button"
+
               className="h-9 rounded-xl font-bold text-xs tracking-wide shadow-sm active:scale-[0.99] transition-transform gap-1.5 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => handleGlobalNavigationTrigger("/app/abroad/roadmap", "roadmap_intake_form")}
             >
