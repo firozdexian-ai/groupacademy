@@ -10,6 +10,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { handleAIError } from "@/lib/aiErrorHandler";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Context-Aware Global Assistant Bubble (V5.6.0)
