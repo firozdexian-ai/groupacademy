@@ -75,7 +75,7 @@ export function ServiceHistoryCard() {
   }, []);
 
   const { history = [], isLoading } = useServiceHistory();
-  const queryHistoryError: unknown = null;
+  const queryHistoryError: Error | null = null;
 
   // Route extraction runtime errors directly to centralized monitoring matrices
   useEffect(() => {
