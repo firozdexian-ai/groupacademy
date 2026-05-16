@@ -5,7 +5,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { Flame, MessageSquare, Reply, AtSign, Loader2 } from "lucide-react";
+import { Flame, MessageSquare, Reply, AtSign, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
