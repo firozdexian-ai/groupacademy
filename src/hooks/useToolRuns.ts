@@ -1,5 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * GroUp Academy: AI Credit Consumption Ledger (V5.6.0)
+ * CTO Reference: High-performance auditing observer tracking computational asset runs.
+ * Architecture: Optimized via TanStack Query v5 with atomic mutation invalidations.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ */
 
 export type ToolKey = "cv" | "assessment" | "salary" | "portfolio" | "score" | "answers" | "interview";
 
@@ -12,50 +19,111 @@ export interface ToolRun {
   created_at: string;
 }
 
+const VALID_TOOL_KEYS: Set<ToolKey> = new Set([
+  "cv",
+  "assessment",
+  "salary",
+  "portfolio",
+  "score",
+  "answers",
+  "interview",
+]);
+
+// --- SENSORS: AUDITING TRANSACTION OBSERVERS ---
+
+/**
+ * Fetches an audited history of micro-billing execution items completed by the active session.
+ */
 export function useToolRuns(limit = 5) {
   return useQuery({
     queryKey: ["tool-runs", limit],
-    queryFn: async () => {
-      const { data: userRes } = await supabase.auth.getUser();
-      if (!userRes.user) return [] as ToolRun[];
+    staleTime: 60 * 1000, // 1-minute visual consistency window for ledger grids
+    queryFn: async (): Promise<ToolRun[]> => {
+      // HUD: SECURE_USER_SESSION_INGRESS_CHECK
+      const { data: userRes, error: authError } = await supabase.auth.getUser();
+      if (authError || !userRes.user) return [];
+
+      // HUD: EXECUTING_LEDGER_RUNS_SELECT_SYNC
       const { data, error } = await supabase
-        .from("tool_runs" as any)
+        .from("tool_runs")
         .select("id, tool_key, cost_credits, payload, job_id, created_at")
         .eq("user_id", userRes.user.id)
         .order("created_at", { ascending: false })
         .limit(limit);
-      if (error) throw error;
-      return (data || []) as unknown as ToolRun[];
+
+      if (error) {
+        console.error("[Digital Workforce] FAULT: tool_runs collection channel dropped.", error);
+        throw error;
+      }
+
+      // Hardened Data Normalization Layer: Protects display logs against schema drifts
+      return (data || []).map((row: any) => {
+        const rawKey = String(row.tool_key);
+        const validatedKey: ToolKey = VALID_TOOL_KEYS.has(rawKey as ToolKey) ? (rawKey as ToolKey) : "assessment";
+
+        return {
+          id: String(row.id),
+          tool_key: validatedKey,
+          cost_credits: Number(row.cost_credits ?? 0),
+          payload: typeof row.payload === "object" && row.payload !== null ? row.payload : {},
+          job_id: row.job_id ? String(row.job_id) : null,
+          created_at: String(row.created_at),
+        };
+      });
     },
-    staleTime: 60_000,
   });
 }
 
-/**
- * Record a tool run after credits have been successfully deducted.
- * Fire-and-forget — failures are logged but never thrown.
- */
-export async function recordToolRun(opts: {
+// --- ACTIONS: LEDGER MUTATION WORKFLOWS ---
+
+export interface RecordToolRunInput {
   toolKey: ToolKey;
   costCredits: number;
   payload?: Record<string, any>;
   jobId?: string | null;
-}) {
-  try {
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes.user) return;
-    await supabase.from("tool_runs" as any).insert({
-      user_id: userRes.user.id,
-      tool_key: opts.toolKey,
-      cost_credits: opts.costCredits,
-      payload: opts.payload ?? {},
-      job_id: opts.jobId ?? null,
-    });
-  } catch (e) {
-    console.warn("recordToolRun failed", e);
-  }
 }
 
+/**
+ * Initializes a transaction-isolated hook to log tool runs and systematically evict stale state keys.
+ */
+export function useRecordToolRun() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (opts: RecordToolRunInput): Promise<void> => {
+      const { data: userRes, error: authError } = await supabase.auth.getUser();
+      if (authError || !userRes.user) throw new Error("Authentication session required.");
+
+      // HUD: COMMITTING_LEDGER_TRANSACTION_RECORD
+      const { error } = await supabase.from("tool_runs").insert({
+        user_id: userRes.user.id,
+        tool_key: opts.toolKey,
+        cost_credits: opts.costCredits,
+        payload: opts.payload ?? {},
+        job_id: opts.jobId ?? null,
+      });
+
+      if (error) {
+        // Digital Workforce Anomaly Trigger: Imprints trace tracking packets for immediate visibility
+        console.error("[Digital Workforce] ANOMALY: tool_runs ledger logging rejected.", {
+          toolKey: opts.toolKey,
+          costCredits: opts.costCredits,
+          message: error.message,
+        });
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Force programmatic cache eviction across all billing listeners globally
+      void qc.invalidateQueries({ queryKey: ["tool-runs"] });
+      void qc.invalidateQueries({ queryKey: ["talent-profile"] }); // Evict profile to refresh remaining credit totals smoothly
+    },
+  });
+}
+
+/**
+ * Explicit callback proxy to trigger manual billing query invalidations when necessary.
+ */
 export function useInvalidateToolRuns() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ["tool-runs"] });
