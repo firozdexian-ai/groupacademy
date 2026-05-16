@@ -1,11 +1,9 @@
-import { BookOpen, Award, Clock, Trophy, Zap } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { BookOpen, Award, Clock, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Academic Yield Telemetry (QuickStats)
- * CTO Reference: Authoritative node for learning performance metrics.
- */
 
 interface QuickStatsProps {
   coursesCompleted: number;
@@ -14,80 +12,119 @@ interface QuickStatsProps {
   className?: string;
 }
 
+/**
+ * GroUp Academy: Academic Yield Telemetry Node (QuickStats)
+ * CTO Reference: Authoritative node visualizing high-fidelity student performance metrics matrices.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function QuickStats({ coursesCompleted, hoursLearned, modulesCompleted, className }: QuickStatsProps) {
-  const stats = [
-    {
-      label: "GRADUATIONS",
-      value: coursesCompleted,
-      icon: Award,
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/10",
-    },
-    {
-      label: "SYNC_HOURS",
-      value: hoursLearned % 1 === 0 ? hoursLearned : hoursLearned.toFixed(1),
-      icon: Clock,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
-    },
-    {
-      label: "SKILL_NODES",
-      value: modulesCompleted,
-      icon: BookOpen,
-      color: "text-violet-500",
-      bgColor: "bg-violet-500/10",
-    },
-  ];
+  const queryClient = useQueryClient();
 
-  // PROTOCOL: Data Ingress Guard
-  if (!coursesCompleted && !hoursLearned && !modulesCompleted) {
+  const normalizedCourses =
+    typeof coursesCompleted === "number" && !isNaN(coursesCompleted) ? Math.max(0, coursesCompleted) : 0;
+  const normalizedHours = typeof hoursLearned === "number" && !isNaN(hoursLearned) ? Math.max(0, hoursLearned) : 0;
+  const normalizedModules =
+    typeof modulesCompleted === "number" && !isNaN(modulesCompleted) ? Math.max(0, modulesCompleted) : 0;
+
+  // Monitor psychometric metric performance tracking records via analytical telemetry
+  useEffect(() => {
+    if (normalizedCourses > 0 || normalizedHours > 0 || normalizedModules > 0) {
+      trackEvent("academic_quick_stats_rendered", {
+        graduationsCount: normalizedCourses,
+        syncedHoursCount: normalizedHours,
+        skillNodesCount: normalizedModules,
+      });
+
+      // Automated Efficiency: Synchronize state metrics cache rows instantly across dashboard elements
+      queryClient.invalidateQueries({ queryKey: ["talent-stats"] });
+    }
+  }, [normalizedCourses, normalizedHours, normalizedModules, queryClient]);
+
+  // Data Ingress Guard Protocol: Protect timelines from rendering unpopulated slots
+  if (normalizedCourses === 0 && normalizedHours === 0 && normalizedModules === 0) {
     return null;
   }
 
+  const formattedHoursValue = normalizedHours % 1 === 0 ? String(normalizedHours) : normalizedHours.toFixed(1);
+
+  const statsCollection = [
+    {
+      label: "GRADUATIONS",
+      value: String(normalizedCourses),
+      icon: Award,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bgColor: "bg-emerald-500/10 border-emerald-500/10",
+    },
+    {
+      label: "SYNC_HOURS",
+      value: formattedHoursValue,
+      icon: Clock,
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-500/10 border-blue-500/10",
+    },
+    {
+      label: "SKILL_NODES",
+      value: String(normalizedModules),
+      icon: BookOpen,
+      color: "text-violet-600 dark:text-violet-400",
+      bgColor: "bg-violet-500/10 border-violet-500/10",
+    },
+  ];
+
   return (
-    <section className={cn("space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-1000", className)}>
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-          <h2 className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground/60">
-            Performance_Ledger
+    <section
+      className={cn(
+        "space-y-4 antialiased text-left select-none sm:select-text max-w-full w-full transform-gpu",
+        className,
+      )}
+    >
+      {/* HUD HEADER: PERFORMANCE LEDGER LABEL STRIP */}
+      <div className="flex items-center justify-between px-0.5 select-none w-full leading-none">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0" />
+          <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60 italic leading-none">
+            Ecosystem Performance Ledger
           </h2>
         </div>
-        <Zap className="h-3 w-3 text-primary opacity-20" />
+        <Zap className="h-3 w-3 text-primary/30 stroke-[2.2] shrink-0" />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
+      {/* THREE-COLUMN COMPACT METRICS GRID MESH */}
+      <div className="grid grid-cols-3 gap-3 w-full min-w-0 select-none">
+        {statsCollection.map((statItem) => {
+          const Icon = statItem.icon || Award;
+
           return (
             <Card
-              key={stat.label}
-              className="group relative overflow-hidden border-2 border-border/40 bg-card/30 backdrop-blur-xl rounded-[28px] transition-all duration-500 hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1"
+              key={statItem.label}
+              className="group relative overflow-hidden border border-border/40 bg-card/40 backdrop-blur-md rounded-2xl transition-all duration-300 transform-gpu shadow-sm hover:border-primary/20 hover:shadow-md min-w-0 w-full text-center flex flex-col justify-center"
             >
-              {/* INTERACTIVE_GLOW */}
+              {/* INTERACTIVE BACKDROP GLOW BACKDROP VECTOR */}
               <div
                 className={cn(
-                  "absolute -top-10 -right-10 w-20 h-20 blur-3xl opacity-0 group-hover:opacity-20 transition-opacity",
-                  stat.bgColor,
+                  "absolute -top-12 -right-12 w-20 h-20 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 pointer-events-none select-none rounded-full",
+                  statItem.bgColor,
                 )}
               />
 
-              <CardContent className="p-5 flex flex-col items-center text-center">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center w-full min-w-0">
+                {/* Micro-Icon Shield Frame Node */}
                 <div
                   className={cn(
-                    "w-12 h-12 rounded-[18px] flex items-center justify-center mb-4 transition-all duration-700 group-hover:rotate-6 group-hover:scale-110 shadow-lg border border-white/5",
-                    stat.bgColor,
+                    "w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner transition-transform duration-500 group-hover:rotate-3 shrink-0 select-none mb-3",
+                    statItem.bgColor,
                   )}
                 >
-                  <Icon className={cn("h-6 w-6 stroke-[2.5px]", stat.color)} />
+                  <Icon className={cn("h-5 w-5 stroke-[2.2]", statItem.color)} />
                 </div>
 
-                <div className="space-y-1">
-                  <span className="text-3xl font-black tracking-tighter block leading-none tabular-nums italic">
-                    {stat.value}
+                {/* Metric Character Taxonomy Containers */}
+                <div className="space-y-1 min-w-0 w-full flex flex-col justify-center leading-none">
+                  <span className="text-xl sm:text-2xl font-black tracking-tight block leading-none tabular-nums italic text-foreground/90 select-text truncate max-w-full">
+                    {statItem.value}
                   </span>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
-                    {stat.label}
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/50 block select-none leading-none pt-0.5 truncate max-w-full">
+                    {statItem.label}
                   </span>
                 </div>
               </CardContent>
