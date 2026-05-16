@@ -222,7 +222,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 fontWeight: 800,
                 color: BRAND.muted,
                 textTransform: "uppercase",
-                tracking: "0.05em",
+                letterSpacing: "0.05em",
               }}
             >
               Identity_Artifact
@@ -538,7 +538,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                           fontWeight: 700,
                           color: BRAND.dark,
                           lineHeight: "1.4",
-                          selectText: "all",
+                          userSelect: "all",
                         }}
                       >
                         {extractedQuestionStemStr}
@@ -558,7 +558,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                         fontWeight: 900,
                         fontSize: "15px",
                         marginLeft: "20px",
-                        shrink: 0,
+                        flexShrink: 0,
                         boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
                         fontFamily: "monospace",
                       }}
@@ -592,7 +592,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                         lineHeight: "1.4",
                       }}
                     >
-                      <span style={{ letterSpacing: "0.5px", shrink: 0 }}>STRATEGY:</span>
+                      <span style={{ letterSpacing: "0.5px", flexShrink: 0 }}>STRATEGY:</span>
                       <span style={{ color: BRAND.dark, fontWeight: 500 }}>{feedbackItem.improvement_tips.trim()}</span>
                     </div>
                   )}
