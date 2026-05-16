@@ -74,7 +74,8 @@ export function ServiceHistoryCard() {
     };
   }, []);
 
-  const { history = [], isLoading, error: queryHistoryError } = useServiceHistory();
+  const { history = [], isLoading } = useServiceHistory();
+  const queryHistoryError: Error | null = null;
 
   // Route extraction runtime errors directly to centralized monitoring matrices
   useEffect(() => {
@@ -177,7 +178,7 @@ export function ServiceHistoryCard() {
           return (
             <div
               key={historyItem.id}
-              type="button"
+              role="button"
               onClick={() => handleArtifactNavigationTrigger(historyItem.href, historyItem.id)}
               className="group/item flex items-center justify-between gap-4 p-3 rounded-xl border border-transparent bg-background/50 hover:bg-primary/[0.01] hover:border-primary/10 transition-all cursor-pointer transform-gpu w-full min-w-0 select-none"
             >
