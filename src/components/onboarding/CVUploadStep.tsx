@@ -1,18 +1,12 @@
-import { useState } from "react";
-import {
-  Loader2,
-  CheckCircle2,
-  Sparkles,
-  User,
-  AlertCircle,
-  ShieldCheck,
-  FileText,
-  ArrowRight,
-} from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useTalent } from "@/hooks/useTalent";
 import { computeCVFingerprint } from "@/lib/onboarding/cvFingerprint";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { Loader2, CheckCircle2, Sparkles, User, AlertCircle, ShieldCheck, FileText, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -31,210 +25,256 @@ interface ParsedCVData {
 }
 
 const PARSING_STAGES = [
-  { progress: 20, message: "Uploading document..." },
-  { progress: 40, message: "Analyzing text structure..." },
-  { progress: 60, message: "Extracting skills and experience..." },
-  { progress: 80, message: "Building professional profile..." },
-  { progress: 95, message: "Finalizing..." },
+  { progress: 20, message: "Uploading document matrix..." },
+  { progress: 40, message: "Analyzing layout structures..." },
+  { progress: 60, message: "Extracting core skill nodes..." },
+  { progress: 80, message: "Synthesizing trajectory map..." },
+  { progress: 95, message: "Committing telemetry parameters..." },
 ];
 
+/**
+ * GroUp Academy: Candidate CV Ingress & Cognitive Parsing Hub (CVUploadStep)
+ * An authoritative onboarding step orchestrating resume chunk extraction, duplication fingerprint tracking, and automated profiling.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
+  const queryClient = useQueryClient();
   const { talent, updateTalent, refreshTalent } = useTalent();
+
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [parseProgress, setParseProgress] = useState(0);
   const [parseMessage, setParseMessage] = useState("");
-  const [, setUploadedFile] = useState<string | null>(talent?.cvUrl || null);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<ParsedCVData | null>(null);
   const [parseComplete, setParseComplete] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
 
-  const simulateProgress = () => {
+  // Core safety reference tracking active interval tickers to protect against memory leaks
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (talent?.cvUrl) {
+      setUploadedFile(talent.cvUrl);
+    }
+  }, [talent?.cvUrl]);
+
+  // Monitor CV wizard workspace step views safely via analytical tracking tools
+  useEffect(() => {
+    trackEvent("onboarding_cv_step_mounted", { hasExistingCV: !!talent?.cvUrl });
+
+    // Cleanup Strategy: Ensure running intervals are cleanly purged upon container teardown
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [talent?.cvUrl]);
+
+  const clearActiveProgressInterval = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
+  const startProgressSimulation = () => {
+    clearActiveProgressInterval();
     let stageIndex = 0;
-    return setInterval(() => {
+
+    progressIntervalRef.current = setInterval(() => {
       if (stageIndex < PARSING_STAGES.length) {
         setParseProgress(PARSING_STAGES[stageIndex].progress);
         setParseMessage(PARSING_STAGES[stageIndex].message);
         stageIndex++;
       }
-    }, 1200);
+    }, 1100);
   };
 
   async function handleCVUpload(file: File) {
-    if (!talent?.id) return;
+    if (!talent?.id) {
+      toast.error("User context unreachable. Profile sync failed.");
+      return;
+    }
 
-    const validTypes = [
+    const validMimeTypes = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Please upload a PDF or Word document.");
+
+    if (!validMimeTypes.includes(file.type)) {
+      toast.error("Unsupported layout format. Please upload a verified PDF or DOCX file.");
       return;
     }
 
     setIsUploading(true);
     setIsParsing(false);
     setParseError(null);
+    setParseComplete(false);
+
+    trackEvent("onboarding_cv_upload_started", { fileSize: file.size, fileType: file.type });
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${talent.id}/cv_v3.${fileExt}`;
+      const fileExtensionStr = file.name.split(".").pop();
+      const generatedBucketPath = `${talent.id}/cv_v3.${fileExtensionStr}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadStorageError } = await supabase.storage
         .from("portfolio-uploads")
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
+        .upload(generatedBucketPath, file, { upsert: true });
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
-      setUploadedFile(publicUrl);
+      if (uploadStorageError) throw uploadStorageError;
+
+      const { data: publicUrlPayload } = supabase.storage.from("portfolio-uploads").getPublicUrl(generatedBucketPath);
+
+      const absolutePublicFileUrlStr = publicUrlPayload.publicUrl;
+
+      setUploadedFile(absolutePublicFileUrlStr);
       setIsUploading(false);
       setIsParsing(true);
 
-      const progressInterval = simulateProgress();
-      const { data: parseResult, error: invokeError } = await supabase.functions.invoke("parse-cv", {
-        body: { cvUrl: publicUrl },
-      });
-      clearInterval(progressInterval);
+      startProgressSimulation();
 
-      if (invokeError || !parseResult?.success) {
-        await updateTalent({ cvUrl: publicUrl });
-        setParseError("We couldn't read the file automatically — you can fill in details later.");
-        toast.warning("File uploaded.");
+      // Invoke remote Cognitive Extraction Edge Endpoint Node
+      const { data: parseInvokeResult, error: invokeEdgeError } = await supabase.functions.invoke("parse-cv", {
+        body: { cvUrl: absolutePublicFileUrlStr },
+      });
+
+      clearActiveProgressInterval();
+
+      if (invokeEdgeError || !parseInvokeResult?.success) {
+        const structuralFallbackPayload = { cvUrl: absolutePublicFileUrlStr };
+        await updateTalent(structuralFallbackPayload);
+
+        trackEvent("onboarding_cv_parsing_failed_fallback_mode", { error: invokeEdgeError?.message });
+
+        setParseError("Automated data extraction stalled. Core properties can be manually populated down the line.");
+        toast.warning("File committed to storage successfully.");
         setIsParsing(false);
         setParseComplete(true);
         return;
       }
 
-      const parsed = parseResult.parsed as ParsedCVData;
-      setParsedData(parsed);
+      const extractedCvSchemaNode = parseInvokeResult.parsed as ParsedCVData;
+      setParsedData(extractedCvSchemaNode);
       setParseProgress(100);
 
-      // Merge parsed fields into the talent profile (don't overwrite user-edited values)
-      const updatePayload: Record<string, any> = {
-        cvUrl: publicUrl,
+      // Merge data blocks incrementally protecting custom user modifications safely
+      const finalUpdatePayloadMap: Record<string, any> = {
+        cvUrl: absolutePublicFileUrlStr,
         cvParsedAt: new Date().toISOString(),
       };
 
-      const currentName = talent.fullName ? String(talent.fullName) : "";
-      const emailPrefix = talent.email ? String(talent.email).split("@")[0] : "";
+      const baseTalentNameString = talent.fullName ? String(talent.fullName).trim() : "";
+      const automatedEmailPrefixStr = talent.email ? String(talent.email).split("@")[0].trim() : "";
 
-      if (parsed.full_name && (!currentName || currentName === emailPrefix)) {
-        updatePayload.fullName = parsed.full_name;
+      if (
+        extractedCvSchemaNode.full_name &&
+        (!baseTalentNameString || baseTalentNameString === automatedEmailPrefixStr)
+      ) {
+        finalUpdatePayloadMap.fullName = extractedCvSchemaNode.full_name.trim();
       }
-      if (parsed.skills?.length && (!talent.skills || talent.skills.length === 0)) {
-        updatePayload.skills = parsed.skills;
+      if (extractedCvSchemaNode.skills?.length && (!talent.skills || talent.skills.length === 0)) {
+        finalUpdatePayloadMap.skills = extractedCvSchemaNode.skills;
       }
-      if (parsed.experience?.length && (!talent.experience || talent.experience.length === 0)) {
-        updatePayload.experience = parsed.experience;
+      if (extractedCvSchemaNode.experience?.length && (!talent.experience || talent.experience.length === 0)) {
+        finalUpdatePayloadMap.experience = extractedCvSchemaNode.experience;
       }
-      if (parsed.education?.length && (!talent.education || talent.education.length === 0)) {
-        updatePayload.education = parsed.education;
+      if (extractedCvSchemaNode.education?.length && (!talent.education || talent.education.length === 0)) {
+        finalUpdatePayloadMap.education = extractedCvSchemaNode.education;
       }
 
-      // Compute fingerprint and check for duplicates server-side
+      // Compute cryptographic fingerprint matching thresholds to protect unique user entries
       try {
-        const fingerprint = await computeCVFingerprint(parsed);
-        if (fingerprint) {
-          updatePayload.cvFingerprint = fingerprint;
-          const { data: dupResult } = await supabase.rpc("check_cv_duplicate", {
-            _fingerprint: fingerprint,
+        const computedStringFingerprint = await computeCVFingerprint(extractedCvSchemaNode);
+        if (computedStringFingerprint) {
+          finalUpdatePayloadMap.cvFingerprint = computedStringFingerprint;
+
+          const { data: rpcDuplicateCheckResult, error: rpcError } = await supabase.rpc("check_cv_duplicate", {
+            _fingerprint: computedStringFingerprint,
             _self_user_id: talent.userId,
           });
-          const dup = Array.isArray(dupResult) ? dupResult[0] : dupResult;
-          if (dup?.duplicate) {
-            updatePayload.isSuspectedDuplicate = true;
+
+          if (!rpcError) {
+            const singularDuplicateRowNode = Array.isArray(rpcDuplicateCheckResult)
+              ? rpcDuplicateCheckResult[0]
+              : rpcDuplicateCheckResult;
+
+            if (singularDuplicateRowNode?.duplicate) {
+              finalUpdatePayloadMap.isSuspectedDuplicate = true;
+              trackEvent("onboarding_cv_duplicate_flagged", { fingerprint: computedStringFingerprint });
+            }
           }
         }
-      } catch (e) {
-        console.warn("[CVUpload] fingerprint check failed", e);
+      } catch (fingerprintException) {
+        trackError(fingerprintException, { component: "CVUploadStep", action: "resolve_fingerprint_check" });
       }
 
-      await updateTalent(updatePayload);
+      await updateTalent(finalUpdatePayloadMap);
+
+      // Dynamic Invalidation: Re-align server indices cleanly across connected components
+      await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
       await refreshTalent();
 
-      toast.success("Resume parsed and saved.");
+      toast.success("Document analyzed successfully. Onboarding variables pre-filled.");
+      trackEvent("onboarding_cv_parsing_complete_success");
+
       setParseComplete(true);
       setIsParsing(false);
-    } catch (error) {
-      toast.error("Upload failed. Please try again.");
+    } catch (globalUploadCatchError: any) {
+      clearActiveProgressInterval();
+      const parsedErrorString =
+        globalUploadCatchError instanceof Error ? globalUploadCatchError.message : String(globalUploadCatchError);
+
+      trackError(parsedErrorString, {
+        component: "CVUploadStep",
+        action: "execute_global_cv_upload_pipeline",
+        talentId: talent?.id,
+      });
+
+      toast.error("Ecosystem transaction error: Core interface upload failed. Please retry.");
       setIsUploading(false);
       setIsParsing(false);
     }
   }
 
-  const renderParseSummary = () => {
-    if (!parsedData && !parseComplete) return null;
-
-    if (parseError) {
-      return (
-        <div className="w-full mt-8 p-6 bg-rose-50 border border-rose-100 rounded-[24px] animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3 mb-2 text-rose-600">
-            <AlertCircle className="h-5 w-5" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Notice</span>
-          </div>
-          <p className="text-sm font-medium text-rose-700">{parseError}</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-full mt-8 p-6 bg-emerald-50 border border-emerald-100 rounded-2xl animate-in slide-in-from-bottom-4 duration-700">
-        <div className="flex items-center gap-2 mb-4">
-          <ShieldCheck className="h-4 w-4 text-emerald-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Profile updated</span>
-        </div>
-
-        {parsedData?.full_name && (
-          <div className="flex items-center gap-3 mb-4 p-3 bg-white border border-slate-100 rounded-xl">
-            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
-              <User className="h-4 w-4 text-blue-500" />
-            </div>
-            <span className="text-sm font-semibold text-slate-900">{parsedData.full_name}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          {parsedData?.skills?.length && (
-            <div className="p-3 bg-white rounded-xl border border-slate-100">
-              <p className="text-xs font-medium text-slate-400 mb-1">Skills found</p>
-              <p className="text-lg font-bold text-slate-900">{parsedData.skills.length}</p>
-            </div>
-          )}
-          {parsedData?.experience?.length && (
-            <div className="p-3 bg-white rounded-xl border border-slate-100">
-              <p className="text-xs font-medium text-slate-400 mb-1">Experience</p>
-              <p className="text-lg font-bold text-slate-900">{parsedData.experience.length} roles</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  const handleContinueWizardAction = () => {
+    trackEvent("onboarding_cv_continue_clicked");
+    onContinue();
   };
 
+  const handleSkipWizardAction = () => {
+    trackEvent("onboarding_cv_skip_clicked");
+    onSkip();
+  };
+
+  const skillsCount = useMemo(() => parsedData?.skills?.length || 0, [parsedData?.skills]);
+  const rolesCount = useMemo(() => parsedData?.experience?.length || 0, [parsedData?.experience]);
+
   return (
-    <div className="flex flex-col items-center px-4 py-6 max-w-xl mx-auto text-left w-full">
-      <div className="mb-6 space-y-2 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-          Add your resume
+    <div className="flex flex-col items-center px-4 py-6 max-w-xl mx-auto text-left w-full antialiased transform-gpu">
+      {/* HUD TITLE BANNER INFORMATION SECTOR */}
+      <div className="mb-6 space-y-1.5 text-center select-none w-full leading-none">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground/90 uppercase tracking-wide">
+          Synchronize Professional Credentials
         </h2>
-        <p className="text-sm text-slate-500">
-          Upload your CV so we can pre-fill your profile. You can skip and add it later.
+        <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 leading-normal max-w-sm mx-auto">
+          Commit your primary resume asset file so our cognitive layer can pre-populate alignment tracks. Configuration
+          can be skipped.
         </p>
       </div>
 
-      {/* Drop zone */}
+      {/* DRAG AND DROP BOUNDARY TRACK ZONE */}
       <div
         className={cn(
-          "relative w-full border-2 border-dashed rounded-[32px] p-12 text-center transition-all duration-500",
+          "relative w-full border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 transform-gpu shadow-sm select-none",
           isDragging
-            ? "border-blue-500 bg-blue-50 scale-[1.02]"
-            : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50",
-          (isUploading || isParsing) && "pointer-events-none opacity-60",
-          parseComplete && "border-emerald-200 bg-emerald-50/50",
+            ? "border-primary bg-primary/5 scale-[1.015] shadow-md"
+            : "border-border/60 bg-background hover:border-primary/20 hover:bg-muted/10",
+          (isUploading || isParsing) && "pointer-events-none opacity-50 will-change-transform animate-pulse",
+          parseComplete && "border-emerald-500/20 bg-emerald-500/[0.01]",
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -244,88 +284,159 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         onDrop={(e) => {
           e.preventDefault();
           setIsDragging(false);
-          const dt = e.dataTransfer;
-          if (dt && dt.files && dt.files.length > 0) {
-            const file = dt.files.item(0);
-            if (file) {
-              handleCVUpload(file);
-            }
+          const droppedFileTransferObj = e.dataTransfer;
+          if (droppedFileTransferObj?.files?.length) {
+            const rawDroppedFile = droppedFileTransferObj.files.item(0);
+            if (rawDroppedFile) handleCVUpload(rawDroppedFile);
           }
         }}
       >
         <input
           type="file"
           accept=".pdf,.doc,.docx"
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 outline-none"
+          disabled={isUploading || isParsing}
           onChange={(e) => {
-            const target = e.target;
-            if (target && target.files && target.files.length > 0) {
-              const file = target.files.item(0);
-              if (file) {
-                handleCVUpload(file);
-              }
+            const htmlInputElementTarget = e.target;
+            if (htmlInputElementTarget?.files?.length) {
+              const rawInputFile = htmlInputElementTarget.files.item(0);
+              if (rawInputFile) handleCVUpload(rawInputFile);
             }
           }}
         />
 
         {isUploading ? (
-          <div className="flex flex-col items-center gap-5 animate-in fade-in">
-            <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-            <p className="text-sm font-medium text-slate-500">Uploading…</p>
+          <div className="flex flex-col items-center justify-center gap-4 animate-in fade-in duration-200">
+            <Loader2 className="h-8 w-8 text-primary animate-spin stroke-[2.5]" />
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider animate-pulse">
+              Streaming document array to secure index cloud…
+            </p>
           </div>
         ) : isParsing ? (
-          <div className="flex flex-col items-center gap-6 w-full animate-in zoom-in-95">
-            <Sparkles className="h-10 w-10 text-blue-500 animate-pulse" />
-            <div className="w-full max-w-[220px] space-y-3 mx-auto">
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="flex flex-col items-center justify-center gap-5 w-full animate-in zoom-in-98 duration-200">
+            <Sparkles className="h-8 w-8 text-primary fill-primary/10 animate-pulse stroke-[2.2]" />
+            <div className="w-full max-w-[240px] space-y-2 mx-auto tabular-nums font-bold text-[10px] leading-none text-primary text-center">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-border/5 shadow-inner relative flex">
                 <div
-                  className="h-full bg-blue-500 transition-all duration-700 ease-out"
+                  className="h-full bg-primary rounded-full transition-all duration-300 ease-out shrink-0"
                   style={{ width: `${parseProgress}%` }}
                 />
               </div>
-              <p className="text-xs font-medium text-blue-500 text-center">{parseMessage}</p>
+              <p className="tracking-wide animate-pulse uppercase pt-0.5">{parseMessage}</p>
             </div>
           </div>
         ) : parseComplete ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 className="h-7 w-7" />
+          <div className="flex flex-col items-center justify-center gap-2.5 animate-in fade-in duration-200">
+            <div className="h-11 w-11 rounded-full bg-emerald-500/10 border border-emerald-500/5 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-inner">
+              <CheckCircle2 className="h-5 w-5 stroke-[2.5]" />
             </div>
-            <p className="text-lg font-semibold text-slate-900">Upload complete</p>
-            <p className="text-xs text-slate-400">Click or drag to replace</p>
+            <p className="text-sm font-bold text-foreground/90 uppercase tracking-wide leading-none">
+              Ingress Transmission Complete
+            </p>
+            <p className="text-[10px] font-bold tracking-tight text-slate-400 uppercase leading-none">
+              Drop secondary file structure to overwrite registry block
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4 group">
-            <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-300">
-              <FileText className="h-7 w-7 text-slate-400 group-hover:text-blue-500 transition-colors" />
+          <div className="flex flex-col items-center justify-center gap-3.5 group">
+            <div className="h-11 w-11 rounded-xl bg-muted/40 border border-border/10 flex items-center justify-center shrink-0 transition-colors group-hover:bg-primary/10 group-hover:text-primary shadow-sm">
+              <FileText className="h-5 w-5 text-muted-foreground/60 transition-colors stroke-[2.2] group-hover:text-primary" />
             </div>
-            <div className="space-y-1.5 text-center">
-              <p className="text-lg font-semibold text-slate-900">Upload your resume</p>
-              <p className="text-xs text-slate-400">PDF or DOCX, up to 5MB</p>
+            <div className="space-y-1 text-center leading-none">
+              <p className="text-sm font-bold text-foreground/80 uppercase tracking-wide leading-none">
+                Commit Portfolio Assets
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+                Verified PDF or DOCX architectures up to 5MB allocations
+              </p>
             </div>
           </div>
         )}
       </div>
 
-      {renderParseSummary()}
+      {/* PARSED DATA COGNITIVE LEDGER RESULTS DISPLAY AREA */}
+      {(() => {
+        if (!parsedData && !parseComplete) return null;
 
-      <div className="flex flex-col w-full gap-3 mt-10 pt-6 border-t border-slate-200">
+        if (parseError) {
+          return (
+            <div className="w-full mt-4 p-4 bg-rose-500/[0.02] dark:bg-rose-500/[0.002] border border-rose-500/20 rounded-xl animate-in fade-in slide-in-from-top-2 duration-200 text-left">
+              <div className="flex items-center gap-2.5 mb-1.5 text-rose-600 dark:text-rose-400 select-none font-bold leading-none">
+                <AlertCircle className="h-4.5 w-4.5 stroke-[2.5] shrink-0" />
+                <span className="text-[10px] font-extrabold uppercase tracking-wider">Cognitive Ledger Advisory</span>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed text-muted-foreground pr-2 select-text">
+                {parseError}
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="w-full mt-4 p-4 border border-emerald-500/10 bg-emerald-500/[0.01] rounded-xl animate-in slide-in-from-bottom-2 duration-300 text-left">
+            <div className="flex items-center gap-2.5 mb-3 select-none leading-none font-bold text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck className="h-4 w-4 stroke-[2.5] shrink-0" />
+              <span>Competency Variables Injected</span>
+            </div>
+
+            {parsedData?.full_name && (
+              <div className="flex items-center gap-3 mb-3 p-2.5 bg-background/40 backdrop-blur-sm border border-border/20 rounded-xl text-left select-text">
+                <div className="h-7 w-7 rounded-lg bg-blue-500/10 border border-blue-500/5 flex items-center justify-center shrink-0 select-none shadow-inner">
+                  <User className="h-3.5 w-3.5 text-blue-600 stroke-[2.5]" />
+                </div>
+                <span className="text-xs font-bold text-foreground/90 tracking-tight truncate select-all leading-none">
+                  {parsedData.full_name}
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 font-bold text-xs select-none tracking-tight leading-none tabular-nums w-full">
+              {skillsCount > 0 && (
+                <div className="p-3 bg-background/40 border border-border/20 rounded-xl text-left flex flex-col justify-center shadow-sm">
+                  <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wider block leading-none mb-1">
+                    Extracted Skill Nodes
+                  </span>
+                  <p className="text-base font-black text-foreground/90 select-text leading-none pt-0.5">
+                    {skillsCount} criteria metrics
+                  </p>
+                </div>
+              )}
+              {rolesCount > 0 && (
+                <div className="p-3 bg-background/40 border border-border/20 rounded-xl text-left flex flex-col justify-center shadow-sm">
+                  <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wider block leading-none mb-1">
+                    Professional History
+                  </span>
+                  <p className="text-base font-black text-foreground/90 select-text leading-none pt-0.5">
+                    {rolesCount} roles logged
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* HUD FOOTER MODULE TRANSACTION CONTROLS STRIP */}
+      <div className="flex flex-col w-full gap-3 mt-6 pt-5 border-t border-border/10 select-none">
         <Button
           size="lg"
-          onClick={onContinue}
+          type="button"
+          onClick={handleContinueWizardAction}
           disabled={isParsing || isUploading}
-          className="w-full h-12 rounded-xl text-base gap-2"
+          className="w-full h-11 rounded-xl text-xs font-bold uppercase tracking-wider gap-1.5 shadow-md active:scale-[0.99] transition-transform flex items-center justify-center cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          Continue
-          <ArrowRight className="h-4 w-4" />
+          <span>Commit & Continue Pathway</span>
+          <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.5] ml-0.5" />
         </Button>
+
         <Button
           variant="ghost"
-          onClick={onSkip}
-          className="text-sm text-slate-500 hover:text-slate-700 h-11 rounded-xl"
+          type="button"
+          onClick={handleSkipWizardAction}
+          className="w-full h-9 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground hover:bg-accent shrink-0 cursor-pointer shadow-none transition-transform active:scale-[0.99]"
           disabled={isParsing || isUploading}
         >
-          Skip for now
+          Skip Profile Pre-fill Node
         </Button>
       </div>
     </div>
