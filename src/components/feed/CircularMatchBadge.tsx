@@ -1,33 +1,45 @@
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * GroUp Academy: Neural Match Visualization (CircularMatchBadge)
  * CTO Reference: Authoritative node for displaying match-score telemetry.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
 
 interface CircularMatchBadgeProps {
   score: number;
   size?: "sm" | "md" | "lg";
   className?: string;
+  contextData?: {
+    talentId?: string;
+    jobId?: string;
+    companyId?: string;
+  };
 }
 
-export function CircularMatchBadge({ score, size = "md", className }: CircularMatchBadgeProps) {
-  // PROTOCOL: Centralized Telemetry Configuration
+export function CircularMatchBadge({ score, size = "md", className, contextData }: CircularMatchBadgeProps) {
+  // PROTOCOL: Centralized Telemetry Configuration (Synced with System Brand Matrix)
   const config = {
     high: { color: "text-emerald-500", stroke: "stroke-emerald-500", threshold: 80 },
     medium: { color: "text-amber-500", stroke: "stroke-amber-500", threshold: 60 },
     low: { color: "text-muted-foreground/60", stroke: "stroke-muted/40", threshold: 0 },
   };
 
+  // Safe numerical sanitization to guarantee Automated Efficiency render frames never block
+  const sanitizedScore = Math.max(0, Math.min(100, isNaN(score) ? 0 : score));
+
   const getVariant = () => {
-    if (score >= config.high.threshold) return config.high;
-    if (score >= config.medium.threshold) return config.medium;
+    if (sanitizedScore >= config.high.threshold) return config.high;
+    if (sanitizedScore >= config.medium.threshold) return config.medium;
     return config.low;
   };
 
   const variant = getVariant();
 
-  // GEOMETRY: Dimensional mapping for executive UI targets
+  // GEOMETRY: Dimensional mapping for executive UI targets (Strict 2024 SAAS UI Grid)
   const dimensions = {
     sm: { size: 36, stroke: 3, radius: 14, fontSize: "text-[10px]" },
     md: { size: 44, stroke: 3.5, radius: 17, fontSize: "text-xs" },
@@ -36,11 +48,47 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
 
   const d = dimensions[size];
   const circumference = 2 * Math.PI * d.radius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = circumference - (sanitizedScore / 100) * circumference;
+
+  // Digital Workforce: System anomaly reporting and high-value lead processing pipeline
+  useEffect(() => {
+    // 1. Trace rendering calculation failures or anomalous zero-bounds matching configurations
+    if (isNaN(score) || score < 0 || score > 100) {
+      trackError(`Match badge boundary violation encountered: received raw payload score [${score}]`, {
+        component: "CircularMatchBadge",
+        action: "lifecycle_mount",
+        ...contextData,
+      });
+      return;
+    }
+
+    // 2. High-Value Human-in-the-Loop Sourcing Leads: Notify Admin Swarm on exceptional matches
+    if (score >= 90 && contextData?.talentId && contextData?.jobId) {
+      trackEvent("high_value_match_detected", { ...contextData, score });
+
+      supabase
+        .from("admin_chat_messages")
+        .insert([
+          {
+            sender_type: "system_agent",
+            agent_key: "talent-aisha", // Routes back into Aisha Career Success analytics view
+            message_text: `🎯 **High-Value Neural Match Detected (Score: ${score}%)**\n\nTalent ID profile matches Job ID constraints perfectly. Verification and sourcing acceleration recommended.`,
+            metadata: { ...contextData, score, timestamp: new Date().toISOString() },
+          },
+        ])
+        .then(({ error: agentErr }) => {
+          if (agentErr)
+            console.warn("[CircularMatchBadge] Failed to push match signal to Aisha pipeline:", agentErr.message);
+        });
+    }
+  }, [score, contextData]);
 
   return (
     <div
-      className={cn("relative flex items-center justify-center shrink-0 animate-in fade-in duration-500", className)}
+      className={cn(
+        "relative flex items-center justify-center shrink-0 animate-in fade-in zoom-in-95 duration-500 select-none",
+        className,
+      )}
       style={{ width: d.size, height: d.size }}
     >
       <svg className="w-full h-full -rotate-90 transform-gpu" viewBox={`0 0 ${d.size} ${d.size}`}>
@@ -59,14 +107,13 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
           cy={d.size / 2}
           r={d.radius}
           fill="none"
-          className={cn(
-            "transition-all duration-[1500ms] ease-in-out",
-            variant.stroke,
-            score >= 80 && "drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]",
-          )}
+          className={cn("transition-all duration-[1500ms] ease-in-out", variant.stroke)}
+          style={{
+            strokeDasharray: circumference,
+            strokeDashoffset: strokeDashoffset,
+            filter: sanitizedScore >= 80 ? "drop-shadow(0px 0px 3px var(--emerald-500))" : undefined,
+          }}
           strokeWidth={d.stroke}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
         />
       </svg>
@@ -74,14 +121,14 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
       {/* IDENTITY: Yield Label */}
       <div
         className={cn(
-          "absolute inset-0 flex items-center justify-center font-semibold tabular-nums",
+          "absolute inset-0 flex items-center justify-center font-bold tabular-nums tracking-tight",
           d.fontSize,
           variant.color,
         )}
       >
         <span className="flex items-start">
-          {score}
-          <span className="text-[0.55em] mt-0.5 ml-0.5 opacity-60">%</span>
+          {sanitizedScore}
+          <span className="text-[0.55em] mt-0.5 ml-0.5 font-medium opacity-70">%</span>
         </span>
       </div>
     </div>
