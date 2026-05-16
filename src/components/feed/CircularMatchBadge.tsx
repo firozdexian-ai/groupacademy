@@ -65,21 +65,6 @@ export function CircularMatchBadge({ score, size = "md", className, contextData 
     // 2. High-Value Human-in-the-Loop Sourcing Leads: Notify Admin Swarm on exceptional matches
     if (score >= 90 && contextData?.talentId && contextData?.jobId) {
       trackEvent("high_value_match_detected", { ...contextData, score });
-
-      supabase
-        .from("admin_chat_messages")
-        .insert([
-          {
-            sender_type: "system_agent",
-            agent_key: "talent-aisha", // Routes back into Aisha Career Success analytics view
-            message_text: `🎯 **High-Value Neural Match Detected (Score: ${score}%)**\n\nTalent ID profile matches Job ID constraints perfectly. Verification and sourcing acceleration recommended.`,
-            metadata: { ...contextData, score, timestamp: new Date().toISOString() },
-          },
-        ])
-        .then(({ error: agentErr }) => {
-          if (agentErr)
-            console.warn("[CircularMatchBadge] Failed to push match signal to Aisha pipeline:", agentErr.message);
-        });
     }
   }, [score, contextData]);
 
