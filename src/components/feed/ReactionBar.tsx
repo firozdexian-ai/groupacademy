@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { ThumbsUp, Lightbulb, PartyPopper, Heart, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ThumbsUp, Lightbulb, PartyPopper, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Sentiment Ingress Node (ReactionBar)
  * CTO Reference: Authoritative tactical module for community engagement telemetry.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
 
 export type ReactionType = "like" | "insightful" | "celebrate" | "support";
@@ -17,6 +20,10 @@ interface ReactionBarProps {
   disabled?: boolean;
   /** When true, renders buttons inline without wrapper borders (parent handles layout) */
   inline?: boolean;
+  contextData?: {
+    postId?: string;
+    talentId?: string;
+  };
 }
 
 const REACTION_CONFIG: Record<
@@ -28,14 +35,78 @@ const REACTION_CONFIG: Record<
     activeBg: string;
   }
 > = {
-  like: { icon: ThumbsUp, label: "Like", color: "text-blue-500", activeBg: "bg-blue-500/10" },
-  insightful: { icon: Lightbulb, label: "Insightful", color: "text-amber-500", activeBg: "bg-amber-500/10" },
-  celebrate: { icon: PartyPopper, label: "Celebrate", color: "text-emerald-500", activeBg: "bg-emerald-500/10" },
-  support: { icon: Heart, label: "Support", color: "text-rose-500", activeBg: "bg-rose-500/10" },
+  like: {
+    icon: ThumbsUp,
+    label: "Like",
+    color: "text-blue-500 dark:text-blue-400",
+    activeBg: "bg-blue-500/10 dark:bg-blue-500/5",
+  },
+  insightful: {
+    icon: Lightbulb,
+    label: "Insightful",
+    color: "text-amber-500 dark:text-amber-400",
+    activeBg: "bg-amber-500/10 dark:bg-amber-500/5",
+  },
+  celebrate: {
+    icon: PartyPopper,
+    label: "Celebrate",
+    color: "text-emerald-500 dark:text-emerald-400",
+    activeBg: "bg-emerald-500/10 dark:bg-emerald-500/5",
+  },
+  support: {
+    icon: Heart,
+    label: "Support",
+    color: "text-rose-500 dark:text-rose-400",
+    activeBg: "bg-rose-500/10 dark:bg-rose-500/5",
+  },
 };
 
-export function ReactionBar({ reactions, userReaction, onReact, disabled, inline = false }: ReactionBarProps) {
+export function ReactionBar({
+  reactions,
+  userReaction,
+  onReact,
+  disabled,
+  inline = false,
+  contextData,
+}: ReactionBarProps) {
+  const queryClient = useQueryClient();
   const [hoveredReaction, setHoveredReaction] = useState<ReactionType | null>(null);
+
+  // Monitor interaction impressions for analytical tracking
+  useEffect(() => {
+    if (contextData?.postId) {
+      trackEvent("reaction_bar_rendered", { postId: contextData.postId, userHasReacted: !!userReaction });
+    }
+  }, [contextData, userReaction]);
+
+  // Defensive Guard: Build a safe default structure to isolate layout math crashes completely
+  const safeReactions =
+    reactions && typeof reactions === "object" ? reactions : { like: 0, insightful: 0, celebrate: 0, support: 0 };
+
+  const handleReactionClick = async (type: ReactionType) => {
+    if (disabled || !type) return;
+
+    trackEvent("reaction_bar_toggle_initiated", {
+      type,
+      postId: contextData?.postId,
+      previousReaction: userReaction,
+    });
+
+    try {
+      // Trigger the parent collection layout update handler
+      await onReact(type);
+
+      // Automated Efficiency: Broadcast cache invalidation across shared feed pools
+      queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+    } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "ReactionBar",
+        action: "execute_onReact_callback",
+        targetReaction: type,
+        ...contextData,
+      });
+    }
+  };
 
   const reactionButtons = (Object.entries(REACTION_CONFIG) as [ReactionType, typeof REACTION_CONFIG.like][]).map(
     ([type, config]) => {
@@ -48,54 +119,73 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
           variant="ghost"
           size="sm"
           disabled={disabled}
+          type="button"
           className={cn(
-            "flex-1 h-9 text-xs font-medium gap-2 transition-all duration-200 rounded-lg px-3",
+            "flex-1 h-9 text-[11px] sm:text-xs font-bold gap-2 transition-all duration-200 rounded-xl px-2.5 cursor-pointer transform-gpu select-none",
             isActive
-              ? cn(config.color, config.activeBg, "scale-105 border border-current/20 shadow-sm")
-              : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground",
-            !isActive && hoveredReaction === type && "scale-105",
+              ? cn(config.color, config.activeBg, "scale-102 border border-current/10 shadow-sm font-extrabold")
+              : "text-muted-foreground/80 hover:bg-muted/40 hover:text-foreground",
+            !isActive && hoveredReaction === type && "scale-102 bg-muted/20",
+            disabled && "opacity-40 cursor-not-allowed pointer-events-none",
           )}
           onClick={(e) => {
             e.preventDefault();
-            onReact(type);
+            e.stopPropagation();
+            handleReactionClick(type);
           }}
-          onMouseEnter={() => setHoveredReaction(type)}
-          onMouseLeave={() => setHoveredReaction(null)}
+          onMouseEnter={() => !disabled && setHoveredReaction(type)}
+          onMouseLeave={() => !disabled && setHoveredReaction(null)}
         >
           <Icon
-            className={cn("h-4 w-4 transition-all duration-500", isActive && "fill-current scale-110 drop-shadow-sm")}
+            className={cn(
+              "h-4 w-4 transition-transform duration-300",
+              isActive ? "fill-current scale-105 drop-shadow-sm" : "fill-none stroke-[2.2]",
+            )}
           />
-          <span className="hidden md:inline">{config.label}</span>
+          <span className="hidden sm:inline tracking-tight font-bold">{config.label}</span>
         </Button>
       );
     },
   );
 
   if (inline) {
-    return <div className="flex items-center gap-2 w-full">{reactionButtons}</div>;
+    return <div className="flex items-center gap-1.5 w-full select-none">{reactionButtons}</div>;
   }
 
-  // STANDALONE TELEMETRY MODE
-  const totalReactions = Object.values(reactions).reduce((sum, count) => sum + count, 0);
-  const topReactions = Object.entries(reactions)
-    .filter(([_, count]) => count > 0)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([type]) => type as ReactionType);
+  // STANDALONE TELEMETRY DATA CALCULATION MODE
+  let totalReactions = 0;
+  let topReactions: ReactionType[] = [];
+
+  try {
+    totalReactions = Object.values(safeReactions).reduce((sum, count) => sum + (Number(count) || 0), 0);
+    topReactions = Object.entries(safeReactions)
+      .filter(([_, count]) => (Number(count) || 0) > 0)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([type]) => type as ReactionType);
+  } catch (mathErr) {
+    trackError(mathErr instanceof Error ? mathErr : String(mathErr), {
+      component: "ReactionBar",
+      action: "aggregate_standalone_metrics",
+      ...contextData,
+    });
+  }
 
   return (
-    <div className="space-y-4 w-full animate-in fade-in duration-500">
+    <div className="space-y-3.5 w-full animate-in fade-in duration-300 select-none">
       {totalReactions > 0 && (
-        <div className="flex items-center gap-2 text-muted-foreground/70 px-1">
-          <div className="flex -space-x-2">
+        <div className="flex items-center gap-2 text-muted-foreground/70 px-1 select-text selection:bg-primary/10">
+          {/* Stacked Sentiment Face Icons Wrapper Track */}
+          <div className="flex -space-x-1.5 items-center">
             {topReactions.map((type) => {
               const config = REACTION_CONFIG[type];
+              if (!config) return null;
               const Icon = config.icon;
               return (
                 <div
                   key={type}
                   className={cn(
-                    "h-6 w-6 rounded-full flex items-center justify-center bg-background border-2 border-muted shadow-lg",
+                    "h-5.5 w-5.5 rounded-full flex items-center justify-center bg-background dark:bg-card border border-border/60 shadow-sm shrink-0",
                     config.color,
                   )}
                 >
@@ -104,12 +194,12 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
               );
             })}
           </div>
-          <span className="text-[11px] font-medium normal-case tracking-normal text-muted-foreground">
+          <span className="text-[11px] font-bold tabular-nums tracking-tight text-muted-foreground/80 lowercase">
             {totalReactions.toLocaleString()} {totalReactions === 1 ? "reaction" : "reactions"}
           </span>
         </div>
       )}
-      <div className="flex items-center gap-2 border-t-2 border-border/10 pt-4">{reactionButtons}</div>
+      <div className="flex items-center gap-1.5 border-t border-border/30 pt-3">{reactionButtons}</div>
     </div>
   );
 }
