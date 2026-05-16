@@ -159,7 +159,6 @@ export function LearnStage({ resources = [], onComplete, isCompleted }: LearnSta
               <CardContent className="p-0 w-full min-w-0">
                 {slidesResource.resource_url && (
                   <div
-                    type="button"
                     onClick={handleSlidesSyncView}
                     className="cursor-pointer outline-none w-full border-none"
                   >
@@ -199,7 +198,6 @@ export function LearnStage({ resources = [], onComplete, isCompleted }: LearnSta
               <CardContent className="p-0 w-full min-w-0">
                 {mindmapResource.resource_url && (
                   <div
-                    type="button"
                     onClick={handleMindmapSyncView}
                     className="cursor-pointer outline-none w-full border-none"
                   >
