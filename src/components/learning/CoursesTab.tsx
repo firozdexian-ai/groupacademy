@@ -255,7 +255,6 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     return (
       <Card
         key={course.id}
-        type="button"
         className="group cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all duration-300 transform-gpu hover:border-primary/30 hover:bg-card/80 hover:shadow-md outline-none focus-visible:ring-1 focus-visible:ring-ring w-full text-left overflow-hidden flex flex-col"
         onClick={() => {
           trackEvent("academy_course_card_selected", { slug: course.slug });
@@ -464,7 +463,6 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     return (
       <Card
         key={compItem.id}
-        type="button"
         className="cursor-pointer rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all duration-300 transform-gpu hover:border-primary/30 hover:bg-card/80 outline-none focus-visible:ring-1 focus-visible:ring-ring overflow-hidden group w-full text-left"
         onClick={() => {
           trackEvent("academy_competition_card_selected", { slug: compItem.slug });
