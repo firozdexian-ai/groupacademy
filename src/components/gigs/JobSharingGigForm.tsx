@@ -40,7 +40,7 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   UK: ["london", "uk", "manchester", "britain"],
   India: ["india", "mumbai", "bangalore", "delhi"],
   Singapore: ["singapore", "sg"],
-  "Saudi Arabia": ["saudi", "riyadh", "jeddah", (ksa) => "ksa"],
+  "Saudi Arabia": ["saudi", "riyadh", "jeddah", "ksa"],
 };
 
 const CHANNELS = [
