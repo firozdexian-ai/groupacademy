@@ -9,6 +9,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { ArrowRight, Loader2, Search, Briefcase, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfessionStepProps {
   onContinue: () => void;
@@ -130,7 +131,7 @@ export function ProfessionStep({ onContinue }: ProfessionStepProps) {
       }
     };
 
-    fetchProfessionalRoles();
+    fetchAuthoritativeProfessionalRoles();
 
     return () => {
       isMounted = false;
