@@ -70,17 +70,19 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
 
     try {
       // PHASE 1: Code Registry Validation Pass
-      const { data: accessCodePayloadData, error: codeQueryRegistryError } = await withTimeout(
-        supabase
-          .from("access_codes")
-          .select("*")
-          .eq("code", sanitizedCodeTokenStr)
-          .eq("content_id", contentId)
-          .eq("is_active", true)
-          .maybeSingle(),
+      const { data: accessCodePayloadData, error: codeQueryRegistryError } = (await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("access_codes")
+            .select("*")
+            .eq("code", sanitizedCodeTokenStr)
+            .eq("content_id", contentId)
+            .eq("is_active", true)
+            .maybeSingle(),
+        ),
         TIMEOUTS.DEFAULT,
         "CODE_SYNC_TIMEOUT",
-      );
+      )) as { data: any; error: any };
 
       if (codeQueryRegistryError) throw codeQueryRegistryError;
 
