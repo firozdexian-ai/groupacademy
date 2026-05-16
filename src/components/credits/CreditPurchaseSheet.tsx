@@ -287,6 +287,6 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
           </div>
         )}
       </SheetContent>
-    </Dialog>
+    </Sheet>
   );
 }
