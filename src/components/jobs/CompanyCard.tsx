@@ -35,7 +35,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
 
   // Monitor campaign directory item impressions safely via telemetry logs
   useEffect(() => {
-    if (company?.id) {
+    if (company?.company_name) {
       trackEvent("company_directory_card_rendered", {
         companyName: company.company_name,
         activeJobsCount: company.active_jobs,
