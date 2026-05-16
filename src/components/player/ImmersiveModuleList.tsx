@@ -53,7 +53,7 @@ export function ImmersiveModuleList({
 
   // High-Performance State Pre-indexing Pass: Cache lock states recursively to optimize multi-row grid computations
   const lookupCalculatedUnlockedMap = useMemo(() => {
-    const calculatedMap = new Record<string, boolean>();
+    const calculatedMap = {} as Record<string, boolean>;
     if (!Array.isArray(modules)) return calculatedMap;
 
     modules.forEach((moduleItem, index) => {
@@ -71,7 +71,7 @@ export function ImmersiveModuleList({
 
   // Compute and sort granular modular completion variables through clean memo tables
   const calculatedProgressPercentageMap = useMemo(() => {
-    const percentageMap = new Record<string, number>();
+    const percentageMap = {} as Record<string, number>;
     if (!Array.isArray(modules)) return percentageMap;
 
     modules.forEach((moduleItem) => {
