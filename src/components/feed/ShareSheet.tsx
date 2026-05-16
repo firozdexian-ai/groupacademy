@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Share2, Copy, Check, MessageCircle, Linkedin, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { recordShare } from "@/hooks/useCreatorAnalytics";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Network Expansion Terminal (ShareSheet)
  * CTO Reference: High-fidelity sharing node for viral content distribution.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
 
 interface ShareSheetProps {
@@ -19,57 +22,125 @@ interface ShareSheetProps {
 }
 
 export function ShareSheet({ title, url, description, postId }: ShareSheetProps) {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
+  // Monitor share sheet instantiation contexts safely via telemetry tracking
+  useEffect(() => {
+    if (open && postId) {
+      trackEvent("share_sheet_drawer_opened", { postId, assetTitle: title?.slice(0, 40) });
+    }
+  }, [open, postId, title]);
+
+  if (!url) {
+    trackError("ShareSheet component mounted without standard URL property anchors.", {
+      component: "ShareSheet",
+      action: "validation_assertion_failure",
+    });
+    return null;
+  }
+
   const shareText = description ? `${title}\n\n${description}` : title;
-  const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
+
+  // 1. SSR Guard Architecture: Defensively parse window attributes safely
+  const getAbsoluteUrlSafe = (targetUrl: string): string => {
+    if (targetUrl.startsWith("http")) return targetUrl;
+    try {
+      const originContext = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+      return `${originContext}${targetUrl.startsWith("/") ? "" : "/"}${targetUrl}`;
+    } catch (err) {
+      return targetUrl;
+    }
+  };
+
+  const fullUrl = getAbsoluteUrlSafe(url);
 
   const handleCopyProtocol = async () => {
+    trackEvent("share_link_copy_clicked", { postId, fullUrlSnippet: fullUrl.slice(-40) });
+
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
-      if (postId) recordShare(postId, "copy_link");
+
+      if (postId) {
+        await recordShare(postId, "copy_link");
+        // Automated Efficiency: Synchronize cache pools instantly across viewports
+        queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+      }
+
       toast({
         title: "Link copied",
-        description: "The link is on your clipboard.",
+        description: "The professional asset URL has been pinned to your clipboard.",
       });
+
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "ShareSheet",
+        action: "execute_clipboard_write",
+        postId,
+      });
+
       toast({
-        title: "Couldn't copy link",
-        description: "Please copy the URL manually.",
+        title: "Clipboard block encountered",
+        description: "Please highlight and copy the address bar manually.",
         variant: "destructive",
       });
     }
   };
 
-  const handleSocialHandshake = (platform: "whatsapp" | "linkedin") => {
-    const urls = {
+  const handleSocialHandshake = async (platform: "whatsapp" | "linkedin") => {
+    trackEvent("share_social_redirect_triggered", { platform, postId });
+
+    const socialDestinations = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${fullUrl}`)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(fullUrl)}`,
     };
 
-    if (postId) recordShare(postId, platform);
-    window.open(urls[platform], "_blank", "noopener,noreferrer");
-    setOpen(false);
+    try {
+      if (postId) {
+        await recordShare(postId, platform);
+        queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+      }
+
+      window.open(socialDestinations[platform], "_blank", "noopener,noreferrer");
+      setOpen(false);
+    } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "ShareSheet",
+        action: "execute_social_handshake",
+        platform,
+        postId,
+      });
+    }
   };
 
   const handleExecutiveShare = async () => {
     if (!navigator.share) return;
+
+    trackEvent("share_native_web_api_invoked", { postId });
+
     try {
       await navigator.share({
         title,
         text: description,
         url: fullUrl,
       });
-      if (postId) recordShare(postId, "native");
+
+      if (postId) {
+        await recordShare(postId, "native");
+        queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+      }
       setOpen(false);
-    } catch (err) {
-      // Logic: User aborted transmission
+    } catch (err: any) {
+      // Abort transitions silently since browser cancellations represent intentional user gestures
+      trackEvent("share_native_web_api_aborted", { postId, exceptionMessage: String(err) });
     }
   };
+
+  const hasNativeShareSupport = typeof navigator !== "undefined" && !!navigator.share;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -77,87 +148,106 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
         <Button
           variant="ghost"
           size="sm"
-          className="h-9 text-xs font-medium gap-2 flex-1 hover:bg-primary/10 hover:text-primary transition-colors rounded-lg"
+          type="button"
+          className="h-9 text-xs font-bold gap-1.5 flex-1 hover:bg-primary/10 hover:text-primary active:scale-95 transition-all rounded-xl select-none cursor-pointer"
         >
-          <Share2 className="h-4 w-4" />
+          <Share2 className="h-4 w-4 stroke-[2.2]" />
           <span>Share</span>
         </Button>
       </SheetTrigger>
 
       <SheetContent
         side="bottom"
-        className="rounded-t-3xl p-6 pb-10 border-t border-border/40 bg-background"
+        className="rounded-t-3xl p-6 border-t border-border/40 bg-background/98 backdrop-blur-xl max-h-[85vh] max-h-[85svh] overflow-y-auto pb-safe-bottom select-none shadow-2xl transition-all duration-300"
+        style={{ contentVisibility: "auto" }}
       >
-        <SheetHeader className="text-center mb-6">
-          <div className="mx-auto w-12 h-1 bg-muted rounded-full mb-4" />
-          <SheetTitle className="text-lg font-semibold flex items-center justify-center gap-2">
-            <Share2 className="h-5 w-5 text-primary" /> Share
-          </SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground">
-            Pick where you want to share this.
-          </SheetDescription>
-        </SheetHeader>
+        <div className="max-w-md mx-auto">
+          {/* Section Dynamic Header layout */}
+          <SheetHeader className="text-center mb-6">
+            <div className="mx-auto w-12 h-1 bg-muted/60 rounded-full mb-2" />
+            <SheetTitle className="text-sm font-bold flex items-center justify-center gap-2 text-foreground tracking-tight uppercase select-none">
+              <Share2 className="h-4 w-4 text-primary shrink-0 animate-pulse" />
+              <span>Distribute Asset Content</span>
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground leading-normal">
+              Select your targeted downstream professional network channel below.
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="grid grid-cols-3 gap-6 max-w-sm mx-auto">
-          {/* HANDSHAKE: WhatsApp */}
-          <button
-            onClick={() => handleSocialHandshake("whatsapp")}
-            className="group flex flex-col items-center gap-4 outline-none"
-          >
-            <div className="h-16 w-16 rounded-[24px] bg-[#25D366] flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 active:scale-90 border-4 border-white/10">
-              <MessageCircle className="h-8 w-8 text-white fill-current" />
-            </div>
-            <span className="text-xs font-medium text-foreground">
-              WhatsApp
-            </span>
-          </button>
-
-          {/* HANDSHAKE: LinkedIn */}
-          <button
-            onClick={() => handleSocialHandshake("linkedin")}
-            className="group flex flex-col items-center gap-4 outline-none"
-          >
-            <div className="h-16 w-16 rounded-[24px] bg-[#0077b5] flex items-center justify-center shadow-[0_10px_30px_rgba(0,119,181,0.3)] group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 active:scale-90 border-4 border-white/10">
-              <Linkedin className="h-8 w-8 text-white fill-current" />
-            </div>
-            <span className="text-xs font-medium text-foreground">
-              LinkedIn
-            </span>
-          </button>
-
-          {/* HANDSHAKE: Copy Link */}
-          <button onClick={handleCopyProtocol} className="group flex flex-col items-center gap-4 outline-none">
-            <div
-              className={cn(
-                "h-16 w-16 rounded-[24px] flex items-center justify-center shadow-2xl transition-all duration-500 active:scale-90 group-hover:scale-110 border-4",
-                copied ? "bg-emerald-500 border-emerald-400/20" : "bg-muted border-border/20",
-              )}
+          {/* Preset Visual Platform Selection Grid Track */}
+          <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto items-start pt-1">
+            {/* HANDSHAKE Anchor Node: WhatsApp */}
+            <button
+              type="button"
+              onClick={() => handleSocialHandshake("whatsapp")}
+              className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
+              aria-label="Share update via WhatsApp channels"
             >
-              {copied ? (
-                <Check className="h-8 w-8 text-white animate-in zoom-in duration-300" />
-              ) : (
-                <Copy className="h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
-            <span className="text-xs font-medium text-foreground">
-              {copied ? "Copied" : "Copy link"}
-            </span>
-          </button>
-        </div>
+              <div className="h-14 w-14 rounded-2xl bg-[#25D366] flex items-center justify-center shadow-md shadow-[#25D366]/20 group-hover:scale-105 group-hover:rotate-2 transition-all duration-300 active:scale-95 border border-white/10 shrink-0">
+                <MessageCircle className="h-6 w-6 text-white fill-current" />
+              </div>
+              <span className="text-[11px] font-bold text-foreground/90 tracking-tight transition-colors group-hover:text-primary">
+                WhatsApp
+              </span>
+            </button>
 
-        {/* SYSTEM OVERRIDE: Native Share */}
-        {navigator.share && (
-          <div className="mt-8 pt-6 border-t border-border/30">
-            <Button
-              onClick={handleExecutiveShare}
-              variant="outline"
-              className="w-full h-11 rounded-xl font-medium text-sm gap-2"
+            {/* HANDSHAKE Anchor Node: LinkedIn */}
+            <button
+              type="button"
+              onClick={() => handleSocialHandshake("linkedin")}
+              className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
+              aria-label="Publish asset path to LinkedIn feed"
             >
-              <Globe className="h-4 w-4" />
-              More sharing options
-            </Button>
+              <div className="h-14 w-14 rounded-2xl bg-[#0077b5] flex items-center justify-center shadow-md shadow-[#0077b5]/20 group-hover:scale-105 group-hover:-rotate-2 transition-all duration-300 active:scale-95 border border-white/10 shrink-0">
+                <Linkedin className="h-6 w-6 text-white fill-current" />
+              </div>
+              <span className="text-[11px] font-bold text-foreground/90 tracking-tight transition-colors group-hover:text-primary">
+                LinkedIn
+              </span>
+            </button>
+
+            {/* HANDSHAKE Anchor Node: Copy Link */}
+            <button
+              type="button"
+              onClick={handleCopyProtocol}
+              className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
+              aria-label="Copy absolute web address path to system clipboard"
+            >
+              <div
+                className={cn(
+                  "h-14 w-14 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-300 active:scale-95 group-hover:scale-105 border shrink-0",
+                  copied
+                    ? "bg-emerald-500 border-emerald-400/20 text-white shadow-emerald-500/10"
+                    : "bg-muted/30 border-border/40 text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/5 group-hover:text-primary",
+                )}
+              >
+                {copied ? (
+                  <Check className="h-6 w-6 text-white animate-in zoom-in duration-300 stroke-[2.5]" />
+                ) : (
+                  <Copy className="h-5 w-5 transition-transform group-hover:scale-105" />
+                )}
+              </div>
+              <span className="text-[11px] font-bold text-foreground/90 tracking-tight transition-colors group-hover:text-primary">
+                {copied ? "Copied" : "Copy Link"}
+              </span>
+            </button>
           </div>
-        )}
+
+          {/* SYSTEM OVERRIDE: Web Native Device Share Action Bar */}
+          {hasNativeShareSupport && (
+            <div className="mt-6 pt-5 border-t border-border/30 w-full animate-in fade-in zoom-in-95 duration-200">
+              <Button
+                onClick={handleExecutiveShare}
+                variant="outline"
+                type="button"
+                className="w-full h-10 rounded-xl font-bold text-xs gap-2 tracking-wide border-border/40 hover:bg-accent active:scale-[0.99] transition-transform shadow-sm cursor-pointer"
+              >
+                <Globe className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
+                <span>More sharing choices</span>
+              </Button>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
