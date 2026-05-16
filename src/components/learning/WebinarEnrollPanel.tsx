@@ -11,6 +11,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { formatEventTime, formatEventLocal, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { getCourseCredits } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Props {
   course: {
