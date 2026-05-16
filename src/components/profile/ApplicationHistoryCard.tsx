@@ -226,7 +226,7 @@ export function ApplicationHistoryCard() {
               return (
                 <div
                   key={applicationItem.id}
-                  type="button"
+                  role="button"
                   onClick={() =>
                     handlePipelineNavigationTrigger(`/app/jobs/${applicationItem.jobId}`, {
                       jobId: applicationItem.jobId,
