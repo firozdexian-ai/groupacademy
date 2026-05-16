@@ -43,7 +43,7 @@ export function useTrendingJobs(limit = 10) {
         location: String(row.location ?? "Remote / Flexible"),
         job_type: String(row.job_type ?? "Full-time"),
         salary_min: row.salary_min !== undefined && row.salary_min !== null ? Number(row.salary_min) : null,
-        salary_max: row.salary_max !== undefined && raw.salary_max !== null ? Number(row.salary_max) : null,
+        salary_max: row.salary_max !== undefined && row.salary_max !== null ? Number(row.salary_max) : null,
         currency: String(row.currency ?? "USD"),
         skills: Array.isArray(row.skills) ? row.skills.map(String) : [],
         created_at: String(row.created_at ?? new Date().toISOString()),
