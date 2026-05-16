@@ -36,7 +36,7 @@ export function TalentMirrorPanel() {
         <CardContent className="py-6 text-center space-y-3">
           <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
           <p className="text-sm text-muted-foreground">{error}</p>
-          <Button size="sm" variant="outline" onClick={refresh}>
+          <Button size="sm" variant="outline" onClick={() => refresh()}>
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
           </Button>
         </CardContent>
