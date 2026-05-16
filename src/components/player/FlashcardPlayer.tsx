@@ -221,7 +221,6 @@ export function FlashcardPlayer({ cards = [], title, onComplete, className }: Fl
 
       {/* HUD LEVEL 3: 3D SPACE INTERACTIVE FLIP MEMORY CARD LAYER */}
       <div
-        type="button"
         className="w-full h-64 [perspective:1000px] cursor-pointer block outline-none select-none rounded-xl"
         onClick={() => {
           trackEvent("flashcard_node_flipped", { cardId: currentCard.id, nextState: !isFlipped });
