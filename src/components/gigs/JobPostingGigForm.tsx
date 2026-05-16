@@ -1,34 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import {
   Loader2,
   Briefcase,
   MapPin,
   Clock,
-  CheckCircle,
   ImagePlus,
   RotateCcw,
   AlertCircle,
   Camera,
   Type,
-  Sparkles,
-  ArrowRight,
   Zap,
   Building2,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Job Intelligence Acquisition Node
- * CTO Reference: Authoritative interface for structured job data extraction and curation.
- */
 
 interface JobPostingGigFormProps {
   gig: { id: string; title: string };
@@ -36,7 +30,13 @@ interface JobPostingGigFormProps {
   onSubmitted: () => void;
 }
 
+/**
+ * GroUp Academy: Job Intelligence Acquisition Node
+ * CTO Reference: Authoritative interface for structured job data extraction and curation.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigFormProps) {
+  const queryClient = useQueryClient();
   const [inputMode, setInputMode] = useState<"text" | "image">("text");
   const [jobText, setJobText] = useState("");
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -56,10 +56,28 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
   const hasParsedSync = !!parsedRaw;
   const canFinalize = editTitle.trim() && editCompany.trim() && !isSubmitting;
 
+  // Track initial curation view initialization parameters
+  useEffect(() => {
+    if (gig?.id) {
+      trackEvent("job_posting_form_mounted", { gigId: gig.id, talentId });
+    }
+  }, [gig, talentId]);
+
+  if (!gig || !gig.id || !talentId) {
+    trackError("JobPostingGigForm mounted without explicit property mappings.", {
+      component: "JobPostingGigForm",
+      action: "null_pointer_assertion",
+    });
+    return null;
+  }
+
   const handleVisionIngress = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setScreenshotFile(file);
+
+    trackEvent("job_posting_vision_file_staged", { fileName: file.name, fileSize: file.size });
+
     const reader = new FileReader();
     reader.onload = () => setScreenshotPreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -68,41 +86,65 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
   const executeIntelligenceSync = async () => {
     setIsParsing(true);
     setParseError(null);
+    const toastId = toast.loading("Processing raw data through AI mapping syntax...");
+
+    trackEvent("job_posting_intelligence_sync_started", { inputMode, talentId });
 
     try {
       let payload: any = {};
 
       if (inputMode === "image" && screenshotFile) {
-        toast.info("VISION_SYNC: Uploading evidence...");
-        const fileName = `gig-job-screenshots/${talentId}/${Date.now()}-${screenshotFile.name}`;
-        const { error: uploadError } = await supabase.storage.from("job-assets").upload(fileName, screenshotFile);
+        toast.info("VISION_SYNC: Streaming raw visual telemetry to asset grid...", { id: toastId });
+        const fileName = `gig-job-screenshots/${talentId}/${Date.now()}-${screenshotFile.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("job-assets")
+          .upload(fileName, screenshotFile, { cacheControl: "3600", upsert: false });
+
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
         } = supabase.storage.from("job-assets").getPublicUrl(fileName);
+
         setSourceImageUrl(publicUrl);
         payload = { imageUrl: publicUrl };
       } else {
-        if (jobText.length < MIN_INGRESS_CHARS) throw new Error(`Requires_Min_${MIN_INGRESS_CHARS}_Chars`);
-        payload = { rawText: jobText };
+        if (jobText.trim().length < MIN_INGRESS_CHARS) {
+          throw new Error(
+            `Ingress content density boundary check failed. Minimum requirement: ${MIN_INGRESS_CHARS} chars.`,
+          );
+        }
+        payload = { rawText: jobText.trim() };
       }
 
-      // INGRESS: Invoke Edge Function for AI Parsing
-      const { data, error } = await supabase.functions.invoke("parse-job-post", { body: payload });
-      if (error) throw error;
+      // INGRESS: Invoke edge engine function for automated entity extraction parameters
+      const { data, error: edgeError } = await supabase.functions.invoke("parse-job-post", { body: payload });
+      if (edgeError) throw edgeError;
 
       const parsed = data.parsed || data;
+      if (!parsed) throw new Error("AI engine generated empty payload parsing tokens.");
+
       setParsedRaw(parsed);
       setEditTitle(parsed.title || "");
       setEditCompany(parsed.company_name || "");
       setEditLocation(parsed.location || "");
       setEditJobType(parsed.job_type || "");
 
-      toast.success("AI_EXTRACTION_VERIFIED");
+      toast.success("AI data normalization completed successfully", { id: toastId });
+      trackEvent("job_posting_intelligence_sync_success", { gigId: gig.id });
     } catch (err: any) {
-      setParseError(err.message || "SYNC_FAULT");
-      toast.error("PROTOCOL_SYNC_FAILED");
+      const exceptionMsg = err instanceof Error ? err.message : String(err);
+
+      trackError(exceptionMsg, {
+        component: "JobPostingGigForm",
+        action: "execute_intelligence_sync",
+        inputMode,
+        gigId: gig.id,
+      });
+
+      setParseError(exceptionMsg);
+      toast.error("Data tracking connection failed. Verify asset inputs.", { id: toastId });
     } finally {
       setIsParsing(false);
     }
@@ -110,8 +152,10 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
 
   const finalizeArtifactSubmission = async () => {
     setIsSubmitting(true);
+    const toastId = toast.loading("Registering submission tokens into global ledger...");
+
     try {
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from("gig_submissions")
         .insert({
           gig_id: gig.id,
@@ -120,102 +164,141 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           submission_data: {
             input_method: inputMode,
             source: inputMode === "text" ? jobText : sourceImageUrl,
-            curated_data: { title: editTitle, company: editCompany, location: editLocation, type: editJobType },
+            curated_data: {
+              title: editTitle.trim(),
+              company: editCompany.trim(),
+              location: editLocation.trim(),
+              type: editJobType.trim(),
+            },
             ai_meta: parsedRaw,
           },
         })
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Load auto-review routines dynamically within a clean sandbox boundary container
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");
-      triggerAutoReview(inserted.id);
-      toast.success("Submitted — auto-review in progress");
+      await triggerAutoReview(inserted.id);
+
+      // Automated Efficiency: Broadcast explicit cache updates across shared pools instantly
+      queryClient.invalidateQueries({ queryKey: ["gig-submission-counts", talentId] });
+      queryClient.invalidateQueries({ queryKey: ["my-gig-submissions", talentId] });
+      queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      toast.success("Asset logged elegantly for automated validation checks", { id: toastId });
       onSubmitted();
     } catch (err: any) {
-      toast.error("SUBMISSION_FAULT");
+      const msg = err instanceof Error ? err.message : String(err);
+
+      trackError(msg, {
+        component: "JobPostingGigForm",
+        action: "finalize_artifact_submission",
+        gigId: gig.id,
+        talentId,
+      });
+
+      toast.error("Ledger connection layout validation timeout.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 text-left">
+    <div className="space-y-6 text-left select-none sm:select-text antialiased max-w-full w-full">
       {!hasParsedSync ? (
-        <div className="space-y-8">
-          {/* HUD: INPUT_PROTOCOL_TOGGLE */}
-          <div className="p-1.5 bg-muted/20 backdrop-blur-md rounded-[22px] flex gap-2 border-2 border-border/40">
-            {(["text", "image"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setInputMode(mode)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-3 py-3 rounded-[16px] text-[10px] font-black uppercase italic tracking-[0.2em] transition-all duration-500",
-                  inputMode === mode
-                    ? "bg-background text-primary shadow-xl scale-[1.02]"
-                    : "text-muted-foreground/60 hover:text-foreground",
-                )}
-              >
-                {mode === "text" ? <Type className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                {mode === "text" ? "DATA_TEXT" : "VISION_SYNC"}
-              </button>
-            ))}
+        <div className="space-y-5 animate-in fade-in duration-300">
+          {/* HUD: INPUT_PROTOCOL_TOGGLE Strip */}
+          <div className="p-1.5 bg-muted/20 border border-border/40 backdrop-blur-md rounded-2xl flex gap-2 select-none">
+            {(["text", "image"] as const).map((mode) => {
+              const isSelectedMode = inputMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setInputMode(mode);
+                    setParseError(null);
+                    trackEvent("job_posting_mode_toggled", { selectedMode: mode });
+                  }}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer transform-gpu outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    isSelectedMode
+                      ? "bg-background text-primary shadow-sm scale-102 font-extrabold"
+                      : "text-muted-foreground/80 hover:text-foreground",
+                  )}
+                >
+                  {mode === "text" ? (
+                    <Type className="h-3.5 w-3.5 stroke-[2.2]" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5 stroke-[2.2]" />
+                  )}
+                  <span>{mode === "text" ? "Data Text Paste" : "Vision Screen Upload"}</span>
+                </button>
+              );
+            })}
           </div>
 
           {inputMode === "text" ? (
-            <div className="space-y-3 animate-in slide-in-from-top-2 duration-500">
-              <Label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground ml-1">
-                Ingress_Payload
+            <div className="space-y-1.5 text-left animate-in slide-in-from-top-1 duration-200">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5 select-none">
+                Ingress Payload Content
               </Label>
               <Textarea
-                placeholder="Initialize job data paste sequence..."
-                className="rounded-[28px] border-2 border-border/60 min-h-[200px] resize-none bg-background/50 p-6 font-medium italic focus-visible:ring-primary/20"
+                placeholder="Initialize raw job description text paste compilation sequence..."
+                className="rounded-2xl border border-border/40 min-h-[160px] resize-none bg-card/30 p-4 font-medium sm:text-sm text-xs leading-relaxed focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/40"
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
+                disabled={isParsing}
               />
             </div>
           ) : (
-            <div className="space-y-4 animate-in slide-in-from-top-2 duration-500">
-              <Label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground ml-1">
-                Evidence_Capture
+            <div className="space-y-1.5 text-left animate-in slide-in-from-top-1 duration-200">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5 select-none">
+                Evidence Document Capture
               </Label>
-              <div className="relative group">
+              <div className="relative group w-full">
                 <Input
                   type="file"
                   accept="image/*"
                   onChange={handleVisionIngress}
                   className="hidden"
                   id="vision-capture"
+                  disabled={isParsing}
                 />
                 <label
                   htmlFor="vision-capture"
                   className={cn(
-                    "flex flex-col items-center justify-center py-14 border-2 border-dashed rounded-[32px] cursor-pointer transition-all duration-500",
+                    "flex flex-col items-center justify-center py-10 border border-dashed rounded-2xl cursor-pointer transition-all duration-300 w-full transform-gpu",
                     screenshotFile
                       ? "border-primary bg-primary/5 shadow-inner"
-                      : "border-border/40 hover:border-primary/20 bg-card/50",
+                      : "border-border/40 hover:border-primary/30 bg-card/40 hover:bg-card/80 backdrop-blur-md shadow-sm",
+                    isParsing && "opacity-40 pointer-events-none",
                   )}
                 >
                   {screenshotPreview ? (
-                    <div className="relative h-40 w-full px-10">
+                    <div className="relative h-36 w-full px-6 select-none animate-in zoom-in-98 duration-200">
                       <img
                         src={screenshotPreview}
-                        className="h-full w-full object-contain rounded-2xl shadow-2xl"
-                        alt="SYNC_PREVIEW"
+                        className="h-full w-full object-contain rounded-xl border border-border/20 shadow-md"
+                        alt="Staged payload visualization preview file"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-2xl">
-                        <Badge className="bg-primary uppercase font-black italic">UPDATE_ARTIFACT</Badge>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-xl">
+                        <Badge className="bg-primary text-[9px] font-extrabold px-2.5 py-0.5 rounded-md tracking-wider uppercase select-none shadow-md">
+                          Replace Evidence File
+                        </Badge>
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700 shadow-lg">
-                        <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-center p-4 select-none">
+                      <div className="h-10 w-10 rounded-xl bg-muted/20 border border-border/10 flex items-center justify-center mx-auto mb-3 transition-transform duration-300 group-hover:scale-105">
+                        <ImagePlus className="h-5 w-5 text-muted-foreground/80" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
-                        STAGING_EVIDENCE_NODE
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/90 pl-0.5">
+                        Stage Screenshot Evidence Asset
                       </span>
-                    </>
+                    </div>
                   )}
                 </label>
               </div>
@@ -223,9 +306,9 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           )}
 
           {parseError && (
-            <div className="bg-rose-500/10 border-2 border-rose-500/20 p-5 rounded-[24px] flex gap-4 items-center animate-in shake-2">
-              <AlertCircle className="h-6 w-6 text-rose-500" />
-              <p className="text-[10px] font-black text-rose-500 uppercase italic tracking-widest leading-none">
+            <div className="bg-rose-500/5 border border-rose-500/20 p-3.5 rounded-xl flex gap-3 items-center animate-in fade-in duration-200 text-left select-text">
+              <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 stroke-[2.2]" />
+              <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 break-words leading-tight tracking-tight flex-1">
                 {parseError}
               </p>
             </div>
@@ -233,91 +316,105 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
 
           <Button
             onClick={executeIntelligenceSync}
-            disabled={isParsing || (inputMode === "text" ? jobText.length < MIN_INGRESS_CHARS : !screenshotFile)}
-            className="w-full rounded-2xl h-16 font-black uppercase italic tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:shadow-primary/40 transition-all active:scale-95 gap-3"
+            disabled={isParsing || (inputMode === "text" ? jobText.trim().length < MIN_INGRESS_CHARS : !screenshotFile)}
+            className="w-full rounded-xl h-11 font-bold text-xs tracking-wide shadow-sm active:scale-[0.99] transition-all select-none cursor-pointer gap-2"
           >
-            {isParsing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Zap className="h-6 w-6 fill-current" />}
-            {isParsing ? "SYNAPSE_PROCESSING..." : "PROCESS_INTELLIGENCE"}
+            {isParsing ? (
+              <Loader2 className="h-4 w-4 animate-spin stroke-[2.5]" />
+            ) : (
+              <Zap className="h-4 w-4 fill-primary-foreground/10" />
+            )}
+            <span>{isParsing ? "Analyzing Intelligence Vectors..." : "Extract Data With AI"}</span>
           </Button>
         </div>
       ) : (
-        <div className="space-y-8 animate-in slide-in-from-bottom-6 duration-1000">
-          {/* CURATION_HUD: Extracted Artifact Verification */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-3">
-              <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-              <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground italic">
-                Curation_Verification
+        <div className="space-y-5 animate-in slide-in-from-bottom-4 duration-500 w-full min-w-0">
+          {/* CURATION_HUD: Extracted Tracking Curation Elements */}
+          <div className="flex items-center justify-between px-0.5 select-none border-b border-border/10 pb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-foreground/90 truncate">
+                Curation Data Verification
               </h4>
             </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-9 rounded-xl text-[9px] font-black uppercase italic border-2 border-border/40 hover:bg-muted/10 gap-2"
-              onClick={() => setParsedRaw(null)}
+              type="button"
+              className="h-7 px-2.5 rounded-lg text-[10px] font-bold tracking-tight border-border/60 hover:bg-accent gap-1.5 cursor-pointer active:scale-95 transition-transform shrink-0 shadow-sm"
+              onClick={() => {
+                trackEvent("job_posting_reinitialize_clicked", { gigId: gig.id });
+                setParsedRaw(null);
+              }}
             >
-              <RotateCcw className="h-3.5 w-3.5" /> RE_INITIALIZE
+              <RotateCcw className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
+              <span>Re-Initialize</span>
             </Button>
           </div>
 
-          <div className="bg-card/40 backdrop-blur-xl border-2 border-border/40 rounded-[40px] p-8 space-y-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-              <Briefcase className="h-32 w-32 rotate-12" />
+          <div className="bg-card/50 border border-border/40 backdrop-blur-md rounded-2xl p-5 space-y-4 shadow-sm relative overflow-hidden text-left w-full min-w-0">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none select-none">
+              <Briefcase className="h-24 w-24 rotate-12 text-primary" />
             </div>
 
-            <div className="grid gap-6 relative z-10">
-              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
-                  Target_Role_Identity
+            <div className="grid gap-4 relative z-10 w-full min-w-0">
+              <div className="space-y-1 text-left w-full min-w-0">
+                <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none">
+                  Target Role Designation Designation
                 </Label>
-                <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                <div className="relative w-full min-w-0">
+                  <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
                   <Input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="rounded-2xl border-2 bg-background/30 pl-12 h-12 font-black italic uppercase tracking-tighter"
+                    placeholder="E.g. Senior Frontend Engineer"
+                    className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-xs sm:text-sm tracking-tight focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
-                  Parent_Organization
+              <div className="space-y-1 text-left w-full min-w-0">
+                <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none">
+                  Employing Organization
                 </Label>
-                <div className="relative">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                <div className="relative w-full min-w-0">
+                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
                   <Input
                     value={editCompany}
                     onChange={(e) => setEditCompany(e.target.value)}
-                    className="rounded-2xl border-2 bg-background/30 pl-12 h-12 font-bold"
+                    placeholder="E.g. Stripe Inc."
+                    className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-xs sm:text-sm tracking-tight focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
-                    Deployment_Location
+              <div className="grid grid-cols-2 gap-3.5 w-full">
+                <div className="space-y-1 text-left min-w-0">
+                  <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none truncate block">
+                    Deployment Location
                   </Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                  <div className="relative w-full min-w-0">
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
                     <Input
                       value={editLocation}
                       onChange={(e) => setEditLocation(e.target.value)}
-                      className="rounded-2xl border-2 bg-background/30 pl-12 h-12 text-xs font-bold"
+                      placeholder="E.g. Remote / London"
+                      className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-xs sm:text-sm tracking-tight focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full truncate"
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
-                    Contract_Model
+
+                <div className="space-y-1 text-left min-w-0">
+                  <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none truncate block">
+                    Contract Model
                   </Label>
-                  <div className="relative">
-                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                  <div className="relative w-full min-w-0">
+                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
                     <Input
                       value={editJobType}
                       onChange={(e) => setEditJobType(e.target.value)}
-                      className="rounded-2xl border-2 bg-background/30 pl-12 h-12 text-[10px] font-black uppercase italic tracking-widest"
+                      placeholder="E.g. Full-time / Contract"
+                      className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-[10px] sm:text-xs uppercase tracking-wide focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full truncate"
                     />
                   </div>
                 </div>
@@ -325,13 +422,15 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
             </div>
 
             {sourceImageUrl && (
-              <div className="pt-4 border-t-2 border-border/10">
-                <p className="text-[8px] font-black uppercase tracking-[0.4em] text-muted-foreground/30 mb-4 italic">
-                  Source_Artifact_Evidence
+              <div className="pt-3.5 border-t border-border/10 select-none w-full animate-in fade-in duration-200">
+                <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2 italic">
+                  Source Image Context Evidence
                 </p>
                 <img
                   src={sourceImageUrl}
-                  className="rounded-2xl h-28 w-full object-cover border-2 border-border/20 opacity-40 hover:opacity-80 transition-opacity"
+                  alt="Source visualization update"
+                  className="rounded-xl h-24 w-full object-cover border border-border/30 opacity-40 hover:opacity-80 transition-all duration-300 shadow-inner"
+                  loading="lazy"
                 />
               </div>
             )}
@@ -340,10 +439,15 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           <Button
             onClick={finalizeArtifactSubmission}
             disabled={!canFinalize}
-            className="w-full rounded-[24px] h-16 font-black uppercase italic tracking-[0.2em] shadow-2xl active:scale-95 transition-all gap-4"
+            type="button"
+            className="w-full rounded-xl h-11 font-bold text-xs tracking-wide shadow-md active:scale-[0.99] transition-all cursor-pointer gap-2"
           >
-            {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
-            COMMIT_TO_REGISTRY
+            {isSubmitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
+            <span>Commit To Ecosystem Registry</span>
           </Button>
         </div>
       )}
