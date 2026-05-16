@@ -37,7 +37,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
   useEffect(() => {
     if (company?.id) {
       trackEvent("company_directory_card_rendered", {
-        companyId: company.id,
+        companyName: company.company_name,
         activeJobsCount: company.active_jobs,
         userIsFollowing: isFollowing,
       });
@@ -53,14 +53,14 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
   }
 
   const handleRowNavigationClick = () => {
-    trackEvent("company_directory_card_clicked", { companyId: company.id });
+    trackEvent("company_directory_card_clicked", { companyName: company.company_name });
     try {
       onClick();
     } catch (err) {
       trackError(err, {
         component: "CompanyCard",
         action: "execute_onClick_navigation_callback",
-        companyId: company.id,
+        companyName: company.company_name,
       });
     }
   };
@@ -70,7 +70,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
     e.stopPropagation(); // Shield primary container click handlers gracefully
 
     trackEvent("company_directory_follow_toggled", {
-      companyId: company.id,
+      companyName: company.company_name,
       transitionToState: !isFollowing,
     });
 
@@ -84,7 +84,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
       trackError(err, {
         component: "CompanyCard",
         action: "execute_onToggleFollow_callback",
-        companyId: company.id,
+        companyName: company.company_name,
       });
     }
   };
@@ -101,7 +101,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
 
   return (
     <Card
-      type="button"
+
       onClick={handleRowNavigationClick}
       className="w-full text-left rounded-2xl border border-border/40 bg-card/60 backdrop-blur-md shadow-sm select-none transition-all duration-300 transform-gpu hover:border-primary/30 hover:bg-card/90 hover:shadow-md active:scale-[0.995] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring group"
     >
@@ -140,7 +140,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
           <Button
             variant="ghost"
             size="icon"
-            type="button"
+      
             className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-rose-500 hover:bg-rose-500/10 shrink-0 cursor-pointer active:scale-90 transition-all select-none"
             onClick={handleFollowRelationshipToggle}
             aria-label={
