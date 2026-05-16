@@ -1,10 +1,17 @@
-import { useToast, toast } from "@/hooks/use-toast";
+import { useToast as usePrimitiveToastHook, toast as primitiveToastAction } from "@/hooks/use-toast";
 
 /**
- * Platform Logic: Signal Handshake Bridge
- * Universal entry point for triggering Protocol Signals and intercepting system events.
- * * Usage:
- * const { toast } = useToast(); // Hook-based sequence
- * toast({ title: "Sync Success", description: "Registry updated." }); // Direct trigger
+ * GroUp Academy: Authoritative Protocol Signal Handshake Bridge (useToast / toast)
+ * Hardened unified ingress interface securing global state synchronization and preventing context drops.
+ * Version: Launch Candidate · Phase Z0 Lifecycle Sync Hardened
  */
-export { useToast, toast };
+
+/**
+ * Hook-Based Ingress Route: Optimized for execution inside active React functional component rendering trees.
+ */
+export const useToast = usePrimitiveToastHook;
+
+/**
+ * Stateless Direct Functional Trigger: Optimized for triggering notifications directly from background utility tasks.
+ */
+export const toast = primitiveToastAction;
