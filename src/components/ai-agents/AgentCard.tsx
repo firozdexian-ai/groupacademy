@@ -90,7 +90,6 @@ export function AgentCard({
 
   return (
     <Card
-      type="button"
       onClick={handleCardClick}
       className={cn(
         "relative overflow-hidden rounded-[28px] border-2 border-border/40 bg-card/30 backdrop-blur-sm p-5 flex flex-col gap-4 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group text-left select-none",
