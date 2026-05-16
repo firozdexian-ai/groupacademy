@@ -93,7 +93,6 @@ export function ProfessionSelector({ categories = [], onSelect, onBack }: Profes
             return (
               <Card
                 key={category.id}
-                type="button"
                 className={cn(
                   "group cursor-pointer rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl transition-all duration-500 outline-none focus:border-primary/40 focus:bg-card/60",
                   "hover:border-primary/40 hover:shadow-2xl hover:-translate-y-2 active:scale-[0.98] overflow-hidden",
