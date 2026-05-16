@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { Check, Users, Timer, Trophy, Zap, ShieldCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, Users, Timer, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 
 /**
  * GroUp Academy: Community Consensus Node (PollWidget)
  * CTO Reference: Interactive engagement module for community feedback loops.
+ * Version: Launch Candidate · Phase Z0 Hardened
  */
 
 interface PollOption {
@@ -30,44 +33,121 @@ interface PollWidgetProps {
   pollEndsAt?: string;
   onVote: (optionId: string) => void;
   disabled?: boolean;
+  contextData?: {
+    postId?: string;
+    talentId?: string;
+  };
 }
 
 export function PollWidget({
-  options,
-  results,
-  totalVotes,
+  options = [],
+  results = [],
+  totalVotes = 0,
   hasVoted,
   userVote,
   pollEndsAt,
   onVote,
   disabled,
+  contextData,
 }: PollWidgetProps) {
+  const queryClient = useQueryClient();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const isPollEnded = pollEndsAt ? new Date(pollEndsAt) < new Date() : false;
   const showResults = hasVoted || isPollEnded;
 
-  const handleVoteProtocol = () => {
-    if (selectedOption && !disabled && !hasVoted) {
-      onVote(selectedOption);
+  // Asynchronously record rendering impression parameters safely via telemetry
+  useEffect(() => {
+    if (contextData?.postId) {
+      trackEvent("poll_widget_rendered", {
+        postId: contextData.postId,
+        totalCurrentVotes: totalVotes,
+        isClosed: isPollEnded,
+      });
+    }
+  }, [contextData, totalVotes, isPollEnded]);
+
+  const handleVoteProtocol = async () => {
+    if (!selectedOption || disabled || hasVoted) return;
+
+    trackEvent("poll_vote_submission_initiated", {
+      ...contextData,
+      selectedOptionId: selectedOption,
+    });
+
+    try {
+      // Execute the native transactional update handler
+      await onVote(selectedOption);
+
+      // Automated Efficiency: Broadcast cache invalidation instructions across shared feed pools
+      queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      trackEvent("poll_vote_submission_success", {
+        ...contextData,
+        selectedOptionId: selectedOption,
+      });
+    } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "PollWidget",
+        action: "submit_vote_transaction",
+        ...contextData,
+        selectedOptionId: selectedOption,
+      });
     }
   };
 
   const getResultForOption = (optionId: string): PollResult => {
-    const result = results?.find((r) => r.optionId === optionId);
-    return result || { optionId, votes: 0, percentage: 0 };
+    const fallbackResult = { optionId, votes: 0, percentage: 0 };
+    if (!results || !Array.isArray(results)) return fallbackResult;
+    const result = results.find((r) => r?.optionId === optionId);
+    return result || fallbackResult;
   };
 
-  // PROTOCOL: Identify the top engagement node
-  const leadingOptionId = results?.reduce(
-    (prev, current) => (prev.votes > current.votes ? prev : current),
-    results[0],
-  )?.optionId;
+  // PROTOCOL: Identify the top engagement node with defensive fallback protections
+  const getLeadingOptionId = (): string | null => {
+    if (!results || !Array.isArray(results) || results.length === 0) return null;
+    try {
+      const leader = results.reduce(
+        (prev, current) => ((prev?.votes ?? 0) > (current?.votes ?? 0) ? prev : current),
+        results[0],
+      );
+      return leader?.optionId || null;
+    } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "PollWidget",
+        action: "compute_leading_option",
+      });
+      return null;
+    }
+  };
+
+  const leadingOptionId = getLeadingOptionId();
+
+  // Safely parse distance calculations to prevent date formatting anomalies from crashing views
+  const renderTimeRemaining = (endsAt: string) => {
+    try {
+      const dateInstance = new Date(endsAt);
+      if (isNaN(dateInstance.getTime())) throw new Error("Invalid poll deadline timestamp schema.");
+
+      return isPollEnded ? "Poll closed" : `Ends in ${formatDistanceToNow(dateInstance)}`;
+    } catch (err) {
+      trackError(err instanceof Error ? err : String(err), {
+        component: "PollWidget",
+        action: "format_distance_to_now",
+        providedTimestamp: endsAt,
+      });
+      return "Poll closed";
+    }
+  };
+
+  if (!options || !Array.isArray(options) || options.length === 0) return null;
 
   return (
-    <div className="space-y-3 p-4 bg-card border border-border/40 rounded-2xl animate-in fade-in duration-300">
+    <div className="space-y-4 p-4 bg-card/60 backdrop-blur-md border border-border/40 rounded-2xl shadow-sm transition-all duration-300 antialiased w-full">
       <div className="space-y-3">
         {options.map((option) => {
+          if (!option || !option.id) return null;
+
           const result = getResultForOption(option.id);
           const isUserVote = userVote === option.id;
           const isSelected = selectedOption === option.id;
@@ -77,22 +157,22 @@ export function PollWidget({
             return (
               <div
                 key={option.id}
-                className="group relative overflow-hidden rounded-[20px] border-2 transition-all duration-500"
-                style={{ borderColor: isWinner ? "hsl(var(--primary)/0.2)" : "transparent" }}
+                className="group relative overflow-hidden rounded-xl border border-border/30 transition-all duration-300"
+                style={{ borderColor: isWinner ? "hsl(var(--primary)/0.25)" : undefined }}
               >
                 <div
                   className={cn(
-                    "relative z-10 flex items-center justify-between p-4 transition-all",
-                    isWinner ? "bg-primary/[0.03]" : "bg-muted/20",
+                    "relative z-10 flex items-center justify-between p-3.5 transition-all w-full select-text",
+                    isWinner ? "bg-primary/[0.02]" : "bg-muted/10",
                   )}
                 >
-                  <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {isWinner ? (
-                      <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+                      <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 shadow-sm animate-in zoom-in-95 duration-200">
+                        <Trophy className="h-4 w-4 text-amber-500 shrink-0 fill-amber-500/10" />
                       </div>
                     ) : isUserVote ? (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm animate-in scale-in duration-200">
                         <Check className="h-3 w-3 text-white stroke-[3px]" />
                       </div>
                     ) : (
@@ -100,26 +180,28 @@ export function PollWidget({
                     )}
                     <span
                       className={cn(
-                        "text-sm truncate font-semibold",
+                        "text-xs sm:text-sm font-bold truncate tracking-tight pr-2 flex-1",
                         isUserVote ? "text-primary" : "text-foreground/90",
                       )}
                     >
                       {option.text}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  <div className="flex items-center gap-2 shrink-0 select-none">
                     {isUserVote && (
-                      <span className="text-[10px] font-medium text-primary/70">
-                        Your vote
-                      </span>
+                      <span className="text-[10px] font-bold text-primary/70 tracking-tight uppercase">Your vote</span>
                     )}
-                    <span className="text-xs font-semibold tabular-nums">{result.percentage}%</span>
+                    <span className="text-xs font-bold tabular-nums tracking-wide bg-background/50 border border-border/30 px-2 py-0.5 rounded-md">
+                      {result.percentage}%
+                    </span>
                   </div>
                 </div>
-                {/* NEURAL PROGRESS OVERLAY */}
+
+                {/* NEURAL PROGRESS OVERLAY FRAME */}
                 <div
                   className={cn(
-                    "absolute inset-0 h-full transition-all duration-[2000ms] ease-in-out opacity-10",
+                    "absolute inset-y-0 left-0 h-full transition-all duration-[1200ms] ease-out opacity-10 transform-gpu",
                     isWinner ? "bg-primary" : "bg-muted-foreground",
                   )}
                   style={{ width: `${result.percentage}%` }}
@@ -132,62 +214,67 @@ export function PollWidget({
             <button
               key={option.id}
               disabled={disabled}
-              onClick={() => setSelectedOption(option.id)}
+              type="button"
+              onClick={() => {
+                setSelectedOption(option.id);
+                trackEvent("poll_widget_option_selected", { optionId: option.id, ...contextData });
+              }}
               className={cn(
-                "w-full p-4 rounded-[20px] border-2 text-left text-sm transition-all duration-300 transform-gpu",
-                "active:scale-[0.97] outline-none",
+                "w-full p-3.5 rounded-xl border text-left text-xs sm:text-sm font-bold tracking-tight transition-all duration-200 transform-gpu select-none cursor-pointer",
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected
-                  ? "border-primary bg-primary/5 shadow-lg shadow-primary/5"
-                  : "border-border/40 bg-background/50 hover:border-primary/30 hover:bg-primary/[0.02]",
-                disabled && "opacity-40 cursor-not-allowed",
+                  ? "border-primary bg-primary/5 shadow-sm"
+                  : "border-border/40 bg-background/40 hover:border-primary/30 hover:bg-primary/[0.01]",
+                disabled && "opacity-40 cursor-not-allowed pointer-events-none",
               )}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "h-6 w-6 rounded-xl border-2 flex items-center justify-center transition-all duration-500",
+                    "h-5 w-5 rounded-lg border flex items-center justify-center transition-all duration-300 shrink-0",
                     isSelected
-                      ? "border-primary bg-primary rotate-12 scale-110"
-                      : "border-muted-foreground/20 bg-muted/10",
+                      ? "border-primary bg-primary transform-gpu rotate-6"
+                      : "border-muted-foreground/30 bg-muted/10",
                   )}
                 >
-                  {isSelected && <Check className="h-3.5 w-3.5 text-white stroke-[4px]" />}
+                  {isSelected && <Check className="h-3 w-3 text-white stroke-[3.5px]" />}
                 </div>
-                <span className="font-medium text-sm">{option.text}</span>
+                <span className="text-foreground/90 font-bold">{option.text}</span>
               </div>
             </button>
           );
         })}
       </div>
 
+      {/* Action Execution Dispatcher Button */}
       {!hasVoted && !isPollEnded && (
         <Button
           size="lg"
           onClick={handleVoteProtocol}
           disabled={!selectedOption || disabled}
-          className="w-full h-11 rounded-xl font-semibold text-sm gap-2"
+          className="w-full h-10 rounded-xl font-bold text-xs tracking-wide gap-2 shadow-sm active:scale-[0.99] transition-all select-none cursor-pointer mt-1"
         >
-          <Zap className="h-4 w-4" />
-          Submit vote
+          <Zap className="h-3.5 w-3.5 fill-current" />
+          <span>Submit vote</span>
         </Button>
       )}
 
-      <div className="flex items-center justify-between pt-2 px-1 border-t border-border/10">
+      {/* Informative Telemetry Status Strip Footer */}
+      <div className="flex items-center justify-between pt-2.5 px-0.5 border-t border-border/30 select-none">
         <Badge
           variant="outline"
-          className="h-6 gap-1.5 px-2.5 rounded-full text-[10px] font-medium border-border/40"
+          className="h-6 gap-1.5 px-3 rounded-full text-[10px] font-bold tracking-wide border-border/40 bg-muted/5 shadow-inner tabular-nums uppercase"
         >
-          <Users className="h-3 w-3" />
-          {totalVotes.toLocaleString()} {totalVotes === 1 ? "vote" : "votes"}
+          <Users className="h-3 w-3 text-muted-foreground/80" />
+          <span>
+            {totalVotes.toLocaleString()} {totalVotes === 1 ? "vote" : "votes"}
+          </span>
         </Badge>
+
         {pollEndsAt && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Timer className="h-3 w-3" />
-            <span>
-              {isPollEnded
-                ? "Poll closed"
-                : `Ends in ${formatDistanceToNow(new Date(pollEndsAt))}`}
-            </span>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80 tracking-tight">
+            <Timer className="h-3 w-3 text-primary" />
+            <span>{renderTimeRemaining(pollEndsAt)}</span>
           </div>
         )}
       </div>
