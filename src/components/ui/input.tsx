@@ -1,10 +1,10 @@
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Data Acquisition Node
- * High-precision input field optimized for technical data entry and registry queries.
+ * GroUp Academy: Technical Data Acquisition Node (Input)
+ * Hardened atomic form field ensuring zero Cumulative Layout Shift (CLS) and seamless global token symmetry.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
  */
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
@@ -12,11 +12,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-12 w-full rounded-xl border-2 border-border/40 bg-background/50 px-4 py-2 text-sm font-medium tracking-tight ring-offset-background transition-all duration-300",
-          "file:border-0 file:bg-transparent file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-primary",
-          "placeholder:text-muted-foreground/50 placeholder:italic",
-          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/50",
-          "disabled:cursor-not-allowed disabled:opacity-30 disabled:bg-muted/10",
+          "flex h-10 w-full rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-xs sm:text-sm font-bold text-foreground/90 transition-colors duration-150 transform-gpu antialiased select-text placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:not-italic shadow-inner outline-none focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-20 disabled:pointer-events-none shrink-0 leading-none",
+          "file:border-0 file:bg-transparent file:text-[9px] file:font-mono file:font-extrabold file:uppercase file:tracking-wide file:text-primary file:cursor-pointer file:mr-2",
           className,
         )}
         ref={ref}
@@ -25,6 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     );
   },
 );
-Input.displayName = "Input";
+
+Input.displayName = "Input_Core_Acquisition_Node";
 
 export { Input };
