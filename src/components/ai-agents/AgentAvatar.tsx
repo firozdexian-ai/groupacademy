@@ -1,12 +1,15 @@
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Bot, Zap, ShieldCheck, Sparkles } from "lucide-react";
+import { Building2, Bot, Sparkles } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 /**
- * GroUp Academy: Agent Identity Representation Node
- * CTO Audit: Expanded visual registry to support the new Creator Economy (Community Agents).
+ * GroUp Academy: Agent Identity Representation Node (V5.6.0)
+ * CTO Reference: High-performance visual avatar card mapping custom workspace entity badges.
+ * Architecture: Optimized via tokenized initials string parsing to protect container circles against layout breaks.
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
 
 interface AgentAvatarProps {
@@ -18,7 +21,7 @@ interface AgentAvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   isOnline?: boolean;
   isCompanyAgent?: boolean;
-  isCreatorAgent?: boolean; // CTO FIX: Added support for user-generated marketplace agents
+  isCreatorAgent?: boolean; // Support for user-generated marketplace agents
   companyName?: string;
   className?: string;
 }
@@ -57,49 +60,70 @@ export function AgentAvatar({
   companyName,
   className,
 }: AgentAvatarProps) {
-  // PROTOCOL: Hardened Initial Extraction
-  const initials = (name || "AI")
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n)
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  // --- PHASE: SAFE_INITIALS_COMPILATION ---
+  const calculatedInitials = useMemo(() => {
+    const cleanName = String(name || "AI").trim();
+    if (!cleanName) return "AI";
+
+    // Split text blocks explicitly by empty space characters to capture separate word clusters
+    const wordTokens = cleanName.split(/\s+/).filter(Boolean);
+
+    if (wordTokens.length === 1) {
+      // Single word context: slice the first 2 characters safely
+      return wordTokens[0].slice(0, 2).toUpperCase();
+    }
+
+    // Multi-word context: extract the first index item of each word boundary smoothly
+    return (wordTokens[0].charAt(0) + wordTokens[1].charAt(0)).toUpperCase();
+  }, [name]);
+
+  // --- PHASE: THEME_PALETTE_NORMALIZATION ---
+  const fallbackStyles = useMemo(() => {
+    const defaultBg = isCreatorAgent ? "rgba(245, 158, 11, 0.1)" : "rgba(99, 102, 241, 0.1)";
+    const defaultColor = isCreatorAgent ? "rgb(245, 158, 11)" : "rgb(99, 102, 241)";
+
+    return {
+      backgroundColor: bgColor || defaultBg,
+      color: iconColor || defaultColor,
+    };
+  }, [bgColor, iconColor, isCreatorAgent]);
 
   return (
-    <div className={cn("relative flex-shrink-0 animate-in fade-in duration-500", className)} aria-label={name}>
+    <div
+      className={cn("relative flex-shrink-0 animate-in fade-in duration-500 select-none", className)}
+      aria-label={name}
+    >
+      {/* COMPONENT: MAIN_AVATAR_FRAME */}
       <Avatar
         className={cn(
-          sizeRegistry[size],
+          sizeRegistry[size] || sizeRegistry.md,
           "ring-2 ring-background shadow-xl border-2 transition-transform duration-500 hover:scale-110",
           isCompanyAgent ? "rounded-[35%] border-blue-500/20" : "rounded-full", // Squircle for Institutional Agents
           isCreatorAgent ? "border-amber-500/30 ring-amber-500/10" : "border-border/10", // Gold tint for creators
         )}
       >
-        {avatarUrl && <AvatarImage src={avatarUrl} alt={name} className="object-cover" />}
+        {avatarUrl && <AvatarImage src={avatarUrl} alt={name} className="object-cover w-full h-full" />}
+
         <AvatarFallback
-          className="font-black uppercase italic tracking-tighter"
-          style={{
-            backgroundColor: bgColor || (isCreatorAgent ? "hsl(var(--amber-500) / 0.1)" : "hsl(var(--primary) / 0.1)"),
-            color: iconColor || (isCreatorAgent ? "hsl(var(--amber-500))" : "hsl(var(--primary))"),
-          }}
+          className="font-black uppercase italic tracking-tighter w-full h-full flex items-center justify-center"
+          style={fallbackStyles}
         >
           {Icon ? (
-            <Icon className={cn(iconRegistry[size])} />
+            <Icon className={cn(iconRegistry[size] || iconRegistry.md)} />
           ) : avatarUrl ? (
-            <Bot className={cn(iconRegistry[size], "animate-pulse")} />
+            <Bot className={cn(iconRegistry[size] || iconRegistry.md, "animate-pulse")} />
           ) : (
-            <span className={cn(size === "xl" ? "text-lg" : "text-[10px]")}>{initials}</span>
+            <span className={cn(size === "xl" ? "text-lg" : "text-[10px]")}>{calculatedInitials}</span>
           )}
         </AvatarFallback>
       </Avatar>
 
-      {/* NODE: ONLINE_TELEMETRY */}
+      {/* NODE: ONLINE_TELEMETRY_INDICATOR */}
       {isOnline && (
         <span
           className={cn(
             "absolute bottom-0 right-0 rounded-full bg-emerald-500 ring-2 ring-background z-10 shadow-lg",
-            telemetryRegistry[size],
+            telemetryRegistry[size] || telemetryRegistry.md,
             isCompanyAgent && "right-0.5 bottom-0.5",
           )}
         >
@@ -107,7 +131,7 @@ export function AgentAvatar({
         </span>
       )}
 
-      {/* NODE: INSTITUTIONAL_BADGE */}
+      {/* NODE: INSTITUTIONAL_BADGE_OVERLAY */}
       {isCompanyAgent && (
         <div className="absolute -top-1 -right-1 z-20">
           <Badge
@@ -123,7 +147,7 @@ export function AgentAvatar({
         </div>
       )}
 
-      {/* CTO FIX: CREATOR_ECONOMY_BADGE */}
+      {/* NODE: CREATOR_ECONOMY_BADGE_OVERLAY */}
       {isCreatorAgent && !isCompanyAgent && (
         <div className="absolute -top-1 -left-1 z-20">
           <Badge
