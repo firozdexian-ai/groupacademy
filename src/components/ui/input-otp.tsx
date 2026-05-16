@@ -37,7 +37,7 @@ InputOTPGroup.displayName = "InputOTP_Core_Group_Node";
 
 const InputOTPSlot = React.forwardRef<
   React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<typeof "div"> & { index: number }
+  React.ComponentPropsWithoutRef<"div"> & { index: number }
 >(({ index, className, ...props }, ref) => {
   const inputOTPContext = React.useContext(OTPInputContext);
   
