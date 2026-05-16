@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Download, Loader2, ShieldCheck, FileText, MessageSquare, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
