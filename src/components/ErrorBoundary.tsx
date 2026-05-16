@@ -76,7 +76,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div
           className={cn(
             "min-h-[400px] w-full flex items-center justify-center p-4 sm:p-6 bg-background/95 backdrop-blur-md select-none transform-gpu antialiased animate-in fade-in duration-300",
-            this.className,
+            this.props.className,
           )}
         >
           <Card className="max-w-md w-full rounded-xl border border-destructive/20 bg-destructive/[0.015] shadow-sm overflow-hidden">
