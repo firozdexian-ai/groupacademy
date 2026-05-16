@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { X, Plus, Sparkles, Zap, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SkillsEditorProps {
   skills: string[];
