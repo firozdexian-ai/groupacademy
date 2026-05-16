@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Calendar, Link2, MapPin, ClipboardText } from "lucide-react";
+import { Loader2, Plus, Trash2, Calendar, Link2, MapPin, ClipboardList } from "lucide-react";
 import { useCreateInterview, type InterviewMode } from "@/hooks/useInterviews";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
