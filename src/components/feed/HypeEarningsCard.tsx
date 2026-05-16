@@ -36,10 +36,10 @@ export function HypeEarningsCard() {
 
       // Aggregate aggregates securely inside the database layer to minimize raw bandwidth payloads
       const [allHypesQuery, recentHypesQuery] = await Promise.all([
-        supabase.from("instructor_earnings_ledger").select("amount").eq("talent_id", talent.id),
+        supabase.from("instructor_earnings_ledger").select("amount_credits").eq("talent_id", talent.id),
         supabase
           .from("instructor_earnings_ledger")
-          .select("amount")
+          .select("amount_credits")
           .eq("talent_id", talent.id)
           .gte("created_at", sinceTimestamp),
       ]);
@@ -48,8 +48,8 @@ export function HypeEarningsCard() {
       if (recentHypesQuery.error) throw recentHypesQuery.error;
 
       // Calculate localized values adaptively using clean transactional sums
-      const totalCredits = (allHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
-      const last30DaysCredits = (recentHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+      const totalCredits = (allHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
+      const last30DaysCredits = (recentHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
       const totalHypesReceived = allHypesQuery.data?.length ?? 0;
 
       return {
