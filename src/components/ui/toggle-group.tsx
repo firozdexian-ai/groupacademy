@@ -1,21 +1,19 @@
 import * as React from "react";
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
 import { type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 import { toggleVariants } from "@/components/ui/toggle";
-
-/**
- * Platform Logic: Logic Segment Protocol
- * High-fidelity segmenter for orchestrating mutually exclusive UI states.
- * Synchronized with the 2026 'Executive Logic' depth and geometry tokens.
- */
 
 const ToggleGroupContext = React.createContext<VariantProps<typeof toggleVariants>>({
   size: "default",
   variant: "default",
 });
 
+/**
+ * GroUp Academy: Authoritative Toggle Selection Segment Protocol (ToggleGroup)
+ * Hardened WAI-ARIA compliant layout button row ensuring zero visual layout shifts during option selections.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
+ */
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & VariantProps<typeof toggleVariants>
@@ -23,7 +21,7 @@ const ToggleGroup = React.forwardRef<
   <ToggleGroupPrimitive.Root
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center gap-2 p-1.5 rounded-2xl bg-muted/30 backdrop-blur-md border border-border/40 shadow-inner",
+      "inline-flex h-9 items-center justify-center rounded-lg bg-muted/40 p-1 select-none pointer-events-auto transform-gpu gap-1 shrink-0 block",
       className,
     )}
     {...props}
@@ -31,8 +29,7 @@ const ToggleGroup = React.forwardRef<
     <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>
   </ToggleGroupPrimitive.Root>
 ));
-
-ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
+ToggleGroup.displayName = "ToggleGroup_Core_Root_Node";
 
 const ToggleGroupItem = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
@@ -48,11 +45,11 @@ const ToggleGroupItem = React.forwardRef<
           variant: context.variant || variant,
           size: context.size || size,
         }),
-        // Executive Logic State Hardening
-        "rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300",
-        "data-[state=on]:bg-background data-[state=on]:text-primary data-[state=on]:shadow-xl data-[state=on]:shadow-primary/5 data-[state=on]:scale-[1.02]",
-        "hover:bg-muted/50 hover:text-foreground/80",
-        "focus-visible:ring-4 focus-visible:ring-primary/10",
+        "rounded-md px-3 h-7 text-xs font-bold text-muted-foreground/70 outline-none transition-colors duration-150 transform-gpu cursor-pointer select-none leading-none pt-0.5 border border-transparent shadow-none",
+        "focus:outline-none focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-ring",
+        "data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:border-border/10 data-[state=on]:font-extrabold shadow-2xs",
+        "hover:text-foreground hover:bg-background/30",
+        "disabled:pointer-events-none disabled:opacity-20",
         className,
       )}
       {...props}
@@ -61,7 +58,6 @@ const ToggleGroupItem = React.forwardRef<
     </ToggleGroupPrimitive.Item>
   );
 });
-
-ToggleGroupItem.displayName = ToggleGroupPrimitive.Item.displayName;
+ToggleGroupItem.displayName = "ToggleGroup_Core_Item_Node";
 
 export { ToggleGroup, ToggleGroupItem };

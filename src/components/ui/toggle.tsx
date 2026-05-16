@@ -1,28 +1,27 @@
 import * as React from "react";
 import * as TogglePrimitive from "@radix-ui/react-toggle";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: State Intercept Protocol
- * High-fidelity binary instrument for persistent logic state toggling.
- * Synchronized with the 2026 'Executive Logic' depth and interaction tokens.
+ * GroUp Academy: Authoritative Binary State Intercept Protocol (Toggle)
+ * Hardened WAI-ARIA compliant binary toggle instrument protecting inline data layouts from layout shifting and border distortions.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
  */
-
 const toggleVariants = cva(
-  "inline-flex items-center justify-center transition-all duration-300 outline-none disabled:pointer-events-none disabled:opacity-20 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:shadow-primary/20 focus-visible:ring-4 focus-visible:ring-primary/10",
+  "inline-flex items-center justify-center transition-colors duration-150 outline-none select-none antialiased transform-gpu focus:outline-none focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-20 disabled:pointer-events-none cursor-pointer font-bold leading-none pt-0.5 shrink-0 block",
   {
     variants: {
       variant: {
-        default: "bg-transparent hover:bg-primary/10 hover:text-primary",
+        default:
+          "bg-transparent text-foreground/80 hover:bg-accent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
         outline:
-          "border-2 border-border/40 bg-background/50 hover:border-primary/40 hover:bg-primary/5 active:scale-95",
+          "border border-border/60 bg-background/50 text-foreground/80 hover:bg-accent hover:text-foreground focus-visible:bg-accent data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary shadow-2xs",
       },
       size: {
-        default: "h-12 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest",
-        sm: "h-10 px-3.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-        lg: "h-14 px-8 rounded-2xl text-[11px] font-black uppercase tracking-widest",
+        default: "h-9 px-3 rounded-lg text-xs sm:text-sm",
+        sm: "h-8 px-2.5 rounded-md text-xs gap-2",
+        lg: "h-10 px-4 rounded-xl text-sm gap-2.5",
       },
     },
     defaultVariants: {
@@ -39,6 +38,6 @@ const Toggle = React.forwardRef<
   <TogglePrimitive.Root ref={ref} className={cn(toggleVariants({ variant, size, className }))} {...props} />
 ));
 
-Toggle.displayName = TogglePrimitive.Root.displayName;
+Toggle.displayName = "Toggle_Core_Intercept_Node";
 
 export { Toggle, toggleVariants };

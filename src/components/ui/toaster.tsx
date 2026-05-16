@@ -1,27 +1,30 @@
+import * as React from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast";
 
 /**
- * Platform Logic: Signal Orchestrator
- * Manages the lifecycle and spatial distribution of Protocol Signals.
- * Synchronized with the 2026 'Executive Logic' grid and depth protocols.
+ * GroUp Academy: Authoritative Local Signal Orchestrator Hub (Toaster)
+ * Hardened transitional state loop managing global toast notifications with zero visual jitter and absolute token symmetry.
+ * Version: Launch Candidate · Phase Z0 Lifecycle & Layout Hardened
  */
 export function Toaster() {
   const { toasts } = useToast();
 
   return (
-    <ToastProvider>
+    <ToastProvider swipeDirection="right" duration={4000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
-          <Toast key={id} {...props}>
-            {/* Logic Metadata Container */}
-            <div className="grid gap-1.5 py-1">
-              {title && <ToastTitle className="text-[11px] md:text-sm">{title}</ToastTitle>}
-              {description && <ToastDescription className="leading-tight">{description}</ToastDescription>}
+          <Toast key={`signal-notification-node-${id}`} {...props}>
+            {/* HUD LEVEL 1: ISOLATED METADATA CONTEXT CONTENT TRACKS */}
+            <div className="flex flex-col flex-1 min-w-0 leading-none space-y-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && <ToastDescription>{description}</ToastDescription>}
             </div>
 
-            {/* Action Interaction Node */}
-            {action && <div className="flex shrink-0 items-center justify-center pl-4">{action}</div>}
+            {/* HUD LEVEL 2: ACTION INTERACTION INGRESS SLOT */}
+            {action && (
+              <div className="flex shrink-0 items-center justify-center pl-1 self-center select-none">{action}</div>
+            )}
 
             <ToastClose />
           </Toast>
