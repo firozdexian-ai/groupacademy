@@ -99,7 +99,7 @@ export function RecentConversations({
         return (
           <Card
             key={session.id}
-            type="button"
+            
             className={cn(
               "group cursor-pointer transition-all duration-500 rounded-[24px] border-2 overflow-hidden outline-none focus:border-primary/40 focus:bg-card/40",
               "bg-card/30 backdrop-blur-xl border-border/40 hover:border-primary/40 hover:shadow-2xl hover:-translate-y-0.5",
