@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Brain, Sparkles, ChevronRight, Clock, MessageSquare } from "lucide-react";
 import { useMasterySummary } from "@/hooks/useMasterySummary";
 import { formatDistanceToNowStrict } from "date-fns";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
 interface AdaptiveSnapshotCardProps {
@@ -18,69 +20,149 @@ interface AdaptiveSnapshotCardProps {
 }
 
 function MasteryRing({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.max(0, Math.min(1, value)) * c);
+  const normalizedValue = typeof value === "number" && !isNaN(value) ? value : 0;
+  const percentageScore = Math.round(normalizedValue * 100);
+  const circleRadiusValue = 22;
+  const circleCircumference = 2 * Math.PI * circleRadiusValue;
+  const offsetStrokeAllocation = circleCircumference - Math.max(0, Math.min(1, normalizedValue)) * circleCircumference;
+
   return (
-    <div className="relative h-14 w-14 shrink-0">
-      <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90">
-        <circle cx="28" cy="28" r={r} className="stroke-muted fill-none" strokeWidth="5" />
+    <div className="relative h-14 w-14 shrink-0 select-none">
+      <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90 transform-gpu">
+        <circle cx="28" cy="28" r={circleRadiusValue} className="stroke-muted/40 fill-none" strokeWidth="4.5" />
         <circle
           cx="28"
           cy="28"
-          r={r}
-          className="stroke-primary fill-none transition-all"
-          strokeWidth="5"
+          r={circleRadiusValue}
+          className="stroke-primary fill-none transition-all duration-500 ease-out"
+          strokeWidth="4.5"
           strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
+          strokeDasharray={circleCircumference}
+          strokeDashoffset={offsetStrokeAllocation}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold">
-        {pct}%
+      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold text-foreground tabular-nums tracking-tight">
+        {percentageScore}%
       </div>
     </div>
   );
 }
 
-function Sparkline({ points }: { points: Array<{ date: string; quiz: number; scenario: number }> }) {
-  const totals = points.map((p) => p.quiz + p.scenario);
-  const max = Math.max(1, ...totals);
-  const w = 140;
-  const h = 28;
-  const step = points.length > 1 ? w / (points.length - 1) : 0;
-  const path = totals
-    .map((v, i) => `${i === 0 ? "M" : "L"} ${i * step} ${h - (v / max) * h}`)
-    .join(" ");
+function Sparkline({ points = [] }: { points: Array<{ date: string; quiz: number; scenario: number }> }) {
+  const dataPointsBuffer = Array.isArray(points) ? points : [];
+
+  const lineValuesArray = useMemo(() => {
+    return dataPointsBuffer.map((p) => Number(p?.quiz || 0) + Number(p?.scenario || 0));
+  }, [dataPointsBuffer]);
+
+  const maximumYScaleValue = useMemo(() => {
+    return Math.max(1, ...lineValuesArray);
+  }, [lineValuesArray]);
+
+  const viewWidth = 140;
+  const viewHeight = 28;
+
+  // 1. Core Mathematical Hardening Safeguard: Shield structural loop operations from single point division parameters
+  const stepHorizontalMultiplier = useMemo(() => {
+    if (dataPointsBuffer.length <= 1) return 0;
+    return viewWidth / (dataPointsBuffer.length - 1);
+  }, [dataPointsBuffer.length]);
+
+  const svgCalculatedPathString = useMemo(() => {
+    if (lineValuesArray.length === 0) return "M 0 0";
+
+    // Fallback vector mapping single point logs directly into a stable linear track
+    if (lineValuesArray.length === 1) {
+      const positionY = viewHeight - (lineValuesArray[0] / maximumYScaleValue) * viewHeight;
+      return `M 0 ${positionY} L ${viewWidth} ${positionY}`;
+    }
+
+    return lineValuesArray
+      .map((currentVal, dataIdx) => {
+        const commandTag = dataIdx === 0 ? "M" : "L";
+        const coordinateX = dataIdx * stepHorizontalMultiplier;
+        const coordinateY = viewHeight - (currentVal / maximumYScaleValue) * viewHeight;
+        return `${commandTag} ${coordinateX} ${coordinateY}`;
+      })
+      .join(" ");
+  }, [lineValuesArray, stepHorizontalMultiplier, maximumYScaleValue]);
+
+  if (lineValuesArray.length === 0) return null;
+
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-7 w-full">
-      <path d={path} className="stroke-[hsl(183_75%_54%)] fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      {totals.map((v, i) => (
-        <circle key={i} cx={i * step} cy={h - (v / max) * h} r={1.5} className="fill-primary" />
-      ))}
+    <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="h-7 w-full overflow-visible select-none transform-gpu">
+      <path
+        d={svgCalculatedPathString}
+        className="stroke-cyan-500 dark:stroke-cyan-400 fill-none"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {lineValuesArray.map((valueY, pointIdx) => {
+        const coordinateX = pointIdx * stepHorizontalMultiplier;
+        const coordinateY = viewHeight - (valueY / maximumYScaleValue) * viewHeight;
+        return (
+          <circle
+            key={pointIdx}
+            cx={lineValuesArray.length === 1 ? viewWidth / 2 : coordinateX}
+            cy={coordinateY}
+            r={1.75}
+            className="fill-primary border-background shadow-sm stroke-background stroke-5"
+          />
+        );
+      })}
     </svg>
   );
 }
 
-export function AdaptiveSnapshotCard({ moduleId, contentId, compact, className }: AdaptiveSnapshotCardProps) {
-  const { data, isLoading: loading } = useMasterySummary({ moduleId, contentId, days: 7 });
+export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, className }: AdaptiveSnapshotCardProps) {
+  const queryClient = useQueryClient();
+
+  // Monitor retention summary panels view tracking paths via telemetry logs
+  useEffect(() => {
+    trackEvent("adaptive_mastery_snapshot_card_mounted", { moduleId, contentId, isCompactMode: compact });
+  }, [moduleId, contentId, compact]);
+
+  // Server state caching lookup configuration segment
+  const { data, isLoading: loading, error: queryFetchError } = useMasterySummary({ moduleId, contentId, days: 7 });
+
+  // Route internal query exception metrics straight to background tracking terminals
+  useEffect(() => {
+    if (queryFetchError) {
+      trackError(queryFetchError, {
+        component: "AdaptiveSnapshotCard",
+        action: "fetch_mastery_summary_hook_endpoint",
+        moduleId,
+        contentId,
+      });
+    }
+  }, [queryFetchError, moduleId, contentId]);
 
   const nextDueLabel = useMemo(() => {
-    if (!data?.totals.next_due_at) return null;
+    if (!data?.totals?.next_due_at) return null;
     try {
       return formatDistanceToNowStrict(new Date(data.totals.next_due_at), { addSuffix: true });
-    } catch {
+    } catch (formatErr) {
+      trackError(formatErr, {
+        component: "AdaptiveSnapshotCard",
+        action: "calculate_format_distance_next_due",
+        nextDueValue: data.totals.next_due_at,
+      });
       return null;
     }
-  }, [data?.totals.next_due_at]);
+  }, [data?.totals?.next_due_at]);
 
   if (loading) {
     return (
-      <Card className={cn("rounded-2xl", className)}>
-        <CardContent className="py-3 space-y-2">
-          <Skeleton className="h-14 w-full" />
-          {!compact && <Skeleton className="h-7 w-full" />}
+      <Card
+        className={cn(
+          "border border-border/40 bg-card/60 backdrop-blur-md shadow-sm select-none animate-pulse w-full",
+          className,
+        )}
+      >
+        <CardContent className="p-4 space-y-3.5 w-full">
+          <Skeleton className="h-12 w-full rounded-xl opacity-60" />
+          {!compact && <Skeleton className="h-6 w-full rounded-lg opacity-40" />}
         </CardContent>
       </Card>
     );
@@ -88,91 +170,142 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact, className }
 
   if (!data) return null;
 
-  // Cold-start
-  if (data.totals.tracked_topics === 0) {
+  const totalTrackedTopicsCount = Number(data.totals?.tracked_topics || 0);
+  const totalDueNowItemsCount = Number(data.totals?.due_now || 0);
+
+  // Cold-start Initial Interaction UI Frame Node
+  if (totalTrackedTopicsCount === 0) {
     return (
-      <Card className={cn("rounded-2xl border-dashed", className)}>
-        <CardContent className="py-3 flex items-center gap-3">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
-          <p className="text-xs text-muted-foreground flex-1">
-            Take a quiz or run a scenario to start tracking your mastery.
+      <Card
+        className={cn(
+          "border border-dashed border-border/60 bg-card/40 backdrop-blur-md rounded-2xl select-none w-full",
+          className,
+        )}
+      >
+        <CardContent className="p-4 flex items-center gap-3.5 text-left w-full">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/5 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="h-4.5 w-4.5 text-primary fill-primary/10 animate-pulse stroke-[2.2]" />
+          </div>
+          <p className="text-xs font-semibold text-muted-foreground/80 leading-normal flex-1 select-text">
+            Execute an ecosystem review quiz or operational workspace scenario to initialize your automated mastery
+            tracking ledger indices.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const dueNow = data.totals.due_now;
+  const handleReviewNavigationTrigger = () => {
+    trackEvent("adaptive_mastery_review_cta_clicked", { moduleId, contentId, pendingCount: totalDueNowItemsCount });
+    queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+  };
 
   return (
-    <Card className={cn("rounded-2xl", className)}>
-      <CardContent className="py-3 space-y-3">
-        {/* Header row: ring + totals + CTA */}
-        <div className="flex items-center gap-3">
-          <MasteryRing value={data.totals.avg_mastery} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">
-              {data.totals.tracked_topics} topic{data.totals.tracked_topics === 1 ? "" : "s"} tracked
+    <Card
+      className={cn(
+        "border border-border/40 bg-card/60 backdrop-blur-md shadow-sm rounded-2xl select-none sm:select-text antialiased transform-gpu w-full overflow-hidden",
+        className,
+      )}
+    >
+      <CardContent className="p-4 space-y-4 w-full min-w-0">
+        {/* Fixed Structural Summary Metric Header Strip */}
+        <div className="flex items-center gap-3.5 w-full min-w-0">
+          <MasteryRing value={Number(data.totals?.avg_mastery || 0)} />
+
+          <div className="flex-1 min-w-0 text-left flex flex-col justify-center leading-none">
+            <p className="text-sm font-bold text-foreground/90 tracking-tight leading-tight truncate pr-1">
+              {totalTrackedTopicsCount.toLocaleString()}{" "}
+              {totalTrackedTopicsCount === 1 ? "Core Knowledge Topic" : "Core Knowledge Topics"} Logged
             </p>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {dueNow > 0 ? (
-                <span className="text-primary font-semibold">{dueNow} due now</span>
+            <div className="text-[11px] font-bold text-muted-foreground/80 mt-1 leading-none truncate max-w-full tracking-tight flex items-center gap-1 flex-wrap w-full">
+              {totalDueNowItemsCount > 0 ? (
+                <span className="text-primary font-extrabold bg-primary/5 border border-primary/10 rounded px-1.5 py-0.5 animate-pulse tabular-nums shrink-0 uppercase tracking-wider text-[9px]">
+                  {totalDueNowItemsCount} tasks outstanding
+                </span>
               ) : (
-                <>All caught up</>
+                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold shrink-0 uppercase tracking-wider text-[9px]">
+                  Ecosystem Fully Synchronized
+                </span>
               )}
-              {nextDueLabel && <> · next {nextDueLabel}</>}
-            </p>
+              {nextDueLabel && (
+                <span className="truncate text-muted-foreground/60 font-medium normal-case">
+                  &bull; next review target {nextDueLabel}
+                </span>
+              )}
+            </div>
           </div>
-          {dueNow > 0 && (
-            <Link
-              to="/app/learning/review"
-              className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:opacity-90"
+
+          {totalDueNowItemsCount > 0 && (
+            <Button
+              asChild
+              size="sm"
+              type="button"
+              className="h-7 px-3 text-[10px] font-extrabold uppercase tracking-wide rounded-xl shadow-sm cursor-pointer select-none active:scale-95 transition-transform shrink-0 gap-1"
             >
-              Review <ChevronRight className="h-3 w-3" />
-            </Link>
+              <Link to="/app/learning/review" onClick={handleReviewNavigationTrigger}>
+                <span>Reconcile</span>
+                <ChevronRight className="h-3.5 w-3.5 text-primary-foreground stroke-[2.5]" />
+              </Link>
+            </Button>
           )}
         </div>
 
-        {/* Weakest topics */}
-        {data.weakest.length > 0 && (
-          <div className="space-y-1.5 border-t pt-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Needs work
-            </p>
-            {data.weakest.map((w, i) => (
-              <Link
-                key={`${w.module_id}:${w.topic_tag}:${i}`}
-                to="/app/learning/review"
-                className="flex items-center gap-2 text-[11px] hover:bg-muted/40 rounded-md -mx-1 px-1 py-0.5"
-              >
-                <Brain className="h-3 w-3 text-primary shrink-0" />
-                <span className="truncate flex-1 capitalize">
-                  {w.topic_tag.replace(/_/g, " ")}
-                  {w.module_title && (
-                    <span className="text-muted-foreground"> · {w.module_title}</span>
-                  )}
-                </span>
-                <span className="font-semibold tabular-nums">{Math.round(w.mastery * 100)}%</span>
-              </Link>
-            ))}
+        {/* Dynamic Critical Action Weakest Vectors Block */}
+        {Array.isArray(data.weakest) && data.weakest.length > 0 && (
+          <div className="space-y-1.5 border-t border-border/10 pt-3 w-full min-w-0 text-left">
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground/60 pl-0.5 block select-none leading-none">
+              Strategic Revision Gap Markers
+            </span>
+            <div className="space-y-1 w-full min-w-0">
+              {data.weakest.map((weakNodeItem: any, index: number) => {
+                if (!weakNodeItem || !weakNodeItem.topic_tag) return null;
+                const calculatedRowKey = `${weakNodeItem.module_id || "mod"}_${weakNodeItem.topic_tag}_row_${index}`;
+
+                return (
+                  <Link
+                    key={calculatedRowKey}
+                    to="/app/learning/review"
+                    onClick={handleReviewNavigationTrigger}
+                    className="flex items-center gap-3 text-xs font-bold text-foreground/80 hover:text-primary tracking-tight hover:bg-primary/5 rounded-xl px-2 py-1.5 border border-transparent hover:border-primary/10 transition-all w-full min-w-0 group"
+                  >
+                    <Brain className="h-3.5 w-3.5 text-primary shrink-0 stroke-[2.2] group-hover:scale-105 transition-transform" />
+                    <span className="truncate flex-1 capitalize text-ellipsis select-text font-semibold text-muted-foreground group-hover:text-foreground">
+                      {weakNodeItem.topic_tag.replace(/_/g, " ")}
+                      {weakNodeItem.module_title && (
+                        <span className="text-muted-foreground/50 font-medium tracking-normal text-[11px] font-sans normal-case block sm:inline sm:pl-1">
+                          &mdash; in {weakNodeItem.module_title}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-extrabold font-mono text-[11px] tracking-wide text-rose-600 dark:text-rose-400 bg-rose-500/5 border border-rose-500/10 px-1.5 py-0.5 rounded shadow-sm tabular-nums shrink-0">
+                      {Math.round(weakNodeItem.mastery * 100)}% Index
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Sparkline + signal split */}
-        {!compact && (
-          <div className="border-t pt-2 space-y-1">
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span className="font-bold uppercase tracking-wider">Last 7 days</span>
-              <span className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-2.5 w-2.5" /> {data.signal_split_30d.quiz} quiz
+        {/* Real-time Byte Stream Transformation Metrics Sparkline Section */}
+        {!compact && data.signal_split_30d && (
+          <div className="border-t border-border/10 pt-3 space-y-2 select-none w-full animate-in fade-in duration-300">
+            <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wider pl-0.5 leading-none w-full">
+              <span>Metric Horizon Matrix (Last 7 Days)</span>
+              <div className="flex items-center gap-2.5 shrink-0 tabular-nums">
+                <span className="flex items-center gap-1 bg-muted/30 px-1.5 py-0.5 rounded border">
+                  <Clock className="h-2.5 w-2.5 text-primary stroke-[2.2]" />
+                  <span>{data.signal_split_30d.quiz || 0} quizzes submitted</span>
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <MessageSquare className="h-2.5 w-2.5" /> {data.signal_split_30d.scenario} scenario
+                <span className="flex items-center gap-1 bg-muted/30 px-1.5 py-0.5 rounded border">
+                  <MessageSquare className="h-2.5 w-2.5 text-primary stroke-[2.2]" />
+                  <span>{data.signal_split_30d.scenario || 0} scenarios run</span>
                 </span>
-              </span>
+              </div>
             </div>
-            <Sparkline points={data.sparkline} />
+            <div className="w-full pt-1 overflow-visible">
+              <Sparkline points={data.sparkline} />
+            </div>
           </div>
         )}
       </CardContent>
