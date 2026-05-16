@@ -90,21 +90,6 @@ export function FloatingWhatsAppButton({ showPrompt = true }: FloatingWhatsAppBu
         attemptedAmount: bonusAmount,
       });
 
-      // Post an anomalous warning message to the workspace operator channel dynamically
-      supabase
-        .from("admin_chat_messages")
-        .insert([
-          {
-            sender_type: "system_agent",
-            agent_key: "fin-credits-ops", // Flags directly to our core Credit Operations dashboard agent
-            message_text: `⚠️ **Bonus Mutation Anomaly** ⚠️\n\nTalent ID profile failed to auto-claim WhatsApp Welcome Bonus metrics.\n**Error Context:** ${parsedErrorMessage}\n**Talent Name:** ${talent.fullName || "Unknown"}\n\n*Manual reconciliation lookup recommended.*`,
-            metadata: { talentId: talent.id, error: parsedErrorMessage },
-          },
-        ])
-        .then(({ error: agentErr }) => {
-          if (agentErr)
-            console.warn("[FloatingWhatsAppButton] Failed to alert workspace chat operator:", agentErr.message);
-        });
 
       // Maintain automated efficiency focus by keeping channel navigation open for user conversions
       toast.error("Financing nodes are busy, but connecting you to channels...", { id: toastId });
