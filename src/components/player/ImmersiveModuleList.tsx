@@ -1,13 +1,12 @@
+import { useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { CheckCircle, Lock, PlayCircle, Zap, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Modular Progression Ledger
- * CTO Reference: Authoritative navigation hub for linear trajectory enforcement.
- */
 
 interface Module {
   id: string;
@@ -29,111 +28,196 @@ interface ImmersiveModuleListProps {
   onModuleSelect: (moduleId: string) => void;
 }
 
+/**
+ * GroUp Academy: Immersive Modular Curriculum Progression Ledger (ImmersiveModuleList)
+ * An authoritative operational pipeline executing linear trajectory enforcement, locking validations, and telemetry logs.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function ImmersiveModuleList({
-  modules,
+  modules = [],
   currentModuleId,
-  moduleProgress,
+  moduleProgress = {},
   onModuleSelect,
 }: ImmersiveModuleListProps) {
-  // PROTOCOL: Linear Trajectory Enforcement
-  const isModuleUnlocked = (index: number) => {
-    if (index === 0) return true;
-    const prevModule = modules[index - 1];
-    return moduleProgress[prevModule.id]?.isComplete || false;
-  };
+  const queryClient = useQueryClient();
+  const isMountedRef = useRef<boolean>(true);
 
-  const getModuleStageProgress = (moduleId: string) => {
-    const progress = moduleProgress[moduleId];
-    if (!progress) return 0;
-    // Normalized against our 6-stage institutional framework
-    return (progress.completedStages.length / 6) * 100;
+  // Synchronize component mounting bounds cleanly to catch dangling thread mutations
+  useEffect(() => {
+    isMountedRef.current = true;
+    trackEvent("immersive_module_list_mounted", { configuredModulesCount: modules.length });
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [modules.length]);
+
+  // High-Performance State Pre-indexing Pass: Cache lock states recursively to optimize multi-row grid computations
+  const lookupCalculatedUnlockedMap = useMemo(() => {
+    const calculatedMap = new Record<string, boolean>();
+    if (!Array.isArray(modules)) return calculatedMap;
+
+    modules.forEach((moduleItem, index) => {
+      if (index === 0) {
+        calculatedMap[moduleItem.id] = true;
+        return;
+      }
+      const previousModuleItemNode = modules[index - 1];
+      const isPreviousUnitComplete = moduleProgress[previousModuleItemNode.id]?.isComplete || false;
+      calculatedMap[moduleItem.id] = isPreviousUnitComplete;
+    });
+
+    return calculatedMap;
+  }, [modules, moduleProgress]);
+
+  // Compute and sort granular modular completion variables through clean memo tables
+  const calculatedProgressPercentageMap = useMemo(() => {
+    const percentageMap = new Record<string, number>();
+    if (!Array.isArray(modules)) return percentageMap;
+
+    modules.forEach((moduleItem) => {
+      const stageTrackerNode = moduleProgress[moduleItem.id];
+      if (!stageTrackerNode || !Array.isArray(stageTrackerNode.completedStages)) {
+        percentageMap[moduleItem.id] = 0;
+        return;
+      }
+      // Normalized tracking criteria mapped against our 6-stage institutional framework
+      percentageMap[moduleItem.id] = Math.max(0, Math.min(100, (stageTrackerNode.completedStages.length / 6) * 100));
+    });
+
+    return percentageMap;
+  }, [modules, moduleProgress]);
+
+  const handleModuleSelectionTrigger = async (targetModuleIdStr: string) => {
+    if (!targetModuleIdStr) return;
+
+    const isTargetUnitUnlocked = lookupCalculatedUnlockedMap[targetModuleIdStr] || false;
+    if (!isTargetUnitUnlocked) {
+      trackEvent("immersive_module_locked_intercept", { moduleId: targetModuleIdStr });
+      return;
+    }
+
+    trackEvent("immersive_module_selected", { moduleId: targetModuleIdStr });
+
+    try {
+      // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
+      await queryClient.invalidateQueries({ queryKey: ["module-analytics"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+      if (isMountedRef.current) {
+        onModuleSelect(targetModuleIdStr);
+      }
+    } catch (err) {
+      trackError(err, {
+        component: "ImmersiveModuleList",
+        action: "execute_module_selection_callback",
+        moduleId: targetModuleIdStr,
+      });
+      // Safe fallback passthrough validation sequence execution
+      onModuleSelect(targetModuleIdStr);
+    }
   };
 
   return (
-    <Card className="h-full rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
-      <CardHeader className="p-6 border-b border-border/10 bg-muted/5">
-        <CardTitle className="text-sm font-black uppercase italic tracking-[0.2em] flex items-center gap-3">
-          <Zap className="h-4 w-4 text-primary fill-current" /> Curriculum_Nodes
+    <Card className="w-full h-full text-left rounded-xl border border-border/40 bg-card/40 backdrop-blur-md shadow-sm antialiased flex flex-col transform-gpu overflow-hidden">
+      {/* HUD LEVEL 1: TITLE BANNER TRACK PANEL CONTROLS */}
+      <CardHeader className="p-4 select-none border-b border-border/10 bg-muted/20 shrink-0 w-full">
+        <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 w-full leading-none">
+          <Zap className="h-4 w-4 text-primary fill-primary/5 stroke-[2.2] shrink-0 animate-pulse" />
+          <span>Curriculum Node Registry</span>
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-0 flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-5 space-y-3">
-            {modules.map((module, index) => {
-              const isUnlocked = isModuleUnlocked(index);
-              const isCurrent = module.id === currentModuleId;
-              const progress = getModuleStageProgress(module.id);
-              const isComplete = moduleProgress[module.id]?.isComplete;
+      {/* HUD LEVEL 2: IMMERSIVE SCROLL AREA SCROLL LEDGER PANEL */}
+      <CardContent className="p-0 flex-1 overflow-hidden w-full">
+        <ScrollArea className="h-full w-full">
+          <div className="p-4 space-y-2.5 w-full min-w-0 flex flex-col font-bold text-xs tracking-tight">
+            {Array.isArray(modules) &&
+              modules.map((moduleItem, index) => {
+                if (!moduleItem || !moduleItem.id) return null;
 
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => isUnlocked && onModuleSelect(module.id)}
-                  disabled={!isUnlocked}
-                  className={cn(
-                    "w-full text-left p-4 rounded-[22px] transition-all duration-500 border-2",
-                    isCurrent
-                      ? "bg-primary/10 border-primary shadow-[0_0_25px_-5px_rgba(var(--primary),0.2)]"
-                      : "border-transparent",
-                    !isCurrent &&
-                      isUnlocked &&
-                      "bg-muted/40 hover:bg-background hover:border-primary/20 hover:-translate-y-0.5",
-                    !isUnlocked && "bg-muted/10 opacity-40 cursor-not-allowed grayscale",
-                  )}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* NODE_STATUS_INDICATOR */}
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg transition-transform duration-700",
-                        isComplete && "bg-emerald-500 text-white",
-                        isCurrent && !isComplete && "bg-primary text-primary-foreground animate-pulse",
-                        !isCurrent &&
-                          !isComplete &&
-                          isUnlocked &&
-                          "bg-background border border-border/40 text-muted-foreground",
-                        !isUnlocked && "bg-muted text-muted-foreground/30",
-                      )}
-                    >
-                      {isComplete ? (
-                        <ShieldCheck className="h-5 w-5" />
-                      ) : !isUnlocked ? (
-                        <Lock className="h-4 w-4" />
-                      ) : isCurrent ? (
-                        <PlayCircle className="h-5 w-5" />
-                      ) : (
-                        <span className="text-[10px] font-black">{String(index + 1).padStart(2, "0")}</span>
-                      )}
-                    </div>
+                const isUnlocked = lookupCalculatedUnlockedMap[moduleItem.id] || false;
+                const isCurrent = moduleItem.id === currentModuleId;
+                const progressPercentageValue = calculatedProgressPercentageMap[moduleItem.id] || 0;
+                const isComplete = moduleProgress[moduleItem.id]?.isComplete || false;
 
-                    <div className="flex-1 min-w-0 pt-1">
-                      <p
+                const totalStagesLoggedCount = moduleProgress[moduleItem.id]?.completedStages?.length || 0;
+
+                return (
+                  <button
+                    key={moduleItem.id}
+                    type="button"
+                    onClick={() => handleModuleSelectionTrigger(moduleItem.id)}
+                    disabled={!isUnlocked}
+                    className={cn(
+                      "w-full text-left p-3.5 rounded-xl border transition-all duration-300 transform-gpu cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring flex flex-col justify-center leading-none min-w-0 select-none",
+                      isCurrent
+                        ? "bg-primary/5 border-primary shadow-sm shadow-primary/5 font-bold"
+                        : "border-transparent",
+                      !isCurrent &&
+                        isUnlocked &&
+                        "bg-muted/30 border-border/10 hover:border-primary/20 hover:bg-background/40 hover:-translate-y-0.5",
+                      !isUnlocked && "bg-muted/10 opacity-30 cursor-not-allowed grayscale pointer-events-none",
+                    )}
+                    aria-label={`Select curriculum track module row #${index + 1}: ${moduleItem.title}. Current completion curve hits ${Math.round(progressPercentageValue)} percent.`}
+                  >
+                    <div className="flex items-start gap-3.5 w-full min-w-0 leading-none">
+                      {/* INDICATOR SHIELD BOUNDS VECTOR ICON GRAPHIC */}
+                      <div
                         className={cn(
-                          "text-xs font-black uppercase italic tracking-tight truncate leading-none",
-                          isCurrent ? "text-primary" : "text-foreground/80",
-                          !isUnlocked && "text-muted-foreground",
+                          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-500 transform font-mono font-black text-[10px] select-none leading-none border border-transparent",
+                          isComplete && "bg-emerald-500/10 border-emerald-500/5 text-emerald-600 dark:text-emerald-400",
+                          isCurrent &&
+                            !isComplete &&
+                            "bg-primary text-primary-foreground animate-pulse shadow-primary/10 border-none",
+                          !isCurrent &&
+                            !isComplete &&
+                            isUnlocked &&
+                            "bg-background border-border/40 text-muted-foreground/80",
+                          !isUnlocked && "bg-muted text-muted-foreground/20 shadow-none border-none",
                         )}
                       >
-                        {module.title}
-                      </p>
+                        {isComplete ? (
+                          <ShieldCheck className="h-4.5 w-4.5 stroke-[2.5]" />
+                        ) : !isUnlocked ? (
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground/40 stroke-[2.5]" />
+                        ) : isCurrent ? (
+                          <PlayCircle className="h-4.5 w-4.5 stroke-[2.2]" />
+                        ) : (
+                          <span>{String(index + 1).padStart(2, "0")}</span>
+                        )}
+                      </div>
 
-                      {isUnlocked && (
-                        <div className="mt-3 space-y-2 animate-in fade-in duration-1000">
-                          <div className="flex items-center justify-between text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                            <span>{Math.round(progress)}%_SYNCED</span>
-                            <span className="italic">
-                              {moduleProgress[module.id]?.completedStages.length || 0}/6_STAGES
-                            </span>
+                      {/* TARGET METADATA TEXT PARAMETER ALIGNMENT STRIP */}
+                      <div className="flex-1 min-w-0 pt-0.5 Text-left space-y-1 flex flex-col justify-center leading-none">
+                        <span
+                          className={cn(
+                            "text-xs sm:text-sm font-bold uppercase italic tracking-wide truncate text-ellipsis pr-2 block leading-none select-text",
+                            isCurrent ? "text-primary font-black" : "text-foreground/90",
+                            !isUnlocked && "text-muted-foreground/40 font-medium",
+                          )}
+                        >
+                          {moduleItem.title ? moduleItem.title.trim() : "Unresolved Curriculum Track Sequence Block"}
+                        </span>
+
+                        {isUnlocked && (
+                          <div className="mt-2 space-y-1.5 animate-in fade-in duration-300 w-full min-w-0 tabular-nums font-bold text-[9px] text-muted-foreground/60 leading-none uppercase tracking-wider font-mono">
+                            <div className="flex items-center justify-between gap-4 w-full leading-none">
+                              <span className="text-primary font-black">
+                                {Math.round(progressPercentageValue)}% complete
+                              </span>
+                              <span className="italic pr-0.5">{totalStagesLoggedCount} / 6 stages cleared</span>
+                            </div>
+                            <Progress
+                              value={progressPercentageValue}
+                              className="h-1 rounded-full bg-primary/10 border-none shadow-inner w-full block"
+                            />
                           </div>
-                          <Progress value={progress} className="h-1 rounded-full bg-primary/10 shadow-inner" />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
           </div>
         </ScrollArea>
       </CardContent>
