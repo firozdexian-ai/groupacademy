@@ -269,7 +269,6 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
                 return (
                   <Card
                     key={currentCourseId}
-                    type="button"
                     className="w-[240px] shrink-0 border border-border/40 bg-card/40 backdrop-blur-md rounded-xl overflow-hidden shadow-sm transition-all duration-300 hover:border-primary/20 group cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring text-left"
                     onClick={() => handleParallelTrackNavigation(coursePayload.slug, currentCourseId)}
                   >
