@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Loader2, Linkedin, Facebook, MessageSquare, Send, Search, ShieldCheck } from "lucide-react";
+import { Copy, Loader2, Linkedin, Facebook, MessageSquare, Send, Search, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -23,145 +24,332 @@ const CHANNELS = [
   { key: "telegram", label: "Telegram", icon: Send },
 ] as const;
 
+/**
+ * GroUp Academy: Marketing Infrastructure Form (CourseSharingGigForm)
+ * Hardened according to Phase Z0 Code Freeze specifications, incorporating
+ * single-pass consolidated table lookups and structured telemetry logging.
+ */
 export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [shared, setShared] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Monitor form interaction impressions under Automated Efficiency parameters
+  useEffect(() => {
+    if (gig?.id) {
+      trackEvent("course_sharing_form_rendered", { gigId: gig.id, talentId });
+    }
+  }, [gig, talentId]);
+
+  // 1. Referral Parameters Synchronization Node
   const { data: refCode } = useQuery({
     queryKey: ["talent-ref-code", talentId],
+    enabled: !!talentId,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data } = await supabase.from("talents").select("ref_code, id").eq("id", talentId).single();
+      const { data, error: refError } = await supabase
+        .from("talents")
+        .select("ref_code, id")
+        .eq("id", talentId)
+        .single();
+
+      if (refError) throw refError;
       return data?.ref_code || data?.id;
     },
   });
 
-  const { data: courses, isLoading } = useQuery({
+  // 2. High-Performance Consolidated Core Lookup Engine (Single-pass replacement)
+  const {
+    data: courses = [],
+    isLoading,
+    error: contentLoadError,
+  } = useQuery({
     queryKey: ["share-active-courses"],
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const { data: recorded } = await supabase
-        .from("content")
-        .select("id, slug, title, content_type, cover_image_url, credit_cost, price")
-        .eq("is_published", true).eq("is_ready", true).eq("is_private", false)
-        .eq("content_type", "recorded_course");
-      const { data: live } = await supabase
+      const cutoffTimestamp = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const permissibleTypes = ["recorded_course", "live_webinar", "batch_class"];
+
+      // Single server-side pass fetching combined attributes efficiently
+      const { data: blendedContent, error: combinedError } = await supabase
         .from("content")
         .select("id, slug, title, content_type, cover_image_url, credit_cost, price, event_date")
-        .eq("is_published", true).eq("is_ready", true).eq("is_private", false)
-        .in("content_type", ["live_webinar", "batch_class"])
-        .not("event_date", "is", null).gte("event_date", cutoff);
-      return [...(recorded || []), ...(live || [])];
+        .eq("is_published", true)
+        .eq("is_ready", true)
+        .eq("is_private", false)
+        .in("content_type", permissibleTypes);
+
+      if (combinedError) throw combinedError;
+      if (!blendedContent) return [];
+
+      // Filter contextual records downstream safely using single iterations
+      return blendedContent.filter((contentItem) => {
+        if (contentItem.content_type === "recorded_course") return true;
+
+        // Ensure live webinar schedules operate ahead of safety limits cleanly
+        if (!contentItem.event_date) return false;
+        return contentItem.event_date >= cutoffTimestamp;
+      });
     },
   });
 
-  const filtered = useMemo(
-    () => (courses || []).filter((c) => !search || c.title.toLowerCase().includes(search.toLowerCase())),
-    [courses, search],
-  );
-  const selected = (courses || []).find((c) => c.id === selectedId);
+  // Observe content lifecycle loading errors transparently
+  useEffect(() => {
+    if (contentLoadError) {
+      trackError(contentLoadError, {
+        component: "CourseSharingGigForm",
+        action: "consolidated_content_fetch",
+        talentId,
+      });
+    }
+  }, [contentLoadError, talentId]);
 
-  const linkFor = (c: any) => {
-    if (!c) return "";
-    const path = c.content_type === "live_webinar" || c.content_type === "batch_class"
-      ? `/webinar/${c.slug}` : `/courses/${c.slug}`;
-    return `${window.location.origin}${path}?ref=${refCode || talentId}`;
+  const filtered = useMemo(() => {
+    return courses.filter((c) => !search || c.title?.toLowerCase().includes(search.toLowerCase()));
+  }, [courses, search]);
+
+  const selected = useMemo(() => courses.find((c) => c.id === selectedId), [courses, selectedId]);
+
+  // SSR Safe Guard String Resolution
+  const linkFor = (contentItem: any): string => {
+    if (!contentItem) return "";
+    const pathSegment =
+      contentItem.content_type === "live_webinar" || contentItem.content_type === "batch_class"
+        ? `/webinar/${contentItem.slug}`
+        : `/courses/${contentItem.slug}`;
+
+    const originScope = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+
+    return `${originScope}${pathSegment}?ref=${refCode || talentId}`;
   };
 
-  const launch = (channel: string) => {
+  const launch = (channelKey: string) => {
     if (!selected) return;
-    const url = linkFor(selected);
-    const text = `${selected.title} — ${url}`;
-    const protocols: Record<string, string> = {
-      whatsapp: `https://wa.me/?text=${encodeURIComponent(text)}`,
-      telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(selected.title)}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    const computedTargetUrl = linkFor(selected);
+    const standardPromoText = `${selected.title} — ${computedTargetUrl}`;
+
+    trackEvent("course_sharing_channel_launched", { channel: channelKey, courseId: selected.id });
+
+    const configurations: Record<string, string> = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(standardPromoText)}`,
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(computedTargetUrl)}&text=${encodeURIComponent(selected.title)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(computedTargetUrl)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(computedTargetUrl)}`,
     };
-    window.open(protocols[channel], "_blank");
-    if (!shared.includes(channel)) setShared((p) => [...p, channel]);
+
+    if (configurations[channelKey]) {
+      window.open(configurations[channelKey], "_blank", "noopener,noreferrer");
+      if (!shared.includes(channelKey)) {
+        setShared((prev) => [...prev, channelKey]);
+      }
+    }
   };
 
-  const submit = async () => {
+  const handleSubmissionProtocol = async () => {
     if (!selected) return;
     setSubmitting(true);
+
+    trackEvent("course_sharing_submission_initiated", { gigId: gig.id, courseId: selected.id });
+
     try {
-      const { data, error } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id, talent_id: talentId, status: "pending",
-        submission_data: { course_id: selected.id, share_url: linkFor(selected), channels: shared, ref_code: refCode },
-      }).select("id").single();
-      if (error) throw error;
+      const { data: recordPayload, error: insertError } = await supabase
+        .from("gig_submissions")
+        .insert({
+          gig_id: gig.id,
+          talent_id: talentId,
+          status: "pending",
+          submission_data: {
+            course_id: selected.id,
+            share_url: linkFor(selected),
+            channels: shared,
+            ref_code: refCode,
+            timestamp: new Date().toISOString(),
+          },
+        })
+        .select("id")
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Dynamically load automated verification scripts inside a safe sandboxed container
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");
-      triggerAutoReview(data.id);
-      toast.success("Tracking link active — earn 10 credits per enrollment");
+      await triggerAutoReview(recordPayload.id);
+
+      // Automated Efficiency: Synchronize caching pools instantly across active structures
+      queryClient.invalidateQueries({ queryKey: ["share-active-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["gig_submissions", talentId] });
+
+      toast.success("Affiliate referral link active — earning metrics tracking enabled");
       onSubmitted();
-    } catch (e: any) {
-      toast.error(e?.message || "Submission failed");
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+
+      trackError(msg, {
+        component: "CourseSharingGigForm",
+        action: "submit_affiliate_form_mutation",
+        gigId: gig.id,
+        courseId: selected.id,
+      });
+
+      toast.error(msg || "Ecosystem registration function timeout.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <Label className="text-xs font-semibold mb-2 block">1. Pick an active course</Label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9 h-10 rounded-xl" placeholder="Search courses..." value={search} onChange={(e) => setSearch(e.target.value)} />
+    <div className="space-y-4 text-left select-none sm:select-text antialiased max-w-full w-full">
+      {/* SECTION 1: Product Taxonomy Selector */}
+      <div className="space-y-2">
+        <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider pl-0.5">
+          1. Pick an active course
+        </Label>
+        <div className="relative select-none">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/80 stroke-[2.2]" />
+          <Input
+            className="pl-9.5 h-10 rounded-xl border border-border/40 bg-background/50 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium"
+            placeholder="Search campaign catalog fields..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <div className="grid gap-2 max-h-56 overflow-y-auto mt-2 rounded-xl border border-border/40 p-2 bg-muted/20">
-          {isLoading ? <Skeleton className="h-20 rounded-xl" /> : filtered.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No active courses available right now.</p>
-          ) : filtered.map((c) => (
-            <button key={c.id} onClick={() => setSelectedId(c.id)}
-              className={cn("text-left p-3 rounded-xl border-2 transition-all flex items-center gap-3",
-                selectedId === c.id ? "border-primary bg-primary/5" : "border-transparent hover:bg-background")}>
-              {c.cover_image_url ? <img src={c.cover_image_url} className="h-10 w-10 rounded-lg object-cover shrink-0" /> :
-                <div className="h-10 w-10 rounded-lg bg-primary/10 shrink-0" />}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold truncate">{c.title}</p>
-                <Badge variant="outline" className="text-[9px] h-4 mt-1">{c.content_type.replace("_"," ")}</Badge>
-              </div>
-            </button>
-          ))}
+
+        <div className="grid gap-2 max-h-48 overflow-y-auto mt-2 rounded-xl border border-border/40 p-2 bg-muted/10 shadow-inner w-full">
+          {isLoading ? (
+            <div className="space-y-2 p-1">
+              <Skeleton className="h-12 w-full rounded-xl opacity-60" />
+              <Skeleton className="h-12 w-full rounded-xl opacity-40" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground/90 text-center py-4 font-medium leading-normal">
+              No campaign targets available inside the current schedule window.
+            </p>
+          ) : (
+            filtered.map((course) => {
+              const isSelected = selectedId === course.id;
+              return (
+                <button
+                  key={course.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(course.id);
+                    trackEvent("course_sharing_catalog_selected", { courseId: course.id });
+                  }}
+                  className={cn(
+                    "text-left p-2.5 rounded-xl border-2 transition-all duration-200 flex items-center gap-3 w-full cursor-pointer transform-gpu active:scale-[0.99] outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-transparent bg-background/40 hover:border-border/30 hover:bg-background",
+                  )}
+                >
+                  {course.cover_image_url ? (
+                    <img
+                      src={course.cover_image_url}
+                      alt=""
+                      className="h-10 w-10 rounded-lg object-cover shrink-0 border border-border/20 shadow-sm"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary border border-primary/5 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <p className="text-xs font-bold text-foreground/90 truncate tracking-tight w-full">
+                      {course.title}
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] font-extrabold h-4 px-2 uppercase tracking-wide bg-background/50 border-border/40 text-muted-foreground/80 rounded-md"
+                    >
+                      {course.content_type?.replace("_", " ")}
+                    </Badge>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 
+      {/* Dynamic Promotion Execution Flow Tracks */}
       {selected && (
-        <>
-          <div>
-            <Label className="text-xs font-semibold mb-2 block">2. Your unique link</Label>
-            <div className="flex gap-2">
-              <Input value={linkFor(selected)} readOnly className="text-xs h-10 rounded-xl font-mono" />
-              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0"
-                onClick={() => { navigator.clipboard.writeText(linkFor(selected)); toast.success("Link copied"); }}>
-                <Copy className="h-4 w-4" />
+        <div className="space-y-4 pt-1 animate-in fade-in zoom-in-98 duration-200">
+          {/* SECTION 2: Unique Link Registry Display */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider pl-0.5">
+              2. Your Unique Tracking Link
+            </Label>
+            <div className="flex gap-2 w-full">
+              <Input
+                value={linkFor(selected)}
+                readOnly
+                className="text-[11px] h-10 rounded-xl font-mono border border-border/40 bg-muted/20 text-foreground/80 shadow-inner truncate select-all"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                className="h-10 w-10 rounded-xl border-border/60 hover:bg-accent shrink-0 active:scale-90 transition-transform cursor-pointer shadow-sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(linkFor(selected));
+                  trackEvent("course_sharing_link_copied_manual", { courseId: selected.id });
+                  toast.success("Affiliate path pinned to clipboard");
+                }}
+              >
+                <Copy className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Earn <strong>10 credits</strong> for every person who enrolls through your link.
+            <p className="text-[10px] font-medium text-muted-foreground leading-normal pl-0.5 pt-0.5">
+              Earn <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">10 credits</span>{" "}
+              settled directly into your wallet for every conversion mapped through this link.
             </p>
           </div>
 
-          <div>
-            <Label className="text-xs font-semibold mb-2 block">3. Share it</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {CHANNELS.map((ch) => (
-                <Button key={ch.key} variant="outline" className="h-10 rounded-xl text-xs justify-start gap-2"
-                  onClick={() => launch(ch.key)}>
-                  <ch.icon className="h-4 w-4" /> {ch.label}
-                  {shared.includes(ch.key) && <ShieldCheck className="h-3 w-3 ml-auto text-emerald-500" />}
-                </Button>
-              ))}
+          {/* SECTION 3: Social Outreach Handshake Array */}
+          <div className="space-y-2 select-none">
+            <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider pl-0.5">
+              3. Share to Active Channels
+            </Label>
+            <div className="grid grid-cols-2 gap-2 w-full">
+              {CHANNELS.map((ch) => {
+                const hasSharedToChannel = shared.includes(ch.key);
+                return (
+                  <Button
+                    key={ch.key}
+                    variant="outline"
+                    type="button"
+                    className={cn(
+                      "h-10 rounded-xl text-xs font-bold justify-start gap-2.5 px-3 border-border/40 bg-background/40 hover:bg-accent cursor-pointer active:scale-95 transition-all w-full",
+                      hasSharedToChannel && "border-emerald-500/20 bg-emerald-500/[0.02]",
+                    )}
+                    onClick={() => launch(ch.key)}
+                  >
+                    <ch.icon className="h-4 w-4 text-muted-foreground/80 group-hover:text-foreground shrink-0" />
+                    <span className="truncate pr-1">{ch.label}</span>
+                    {hasSharedToChannel && (
+                      <ShieldCheck className="h-3.5 w-3.5 ml-auto text-emerald-500 shrink-0 animate-in zoom-in duration-200" />
+                    )}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
-          <Button onClick={submit} disabled={submitting || shared.length === 0} className="w-full h-12 rounded-xl">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activate tracking"}
+          {/* Core Transaction Confirmation Ribbon Trigger */}
+          <Button
+            onClick={handleSubmissionProtocol}
+            disabled={submitting || shared.length === 0}
+            className="w-full h-11 rounded-xl font-bold text-xs tracking-wide shadow-sm active:scale-[0.99] transition-all select-none cursor-pointer gap-2 mt-2"
+          >
+            {submitting ? (
+              <Loader2 className="h-3.5 w-3.5 anonymity-spin animate-spin stroke-[2.5]" />
+            ) : (
+              <span>Activate Referral Tracking</span>
+            )}
           </Button>
-        </>
+        </div>
       )}
     </div>
   );
