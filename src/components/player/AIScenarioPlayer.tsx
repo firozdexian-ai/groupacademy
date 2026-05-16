@@ -1,17 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb, RefreshCw, Zap, Target, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { trackError, trackEvent } from "@/lib/errorTracking";
+import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb, RefreshCw, Zap, Target, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-
-/**
- * GroUp Academy: AI Scenario Simulation Node
- * CTO Reference: Authoritative node for real-time situational evaluation.
- */
 
 export interface AIScenario {
   id: string;
@@ -37,36 +34,61 @@ interface FeedbackResponse {
   modelAnswer: string;
 }
 
+const DIFFICULTY_CONFIG = {
+  easy: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  hard: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+};
+
+/**
+ * GroUp Academy: AI Scenario Simulation Node (AIScenarioPlayer)
+ * An authoritative operational sandbox layer parsing open-ended responses against automated cognitive model guidelines.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 export function AIScenarioPlayer({ scenario, professionLineId, onComplete, className }: AIScenarioPlayerProps) {
+  const queryClient = useQueryClient();
+  const isMountedRef = useRef<boolean>(true);
+
   const [answer, setAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
   const [showHints, setShowHints] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const difficultyConfig = {
-    easy: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    medium: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-    hard: "bg-rose-500/10 text-rose-600 border-rose-500/20",
-  };
+  // Synchronize component state parameters defensively over activation lifecycles
+  useEffect(() => {
+    isMountedRef.current = true;
+    trackEvent("ai_scenario_player_mounted", { scenarioId: scenario?.id, difficulty: scenario?.difficulty });
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [scenario?.id, scenario?.difficulty]);
+
+  const hasHints = useMemo(() => !!(scenario?.hints && scenario.hints.length > 0), [scenario?.hints]);
 
   const handleExecutiveSubmit = async () => {
-    if (!answer.trim()) return;
+    const sanitizedInputText = answer.trim();
+    if (!sanitizedInputText || isSubmitting) return;
 
     setIsSubmitting(true);
     setError(null);
+    trackEvent("ai_scenario_evaluation_requested", { scenarioId: scenario.id });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.AI_GENERATION);
+    const abortControllerInstance = new AbortController();
+    const timeoutFallbackId = setTimeout(() => {
+      abortControllerInstance.abort();
+    }, TIMEOUTS?.AI_GENERATION || 30000);
 
     try {
-      // INGRESS: Neural Analysis Request
-      const response = await supabase.functions.invoke("ai-instructor-chat", {
-        body: {
-          messages: [
-            {
-              role: "user",
-              content: `Evaluate this scenario response and provide structured feedback in JSON format.
+      // INGRESS: Structured prompt matrix dispatch to cloud serverless execution node
+      const { data: remotePayloadResponse, error: invokeFunctionError } = await supabase.functions.invoke(
+        "ai-instructor-chat",
+        {
+          body: {
+            messages: [
+              {
+                role: "user",
+                content: `Evaluate this scenario response and provide structured feedback in JSON format.
 
 SCENARIO:
 Situation: ${scenario.situation}
@@ -74,9 +96,9 @@ Context: ${scenario.context}
 Question: ${scenario.question}
 
 USER'S ANSWER:
-${answer}
+${sanitizedInputText}
 
-Response Protocol: ONLY JSON object.
+Response Protocol: ONLY JSON object matching this schema. Do not prefix or append markdown wrapping code fences.
 {
   "score": <number 1-10>,
   "feedback": "<overall feedback paragraph>",
@@ -84,113 +106,169 @@ Response Protocol: ONLY JSON object.
   "improvements": ["<improvement 1>", "<improvement 2>"],
   "modelAnswer": "<ideal answer example>"
 }`,
-            },
-          ],
-          professionLineId,
-          contextType: "scenario_evaluation",
+              },
+            ],
+            professionLineId,
+            contextType: "scenario_evaluation",
+          },
         },
+      );
+
+      clearTimeout(timeoutFallbackId);
+
+      if (invokeFunctionError) throw invokeFunctionError;
+
+      // Extract and safely map string objects into schema nodes
+      const unparsedRawResponseText =
+        typeof remotePayloadResponse === "string" ? remotePayloadResponse : JSON.stringify(remotePayloadResponse);
+
+      const parsedStructuredJsonMatch = unparsedRawResponseText.match(/\{[\s\S]*\}/);
+
+      if (!parsedStructuredJsonMatch) {
+        throw new Error("Neural Ingestion Fault: Execution engine compiled a fractured data shape pattern.");
+      }
+
+      const verifiedFeedbackDataObject = JSON.parse(parsedStructuredJsonMatch[0]) as FeedbackResponse;
+
+      if (isMountedRef.current) {
+        setFeedback(verifiedFeedbackDataObject);
+        trackEvent("ai_scenario_evaluation_success", { score: verifiedFeedbackDataObject.score });
+
+        // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
+        await queryClient.invalidateQueries({ queryKey: ["module-analytics"] });
+        await queryClient.invalidateQueries({ queryKey: ["talent-stats"] });
+        await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
+
+        if (onComplete) {
+          onComplete(verifiedFeedbackDataObject.score);
+        }
+      }
+    } catch (globalCatchErr: any) {
+      clearTimeout(timeoutFallbackId);
+      const isRequestAborted = globalCatchErr instanceof Error && globalCatchErr.name === "AbortError";
+      const calculatedExceptionMessageString = isRequestAborted
+        ? "Ecosystem connection timed out: Evaluation node latency limit exceeded. Please re-dispatch payload inputs."
+        : globalCatchErr instanceof Error
+          ? globalCatchErr.message
+          : String(globalCatchErr);
+
+      trackError(calculatedExceptionMessageString, {
+        component: "AIScenarioPlayer",
+        action: "commit_scenario_response_evaluation_api",
+        scenarioId: scenario.id,
       });
 
-      if (response.error) throw new Error(response.error.message);
-
-      // CTO Note: Normalizing response artifact
-      const feedbackText = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
-      const jsonMatch = feedbackText.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const feedbackData = JSON.parse(jsonMatch[0]) as FeedbackResponse;
-        setFeedback(feedbackData);
-        onComplete?.(feedbackData.score);
-      } else {
-        throw new Error("Neural Ingestion Fault: Malformed response.");
+      if (isMountedRef.current) {
+        setError(calculatedExceptionMessageString);
       }
-    } catch (err: any) {
-      setError(err.message.includes("abort") ? "Sync_Timeout: Registry offline." : err.message);
     } finally {
-      clearTimeout(timeoutId);
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handleResetProtocol = () => {
+    trackEvent("ai_scenario_reset_triggered", { scenarioId: scenario.id });
     setFeedback(null);
     setAnswer("");
     setError(null);
+    setShowHints(false);
   };
 
   return (
     <Card
       className={cn(
-        "rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden shadow-2xl transition-all duration-500",
+        "w-full text-left rounded-2xl border border-border/40 bg-card/30 backdrop-blur-md shadow-sm antialiased transform-gpu overflow-hidden",
         className,
       )}
     >
-      <CardHeader className="p-8 border-b border-border/10 bg-muted/5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-              <Target className="h-6 w-6 text-primary" /> Tactical_Simulation
+      {/* HUD LEVEL 1: TOP PANEL TRACK HEADING CONTAINER */}
+      <CardHeader className="p-4 sm:p-5 border-b border-border/10 bg-muted/10 select-none leading-none w-full">
+        <div className="flex items-center justify-between gap-4 w-full leading-none">
+          <div className="space-y-1 flex flex-col justify-center leading-none min-w-0 flex-1">
+            <CardTitle className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2 leading-none block truncate">
+              <Target className="h-4 w-4 text-primary stroke-[2.2] shrink-0 animate-pulse" />
+              <span>Tactical Scenario Simulation</span>
             </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
-              Apply knowledge artifacts to professional context
+            <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
+              Synthesize instructional parameters into direct operational executions
             </CardDescription>
           </div>
           <Badge
             variant="outline"
             className={cn(
-              "rounded-lg px-3 py-1 font-black italic text-[9px] uppercase tracking-widest border-2",
-              difficultyConfig[scenario.difficulty],
+              "rounded px-2 h-5 text-[9px] font-extrabold tracking-wide uppercase leading-none select-none border border-transparent shrink-0 shadow-sm",
+              DIFFICULTY_CONFIG[scenario.difficulty] || DIFFICULTY_CONFIG.medium,
             )}
           >
-            {scenario.difficulty}_LEVEL
+            {scenario.difficulty} tier
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="p-8 space-y-8 text-left">
-        {/* ARTIFACT: SCENARIO_DATA */}
-        <div className="grid gap-6 p-6 rounded-[24px] bg-muted/20 border-2 border-border/10 shadow-inner relative overflow-hidden">
-          <Zap className="absolute -bottom-6 -right-6 h-32 w-32 text-primary opacity-5 rotate-12" />
+      <CardContent className="p-4 sm:p-5 space-y-4 w-full min-w-0 flex flex-col justify-center">
+        {/* HUD LEVEL 2: IMMUTABLE SCENARIO TASK DISPLAY CARD */}
+        <div className="grid grid-cols-1 gap-3.5 p-4 rounded-xl border border-border/40 bg-muted/10 shadow-inner relative overflow-hidden select-none w-full shrink-0">
+          <Zap className="absolute -bottom-6 -right-6 h-24 w-24 text-primary opacity-[0.02] transform rotate-12 pointer-events-none" />
 
-          <div className="space-y-4 relative z-10">
-            <div>
-              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-2 italic">
-                Global_Situation
+          <div className="space-y-3 relative z-10 text-left font-semibold text-xs tracking-tight">
+            <div className="w-full min-w-0">
+              <span className="text-[9px] font-extrabold text-primary uppercase tracking-wider block leading-none mb-1.5">
+                Contextual Framework Baseline
+              </span>
+              <p className="text-xs sm:text-sm font-medium leading-relaxed text-foreground/80 italic select-text">
+                {scenario.situation}
               </p>
-              <p className="text-sm font-bold leading-relaxed text-foreground/90 italic">{scenario.situation}</p>
             </div>
 
-            <div className="h-px bg-border/40" />
+            <div className="h-[1px] w-full bg-border/10" />
 
-            <div>
-              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-2 italic">Target_Task</p>
-              <p className="text-base font-black italic tracking-tight">{scenario.question}</p>
+            <div className="w-full min-w-0">
+              <span className="text-[9px] font-extrabold text-primary uppercase tracking-wider block leading-none mb-1.5">
+                Target Objective Assignment
+              </span>
+              <h3 className="text-sm sm:text-base font-black tracking-tight text-foreground/90 select-text leading-snug">
+                {scenario.question}
+              </h3>
             </div>
           </div>
         </div>
 
-        {/* COMPONENT: HINT_INGRESS */}
-        {scenario.hints && scenario.hints.length > 0 && !feedback && (
-          <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+        {/* HUD LEVEL 3: DYNAMIC OPTIONAL HINT PANEL SEGMENT LIST */}
+        {hasHints && !feedback && (
+          <div className="w-full text-left select-none shrink-0 leading-none">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowHints(!showHints)}
-              className="h-8 rounded-xl font-black italic text-[10px] tracking-widest gap-2 hover:bg-primary/5"
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                trackEvent("ai_scenario_hints_toggled", { nextState: !showHints });
+                setShowHints(!showHints);
+              }}
+              className="h-7 rounded-xl font-bold uppercase text-[10px] tracking-wide gap-1.5 text-muted-foreground hover:bg-muted/20 hover:text-foreground cursor-pointer transition-colors leading-none"
             >
-              <Lightbulb className={cn("h-4 w-4", showHints ? "fill-primary text-primary" : "text-muted-foreground")} />
-              {showHints ? "HIDE_HINT_NODES" : "REVEAL_HINT_NODES"}
+              <Lightbulb
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors stroke-[2.2]",
+                  showHints ? "fill-amber-500/10 text-amber-500" : "text-current",
+                )}
+              />
+              <span>{showHints ? "Hide Reference Hints" : "Expose Reference Hints"}</span>
             </Button>
 
             {showHints && (
-              <div className="mt-4 grid gap-2">
-                {scenario.hints.map((hint, i) => (
+              <div className="mt-2.5 grid grid-cols-1 gap-2 w-full animate-in slide-in-from-top-1 duration-200">
+                {scenario.hints?.filter(Boolean).map((hintItem, index) => (
                   <div
-                    key={i}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10 text-[11px] font-medium italic animate-in slide-in-from-left-2"
+                    key={index}
+                    className="flex items-start gap-2.5 p-3 rounded-xl border border-primary/10 bg-primary/[0.01] text-[11px] sm:text-xs font-semibold leading-relaxed text-muted-foreground/80 italic text-left w-full min-w-0 shadow-sm animate-in slide-in-from-left-1 duration-150"
                   >
-                    <span className="text-primary text-xs font-black">0{i + 1}</span>
-                    {hint}
+                    <span className="text-primary font-mono font-black text-xs select-none leading-none mt-0.5">
+                      0{index + 1}
+                    </span>
+                    <p className="flex-1 pr-1 break-words select-text">{hintItem.trim()}</p>
                   </div>
                 ))}
               </div>
@@ -198,119 +276,153 @@ Response Protocol: ONLY JSON object.
           </div>
         )}
 
-        {/* INPUT_NODE or FEEDBACK_DASHBOARD */}
+        {/* HUD LEVEL 4: INTERACTIVE INPUT PANEL VS EVALUATED FEEDBACK OVERLAY DASHBOARD */}
         {!feedback ? (
-          <div className="space-y-6 animate-in fade-in duration-700">
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] ml-1">
-                Proposed_Response_Field
-              </p>
+          <div className="space-y-4 w-full min-w-0 flex flex-col justify-center text-left animate-in fade-in duration-200">
+            <div className="space-y-1.5 w-full leading-none text-left select-none">
+              <span className="text-[9px] font-extrabold text-muted-foreground/50 uppercase tracking-wider block pl-0.5 leading-none">
+                Candidate Proposed Ingress Formulation
+              </span>
               <Textarea
-                placeholder="Initialize response sequence..."
+                placeholder="Initialize alignment strategy sequence formulation parameters..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                rows={6}
+                rows={5}
                 disabled={isSubmitting}
-                className="rounded-2xl border-2 font-medium italic bg-background/50 focus-visible:ring-primary/20 resize-none p-5"
+                className="w-full rounded-xl border border-border/40 bg-background/50 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3.5 leading-relaxed italic resize-none shadow-inner"
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-rose-500/10 border-2 border-rose-500/20 text-rose-500 text-[10px] font-black uppercase">
-                <AlertCircle className="h-4 w-4" />
-                {error}
+              <div className="flex items-center gap-2.5 p-3.5 rounded-xl border border-rose-500/15 bg-rose-500/[0.02] text-rose-600 dark:text-rose-400 font-bold text-[10px] sm:text-xs uppercase tracking-wide text-left select-text break-words w-full animate-in shake duration-300">
+                <AlertCircle className="h-4 w-4 stroke-[2.5] shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
             <Button
+              type="button"
               onClick={handleExecutiveSubmit}
               disabled={!answer.trim() || isSubmitting}
-              className="w-full h-14 rounded-2xl font-black uppercase italic tracking-widest shadow-[0_10px_30px_rgba(var(--primary),0.3)] active:scale-95 transition-all gap-3"
+              className="w-full h-10 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transform-gpu active:scale-[0.99] transition-all flex items-center justify-center cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 mt-0.5"
             >
-              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              {isSubmitting ? "ANALYZING_NODE_RESPONSE..." : "EXECUTE_SUBMISSION"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
+                  <span>Processing Cognitive Evaluation Manifest…</span>
+                </>
+              ) : (
+                <>
+                  <span>Dispatch Formulation Submission</span>
+                  <Send className="h-3.5 w-3.5 stroke-[2.2] ml-0.5" />
+                </>
+              )}
             </Button>
           </div>
         ) : (
-          <div className="space-y-8 animate-in zoom-in-95 duration-1000">
-            {/* HUD: SCORE_TELEMETRY */}
-            <div className="flex flex-col items-center justify-center p-8 rounded-[40px] bg-gradient-to-br from-muted/5 to-muted/20 border-2 border-border/10 shadow-2xl relative overflow-hidden">
+          /* SECTION B: MULTI-LEVEL COGNITIVE FEEDBACK SCORE GRAPH DISPLAY DECK */
+          <div className="space-y-5 w-full min-w-0 flex flex-col justify-center text-left animate-in zoom-in-99 duration-300">
+            {/* SCORE CHIP PANEL HUD CONTAINER */}
+            <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-muted/20 border border-border/10 shadow-sm relative overflow-hidden select-none text-center w-full shrink-0">
               <div
                 className={cn(
-                  "absolute inset-0 blur-3xl opacity-10",
+                  "absolute inset-0 blur-3xl opacity-[0.03] transition-colors duration-500 pointer-events-none",
                   feedback.score >= 7 ? "bg-emerald-500" : feedback.score >= 5 ? "bg-amber-500" : "bg-rose-500",
                 )}
               />
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.5em] mb-4 italic">
-                Performance_Yield
+              <span className="text-[9px] font-extrabold text-muted-foreground/60 uppercase tracking-wider block leading-none mb-3">
+                Algorithmic Performance Alignment Scale
+              </span>
+              <div className="flex items-baseline justify-center gap-0.5 leading-none italic block select-all font-bold text-foreground">
+                <span className="text-5xl sm:text-6xl font-black tracking-tighter selection:bg-primary/20 leading-none">
+                  {feedback.score}
+                </span>
+                <span className="text-sm font-extrabold text-muted-foreground/30 font-mono tracking-normal">/10</span>
+              </div>
+            </div>
+
+            {/* OVERALL SCORE COMMENTARY RATIONALE TEXT LAYER */}
+            <div className="space-y-1 w-full min-w-0 leading-none text-left">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block pl-0.5 leading-none select-none">
+                Systemic Executive Rationale
+              </span>
+              <p className="text-xs sm:text-sm font-semibold leading-relaxed text-foreground/80 bg-muted/10 border border-border/10 p-4 rounded-xl italic select-text selection:bg-primary/10 w-full pr-1">
+                {feedback.feedback ? feedback.feedback.trim() : "No performance commentary compiled."}
               </p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-7xl font-black tracking-tighter italic">{feedback.score}</span>
-                <span className="text-xl font-black text-muted-foreground/30">/10</span>
+            </div>
+
+            {/* STRONGS VS FIXES TWO-COLUMN MATRIX SPLIT */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full min-w-0 font-bold text-xs tracking-tight text-left">
+              <div className="p-4 rounded-xl border border-emerald-500/10 bg-emerald-500/[0.015] space-y-3 min-w-0 w-full">
+                <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 italic flex items-center gap-1.5 select-none leading-none">
+                  <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" /> Identified Core Strengths
+                </span>
+                <ul className="space-y-2.5 font-semibold text-xs leading-normal">
+                  {feedback.strengths && feedback.strengths.filter(Boolean).length > 0 ? (
+                    feedback.strengths.map((strengthStr, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 italic select-text break-words pr-1 text-foreground/90"
+                      >
+                        <div className="h-4 w-4 rounded-full bg-emerald-500/10 border border-emerald-500/5 flex items-center justify-center shrink-0 mt-0.5 select-none">
+                          <CheckCircle className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+                        </div>
+                        <span className="flex-1 min-w-0 pt-0.5">{strengthStr.trim()}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="list-none italic text-muted-foreground/50 select-none pl-0.5 text-[11px]">
+                      No unique asset milestones mapped.
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-xl border border-amber-500/10 bg-amber-500/[0.015] space-y-3 min-w-0 w-full">
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 italic flex items-center gap-1.5 select-none leading-none">
+                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2]" /> Parameter Optimizations
+                </span>
+                <ul className="space-y-2.5 font-semibold text-xs leading-normal">
+                  {feedback.improvements && feedback.improvements.filter(Boolean).length > 0 ? (
+                    feedback.improvements.map((improvementStr, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 italic select-text break-words pr-1 text-foreground/90"
+                      >
+                        <div className="h-4 w-4 rounded-full bg-amber-500/10 border border-amber-500/5 flex items-center justify-center shrink-0 mt-0.5 select-none">
+                          <Zap className="h-2.5 w-2.5 text-amber-600 dark:text-amber-500 fill-amber-600/10 stroke-[2.5]" />
+                        </div>
+                        <span className="flex-1 min-w-0 pt-0.5">{improvementStr.trim()}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="list-none italic text-muted-foreground/50 select-none pl-0.5 text-[11px]">
+                      No structural calibration vulnerabilities detected.
+                    </li>
+                  )}
+                </ul>
               </div>
             </div>
 
-            {/* FEEDBACK_MATRICES */}
-            <div className="grid gap-6">
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">
-                  Executive_Feedback
-                </p>
-                <p className="text-sm font-medium italic leading-relaxed text-foreground/80 bg-muted/5 p-5 rounded-2xl border-2 border-border/10">
-                  {feedback.feedback}
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-emerald-500/5 border-2 border-emerald-500/10 space-y-4">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 italic flex items-center gap-2">
-                    <ShieldCheck className="h-3 w-3" /> Artifact_Strengths
-                  </p>
-                  <ul className="space-y-3">
-                    {feedback.strengths.map((s, i) => (
-                      <li key={i} className="text-[11px] font-bold flex items-start gap-3 italic">
-                        <div className="h-4 w-4 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <CheckCircle className="h-3 w-3 text-emerald-600" />
-                        </div>
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-amber-500/5 border-2 border-amber-500/10 space-y-4">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-600 italic flex items-center gap-2">
-                    <Zap className="h-3 w-3" /> Growth_Optimizations
-                  </p>
-                  <ul className="space-y-3">
-                    {feedback.improvements.map((s, i) => (
-                      <li key={i} className="text-[11px] font-bold flex items-start gap-3 italic">
-                        <div className="h-4 w-4 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Zap className="h-3 w-3 text-amber-600 fill-current" />
-                        </div>
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-[24px] bg-primary/5 border-2 border-primary/10 relative group">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 italic">
-                  Authoritative_Model_Artifact
-                </p>
-                <p className="text-xs font-medium italic leading-relaxed text-muted-foreground">
-                  {feedback.modelAnswer}
-                </p>
-              </div>
+            {/* AUTHORITATIVE STRUCTURAL EXEMPLAR COMPONENT */}
+            <div className="p-4 rounded-xl border border-primary/10 bg-primary/[0.01] relative w-full min-w-0 text-left leading-normal font-semibold text-xs">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block pl-0.5 leading-none select-none mb-2">
+                Authoritative Reference Model Artifact
+              </span>
+              <p className="font-medium italic leading-relaxed text-muted-foreground select-text selection:bg-primary/10 break-words pr-1">
+                {feedback.modelAnswer ? feedback.modelAnswer.trim() : "Exemplar curriculum reference text unavailable."}
+              </p>
             </div>
 
+            {/* RE-INITIALIZATION ACTION CONTROLLER RIBBON */}
             <Button
+              type="button"
               onClick={handleResetProtocol}
               variant="outline"
-              className="w-full h-14 rounded-2xl border-2 font-black uppercase italic text-xs tracking-widest gap-3 shadow-lg active:scale-95 transition-all"
+              className="w-full h-10 rounded-xl border border-border/60 text-muted-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-transform active:scale-[0.99]"
             >
-              <RefreshCw className="h-4 w-4" /> RE_INITIALIZE_SIMULATION
+              <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Re-Initialize Tactical Scenario Simulation</span>
             </Button>
           </div>
         )}
