@@ -57,9 +57,12 @@ type ProvisionResult = { instance_id: string; created: boolean };
 export function OnboardingWizard({
   onComplete,
   funnelOverride,
+  preAuth = false,
 }: {
   onComplete: () => void;
   funnelOverride?: FunnelParams;
+  /** When true, selections are stashed in sessionStorage instead of written to the DB. */
+  preAuth?: boolean;
 }) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
