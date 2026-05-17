@@ -545,21 +545,28 @@ export function OnboardingWizard({
                       className="w-[--radix-popover-trigger-width] p-0 rounded-xl border border-border/40 bg-background shadow-2xl overflow-hidden font-semibold text-xs"
                       align="start"
                     >
-                      <Command shouldFilter>
+                      <Command shouldFilter={false}>
                         <CommandInput
-                          placeholder="Type characters to query registry items…"
+                          value={instQuery}
+                          onValueChange={setInstQuery}
+                          placeholder="Type your university name…"
                           className="text-xs h-10 border-none font-bold outline-none"
                         />
                         <CommandList className="max-h-64 font-bold text-xs select-none">
                           {institutionsQ.isLoading ? (
-                            <div className="flex items-center justify-center p-6 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 gap-1.5 animate-pulse">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5]" />
-                              <span>Querying institutional arrays…</span>
+                            <div className="p-2 space-y-1.5">
+                              {[0, 1, 2, 3].map((i) => (
+                                <div
+                                  key={i}
+                                  className="h-8 rounded-md bg-muted/40 animate-pulse"
+                                  style={{ animationDelay: `${i * 60}ms` }}
+                                />
+                              ))}
                             </div>
                           ) : (
                             <>
                               <CommandEmpty className="p-4 text-xs font-semibold text-muted-foreground text-center">
-                                No matching global university found.
+                                No match. Try a shorter name, or add it below.
                               </CommandEmpty>
                               <CommandGroup className="font-bold text-xs p-1">
                                 {(institutionsQ.data ?? []).map((instItem) => (
@@ -592,6 +599,27 @@ export function OnboardingWizard({
                                     )}
                                   </CommandItem>
                                 ))}
+                                {instQuery.trim().length >= 2 && (
+                                  <CommandItem
+                                    value={`__add__${instQuery}`}
+                                    onSelect={() => {
+                                      const name = instQuery.trim();
+                                      if (!name) return;
+                                      trackEvent("onboarding_institution_freeform_added", { name });
+                                      setInstitution({
+                                        id: `freeform:${name}`,
+                                        name,
+                                        country: country?.name ?? null,
+                                      });
+                                      setComboOpen(false);
+                                    }}
+                                    className="cursor-pointer font-bold text-xs rounded-lg py-2 flex items-center gap-2 text-primary"
+                                  >
+                                    <span className="flex-1 truncate">
+                                      Add &ldquo;{instQuery.trim()}&rdquo; as my university
+                                    </span>
+                                  </CommandItem>
+                                )}
                               </CommandGroup>
                             </>
                           )}
