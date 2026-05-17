@@ -140,21 +140,37 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 3 Ingress: Fetch academic higher institution models mapped under active countries
+  // Step 3 Ingress: Server-side institution search.
+  // Country acts as a *soft* filter — if zero matches with country, we re-query globally.
   const institutionsQ = useQuery({
-    queryKey: ["onboarding-institutions", country?.name],
+    queryKey: ["onboarding-institutions", country?.name ?? "", debouncedInstQuery],
     enabled: step >= 3,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
     queryFn: async () => {
-      let q = supabase
-        .from("institutions")
-        .select("id, name, country")
-        .eq("type", "university")
-        .order("name")
-        .limit(1000);
-      if (country?.name) q = q.ilike("country", country.name);
-      const { data, error } = await q;
+      const q = debouncedInstQuery;
+      const base = () =>
+        supabase
+          .from("institutions")
+          .select("id, name, country")
+          .eq("type", "university")
+          .order("name")
+          .limit(30);
+
+      let query = base();
+      if (q) query = query.ilike("name", `%${q}%`);
+      if (country?.name) query = query.ilike("country", country.name);
+
+      const { data, error } = await query;
       if (error) throw error;
+
+      // Fallback: if no results in selected country, broaden to global.
+      if ((data ?? []).length === 0 && country?.name) {
+        let global = base();
+        if (q) global = global.ilike("name", `%${q}%`);
+        const { data: globalData, error: gErr } = await global;
+        if (gErr) throw gErr;
+        return (globalData ?? []) as Institution[];
+      }
       return (data ?? []) as Institution[];
     },
   });
