@@ -278,6 +278,29 @@ export function OnboardingWizard({
     }
     if (!country || !stage || !institution || !school) return;
 
+    // Pre-auth mode: stash selections in sessionStorage and hand control back
+    // to the host page (which will swap in the auth panel).
+    if (preAuth) {
+      try {
+        sessionStorage.setItem(
+          "pending_onboarding",
+          JSON.stringify({
+            country,
+            stage,
+            institution,
+            school,
+            funnelParams: funnelParamsRef.current,
+            stashedAt: Date.now(),
+          }),
+        );
+      } catch {
+        /* sessionStorage may be unavailable in privacy mode — ignore. */
+      }
+      trackEvent("onboarding_wizard_preauth_stashed");
+      onComplete();
+      return;
+    }
+
     setSubmitting(true);
     const startedAt = Date.now();
     trackEvent("onboarding_wizard_submission_started");
