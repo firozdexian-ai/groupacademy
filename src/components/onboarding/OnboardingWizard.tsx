@@ -99,8 +99,16 @@ export function OnboardingWizard({
   const [institution, setInstitution] = useState<Institution | null>(null);
   const [school, setSchool] = useState<School | null>(null);
   const [comboOpen, setComboOpen] = useState(false);
+  const [instQuery, setInstQuery] = useState("");
+  const [debouncedInstQuery, setDebouncedInstQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submittingPhase, setSubmittingPhase] = useState<string>("");
+
+  // Debounce the institution search input (200ms) so we don't fire on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedInstQuery(instQuery.trim()), 200);
+    return () => clearTimeout(t);
+  }, [instQuery]);
 
   // Step 1 Ingress: Fetch authorized market operational countries
   const countriesQ = useQuery({
