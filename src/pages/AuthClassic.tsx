@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
+import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,8 +70,9 @@ const Auth = () => {
   // REDIRECT GUARD — wait until we know account type to route correctly
   useEffect(() => {
     if (authLoading || !user || accountTypeLoading) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        await finalizePendingOnboarding();
         const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
         if (dest) navigate(dest, { replace: true });
       }

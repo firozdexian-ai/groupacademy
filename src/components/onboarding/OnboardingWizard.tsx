@@ -57,9 +57,12 @@ type ProvisionResult = { instance_id: string; created: boolean };
 export function OnboardingWizard({
   onComplete,
   funnelOverride,
+  preAuth = false,
 }: {
   onComplete: () => void;
   funnelOverride?: FunnelParams;
+  /** When true, selections are stashed in sessionStorage instead of written to the DB. */
+  preAuth?: boolean;
 }) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -96,8 +99,16 @@ export function OnboardingWizard({
   const [institution, setInstitution] = useState<Institution | null>(null);
   const [school, setSchool] = useState<School | null>(null);
   const [comboOpen, setComboOpen] = useState(false);
+  const [instQuery, setInstQuery] = useState("");
+  const [debouncedInstQuery, setDebouncedInstQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submittingPhase, setSubmittingPhase] = useState<string>("");
+
+  // Debounce the institution search input (200ms) so we don't fire on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedInstQuery(instQuery.trim()), 200);
+    return () => clearTimeout(t);
+  }, [instQuery]);
 
   // Step 1 Ingress: Fetch authorized market operational countries
   const countriesQ = useQuery({
@@ -129,21 +140,37 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 3 Ingress: Fetch academic higher institution models mapped under active countries
+  // Step 3 Ingress: Server-side institution search.
+  // Country acts as a *soft* filter — if zero matches with country, we re-query globally.
   const institutionsQ = useQuery({
-    queryKey: ["onboarding-institutions", country?.name],
+    queryKey: ["onboarding-institutions", country?.name ?? "", debouncedInstQuery],
     enabled: step >= 3,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
     queryFn: async () => {
-      let q = supabase
-        .from("institutions")
-        .select("id, name, country")
-        .eq("type", "university")
-        .order("name")
-        .limit(1000);
-      if (country?.name) q = q.ilike("country", country.name);
-      const { data, error } = await q;
+      const q = debouncedInstQuery;
+      const base = () =>
+        supabase
+          .from("institutions")
+          .select("id, name, country")
+          .eq("type", "university")
+          .order("name")
+          .limit(30);
+
+      let query = base();
+      if (q) query = query.ilike("name", `%${q}%`);
+      if (country?.name) query = query.ilike("country", country.name);
+
+      const { data, error } = await query;
       if (error) throw error;
+
+      // Fallback: if no results in selected country, broaden to global.
+      if ((data ?? []).length === 0 && country?.name) {
+        let global = base();
+        if (q) global = global.ilike("name", `%${q}%`);
+        const { data: globalData, error: gErr } = await global;
+        if (gErr) throw gErr;
+        return (globalData ?? []) as Institution[];
+      }
       return (data ?? []) as Institution[];
     },
   });
@@ -251,6 +278,29 @@ export function OnboardingWizard({
     }
     if (!country || !stage || !institution || !school) return;
 
+    // Pre-auth mode: stash selections in sessionStorage and hand control back
+    // to the host page (which will swap in the auth panel).
+    if (preAuth) {
+      try {
+        sessionStorage.setItem(
+          "pending_onboarding",
+          JSON.stringify({
+            country,
+            stage,
+            institution,
+            school,
+            funnelParams: funnelParamsRef.current,
+            stashedAt: Date.now(),
+          }),
+        );
+      } catch {
+        /* sessionStorage may be unavailable in privacy mode — ignore. */
+      }
+      trackEvent("onboarding_wizard_preauth_stashed");
+      onComplete();
+      return;
+    }
+
     setSubmitting(true);
     const startedAt = Date.now();
     trackEvent("onboarding_wizard_submission_started");
@@ -261,6 +311,7 @@ export function OnboardingWizard({
       if (authErr || !authData?.user?.id) throw new Error("Authentication index token lost. Please log in.");
       const userId = authData.user.id;
 
+      const isFreeform = institution.id.startsWith("freeform:");
       const { error: updateErr } = await supabase
         .from("talents")
         .update({
@@ -268,7 +319,7 @@ export function OnboardingWizard({
           country_code: country.iso2,
           country: country.name,
           career_stage_id: stage.id,
-          institution_id: institution.id,
+          institution_id: isFreeform ? null : institution.id,
           institution: institution.name,
           school_id: school.id,
           onboarding_step: 4,
@@ -495,21 +546,28 @@ export function OnboardingWizard({
                       className="w-[--radix-popover-trigger-width] p-0 rounded-xl border border-border/40 bg-background shadow-2xl overflow-hidden font-semibold text-xs"
                       align="start"
                     >
-                      <Command shouldFilter>
+                      <Command shouldFilter={false}>
                         <CommandInput
-                          placeholder="Type characters to query registry items…"
+                          value={instQuery}
+                          onValueChange={setInstQuery}
+                          placeholder="Type your university name…"
                           className="text-xs h-10 border-none font-bold outline-none"
                         />
                         <CommandList className="max-h-64 font-bold text-xs select-none">
                           {institutionsQ.isLoading ? (
-                            <div className="flex items-center justify-center p-6 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 gap-1.5 animate-pulse">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5]" />
-                              <span>Querying institutional arrays…</span>
+                            <div className="p-2 space-y-1.5">
+                              {[0, 1, 2, 3].map((i) => (
+                                <div
+                                  key={i}
+                                  className="h-8 rounded-md bg-muted/40 animate-pulse"
+                                  style={{ animationDelay: `${i * 60}ms` }}
+                                />
+                              ))}
                             </div>
                           ) : (
                             <>
                               <CommandEmpty className="p-4 text-xs font-semibold text-muted-foreground text-center">
-                                No matching global university found.
+                                No match. Try a shorter name, or add it below.
                               </CommandEmpty>
                               <CommandGroup className="font-bold text-xs p-1">
                                 {(institutionsQ.data ?? []).map((instItem) => (
@@ -542,6 +600,27 @@ export function OnboardingWizard({
                                     )}
                                   </CommandItem>
                                 ))}
+                                {instQuery.trim().length >= 2 && (
+                                  <CommandItem
+                                    value={`__add__${instQuery}`}
+                                    onSelect={() => {
+                                      const name = instQuery.trim();
+                                      if (!name) return;
+                                      trackEvent("onboarding_institution_freeform_added", { name });
+                                      setInstitution({
+                                        id: `freeform:${name}`,
+                                        name,
+                                        country: country?.name ?? null,
+                                      });
+                                      setComboOpen(false);
+                                    }}
+                                    className="cursor-pointer font-bold text-xs rounded-lg py-2 flex items-center gap-2 text-primary"
+                                  >
+                                    <span className="flex-1 truncate">
+                                      Add &ldquo;{instQuery.trim()}&rdquo; as my university
+                                    </span>
+                                  </CommandItem>
+                                )}
                               </CommandGroup>
                             </>
                           )}

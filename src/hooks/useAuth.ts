@@ -50,7 +50,7 @@ export interface AuthState {
 function friendlyAuthError(msg: string): string {
   const m = (msg || "").toLowerCase();
   if (m.includes("invalid login")) return "Email or password is incorrect.";
-  if (m.includes("email not confirmed")) return "Please verify your email — check your inbox for the link.";
+  if (m.includes("email not confirmed")) return "Your account is being activated — please try again in a moment.";
   if (m.includes("user already registered")) return "An account with this email already exists. Try signing in.";
   if (m.includes("password") && m.includes("weak")) return "Choose a stronger password (at least 8 characters).";
   if (m.includes("rate limit")) return "Too many attempts. Please wait a moment and try again.";
@@ -178,8 +178,23 @@ export const useAuth = (): AuthState => {
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Could not create your account. Please try again.");
 
-      // Welcome email + post-signup side effects fire from /auth/callback after email confirmation.
-      toast.success("Almost done — check your email to verify your account.");
+      // Email auto-confirmation is enabled — user is signed in immediately.
+      // Fire welcome email once (idempotent via idempotencyKey).
+      const welcomeKey = `ga_welcome_sent_${authData.user.id}`;
+      if (typeof localStorage !== "undefined" && !localStorage.getItem(welcomeKey)) {
+        void supabase.functions
+          .invoke("send-transactional-email", {
+            body: {
+              templateName: "welcome",
+              recipientEmail: email.trim(),
+              idempotencyKey: `welcome-${authData.user.id}`,
+              templateData: { name: (fullName || "Learner").split(" ")[0] || "Learner" },
+            },
+          })
+          .catch(() => {});
+        localStorage.setItem(welcomeKey, "1");
+      }
+      toast.success("Welcome — let's set up your profile.");
       return true;
     } catch (err: any) {
       toast.error(friendlyAuthError(err.message));

@@ -21,6 +21,7 @@ import Index from "./pages/Index";
 import AuthChat from "./pages/AuthChat";
 import AuthClassic from "./pages/AuthClassic";
 import AuthCallback from "./pages/AuthCallback";
+import Start from "./pages/Start";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PublicJobDetail from "./pages/PublicJobDetail";
@@ -263,6 +264,7 @@ export default function App() {
                   <Route path="/auth" element={<AuthChat />} />
                   <Route path="/auth/classic" element={<AuthClassic />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/start" element={<Start />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* Public Job View */}

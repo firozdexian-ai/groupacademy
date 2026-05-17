@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
 import { supabase } from "@/integrations/supabase/client";
+import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 
 const WELCOME_KEY_PREFIX = "ga_welcome_sent_";
 
@@ -48,6 +49,10 @@ const AuthCallback = () => {
       localStorage.removeItem("pending_ref");
       localStorage.removeItem("ga_referral");
     }
+
+    // Apply any pre-auth onboarding selections stashed at /start before
+    // routing. Fire-and-forget — failure shouldn't block sign-in.
+    void finalizePendingOnboarding();
 
     const dest = resolvePostAuthRoute(accountType, params.get("returnTo")) || "/app/feed";
     navigate(dest, { replace: true });
