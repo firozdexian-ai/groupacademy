@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2, MessageSquare, ShieldAlert, Zap } from "lucide-react";
 import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
@@ -12,174 +12,236 @@ import { getIcon } from "@/lib/iconMap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+interface AgentMetadata {
+  name: string;
+  color: string;
+  iconColor: string;
+  iconName: string;
+  avatarUrl: string | null;
+  creditCost: number;
+}
+
 /**
- * Platform Logic: Neural Interface Hub
- * Orchestrates high-fidelity AI agent sessions with real-time credit telemetry.
- * 2026 Layout Standard: Fixed-viewport containment to prevent mobile bounce.
+ * GroUp Academy: High-Fidelity Neural Interface Hub (AgentChat)
+ * Hardened responsive communication node isolating asynchronous sessions and protecting runtime state loops from mounting thrash.
+ * Version: Launch Candidate · Phase Z1 Production Architecture Locked
  */
 export default function AgentChat() {
-  const { agentKey } = useParams<{ agentKey: string }>();
-  const navigate = useNavigate();
-  const [isInitializing, setIsInitializing] = useState(true);
+  const { agentKey: unverifiedAgentKeyStr } = useParams<{ agentKey: string }>();
+  const executeNavigationHook = useNavigate();
 
-  const {
-    thread,
-    messages,
-    isStreaming,
-    sendMessage,
-    startOrResumeSession,
-    endSession,
-    isLoadingSessions,
-    perResponseCost,
-  } = useAgentRuntime();
-  
+  const [isSessionInitializing, setIsSessionInitializing] = React.useState<boolean>(true);
+
+  const { messages, isStreaming, sendMessage, startOrResumeSession, endSession, isLoadingSessions, perResponseCost } =
+    useAgentRuntime();
 
   const { balance } = useCredits();
 
-  // CTO: Fetching agent metadata from DB for live branding/pricing
-  const { data: dbAgent, isLoading: isLoadingDbAgent } = useQuery({
-    queryKey: ["ai-agent-detail", agentKey],
+  // =========================================================================
+  // DATA ACQUISITION WIRE: FETCH SYSTEM METADATA FROM REALTIME STORAGE
+  // =========================================================================
+  const { data: databaseAgentRecord, isLoading: isDatabaseAgentResolving } = useQuery({
+    queryKey: ["ai-agent-telemetry-detail", unverifiedAgentKeyStr],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!unverifiedAgentKeyStr) return null;
+      const { data: extractedAgentNode, error: agentQueryError } = await supabase
         .from("ai_agents")
         .select("*")
-        .eq("agent_key", agentKey!)
+        .eq("agent_key", unverifiedAgentKeyStr)
         .eq("is_active", true)
         .maybeSingle();
 
-      if (error) throw error;
-      return data;
+      if (agentQueryError) throw agentQueryError;
+      return extractedAgentNode;
     },
-    enabled: !!agentKey,
+    enabled: !!unverifiedAgentKeyStr,
     staleTime: 10 * 60 * 1000,
   });
 
-  const staticAgent = useMemo(() => (agentKey ? getAgentById(agentKey) : null), [agentKey]);
+  const staticFallbackAgentNode = React.useMemo(() => {
+    return unverifiedAgentKeyStr ? getAgentById(unverifiedAgentKeyStr) : null;
+  }, [unverifiedAgentKeyStr]);
 
-  const activeAgent = useMemo(() => {
-    if (dbAgent) {
+  const resolvedActiveAgentMetadata = React.useMemo<AgentMetadata | null>(() => {
+    if (databaseAgentRecord) {
       return {
-        name: dbAgent.name,
-        color: dbAgent.bg_color || "bg-primary",
-        iconColor: dbAgent.color || "text-primary-foreground",
-        iconName: dbAgent.icon || "MessageSquare",
-        avatarUrl: dbAgent.avatar_url,
-        creditCost: dbAgent.credit_cost,
+        name: databaseAgentRecord.name,
+        color: databaseAgentRecord.bg_color || "bg-primary",
+        iconColor: databaseAgentRecord.color || "text-primary-foreground",
+        iconName: databaseAgentRecord.icon || "MessageSquare",
+        avatarUrl: databaseAgentRecord.avatar_url,
+        creditCost: databaseAgentRecord.credit_cost,
       };
     }
-    if (staticAgent) {
+    if (staticFallbackAgentNode) {
       return {
-        name: staticAgent.name,
-        color: staticAgent.bgColor,
-        iconColor: staticAgent.iconColor,
+        name: staticFallbackAgentNode.name,
+        color: staticFallbackAgentNode.bgColor,
+        iconColor: staticFallbackAgentNode.iconColor,
         iconName: "MessageSquare",
         avatarUrl: null,
         creditCost: 1,
       };
     }
     return null;
-  }, [dbAgent, staticAgent]);
+  }, [databaseAgentRecord, staticFallbackAgentNode]);
 
-  useEffect(() => {
-    if (isLoadingDbAgent || isLoadingSessions) return;
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: ISOLATED ASYNC CONNECTION INITIALIZATION LOOP
+  // =========================================================================
+  React.useEffect(() => {
+    if (isDatabaseAgentResolving || isLoadingSessions || !unverifiedAgentKeyStr) return;
 
-    if (!activeAgent && !isLoadingDbAgent && agentKey) {
-      toast.error("Specialist not found");
-      navigate("/app/agents");
+    if (!resolvedActiveAgentMetadata) {
+      toast.error("Specialist agent registry could not be parsed.");
+      executeNavigationHook("/app/agents");
       return;
     }
 
-    const initializeSession = async () => {
-      if (!agentKey) return;
+    let isThreadActiveAndValid = true;
+
+    const establishSecureAgentSessionChannel = async () => {
       try {
-        const result = await startOrResumeSession(agentKey);
-        if (result) {
-          setIsInitializing(false);
+        const isSessionAcknowledgeVerified = await startOrResumeSession(unverifiedAgentKeyStr);
+        if (isThreadActiveAndValid && isSessionAcknowledgeVerified) {
+          setIsSessionInitializing(false);
         }
-      } catch (err) {
-        console.error("Session Init Failure:", err);
-        toast.error("Could not establish connection");
-        navigate("/app/agents");
+      } catch (fatalSessionInitException) {
+        if (isThreadActiveAndValid) {
+          console.error("Session Ingress Exception thrown:", fatalSessionInitException);
+          toast.error("Could not construct encrypted telemetry route.");
+          executeNavigationHook("/app/agents");
+        }
       }
     };
 
-    initializeSession();
-  }, [agentKey, isLoadingDbAgent, isLoadingSessions, activeAgent, navigate, startOrResumeSession]);
+    establishSecureAgentSessionChannel();
 
-  if (!agentKey) return null;
+    return () => {
+      isThreadActiveAndValid = false;
+    };
+    // Isolated dependencies strictly around infrastructure primitives to protect runtime paths from loops
+  }, [
+    unverifiedAgentKeyStr,
+    isDatabaseAgentResolving,
+    isLoadingSessions,
+    !!resolvedActiveAgentMetadata,
+    executeNavigationHook,
+    startOrResumeSession,
+  ]);
 
-  // CTO FIX: High-Fidelity Loading Shell
-  if (isInitializing || isLoadingDbAgent) {
+  if (!unverifiedAgentKeyStr) return null;
+
+  // =========================================================================
+  // RENDERING CONTROLLERS: STATE INTERCEPT CHECKPOINTS
+  // =========================================================================
+  if (isSessionInitializing || isDatabaseAgentResolving) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6">
-        <div className="relative mb-6">
-          <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" />
-          <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20 stroke-[1.5px]" />
-          <MessageSquare className="h-8 w-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <div
+        role="status"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6 select-none pointer-events-none transform-gpu antialiased"
+      >
+        <div className="relative mb-6 block shrink-0">
+          <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-pulse" />
+          <Loader2 className="h-14 w-14 animate-spin text-primary opacity-25 stroke-[1.5]" />
+          <MessageSquare className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 stroke-[2]" />
         </div>
-        <div className="text-center space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary animate-pulse">
-            Establishing Secure Channel
+        <div className="text-center leading-none space-y-1 block">
+          <p className="font-mono text-[10px] font-extrabold uppercase tracking-widest text-primary animate-pulse">
+            Configuring Uplink Path
           </p>
-          <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
-            Synchronizing AI Match...
+          <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
+            Synchronizing Matrix Interface Maps...
           </p>
         </div>
       </div>
     );
   }
 
-  if (!activeAgent) return null;
+  if (!resolvedActiveAgentMetadata) {
+    return (
+      <div
+        role="alert"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6 antialiased select-none transform-gpu text-center"
+      >
+        <div className="max-w-xs block space-y-4 leading-none">
+          <div className="h-10 w-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive mx-auto pointer-events-none">
+            <ShieldAlert className="h-5 w-5 stroke-[2.2]" />
+          </div>
+          <div className="space-y-1 block">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Uplink Terminated</p>
+            <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
+              The communication handshake has failed to resolve. The specified neural node link is invalid or
+              unreachable.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => executeNavigationHook("/app/agents")}
+            className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider px-4 cursor-pointer"
+          >
+            Return to Directory Roster
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const IconComponent = getIcon(activeAgent.iconName) || MessageSquare;
+  const DynamicIconAssetNode = getIcon(resolvedActiveAgentMetadata.iconName) || MessageSquare;
 
   return (
-    /** * ARCHITECTURAL HUB:
-     * fixed inset-0 + precise navigation offsets to prevent browser chrome jumping.
-     */
-    <div className="fixed inset-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background">
+    <div className="fixed inset-x-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background w-full block">
       <main
         className={cn(
-          "flex-1 w-full max-w-5xl mx-auto flex flex-col overflow-hidden transition-all duration-500",
-          "bg-card/30 backdrop-blur-xl border-x border-border/40 shadow-2xl",
+          "flex-1 w-full max-w-5xl mx-auto flex flex-col overflow-hidden transition-all duration-300 text-left antialiased transform-gpu",
+          "bg-card/25 backdrop-blur-md border-x border-border/40 shadow-xs",
         )}
       >
-        {!isInitializing ? (
+        {!isSessionInitializing ? (
           <AgentChatDialog
             agent={{
-              id: agentKey,
-              name: activeAgent.name,
-              color: activeAgent.color,
-              icon: <IconComponent className={`h-4 w-4 ${activeAgent.iconColor}`} />,
-              avatarUrl: activeAgent.avatarUrl,
+              id: unverifiedAgentKeyStr,
+              name: resolvedActiveAgentMetadata.name,
+              color: resolvedActiveAgentMetadata.color,
+              icon: <DynamicIconAssetNode className={cn("h-4 w-4 shrink-0", resolvedActiveAgentMetadata.iconColor)} />,
+              avatarUrl: resolvedActiveAgentMetadata.avatarUrl,
             }}
             messages={messages}
             isStreaming={isStreaming}
             onSendMessage={sendMessage}
-            onBack={() => navigate("/app/agents")}
+            onBack={() => executeNavigationHook("/app/agents")}
             onEndSession={async () => {
-              await endSession();
-              navigate("/app/agents");
+              try {
+                await endSession();
+              } catch (suppressedException) {
+                // Safeguards redirection path context from broken background syncs
+              }
+              executeNavigationHook("/app/agents");
             }}
-            perResponseCost={activeAgent.creditCost || perResponseCost}
+            perResponseCost={resolvedActiveAgentMetadata.creditCost || perResponseCost}
           />
         ) : (
-          /* Error State: Diagnostic Protocol */
-          <div className="flex flex-col items-center justify-center h-full p-12 text-center animate-in fade-in zoom-in-95">
-            <div className="h-24 w-24 rounded-[40px] bg-destructive/10 flex items-center justify-center mb-8 rotate-3">
-              <ShieldAlert className="h-12 w-12 text-destructive shadow-sm" />
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center select-none block max-w-sm mx-auto space-y-4 leading-none">
+            <div className="h-14 w-14 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive pointer-events-none transform-gpu animate-bounce">
+              <ShieldAlert className="h-6 w-6 stroke-[2.2]" />
             </div>
-            <h3 className="font-black uppercase tracking-tighter text-2xl mb-2">Session Interrupted</h3>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic mb-8 max-w-[280px]">
-              The secure uplink with the specialist has been severed. List handshake failed.
-            </p>
+            <div className="space-y-1 block leading-none">
+              <h3 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide">
+                Session Pipeline Interrupted
+              </h3>
+              <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal block">
+                The streaming data connection channel with the active specialist node has dropped.
+              </p>
+            </div>
+
             <Button
+              type="button"
               size="lg"
               onClick={() => window.location.reload()}
-              className="rounded-2xl px-10 font-black uppercase tracking-widest text-[10px] h-12 shadow-xl shadow-primary/20"
+              className="w-full h-9 rounded-lg font-bold uppercase tracking-wider text-[10px] sm:text-xs gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
             >
-              <Zap className="mr-2 h-4 w-4" />
-              Re-establish Connection
+              <Zap className="h-3.5 w-3.5 stroke-[2.2]" />
+              <span>Re-establish Uplink Track</span>
             </Button>
           </div>
         )}
