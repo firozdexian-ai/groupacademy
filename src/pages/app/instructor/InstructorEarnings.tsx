@@ -11,6 +11,7 @@ import {
   Users,
   FileCheck2,
   Inbox,
+  CheckCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
