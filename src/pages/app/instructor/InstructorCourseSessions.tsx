@@ -18,10 +18,64 @@ import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+// =========================================================================
+// DETERMINISTIC CONTRACT INTERFACES
+// =========================================================================
+interface Cohort {
+  id: string;
+  name: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  capacity: number | null;
+  timezone: string | null;
+  status: string;
+}
+
+interface Session {
+  id: string;
+  title: string;
+  scheduled_date: string;
+  event_timezone: string | null;
+  duration_minutes: number | null;
+  kind: string;
+  status: string;
+  meeting_link?: string | null;
+}
+
+interface AttendanceRecord {
+  user_id: string;
+  display_name: string | null;
+  status: "attended" | "partial" | "absent";
+}
+
+interface CohortSessionsProps {
+  cohort: Cohort;
+  onAddSession: () => void;
+  onAttendance: (sessionId: string) => void;
+}
+
+interface CohortForm {
+  name: string;
+  starts_on: string;
+  ends_on: string;
+  capacity: string;
+  timezone: string;
+  status: string;
+}
+
+interface SessionForm {
+  title: string;
+  scheduled_date: string;
+  duration_minutes: number;
+  meeting_link: string;
+  kind: string;
+  is_mandatory: boolean;
+}
+
 /**
- * GroUp Academy: Authoritative Instructor Cockpit Controller Node (InstructorCourseSessions)
- * Hardened operational board securing relational cascade hooks and insulating timestamp mutations.
- * Version: Launch Candidate · Phase Z0 Lifecycle Insulation Hardened
+ * GroUp Academy: Technical Classroom Session Controller Hub (InstructorCourseSessions)
+ * Hardened operational cockpit tracking relational lists and insulating data mutations with explicit type safety.
+ * Version: Launch Candidate · Phase Z1 Production Contract Locked
  */
 export default function InstructorCourseSessions() {
   const { contentId: unverifiedContentParamStr } = useParams<{ contentId: string }>();
@@ -33,13 +87,13 @@ export default function InstructorCourseSessions() {
   const [isSessionSheetOpen, setIsSessionSheetOpen] = React.useState<boolean>(false);
   const [activeAttendanceTargetSessionId, setActiveAttendanceTargetSessionId] = React.useState<string | null>(null);
 
-  // Reconcile and isolate lookups to prevent null-pointer exceptions across active rosters
-  const resolvedActiveCohortNode = React.useMemo(() => {
-    if (cohortsRegistryData.length === 0) return null;
-    return (
-      cohortsRegistryData.find((cohortItem: any) => cohortItem.id === selectedCohortIdState) ?? cohortsRegistryData[0]
-    );
-  }, [cohortsRegistryData, selectedCohortIdState]);
+  // Safely cast registry array contexts to shield hooks from shape modifications
+  const typedCohortsArray = cohortsRegistryData as unknown as Cohort[];
+
+  const resolvedActiveCohortNode = React.useMemo<Cohort | null>(() => {
+    if (typedCohortsArray.length === 0) return null;
+    return typedCohortsArray.find((cohortItem) => cohortItem.id === selectedCohortIdState) ?? typedCohortsArray[0];
+  }, [typedCohortsArray, selectedCohortIdState]);
 
   if (isCohortsCacheResolving) {
     return (
@@ -87,9 +141,9 @@ export default function InstructorCourseSessions() {
         </div>
       </header>
 
-      {/* HUD LEVEL 2: RECONCILED OPTION SEGMENT FILTERS */}
+      {/* HUD LEVEL 2: RECONCILED FILTER BUTTON ROWS */}
       <main className="mt-4 space-y-4 block w-full">
-        {cohortsRegistryData.length === 0 ? (
+        {typedCohortsArray.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block">
             <Inbox className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
             <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
@@ -99,7 +153,7 @@ export default function InstructorCourseSessions() {
           </div>
         ) : (
           <div className="flex gap-1.5 overflow-x-auto pb-1.5 w-full select-none scrollbar-none transform-gpu shrink-0 block">
-            {cohortsRegistryData.map((cohortItemNode: any) => (
+            {typedCohortsArray.map((cohortItemNode) => (
               <button
                 key={`cohort-filter-pill-${cohortItemNode.id}`}
                 type="button"
@@ -127,7 +181,7 @@ export default function InstructorCourseSessions() {
         )}
       </main>
 
-      {/* OVERLAY SECTOR: ISOLATED MANAGEMENT DIALOG PANELS */}
+      {/* OVERLAY PANEL CONTEXT LAYERS */}
       <CohortSheet
         open={isCohortSheetOpen}
         onClose={() => setIsCohortSheetOpen(false)}
@@ -148,10 +202,11 @@ export default function InstructorCourseSessions() {
 }
 
 // =========================================================================
-// NESTED ELEMENT 1: COHORT SESSIONS COMPILER SECTION
+// NESTED ELEMENT 1: COHORT SESSIONS LIST CONTROLLER
 // =========================================================================
-function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
+function CohortSessions({ cohort, onAddSession, onAttendance }: CohortSessionsProps) {
   const { data: activeSessionsPayloadArray = [], isLoading: isSessionsLoading } = useCohortSessions(cohort.id);
+  const typedSessionsArray = activeSessionsPayloadArray as unknown as Session[];
 
   return (
     <div className="space-y-3 block w-full">
@@ -180,7 +235,7 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
           <span>Compiling Session Syllabus...</span>
         </div>
-      ) : activeSessionsPayloadArray.length === 0 ? (
+      ) : typedSessionsArray.length === 0 ? (
         <Card className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6 text-center select-none block">
           <p className="text-xs font-semibold text-muted-foreground/50 leading-normal max-w-xs mx-auto">
             No dynamic technical syllabus items or lecture segments have been scheduled under this block.
@@ -188,7 +243,7 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
         </Card>
       ) : (
         <div className="space-y-2 block w-full">
-          {activeSessionsPayloadArray.map((sessionNodeItem: any) => (
+          {typedSessionsArray.map((sessionNodeItem) => (
             <Card
               key={`cohort-session-item-card-${sessionNodeItem.id}`}
               className="rounded-lg border border-border/60 bg-card/30 shadow-none overflow-hidden block w-full transform-gpu transition-colors hover:border-border-foreground/5"
@@ -210,7 +265,7 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
                       variant="outline"
                       className="font-mono text-[9px] font-extrabold uppercase px-1 h-4 bg-background/50 text-muted-foreground/60 border-border/40 shrink-0 leading-none pt-0.5 rounded-xs"
                     >
-                      {sessionNodeItem.kind}
+                      {sessionNodeItem.kind.replace(/_/g, " ")}
                     </Badge>
                     <Badge
                       variant="secondary"
@@ -241,13 +296,19 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
 }
 
 // =========================================================================
-// NESTED ELEMENT 2: NEW COHORT INITIALIZATION CONFIGURATION SHEET PANEL
+// NESTED ELEMENT 2: NEW COHORT CREATION SHEET OVERLAY
 // =========================================================================
-function CohortSheet({ open, onClose, contentId }: any) {
+interface CohortSheetProps {
+  open: boolean;
+  onClose: () => void;
+  contentId: string;
+}
+
+function CohortSheet({ open, onClose, contentId }: CohortSheetProps) {
   const saveCohortMutation = useSaveCohort();
   const { toast } = useToast();
 
-  const [cohortFormState, setCohortFormState] = React.useState<any>({
+  const [cohortFormState, setCohortFormState] = React.useState<CohortForm>({
     name: "",
     starts_on: "",
     ends_on: "",
@@ -255,6 +316,10 @@ function CohortSheet({ open, onClose, contentId }: any) {
     timezone: "Asia/Dhaka",
     status: "open",
   });
+
+  const handleInputChange = React.useCallback((fieldKey: keyof CohortForm, valueString: string) => {
+    setCohortFormState((prev) => ({ ...prev, [fieldKey]: valueString }));
+  }, []);
 
   const handleCohortSubmissionSequence = React.useCallback(async () => {
     if (!cohortFormState.name.trim()) {
@@ -316,9 +381,10 @@ function CohortSheet({ open, onClose, contentId }: any) {
             </Label>
             <Input
               type="text"
+              disabled={saveCohortMutation.isPending}
               placeholder="e.g., Phase Alpha 2026"
               value={cohortFormState.name}
-              onChange={(e) => setFormStateValue(setCohortFormState, "name", e.target.value)}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
             />
           </div>
@@ -330,8 +396,9 @@ function CohortSheet({ open, onClose, contentId }: any) {
               </Label>
               <Input
                 type="date"
+                disabled={saveCohortMutation.isPending}
                 value={cohortFormState.starts_on}
-                onChange={(e) => setFormStateValue(setCohortFormState, "starts_on", e.target.value)}
+                onChange={(e) => handleInputChange("starts_on", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
               />
             </div>
@@ -341,8 +408,9 @@ function CohortSheet({ open, onClose, contentId }: any) {
               </Label>
               <Input
                 type="date"
+                disabled={saveCohortMutation.isPending}
                 value={cohortFormState.ends_on}
-                onChange={(e) => setFormStateValue(setCohortFormState, "ends_on", e.target.value)}
+                onChange={(e) => handleInputChange("ends_on", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
               />
             </div>
@@ -351,13 +419,14 @@ function CohortSheet({ open, onClose, contentId }: any) {
           <div className="grid grid-cols-2 gap-2 w-full block">
             <div className="space-y-1 block leading-none">
               <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
-                Roster Capacity Limit
+                Capacity Limit
               </Label>
               <Input
                 type="number"
+                disabled={saveCohortMutation.isPending}
                 placeholder="Unlimited"
                 value={cohortFormState.capacity}
-                onChange={(e) => setFormStateValue(setCohortFormState, "capacity", e.target.value)}
+                onChange={(e) => handleInputChange("capacity", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none tabular-nums font-mono"
               />
             </div>
@@ -367,8 +436,9 @@ function CohortSheet({ open, onClose, contentId }: any) {
               </Label>
               <Input
                 type="text"
+                disabled={saveCohortMutation.isPending}
                 value={cohortFormState.timezone}
-                onChange={(e) => setFormStateValue(setCohortFormState, "timezone", e.target.value)}
+                onChange={(e) => handleInputChange("timezone", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
               />
             </div>
@@ -396,11 +466,18 @@ function CohortSheet({ open, onClose, contentId }: any) {
 // =========================================================================
 // NESTED ELEMENT 3: SYLLABUS LECTURE SCHEDULING INTERACTION PANEL
 // =========================================================================
-function SessionSheet({ open, onClose, cohort, contentId }: any) {
+interface SessionSheetProps {
+  open: boolean;
+  onClose: () => void;
+  cohort: Cohort | null;
+  contentId: string;
+}
+
+function SessionSheet({ open, onClose, cohort, contentId }: SessionSheetProps) {
   const saveSessionMutation = useSaveSession();
   const { toast } = useToast();
 
-  const [sessionFormState, setSessionFormState] = React.useState<any>({
+  const [sessionFormState, setSessionFormState] = React.useState<SessionForm>({
     title: "",
     scheduled_date: "",
     duration_minutes: 60,
@@ -422,6 +499,10 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
     }
   }, [open]);
 
+  const handleInputChange = React.useCallback((fieldKey: keyof SessionForm, val: any) => {
+    setSessionFormState((prev) => ({ ...prev, [fieldKey]: val }));
+  }, []);
+
   if (!cohort) return null;
 
   const handleSessionSubmissionSequence = async () => {
@@ -435,7 +516,6 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
     }
 
     try {
-      // Force track explicitly through uniform boundaries to preserve alignment matrices
       const targetUtcNormalizedDateString = new Date(sessionFormState.scheduled_date).toISOString();
 
       await saveSessionMutation.mutateAsync({
@@ -482,9 +562,10 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
             </Label>
             <Input
               type="text"
+              disabled={saveSessionMutation.isPending}
               placeholder="e.g., Cryptographic Ledger Sync"
               value={sessionFormState.title}
-              onChange={(e) => setFormStateValue(setSessionFormState, "title", e.target.value)}
+              onChange={(e) => handleInputChange("title", e.target.value)}
               className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
             />
           </div>
@@ -496,8 +577,9 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
               </Label>
               <Input
                 type="datetime-local"
+                disabled={saveSessionMutation.isPending}
                 value={sessionFormState.scheduled_date}
-                onChange={(e) => setFormStateValue(setSessionFormState, "scheduled_date", e.target.value)}
+                onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
               />
             </div>
@@ -507,8 +589,9 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
               </Label>
               <Input
                 type="number"
+                disabled={saveSessionMutation.isPending}
                 value={sessionFormState.duration_minutes}
-                onChange={(e) => setFormStateValue(setSessionFormState, "duration_minutes", Number(e.target.value))}
+                onChange={(e) => handleInputChange("duration_minutes", Number(e.target.value))}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono tabular-nums"
               />
             </div>
@@ -520,9 +603,10 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
             </Label>
             <Input
               type="url"
+              disabled={saveSessionMutation.isPending}
               placeholder="https://meet.google.com/..."
               value={sessionFormState.meeting_link}
-              onChange={(e) => setFormStateValue(setSessionFormState, "meeting_link", e.target.value)}
+              onChange={(e) => handleInputChange("meeting_link", e.target.value)}
               className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
             />
           </div>
@@ -532,9 +616,10 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
               Instructional Sequence Variant
             </Label>
             <select
-              className="w-full h-9 rounded-lg border border-border/40 bg-background/50 px-3 font-sans text-xs sm:text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer shadow-none"
+              disabled={saveSessionMutation.isPending}
+              className="w-full h-9 rounded-lg border border-border/40 bg-background/50 px-3 font-sans text-xs sm:text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
               value={sessionFormState.kind}
-              onChange={(e) => setFormStateValue(setSessionFormState, "kind", e.target.value)}
+              onChange={(e) => handleInputChange("kind", e.target.value)}
             >
               <option value="lecture">Lecture Sequence</option>
               <option value="office_hours">Office Hours Briefing</option>
@@ -565,12 +650,18 @@ function SessionSheet({ open, onClose, cohort, contentId }: any) {
 }
 
 // =========================================================================
-// NESTED ELEMENT 4: OPERATOR ATTENDANCE AUDIT VERIFICATION MANIFEST SHEET
+// NESTED ELEMENT 4: OPERATOR ATTENDANCE SHEET REGISTER
 // =========================================================================
-function AttendanceSheet({ sessionId, onClose }: any) {
+interface AttendanceSheetProps {
+  sessionId: string | null;
+  onClose: () => void;
+}
+
+function AttendanceSheet({ sessionId, onClose }: AttendanceSheetProps) {
   const { data: attendanceRegistryRows = [], isLoading: isAttendanceResolving } = useInstructorAttendance(
     sessionId ?? undefined,
   );
+  const typedAttendanceArray = attendanceRegistryRows as unknown as AttendanceRecord[];
 
   return (
     <Sheet open={!!sessionId} onOpenChange={onClose}>
@@ -594,12 +685,12 @@ function AttendanceSheet({ sessionId, onClose }: any) {
           </div>
         ) : (
           <div className="mt-4 block w-full divide-y divide-border/5">
-            {attendanceRegistryRows.length === 0 ? (
+            {typedAttendanceArray.length === 0 ? (
               <p className="text-xs font-semibold text-muted-foreground/50 text-center select-none py-6">
                 No verified user footprints or learner links recorded under this node sequence.
               </p>
             ) : (
-              attendanceRegistryRows.map((userRecordItem: any) => (
+              typedAttendanceArray.map((userRecordItem) => (
                 <div
                   key={`attendance-record-mapping-row-${userRecordItem.user_id}`}
                   className="flex items-center justify-between py-2.5 text-xs sm:text-sm font-medium border-b border-border/5 leading-none w-full block"
@@ -628,16 +719,4 @@ function AttendanceSheet({ sessionId, onClose }: any) {
       </SheetContent>
     </Sheet>
   );
-}
-
-// Macro helper abstraction layer securing input mutations safely from cross-component collisions
-function setFormStateValue(
-  stateSetterHook: React.Dispatch<React.SetStateAction<any>>,
-  objectFieldKeyStr: string,
-  variableDataValue: any,
-) {
-  stateSetterHook((previousFormState: any) => ({
-    ...previousFormState,
-    [objectFieldKeyStr]: variableDataValue,
-  }));
 }
