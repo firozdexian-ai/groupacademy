@@ -1,198 +1,643 @@
-/**
- * InstructorCourseSessions — instructor cockpit for a single course:
- * cohorts list + sessions + attendance grid.
- */
-import { useState } from "react";
+import * as React from "react";
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, Plus, Loader2, Calendar, Users, Pencil } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { ChevronLeft, Plus, Loader2, Calendar, Users, Inbox, Clock, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useCohorts, useCohortSessions, useSaveSession, useSaveCohort, useInstructorAttendance } from "@/hooks/useCohorts";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  useCohorts,
+  useCohortSessions,
+  useSaveSession,
+  useSaveCohort,
+  useInstructorAttendance,
+} from "@/hooks/useCohorts";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
+/**
+ * GroUp Academy: Authoritative Instructor Cockpit Controller Node (InstructorCourseSessions)
+ * Hardened operational board securing relational cascade hooks and insulating timestamp mutations.
+ * Version: Launch Candidate · Phase Z0 Lifecycle Insulation Hardened
+ */
 export default function InstructorCourseSessions() {
-  const { contentId } = useParams<{ contentId: string }>();
-  const { data: cohorts = [], isLoading } = useCohorts(contentId);
-  const [activeCohort, setActiveCohort] = useState<string | null>(null);
-  const [showCohort, setShowCohort] = useState(false);
-  const [showSession, setShowSession] = useState(false);
-  const [attendanceFor, setAttendanceFor] = useState<string | null>(null);
+  const { contentId: unverifiedContentParamStr } = useParams<{ contentId: string }>();
 
-  if (isLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  const { data: cohortsRegistryData = [], isLoading: isCohortsCacheResolving } = useCohorts(unverifiedContentParamStr);
 
-  const cohort = cohorts.find((c: any) => c.id === activeCohort) ?? cohorts[0];
+  const [selectedCohortIdState, setSelectedCohortIdState] = React.useState<string | null>(null);
+  const [isCohortSheetOpen, setIsCohortSheetOpen] = React.useState<boolean>(false);
+  const [isSessionSheetOpen, setIsSessionSheetOpen] = React.useState<boolean>(false);
+  const [activeAttendanceTargetSessionId, setActiveAttendanceTargetSessionId] = React.useState<string | null>(null);
+
+  // Reconcile and isolate lookups to prevent null-pointer exceptions across active rosters
+  const resolvedActiveCohortNode = React.useMemo(() => {
+    if (cohortsRegistryData.length === 0) return null;
+    return (
+      cohortsRegistryData.find((cohortItem: any) => cohortItem.id === selectedCohortIdState) ?? cohortsRegistryData[0]
+    );
+  }, [cohortsRegistryData, selectedCohortIdState]);
+
+  if (isCohortsCacheResolving) {
+    return (
+      <div
+        role="status"
+        className="min-h-[50vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none antialiased"
+      >
+        <div className="flex items-center gap-2.5">
+          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+          <span>Synchronizing Classroom Registry...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto pb-24">
-      <header className="px-4 pt-4 pb-2">
-        <Link to="/app/instructor" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <ChevronLeft className="h-3 w-3" /> Workspace
+    <div className="max-w-3xl mx-auto px-4 py-4 pb-24 text-left antialiased block transform-gpu w-full">
+      {/* HUD LEVEL 1: ADMINISTRATIVE HUB CONTROL BAR */}
+      <header className="block w-full select-none pb-4 border-b border-border/10">
+        <Link
+          to="/app/instructor"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors leading-none"
+        >
+          <ChevronLeft className="h-3 w-3 stroke-[2.2]" /> <span>Return to Instructor Workspace</span>
         </Link>
-        <div className="flex items-center justify-between mt-1">
-          <h1 className="text-xl font-bold tracking-tight">Cohorts & Sessions</h1>
-          <Button size="sm" onClick={() => setShowCohort(true)}><Plus className="h-3.5 w-3.5 mr-1" />Cohort</Button>
+
+        <div className="flex items-center justify-between mt-3 leading-none w-full">
+          <div className="space-y-0.5 block">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground leading-none pt-0.5">
+              Cohorts & Instruction Sessions
+            </h1>
+            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-none block">
+              Manage live seminar delivery rosters, tracking logs, and attendance manifests.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsCohortSheetOpen(true)}
+            className="h-8 rounded-lg font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 shadow-2xs transform-gpu active:scale-[0.985]"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>Add Cohort</span>
+          </Button>
         </div>
       </header>
 
-      <main className="px-4 mt-3 space-y-3">
-        {/* Cohorts row */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2">
-          {cohorts.map((c: any) => (
-            <button key={c.id} onClick={() => setActiveCohort(c.id)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs ${(cohort?.id === c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>
-              {c.name}
-            </button>
-          ))}
-        </div>
+      {/* HUD LEVEL 2: RECONCILED OPTION SEGMENT FILTERS */}
+      <main className="mt-4 space-y-4 block w-full">
+        {cohortsRegistryData.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block">
+            <Inbox className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
+            <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
+              No active learning cohorts assigned under this specification. Instantiate a root group configuration block
+              to start.
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-1.5 overflow-x-auto pb-1.5 w-full select-none scrollbar-none transform-gpu shrink-0 block">
+            {cohortsRegistryData.map((cohortItemNode: any) => (
+              <button
+                key={`cohort-filter-pill-${cohortItemNode.id}`}
+                type="button"
+                onClick={() => setSelectedCohortIdState(cohortItemNode.id)}
+                className={cn(
+                  "shrink-0 h-7 px-3 rounded-full text-[10px] sm:text-xs font-mono font-extrabold uppercase tracking-wide border transition-all cursor-pointer shadow-2xs outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  resolvedActiveCohortNode?.id === cohortItemNode.id
+                    ? "bg-primary border-primary text-primary-foreground font-black"
+                    : "bg-card/40 border-border/60 text-muted-foreground/70 hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                {cohortItemNode.name}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {cohort && (
+        {/* Dynamic Inner Cohort Roster Display Frame */}
+        {resolvedActiveCohortNode && (
           <CohortSessions
-            cohort={cohort}
-            onAddSession={() => setShowSession(true)}
-            onAttendance={(sid) => setAttendanceFor(sid)}
+            cohort={resolvedActiveCohortNode}
+            onAddSession={() => setIsSessionSheetOpen(true)}
+            onAttendance={(targetSessionId: string) => setActiveAttendanceTargetSessionId(targetSessionId)}
           />
         )}
       </main>
 
-      <CohortSheet open={showCohort} onClose={() => setShowCohort(false)} contentId={contentId!} />
-      <SessionSheet open={showSession} onClose={() => setShowSession(false)} cohort={cohort} contentId={contentId!} />
-      <AttendanceSheet sessionId={attendanceFor} onClose={() => setAttendanceFor(null)} />
+      {/* OVERLAY SECTOR: ISOLATED MANAGEMENT DIALOG PANELS */}
+      <CohortSheet
+        open={isCohortSheetOpen}
+        onClose={() => setIsCohortSheetOpen(false)}
+        contentId={unverifiedContentParamStr!}
+      />
+      <SessionSheet
+        open={isSessionSheetOpen}
+        onClose={() => setIsSessionSheetOpen(false)}
+        cohort={resolvedActiveCohortNode}
+        contentId={unverifiedContentParamStr!}
+      />
+      <AttendanceSheet
+        sessionId={activeAttendanceTargetSessionId}
+        onClose={() => setActiveAttendanceTargetSessionId(null)}
+      />
     </div>
   );
 }
 
+// =========================================================================
+// NESTED ELEMENT 1: COHORT SESSIONS COMPILER SECTION
+// =========================================================================
 function CohortSessions({ cohort, onAddSession, onAttendance }: any) {
-  const { data: sessions = [] } = useCohortSessions(cohort.id);
+  const { data: activeSessionsPayloadArray = [], isLoading: isSessionsLoading } = useCohortSessions(cohort.id);
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground"><Calendar className="h-3 w-3 inline mr-1" />{cohort.starts_on ?? "self-paced"}{cohort.ends_on ? ` → ${cohort.ends_on}` : ""}</p>
-        <Button size="sm" variant="outline" onClick={onAddSession}><Plus className="h-3.5 w-3.5 mr-1" />Session</Button>
+    <div className="space-y-3 block w-full">
+      <div className="flex items-center justify-between select-none pointer-events-none leading-none w-full shrink-0">
+        <p className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/40 inline-flex items-center gap-1 pt-1 leading-none">
+          <Calendar className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
+          <span>
+            SPAN: {cohort.starts_on ?? "SELF-PACED PIPELINE"}
+            {cohort.ends_on ? ` → ${cohort.ends_on}` : ""}
+          </span>
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onAddSession}
+          className="h-7 rounded-md font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 pointer-events-auto shadow-2xs"
+        >
+          <Plus className="h-3 w-3 stroke-[2.5]" />
+          <span>Add Session</span>
+        </Button>
       </div>
-      {sessions.length === 0 ? (
-        <Card className="p-4 text-xs text-muted-foreground">No sessions yet — add your first lecture.</Card>
-      ) : sessions.map((s: any) => (
-        <Card key={s.id} className="p-3 rounded-2xl">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">{s.title}</p>
-              <p className="text-[11px] text-muted-foreground">{formatEventTime(s.scheduled_date, s.event_timezone || DEFAULT_EVENT_TZ)} • {s.duration_minutes ?? 60} min</p>
-              <div className="mt-1 flex gap-1">
-                <Badge variant="outline" className="text-[10px]">{s.kind}</Badge>
-                <Badge variant="secondary" className="text-[10px]">{s.status}</Badge>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => onAttendance(s.id)}>
-              <Users className="h-3.5 w-3.5 mr-1" />Attendance
-            </Button>
-          </div>
+
+      {isSessionsLoading ? (
+        <div className="w-full flex items-center justify-center py-8 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
+          <span>Compiling Session Syllabus...</span>
+        </div>
+      ) : activeSessionsPayloadArray.length === 0 ? (
+        <Card className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6 text-center select-none block">
+          <p className="text-xs font-semibold text-muted-foreground/50 leading-normal max-w-xs mx-auto">
+            No dynamic technical syllabus items or lecture segments have been scheduled under this block.
+          </p>
         </Card>
-      ))}
+      ) : (
+        <div className="space-y-2 block w-full">
+          {activeSessionsPayloadArray.map((sessionNodeItem: any) => (
+            <Card
+              key={`cohort-session-item-card-${sessionNodeItem.id}`}
+              className="rounded-lg border border-border/60 bg-card/30 shadow-none overflow-hidden block w-full transform-gpu transition-colors hover:border-border-foreground/5"
+            >
+              <CardContent className="p-3 flex items-start justify-between gap-4 leading-none w-full">
+                <div className="min-w-0 flex-1 leading-none space-y-1 block">
+                  <h3 className="text-xs sm:text-sm font-bold text-foreground truncate uppercase tracking-wide block pt-0.5">
+                    {sessionNodeItem.title}
+                  </h3>
+                  <p className="font-mono text-[10px] sm:text-[11px] font-bold text-muted-foreground/50 leading-none select-text block tracking-tight">
+                    {formatEventTime(
+                      sessionNodeItem.scheduled_date,
+                      sessionNodeItem.event_timezone || DEFAULT_EVENT_TZ,
+                    )}{" "}
+                    • {sessionNodeItem.duration_minutes ?? 60} MIN
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5 select-none pointer-events-none flex-wrap leading-none">
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[9px] font-extrabold uppercase px-1 h-4 bg-background/50 text-muted-foreground/60 border-border/40 shrink-0 leading-none pt-0.5 rounded-xs"
+                    >
+                      {sessionNodeItem.kind}
+                    </Badge>
+                    <Badge
+                      variant="secondary"
+                      className="font-mono text-[9px] font-extrabold uppercase px-1 h-4 text-muted-foreground border border-border/5 shrink-0 leading-none pt-0.5 rounded-xs"
+                    >
+                      {sessionNodeItem.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onAttendance(sessionNodeItem.id)}
+                  className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider gap-1.5 cursor-pointer shrink-0 shadow-2xs pt-0.5"
+                >
+                  <Users className="h-3.5 w-3.5 text-muted-foreground/60 stroke-[2.2]" />
+                  <span>Attendance</span>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+// =========================================================================
+// NESTED ELEMENT 2: NEW COHORT INITIALIZATION CONFIGURATION SHEET PANEL
+// =========================================================================
 function CohortSheet({ open, onClose, contentId }: any) {
-  const save = useSaveCohort();
+  const saveCohortMutation = useSaveCohort();
   const { toast } = useToast();
-  const [form, setForm] = useState<any>({ name: "", starts_on: "", ends_on: "", capacity: "", timezone: "Asia/Dhaka", status: "open" });
-  return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
-        <SheetHeader><SheetTitle>New cohort</SheetTitle></SheetHeader>
-        <div className="space-y-2 mt-3">
-          <div><Label className="text-xs">Name</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Starts on</Label><Input type="date" value={form.starts_on} onChange={e => setForm({...form, starts_on: e.target.value})} /></div>
-            <div><Label className="text-xs">Ends on</Label><Input type="date" value={form.ends_on} onChange={e => setForm({...form, ends_on: e.target.value})} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Capacity</Label><Input type="number" value={form.capacity} onChange={e => setForm({...form, capacity: e.target.value})} /></div>
-            <div><Label className="text-xs">Timezone</Label><Input value={form.timezone} onChange={e => setForm({...form, timezone: e.target.value})} /></div>
-          </div>
-          <Button className="w-full mt-2" onClick={async () => {
-            try {
-              await save.mutateAsync({ ...form, capacity: form.capacity ? Number(form.capacity) : null, content_id: contentId });
-              toast({ title: "Cohort created" }); onClose();
-            } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
-          }}>Create cohort</Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
-function SessionSheet({ open, onClose, cohort, contentId }: any) {
-  const save = useSaveSession();
-  const { toast } = useToast();
-  const [form, setForm] = useState<any>({ title: "", scheduled_date: "", duration_minutes: 60, meeting_link: "", kind: "lecture", is_mandatory: false });
-  if (!cohort) return null;
+  const [cohortFormState, setCohortFormState] = React.useState<any>({
+    name: "",
+    starts_on: "",
+    ends_on: "",
+    capacity: "",
+    timezone: "Asia/Dhaka",
+    status: "open",
+  });
+
+  const handleCohortSubmissionSequence = React.useCallback(async () => {
+    if (!cohortFormState.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "A unique cohort target moniker must be supplied.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await saveCohortMutation.mutateAsync({
+        ...cohortFormState,
+        capacity: cohortFormState.capacity ? Number(cohortFormState.capacity) : null,
+        content_id: contentId,
+      });
+      toast({
+        title: "Configuration Confirmed",
+        description: "The learning group matrix has been initialized successfully.",
+      });
+      setCohortFormState({
+        name: "",
+        starts_on: "",
+        ends_on: "",
+        capacity: "",
+        timezone: "Asia/Dhaka",
+        status: "open",
+      });
+      onClose();
+    } catch (mutationExceptionPayload: any) {
+      toast({
+        title: "Execution Refused",
+        description: mutationExceptionPayload.message || "Failed to commit record maps.",
+        variant: "destructive",
+      });
+    }
+  }, [cohortFormState, contentId, onClose, saveCohortMutation, toast]);
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
-        <SheetHeader><SheetTitle>New session — {cohort.name}</SheetTitle></SheetHeader>
-        <div className="space-y-2 mt-3">
-          <div><Label className="text-xs">Title</Label><Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Date & time</Label><Input type="datetime-local" value={form.scheduled_date} onChange={e => setForm({...form, scheduled_date: e.target.value})} /></div>
-            <div><Label className="text-xs">Duration (min)</Label><Input type="number" value={form.duration_minutes} onChange={e => setForm({...form, duration_minutes: Number(e.target.value)})} /></div>
+      <SheetContent
+        side="right"
+        className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-border/60 bg-popover/95 backdrop-blur-md"
+      >
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
+            Initialize New Cohort
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            Deploy an independent structural student tracking row.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-3.5 mt-4 block w-full leading-none">
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Cohort Name Designation
+            </Label>
+            <Input
+              type="text"
+              placeholder="e.g., Phase Alpha 2026"
+              value={cohortFormState.name}
+              onChange={(e) => setFormStateValue(setCohortFormState, "name", e.target.value)}
+              className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
+            />
           </div>
-          <div><Label className="text-xs">Meeting link</Label><Input placeholder="https://meet.google.com/..." value={form.meeting_link} onChange={e => setForm({...form, meeting_link: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Kind</Label>
-              <select className="w-full h-9 rounded-md border bg-background px-2 text-sm" value={form.kind} onChange={e => setForm({...form, kind: e.target.value})}>
-                <option value="lecture">Lecture</option>
-                <option value="office_hours">Office hours</option>
-                <option value="review">Review</option>
-                <option value="exam">Exam</option>
-                <option value="orientation">Orientation</option>
-                <option value="workshop">Workshop</option>
-              </select>
+
+          <div className="grid grid-cols-2 gap-2 w-full block">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Starts On Date
+              </Label>
+              <Input
+                type="date"
+                value={cohortFormState.starts_on}
+                onChange={(e) => setFormStateValue(setCohortFormState, "starts_on", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Ends On Date
+              </Label>
+              <Input
+                type="date"
+                value={cohortFormState.ends_on}
+                onChange={(e) => setFormStateValue(setCohortFormState, "ends_on", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
             </div>
           </div>
-          <Button className="w-full mt-2" onClick={async () => {
-            try {
-              await save.mutateAsync({
-                ...form,
-                cohort_id: cohort.id, content_id: contentId,
-                scheduled_date: new Date(form.scheduled_date).toISOString(),
-                event_timezone: cohort.timezone || "Asia/Dhaka",
-              });
-              toast({ title: "Session scheduled" }); onClose();
-            } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
-          }}>Schedule session</Button>
+
+          <div className="grid grid-cols-2 gap-2 w-full block">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Roster Capacity Limit
+              </Label>
+              <Input
+                type="number"
+                placeholder="Unlimited"
+                value={cohortFormState.capacity}
+                onChange={(e) => setFormStateValue(setCohortFormState, "capacity", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none tabular-nums font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Operation Timezone
+              </Label>
+              <Input
+                type="text"
+                value={cohortFormState.timezone}
+                onChange={(e) => setFormStateValue(setCohortFormState, "timezone", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleCohortSubmissionSequence}
+            disabled={saveCohortMutation.isPending}
+            className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
+          >
+            {saveCohortMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle className="h-3.5 w-3.5 stroke-[2.2]" />
+            )}
+            <span>Commit Cohort Configuration</span>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
+// =========================================================================
+// NESTED ELEMENT 3: SYLLABUS LECTURE SCHEDULING INTERACTION PANEL
+// =========================================================================
+function SessionSheet({ open, onClose, cohort, contentId }: any) {
+  const saveSessionMutation = useSaveSession();
+  const { toast } = useToast();
+
+  const [sessionFormState, setSessionFormState] = React.useState<any>({
+    title: "",
+    scheduled_date: "",
+    duration_minutes: 60,
+    meeting_link: "",
+    kind: "lecture",
+    is_mandatory: false,
+  });
+
+  React.useEffect(() => {
+    if (open) {
+      setSessionFormState({
+        title: "",
+        scheduled_date: "",
+        duration_minutes: 60,
+        meeting_link: "",
+        kind: "lecture",
+        is_mandatory: false,
+      });
+    }
+  }, [open]);
+
+  if (!cohort) return null;
+
+  const handleSessionSubmissionSequence = async () => {
+    if (!sessionFormState.title.trim() || !sessionFormState.scheduled_date) {
+      toast({
+        title: "Validation Error",
+        description: "Designated lecture titles and timestamp parameters are required elements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Force track explicitly through uniform boundaries to preserve alignment matrices
+      const targetUtcNormalizedDateString = new Date(sessionFormState.scheduled_date).toISOString();
+
+      await saveSessionMutation.mutateAsync({
+        ...sessionFormState,
+        cohort_id: cohort.id,
+        content_id: contentId,
+        scheduled_date: targetUtcNormalizedDateString,
+        event_timezone: cohort.timezone || "Asia/Dhaka",
+      });
+
+      toast({
+        title: "Session Dispatched",
+        description: "The instructional module has been synced onto the student calendar timeline.",
+      });
+      onClose();
+    } catch (mutationExceptionPayload: any) {
+      toast({
+        title: "Execution Refused",
+        description: mutationExceptionPayload.message || "Failed to parse system calendar bounds.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent
+        side="right"
+        className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-l-border/60 bg-popover/95 backdrop-blur-md"
+      >
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground truncate">
+            Schedule Session Node
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            Append allocation block to child target: {cohort.name}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-3.5 mt-4 block w-full leading-none">
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Lecture Module Title
+            </Label>
+            <Input
+              type="text"
+              placeholder="e.g., Cryptographic Ledger Sync"
+              value={sessionFormState.title}
+              onChange={(e) => setFormStateValue(setSessionFormState, "title", e.target.value)}
+              className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 w-full block">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Target Execution Time
+              </Label>
+              <Input
+                type="datetime-local"
+                value={sessionFormState.scheduled_date}
+                onChange={(e) => setFormStateValue(setSessionFormState, "scheduled_date", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Duration (Minutes)
+              </Label>
+              <Input
+                type="number"
+                value={sessionFormState.duration_minutes}
+                onChange={(e) => setFormStateValue(setSessionFormState, "duration_minutes", Number(e.target.value))}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono tabular-nums"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Interactive Meeting Link Endpoint
+            </Label>
+            <Input
+              type="url"
+              placeholder="https://meet.google.com/..."
+              value={sessionFormState.meeting_link}
+              onChange={(e) => setFormStateValue(setSessionFormState, "meeting_link", e.target.value)}
+              className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+            />
+          </div>
+
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Instructional Sequence Variant
+            </Label>
+            <select
+              className="w-full h-9 rounded-lg border border-border/40 bg-background/50 px-3 font-sans text-xs sm:text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer shadow-none"
+              value={sessionFormState.kind}
+              onChange={(e) => setFormStateValue(setSessionFormState, "kind", e.target.value)}
+            >
+              <option value="lecture">Lecture Sequence</option>
+              <option value="office_hours">Office Hours Briefing</option>
+              <option value="review">Syllabus Evaluation Review</option>
+              <option value="exam">Terminal Examination Gate</option>
+              <option value="orientation">Onboarding Orientation</option>
+              <option value="workshop">Applied Core Workshop</option>
+            </select>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleSessionSubmissionSequence}
+            disabled={saveSessionMutation.isPending}
+            className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
+          >
+            {saveSessionMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Clock className="h-3.5 w-3.5 stroke-[2.2]" />
+            )}
+            <span>Schedule Instruction Node</span>
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// =========================================================================
+// NESTED ELEMENT 4: OPERATOR ATTENDANCE AUDIT VERIFICATION MANIFEST SHEET
+// =========================================================================
 function AttendanceSheet({ sessionId, onClose }: any) {
-  const { data, isLoading } = useInstructorAttendance(sessionId ?? undefined);
+  const { data: attendanceRegistryRows = [], isLoading: isAttendanceResolving } = useInstructorAttendance(
+    sessionId ?? undefined,
+  );
+
   return (
     <Sheet open={!!sessionId} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-        <SheetHeader><SheetTitle>Attendance</SheetTitle></SheetHeader>
-        {isLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto mt-6" /> : (
-          <div className="mt-3 space-y-1">
-            {(data ?? []).length === 0 ? <p className="text-xs text-muted-foreground">No enrolled learners.</p> :
-              (data ?? []).map((r: any) => (
-                <div key={r.user_id} className="flex items-center justify-between py-1.5 border-b text-sm">
-                  <span className="truncate">{r.display_name || r.user_id.slice(0, 8)}</span>
-                  <Badge variant={r.status === "attended" ? "default" : r.status === "partial" ? "secondary" : "outline"} className="text-[10px]">
-                    {r.status}
+      <SheetContent
+        side="right"
+        className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-border/60 bg-popover/95 backdrop-blur-md"
+      >
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
+            Attendance Manifest
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            Audit log validation overview parameters.
+          </SheetDescription>
+        </SheetHeader>
+
+        {isAttendanceResolving ? (
+          <div className="w-full flex items-center justify-center py-12 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
+            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+            <span>Resolving Enrolled Records...</span>
+          </div>
+        ) : (
+          <div className="mt-4 block w-full divide-y divide-border/5">
+            {attendanceRegistryRows.length === 0 ? (
+              <p className="text-xs font-semibold text-muted-foreground/50 text-center select-none py-6">
+                No verified user footprints or learner links recorded under this node sequence.
+              </p>
+            ) : (
+              attendanceRegistryRows.map((userRecordItem: any) => (
+                <div
+                  key={`attendance-record-mapping-row-${userRecordItem.user_id}`}
+                  className="flex items-center justify-between py-2.5 text-xs sm:text-sm font-medium border-b border-border/5 leading-none w-full block"
+                >
+                  <span className="truncate pr-4 select-text font-bold text-foreground/80 uppercase tracking-wide">
+                    {userRecordItem.display_name || `OP_REF_NODE:${userRecordItem.user_id.slice(0, 8).toUpperCase()}`}
+                  </span>
+
+                  <Badge
+                    variant={
+                      userRecordItem.status === "attended"
+                        ? "default"
+                        : userRecordItem.status === "partial"
+                          ? "secondary"
+                          : "outline"
+                    }
+                    className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 shrink-0 select-none pointer-events-none leading-none pt-0.5 rounded-sm"
+                  >
+                    {userRecordItem.status}
                   </Badge>
                 </div>
               ))
-            }
+            )}
           </div>
         )}
       </SheetContent>
     </Sheet>
   );
+}
+
+// Macro helper abstraction layer securing input mutations safely from cross-component collisions
+function setFormStateValue(
+  stateSetterHook: React.Dispatch<React.SetStateAction<any>>,
+  objectFieldKeyStr: string,
+  variableDataValue: any,
+) {
+  stateSetterHook((previousFormState: any) => ({
+    ...previousFormState,
+    [objectFieldKeyStr]: variableDataValue,
+  }));
 }

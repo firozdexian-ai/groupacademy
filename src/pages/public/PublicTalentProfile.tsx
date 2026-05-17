@@ -1,220 +1,370 @@
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, Award, Trophy, ExternalLink, Linkedin, Globe, Lock, ShieldCheck, MapPin, ArrowRight, Layers, Activity } from "lucide-react";
+import {
+  BadgeCheck,
+  Award,
+  Trophy,
+  ExternalLink,
+  Linkedin,
+  Globe,
+  Lock,
+  ShieldCheck,
+  MapPin,
+  ArrowRight,
+  Layers,
+  Activity,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const LEVEL_META: Record<string, { icon: any; label: string; tone: string }> = {
-  foundational: { icon: BadgeCheck, label: "Foundational", tone: "text-primary bg-primary/10 border-primary/30" },
-  proficient: { icon: Award, label: "Proficient", tone: "text-success-green bg-success-green/10 border-success-green/30" },
-  expert: { icon: Trophy, label: "Expert", tone: "text-amber-500 bg-amber-500/10 border-amber-500/30" },
+const LEVEL_META: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; tone: string }> = {
+  foundational: { icon: BadgeCheck, label: "Foundational", tone: "text-primary bg-primary/5 border-primary/20" },
+  proficient: { icon: Award, label: "Proficient", tone: "text-emerald-600 bg-emerald-500/5 border-emerald-500/20" },
+  expert: { icon: Trophy, label: "Expert", tone: "text-amber-500 bg-amber-500/5 border-amber-500/20" },
 };
 
+/**
+ * Group Academy: Authoritative Public Talent Profile Mirror Node (PublicTalentProfile)
+ * Hardened responsive identity page isolating OpenGraph context scripts and securing DOM nodes against side-effect memory leaks.
+ * Version: Launch Candidate · Phase Z0 Geometric Balance Locked
+ */
 export default function PublicTalentProfile() {
-  const { handle } = useParams<{ handle: string }>();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const { handle: unverifiedRouteHandleStr } = useParams<{ handle: string }>();
 
-  useEffect(() => {
-    if (!handle) return;
-    (async () => {
-      const { data } = await supabase.rpc("get_public_talent_profile", { _handle: handle });
-      setProfile(data ?? null);
-      setLoading(false);
-    })();
-  }, [handle]);
+  const [isPipelineResolving, setIsPipelineResolving] = React.useState<boolean>(true);
+  const [profileDataPayload, setProfileDataPayload] = React.useState<any>(null);
 
-  useEffect(() => {
-    if (!profile) return;
-    document.title = `${profile.full_name} — Group Academy`;
-    const desc = profile.bio ?? `${profile.full_name} on Group Academy — verified skills and learning mastery.`;
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "description");
-      document.head.appendChild(meta);
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: ISOLATED RPC NETWORK FETCH AND DATA INTEGRITY
+  // =========================================================================
+  React.useEffect(() => {
+    if (!unverifiedRouteHandleStr) {
+      setIsPipelineResolving(false);
+      return;
     }
-    meta.setAttribute("content", desc);
 
-    const ogTags = [
-      ["og:title", `${profile.full_name} — Group Academy`],
-      ["og:description", desc],
+    let isThreadActiveAndValid = true;
+    setIsPipelineResolving(true);
+
+    const executeProfileRegistryLookup = async () => {
+      try {
+        const { data: outputProfilePayload, error: queryHandshakeError } = await supabase.rpc(
+          "get_public_talent_profile",
+          { _handle: unverifiedRouteHandleStr },
+        );
+
+        if (!isThreadActiveAndValid) return;
+
+        if (queryHandshakeError || !outputProfilePayload) {
+          setProfileDataPayload(null);
+        } else {
+          setProfileDataPayload(outputProfilePayload);
+        }
+      } catch (fatalExecutionException) {
+        if (isThreadActiveAndValid) setProfileDataPayload(null);
+      }
+      {
+        if (isThreadActiveAndValid) setIsPipelineResolving(false);
+      }
+    };
+
+    executeProfileRegistryLookup();
+
+    return () => {
+      isThreadActiveAndValid = false;
+    };
+  }, [unverifiedRouteHandleStr]);
+
+  // =========================================================================
+  // LIFECYCLE SECTOR 2: SYMMETRIC HEAD METADATA & SCHEMA DISCLOSURE SYNCHRONIZER
+  // =========================================================================
+  React.useEffect(() => {
+    if (!profileDataPayload) return;
+
+    const isolatedProfileNode = profileDataPayload;
+    const computedPageTitleStr = `${isolatedProfileNode.full_name} — Group Academy Profile Portfolio`;
+    const computedDescriptionStr =
+      isolatedProfileNode.bio ??
+      `${isolatedProfileNode.full_name} profile on Group Academy — verified development skills and curriculum mastery.`;
+
+    // Step A: Stabilize standard window landmarks safely
+    document.title = computedPageTitleStr;
+
+    // Step B: Reconcile base description meta nodes defensively
+    let primaryDescriptionMetaNode = document.head.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!primaryDescriptionMetaNode) {
+      primaryDescriptionMetaNode = document.createElement("meta");
+      primaryDescriptionMetaNode.name = "description";
+      document.head.appendChild(primaryDescriptionMetaNode);
+    }
+    primaryDescriptionMetaNode.content = computedDescriptionStr;
+
+    // Step C: Inject insulated social context graphs symmetrically to neutralize duplicate leaks
+    const socialOpenGraphTagsMatrix = [
+      ["og:title", computedPageTitleStr],
+      ["og:description", computedDescriptionStr],
       ["og:type", "profile"],
-      ["og:image", profile.profile_photo_url ?? ""],
+      ["og:image", isolatedProfileNode.profile_photo_url ?? ""],
       ["twitter:card", "summary_large_image"],
     ];
-    const created: HTMLMetaElement[] = [];
-    ogTags.forEach(([k, v]) => {
-      const m = document.createElement("meta");
-      m.setAttribute("property", k);
-      m.setAttribute("content", v);
-      document.head.appendChild(m);
-      created.push(m);
+
+    const structuralCreatedMetaNodesArray: HTMLMetaElement[] = [];
+
+    socialOpenGraphTagsMatrix.forEach(([propertyKeyString, variableContentString]) => {
+      // Clean up pre-existing duplicates ahead of appending actions
+      const lingeringNode = document.head.querySelector(`meta[property="${propertyKeyString}"]`);
+      if (lingeringNode) document.head.removeChild(lingeringNode);
+
+      const dynamicMetaNodeElement = document.createElement("meta");
+      dynamicMetaNodeElement.setAttribute("property", propertyKeyString);
+      dynamicMetaNodeElement.setAttribute("content", variableContentString);
+      document.head.appendChild(dynamicMetaNodeElement);
+      structuralCreatedMetaNodesArray.push(dynamicMetaNodeElement);
     });
 
-    const ld = document.createElement("script");
-    ld.type = "application/ld+json";
-    ld.text = JSON.stringify({
+    // Step D: Construct schema organization entity profiles cleanly
+    let targetStructuredScriptNode = document.getElementById("ld-talent-profile-graph") as HTMLScriptElement | null;
+    if (!targetStructuredScriptNode) {
+      targetStructuredScriptNode = document.createElement("script");
+      targetStructuredScriptNode.id = "ld-talent-profile-graph";
+      targetStructuredScriptNode.type = "application/ld+json";
+      document.head.appendChild(targetStructuredScriptNode);
+    }
+
+    const structuredPersonJsonLdGraph = {
       "@context": "https://schema.org",
       "@type": "Person",
-      name: profile.full_name,
-      description: desc,
-      image: profile.profile_photo_url,
-      jobTitle: profile.profession,
-      address: profile.country ? { "@type": "PostalAddress", addressCountry: profile.country } : undefined,
-      sameAs: [profile.linkedin_url, profile.portfolio_url].filter(Boolean),
+      name: isolatedProfileNode.full_name,
+      description: computedDescriptionStr,
+      image: isolatedProfileNode.profile_photo_url || undefined,
+      jobTitle: isolatedProfileNode.profession || undefined,
+      address: isolatedProfileNode.country
+        ? { "@type": "PostalAddress", addressCountry: isolatedProfileNode.country }
+        : undefined,
+      sameAs: [isolatedProfileNode.linkedin_url, isolatedProfileNode.portfolio_url].filter(Boolean),
       hasCredential: [
-        ...(profile.credentials ?? []).map((c: any) => ({
+        ...(isolatedProfileNode.credentials ?? []).map((credentialNodeItem: any) => ({
           "@type": "EducationalOccupationalCredential",
-          name: c.topic_tag.replace(/_/g, " "),
-          credentialCategory: c.level,
+          name: credentialNodeItem.topic_tag.replace(/_/g, " ").toUpperCase(),
+          credentialCategory: credentialNodeItem.level,
           recognizedBy: { "@type": "Organization", name: "Group Academy" },
-          url: `${window.location.origin}/verify/skill/${c.verify_code}`,
+          url: `${window.location.origin}/verify/skill/${credentialNodeItem.verify_code}`,
         })),
-        ...(profile.tracks_completed ?? []).map((t: any) => ({
+        ...(isolatedProfileNode.tracks_completed ?? []).map((trackNodeItem: any) => ({
           "@type": "EducationalOccupationalCredential",
-          name: t.track_title,
+          name: trackNodeItem.track_title,
           credentialCategory: "track",
           recognizedBy: {
             "@type": "Organization",
-            name: t.sponsor_company_name ?? "Group Academy",
+            name: trackNodeItem.sponsor_company_name ?? "Group Academy",
           },
-          url: t.certificate_code
-            ? `${window.location.origin}/verify/${t.certificate_code}`
+          url: trackNodeItem.certificate_code
+            ? `${window.location.origin}/verify/${trackNodeItem.certificate_code}`
             : undefined,
         })),
       ],
-    });
-    document.head.appendChild(ld);
-
-    return () => {
-      created.forEach((el) => document.head.removeChild(el));
-      document.head.removeChild(ld);
     };
-  }, [profile]);
 
-  if (loading) {
+    targetStructuredScriptNode.text = JSON.stringify(structuredPersonJsonLdGraph);
+
+    // Step E: Trigger explicit cleanups to keep the DOM isolated
+    return () => {
+      structuralCreatedMetaNodesArray.forEach((metaNodeItem) => {
+        if (metaNodeItem.parentNode) document.head.removeChild(metaNodeItem);
+      });
+      if (targetStructuredScriptNode && targetStructuredScriptNode.parentNode) {
+        document.head.removeChild(targetStructuredScriptNode);
+      }
+    };
+  }, [profileDataPayload]);
+
+  // =========================================================================
+  // INTERCEPT CONTROLLERS: SCREEN LEVEL ROUTING GATES
+  // =========================================================================
+  if (isPipelineResolving) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <Skeleton className="h-32 rounded-2xl" />
-        <Skeleton className="h-48 rounded-2xl" />
+      <div className="max-w-xl mx-auto px-4 py-8 space-y-4 text-left antialiased block w-full">
+        <Skeleton className="h-32 w-full rounded-lg shrink-0" />
+        <Skeleton className="h-44 w-full rounded-lg shrink-0" />
       </div>
     );
   }
 
-  if (!profile) {
+  if (!profileDataPayload) {
     return (
-      <div className="max-w-md mx-auto px-4 py-12 text-center space-y-3">
-        <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-        <h1 className="text-xl font-bold">Profile is private</h1>
-        <p className="text-sm text-muted-foreground">
-          This profile is not public, or the link is incorrect.
-        </p>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/">Back to Group Academy</Link>
-        </Button>
+      <div
+        role="alert"
+        className="min-h-[50vh] grid place-items-center text-center p-6 antialiased select-none transform-gpu"
+      >
+        <div className="max-w-xs block space-y-4 leading-none">
+          <div className="h-9 w-9 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-center text-muted-foreground/50 mx-auto pointer-events-none">
+            <Lock className="h-4 w-4 stroke-[2.2]" />
+          </div>
+          <div className="space-y-1 block">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Identity Vault Sealed</p>
+            <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
+              This operator configuration has been restricted by RLS visibility thresholds or contains malformed
+              handles.
+            </p>
+          </div>
+          <Button
+            type="button"
+            asChild
+            variant="outline"
+            className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+          >
+            <Link to="/">Return to Platform Core</Link>
+          </Button>
+        </div>
       </div>
     );
   }
+
+  const identityRecordNode = profileDataPayload;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-12">
-      {/* Hero */}
-      <Card className="rounded-3xl overflow-hidden border-border/60">
-        {profile.cover_image_url && (
+    <div className="max-w-xl mx-auto px-4 py-4 space-y-4 pb-12 text-left antialiased block transform-gpu w-full">
+      {/* HUD LEVEL 1: PROFILE PRIMARY IDENTITY SHIELD HERO */}
+      <Card className="rounded-xl border border-border/60 bg-card/40 overflow-hidden shadow-none block w-full">
+        {identityRecordNode.cover_image_url && (
           <div
-            className="h-28 bg-cover bg-center"
-            style={{ backgroundImage: `url(${profile.cover_image_url})` }}
+            role="img"
+            aria-label="User space structural layout banner canvas graphic"
+            className="h-24 w-full bg-cover bg-center block pointer-events-none select-none border-b border-border/5"
+            style={{ backgroundImage: `url(${identityRecordNode.cover_image_url})` }}
           />
         )}
-        <CardContent className={cn("p-4 space-y-2", profile.cover_image_url ? "-mt-10" : "")}>
-          <Avatar className="h-20 w-20 border-4 border-background shadow">
-            <AvatarImage src={profile.profile_photo_url ?? undefined} />
-            <AvatarFallback>{profile.full_name?.[0]}</AvatarFallback>
+        <CardContent
+          className={cn("p-4 space-y-3 block w-full leading-none", identityRecordNode.cover_image_url ? "-mt-8" : "")}
+        >
+          <Avatar className="h-16 w-16 rounded-lg border border-border/40 bg-background text-base shrink-0 select-none pointer-events-none shadow-xs">
+            <AvatarImage src={identityRecordNode.profile_photo_url ?? undefined} className="object-cover" />
+            <AvatarFallback className="font-extrabold text-primary bg-muted rounded-none uppercase">
+              {identityRecordNode.full_name?.charAt(0)}
+            </AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="text-xl font-black leading-tight">{profile.full_name}</h1>
-            {profile.profession && <p className="text-sm text-muted-foreground">{profile.profession}</p>}
-            {profile.country && (
-              <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3 w-3" /> {profile.country}
+
+          <div className="space-y-1 block leading-none">
+            <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-foreground leading-none pt-0.5">
+              {identityRecordNode.full_name}
+            </h1>
+            {identityRecordNode.profession && (
+              <p className="text-xs font-semibold text-muted-foreground/70 leading-none block">
+                {identityRecordNode.profession}
+              </p>
+            )}
+            {identityRecordNode.country && (
+              <p className="font-mono text-[10px] font-bold uppercase tracking-wide text-muted-foreground/40 inline-flex items-center gap-1 mt-0.5 select-text">
+                <MapPin className="h-3 w-3 stroke-[2.2]" /> {identityRecordNode.country}
               </p>
             )}
           </div>
-          {profile.bio && <p className="text-sm">{profile.bio}</p>}
-          <div className="flex items-center gap-2 pt-1 flex-wrap">
-            {profile.linkedin_url && (
-              <Button asChild size="sm" variant="outline" className="h-8 text-xs">
-                <a href={profile.linkedin_url} target="_blank" rel="noreferrer">
-                  <Linkedin className="h-3.5 w-3.5 mr-1" /> LinkedIn
+
+          {identityRecordNode.bio && (
+            <p className="text-xs sm:text-sm font-medium text-foreground/80 leading-relaxed select-text block pt-0.5">
+              {identityRecordNode.bio}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2 pt-1 flex-wrap w-full block">
+            {identityRecordNode.linkedin_url && (
+              <Button
+                asChild
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider px-3 gap-1.5 cursor-pointer"
+              >
+                <a href={identityRecordNode.linkedin_url} target="_blank" rel="noreferrer">
+                  <Linkedin className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground stroke-[1.8]" />{" "}
+                  LinkedIn
                 </a>
               </Button>
             )}
-            {profile.portfolio_url && (
-              <Button asChild size="sm" variant="outline" className="h-8 text-xs">
-                <a href={profile.portfolio_url} target="_blank" rel="noreferrer">
-                  <Globe className="h-3.5 w-3.5 mr-1" /> Portfolio
+            {identityRecordNode.portfolio_url && (
+              <Button
+                asChild
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider px-3 gap-1.5 cursor-pointer"
+              >
+                <a href={identityRecordNode.portfolio_url} target="_blank" rel="noreferrer">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground stroke-[1.8]" />{" "}
+                  Core Portfolio
                 </a>
               </Button>
             )}
-            <Button asChild size="sm" className="h-8 text-xs ml-auto">
-              <Link to={`/app/talents/${profile.id}`}>
-                Connect <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            <Button
+              asChild
+              type="button"
+              size="sm"
+              className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider ml-auto px-3 gap-1 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
+            >
+              <Link to={`/app/talents/${identityRecordNode.id}`}>
+                <span>Request Connection</span> <ArrowRight className="h-3.5 w-3.5 stroke-[2.2]" />
               </Link>
             </Button>
           </div>
-          {/* Recency chip */}
-          {Number(profile.learning_recency_score ?? 0) >= 0.7 && (
-            <div className="pt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-green/10 border border-success-green/30 text-success-green text-[11px]">
-                <Activity className="h-3 w-3" /> Active learner
+
+          {Number(identityRecordNode.learning_recency_score ?? 0) >= 0.7 && (
+            <div className="pt-1.5 block select-none pointer-events-none">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 h-4.5 pt-1 leading-none shrink-0">
+                <Activity className="h-2.5 w-2.5 stroke-[2.5]" /> Active Learning Stream Token
               </span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Completed Tracks */}
-      {profile.show_credentials && profile.tracks_completed?.length > 0 && (
-        <Card className="rounded-2xl border-border/60">
-          <CardContent className="p-4 space-y-3">
-            <h2 className="text-sm font-bold flex items-center gap-2">
-              <Layers className="h-4 w-4 text-[#33E1E4]" />
-              Completed tracks ({profile.tracks_completed.length})
+      {/* HUD LEVEL 2: COMPOSITE COMPLETED ACADEMIC TRACK CURRICULUMS */}
+      {identityRecordNode.show_credentials && identityRecordNode.tracks_completed?.length > 0 && (
+        <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none block w-full overflow-hidden">
+          <CardContent className="p-4 space-y-3 block w-full leading-none">
+            <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10 flex items-center gap-2">
+              <Layers className="h-3.5 w-3.5 text-cyan-500 stroke-[2.2]" />
+              <span>Completed Track Matrix Capsules ({identityRecordNode.tracks_completed.length})</span>
             </h2>
-            <ul className="space-y-2">
-              {profile.tracks_completed.map((t: any, i: number) => (
+            <ul className="space-y-2 p-0 m-0 block w-full list-none">
+              {identityRecordNode.tracks_completed.map((trackItemNode: any, structuralIdxNum: number) => (
                 <li
-                  key={i}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 p-2"
+                  key={`completed-track-node-row-${trackItemNode.track_title}-${structuralIdxNum}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/30 p-2 leading-none block w-full"
                 >
-                  {t.sponsor_company_logo ? (
-                    <img
-                      src={t.sponsor_company_logo}
-                      alt=""
-                      className="h-8 w-8 rounded object-cover"
-                    />
-                  ) : (
-                    <Layers className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{t.track_title}</p>
-                    {t.sponsor_company_name && (
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        Sponsored by {t.sponsor_company_name}
-                      </p>
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    {trackItemNode.sponsor_company_logo ? (
+                      <img
+                        src={trackItemNode.sponsor_company_logo}
+                        alt=""
+                        className="h-7 w-7 rounded border border-border/40 object-cover shrink-0 block pointer-events-none select-none"
+                      />
+                    ) : (
+                      <div className="h-7 w-7 rounded border border-border/40 bg-muted/60 text-muted-foreground/40 flex items-center justify-center shrink-0 block pointer-events-none select-none">
+                        <Layers className="h-4 w-4 stroke-[2.2]" />
+                      </div>
                     )}
+                    <div className="min-w-0 flex-1 leading-none space-y-1 block">
+                      <p className="text-xs sm:text-sm font-bold text-foreground truncate block select-text uppercase tracking-wide pt-0.5">
+                        {trackItemNode.track_title}
+                      </p>
+                      {trackItemNode.sponsor_company_name && (
+                        <p className="text-[10px] font-mono font-bold text-muted-foreground/50 truncate block select-text leading-none uppercase">
+                          Sponsor Node: {trackItemNode.sponsor_company_name}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {t.certificate_code && (
+
+                  {trackItemNode.certificate_code && (
                     <Link
-                      to={`/verify/${t.certificate_code}`}
-                      className="text-[11px] font-semibold inline-flex items-center gap-0.5 text-primary hover:underline"
+                      to={`/verify/${trackItemNode.certificate_code}`}
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 inline-flex items-center gap-0.5 shrink-0 select-none"
                     >
-                      Verify <ExternalLink className="h-3 w-3" />
+                      <span>Verify</span> <ExternalLink className="h-3 w-3 stroke-[2.2]" />
                     </Link>
                   )}
                 </li>
@@ -224,34 +374,49 @@ export default function PublicTalentProfile() {
         </Card>
       )}
 
-      {/* Verified Skills */}
-      {profile.show_credentials && profile.credentials?.length > 0 && (
-        <Card className="rounded-2xl border-border/60">
-          <CardContent className="p-4 space-y-3">
-            <h2 className="text-sm font-bold flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-success-green" />
-              Verified skills ({profile.credentials.length})
+      {/* HUD LEVEL 3: SHIELD VERIFIED PROFICIENCY MASTERY CREDENTIALS */}
+      {identityRecordNode.show_credentials && identityRecordNode.credentials?.length > 0 && (
+        <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none block w-full overflow-hidden">
+          <CardContent className="p-4 space-y-3 block w-full leading-none">
+            <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10 flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 stroke-[2.2]" />
+              <span>Verified Skill Vectors Archive ({identityRecordNode.credentials.length})</span>
             </h2>
-            <div className="space-y-2">
-              {profile.credentials.map((c: any) => {
-                const meta = LEVEL_META[c.level];
-                const Icon = meta.icon;
+            <div className="space-y-2 block w-full">
+              {identityRecordNode.credentials.map((skillNodeItem: any) => {
+                const targetLevelMetaMapObj = LEVEL_META[skillNodeItem.level] || LEVEL_META.foundational;
+                const SkillProficiencyIconNode = targetLevelMetaMapObj.icon;
+
                 return (
-                  <div key={c.id} className={cn("flex items-center gap-2 rounded-xl border p-2", meta.tone)}>
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate capitalize">
-                        {c.topic_tag.replace(/_/g, " ")}
-                      </p>
-                      <p className="text-[11px] opacity-80 truncate">
-                        {meta.label} · {c.course_title ?? "Cross-course"} · {Math.round(Number(c.mastery_at_issue) * 100)}%
-                      </p>
+                  <div
+                    key={`verified-skill-record-node-${skillNodeItem.id}`}
+                    className={cn(
+                      "flex items-center justify-between gap-3 rounded-lg border p-2 leading-none block w-full transform-gpu transition-colors duration-100",
+                      targetLevelMetaMapObj.tone,
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className="h-7 w-7 rounded bg-background/50 border border-current/10 flex items-center justify-center shrink-0 block select-none pointer-events-none shadow-2xs">
+                        <SkillProficiencyIconNode className="h-4 w-4 stroke-[2.2]" />
+                      </div>
+                      <div className="min-w-0 flex-1 leading-none space-y-1 block">
+                        <p className="text-xs sm:text-sm font-bold truncate uppercase tracking-wide text-foreground/90 pt-0.5 select-text">
+                          {skillNodeItem.topic_tag.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-[10px] sm:text-[11px] font-medium opacity-70 truncate block select-text max-w-xs leading-none">
+                          {targetLevelMetaMapObj.label} · {skillNodeItem.course_title ?? "Cross-Course Framework"} ·{" "}
+                          <span className="font-mono font-bold tabular-nums">
+                            {Math.round(Number(skillNodeItem.mastery_at_issue) * 100)}% Match
+                          </span>
+                        </p>
+                      </div>
                     </div>
+
                     <Link
-                      to={`/verify/skill/${c.verify_code}`}
-                      className="text-[11px] font-semibold inline-flex items-center gap-0.5 hover:underline"
+                      to={`/verify/skill/${skillNodeItem.verify_code}`}
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-0.5 shrink-0 select-none hover:opacity-80"
                     >
-                      Verify <ExternalLink className="h-3 w-3" />
+                      <span>Verify</span> <ExternalLink className="h-3 w-3 stroke-[2.2]" />
                     </Link>
                   </div>
                 );
@@ -261,39 +426,65 @@ export default function PublicTalentProfile() {
         </Card>
       )}
 
-      {/* Mastery */}
-      {profile.show_mastery && profile.mastery && profile.mastery.tracked_topics > 0 && (
-        <Card className="rounded-2xl border-border/60">
-          <CardContent className="p-4 space-y-3">
-            <h2 className="text-sm font-bold">Learning mastery</h2>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-xl bg-muted/50 p-3">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Topics tracked</p>
-                <p className="text-xl font-black">{profile.mastery.tracked_topics}</p>
-              </div>
-              <div className="rounded-xl bg-muted/50 p-3">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Avg mastery</p>
-                <p className="text-xl font-black">{Math.round(Number(profile.mastery.avg_mastery) * 100)}%</p>
-              </div>
-            </div>
-            {profile.mastery.top_strengths?.length > 0 && (
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Top strengths</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {profile.mastery.top_strengths.map((s: any) => (
-                    <span key={s.topic_tag} className="inline-flex items-center gap-1 text-xs bg-success-green/10 text-success-green border border-success-green/30 rounded-full px-2 py-0.5 capitalize">
-                      {s.topic_tag.replace(/_/g, " ")} · {Math.round(Number(s.mastery) * 100)}%
-                    </span>
-                  ))}
+      {/* HUD LEVEL 4: LEARNING MASTERY MATRIX HISTOGRAM CHARTS */}
+      {identityRecordNode.show_mastery &&
+        identityRecordNode.mastery &&
+        identityRecordNode.mastery.tracked_topics > 0 && (
+          <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none block w-full overflow-hidden">
+            <CardContent className="p-4 space-y-3 block w-full leading-none">
+              <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10">
+                Learning Mastery Indexes
+              </h2>
+              <div className="grid grid-cols-2 gap-2 text-left select-none pointer-events-none block w-full font-sans shadow-2xs">
+                <div className="rounded-lg bg-muted/40 border border-border/5 p-3 leading-none space-y-1 block">
+                  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block">
+                    Topics Tracked
+                  </p>
+                  <p className="text-lg sm:text-xl font-black font-mono text-foreground tabular-nums pt-0.5">
+                    {identityRecordNode.mastery.tracked_topics}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-muted/40 border border-border/5 p-3 leading-none space-y-1 block">
+                  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block">
+                    Avg Mastery Index
+                  </p>
+                  <p className="text-lg sm:text-xl font-black font-mono text-foreground tabular-nums pt-0.5">
+                    {Math.round(Number(identityRecordNode.mastery.avg_mastery) * 100)}%
+                  </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
-      <p className="text-center text-[11px] text-muted-foreground pt-2">
-        Powered by <Link to="/" className="font-semibold text-primary hover:underline">Group Academy</Link>
+              {identityRecordNode.mastery.top_strengths?.length > 0 && (
+                <div className="space-y-1.5 mt-2 block w-full">
+                  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block select-none pointer-events-none leading-none">
+                    Top Strengths Vectors
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 w-full block">
+                    {identityRecordNode.mastery.top_strengths.map((strengthNodeItem: any) => (
+                      <span
+                        key={`strength-vector-pill-${strengthNodeItem.topic_tag}`}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 h-4.5 pt-1 leading-none shrink-0 select-text tabular-nums"
+                      >
+                        {strengthNodeItem.topic_tag.replace(/_/g, " ")} ·{" "}
+                        {Math.round(Number(strengthNodeItem.mastery) * 100)}%
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+      {/* GLOBAL FOOTER DISCLOSURE MARKERS */}
+      <p className="text-center font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground/30 pt-2 select-none pointer-events-none leading-none">
+        Powered by{" "}
+        <Link
+          to="/"
+          className="font-sans font-semibold text-primary hover:text-primary/80 pointer-events-auto cursor-pointer normal-case tracking-normal text-xs"
+        >
+          Group Academy Digital Validation Grid
+        </Link>
       </p>
     </div>
   );
