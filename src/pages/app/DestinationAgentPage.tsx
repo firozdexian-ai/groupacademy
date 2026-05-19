@@ -160,7 +160,7 @@ export default function DestinationAgentPage() {
     setConsoleTextInputStr("");
 
     setChatMessagesList((prevList) => [...prevList, { role: "user", content: sanitizedUserInputText }]);
-    setIsAIInferenceProcessing(true);
+    setIsAIEngineProcessing(true);
 
     try {
       const { data: edgeFunctionResponsePayload, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
@@ -182,7 +182,7 @@ export default function DestinationAgentPage() {
     } catch (fatalInferenceException: any) {
       toast.error(fatalInferenceException.message || "Asynchronous interaction framework connection timeout.");
     } finally {
-      setIsAIInferenceProcessing(false);
+      setIsAIEngineProcessing(false);
     }
   }, [consoleTextInputStr, isAIEngineProcessing, validatedCountryCodeStr]);
 
@@ -343,7 +343,7 @@ export default function DestinationAgentPage() {
         <Button
           type="button"
           onClick={handleDispatchConsoleQuerySequence}
-          disabled={isAIInferenceProcessing || !consoleTextInputStr.trim()}
+          disabled={isAIEngineProcessing || !consoleTextInputStr.trim()}
           size="icon"
           className="h-10 w-10 rounded-lg bg-primary text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-transform transform-gpu active:scale-95 shrink-0 block"
           title="Dispatch context parameter block query to target agent container"
