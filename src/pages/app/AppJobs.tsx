@@ -123,7 +123,7 @@ export default function AppJobs() {
           );
         }
         if (selectedJobTypesArray.length > 0) {
-          databaseQueryBuilder = databaseQueryBuilder.in("job_type", selectedJobTypesArray);
+          databaseQueryBuilder = databaseQueryBuilder.in("job_type", selectedJobTypesArray as any);
         }
 
         if (sortOrderContextStr === "hot") {
@@ -273,7 +273,7 @@ export default function AppJobs() {
         </div>
 
         {/* REFINEMENT CONFIGURATION OVERLAY DRAWER PANEL */}
-        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterOpen}>
+        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
           <SheetTrigger asChild>
             <Button
               type="button"
@@ -371,7 +371,7 @@ export default function AppJobs() {
               </Button>
               <Button
                 type="button"
-                onClick={() => setIsFilterOpen(false)}
+                onClick={() => setIsFilterSheetOpen(false)}
                 className="flex-1 h-9 rounded-lg font-bold uppercase text-xs tracking-wider bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors shadow-xs transform-gpu active:scale-[0.985]"
               >
                 Apply Criteria
@@ -414,7 +414,7 @@ export default function AppJobs() {
             >
               <JobCard
                 job={jobItem}
-                isSaved={id ? checkIsJobSaved(jobItem.id, "job") : false}
+                isSaved={checkIsJobSaved(jobItem.id, "job")}
                 onSaveToggle={() => triggerToggleSaveMutation(jobItem.id, "job")}
                 onClick={() => navigateHook(`/app/jobs/${jobItem.id}`)}
               />
