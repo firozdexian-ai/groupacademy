@@ -114,7 +114,7 @@ export default function IELTSCoach() {
         .limit(5);
 
       if (queryHandshakeError) throw queryHandshakeError;
-      return (dbAppealsPayload as unknown as MockAttemptNode[]) ?? [];
+      return (dbAttemptsPayload as unknown as MockAttemptNode[]) ?? [];
     },
   });
 
