@@ -1,110 +1,219 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Loader2, Send, Sparkles, ShieldCheck, AlertCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useTalent } from "@/hooks/useTalent";
+import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { useTalent } from "@/hooks/useTalent";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+// Production Type Definitions[cite: 8]
+interface Project {
+  id: string;
+  title: string;
+  status: string;
+  budget_credits: number;
+}
+
+interface Milestone {
+  id: string;
+  seq: number;
+  title: string;
+  status: string;
+  summary: string;
+  budget_credits: number;
+  due_at: string | null;
+}
 
 export default function ProjectRoom() {
   const { projectId } = useParams();
   const { talent } = useTalent();
-  const [project, setProject] = useState<any>(null);
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [escrow, setEscrow] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [body, setBody] = useState("");
   const [submitNote, setSubmitNote] = useState("");
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Digital Workforce Anomaly Reporting
+  const reportAnomaly = async (event: string, context: any) => {
+    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    await supabase.functions.invoke("admin-gig-ops", {
+      body: { type: "project_room_error", event, context },
+    });
+  };
 
   const load = async () => {
     if (!projectId) return;
-    const [{ data: p }, { data: m }, { data: e }, { data: msg }] = await Promise.all([
-      supabase.from("gig_projects").select("*").eq("id", projectId).maybeSingle(),
-      supabase.from("gig_project_milestones").select("*").eq("project_id", projectId).order("seq"),
-      supabase.from("gig_escrow_accounts").select("*").eq("project_id", projectId).maybeSingle(),
-      supabase.from("gig_project_messages").select("*").eq("project_id", projectId).order("created_at"),
-    ]);
-    setProject(p); setMilestones(m || []); setEscrow(e); setMessages(msg || []);
-    setLoading(false);
+    try {
+      const [{ data: p, error: pErr }, { data: m, error: mErr }, { data: e }, { data: msg }] = await Promise.all([
+        supabase.from("gig_projects").select("*").eq("id", projectId).maybeSingle(),
+        supabase.from("gig_project_milestones").select("*").eq("project_id", projectId).order("seq"),
+        supabase.from("gig_escrow_accounts").select("*").eq("project_id", projectId).maybeSingle(),
+        supabase.from("gig_project_messages").select("*").eq("project_id", projectId).order("created_at"),
+      ]);
+
+      if (pErr || mErr) throw new Error("Fetch failed");
+
+      setProject(p as Project);
+      setMilestones((m as Milestone[]) || []);
+      setEscrow(e);
+      setMessages(msg || []);
+    } catch (e) {
+      await reportAnomaly("DataSyncError", { projectId, error: e });
+      toast.error("Failed to sync project ledger.");
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { load(); }, [projectId]);
+
+  useEffect(() => {
+    load();
+  }, [projectId]);
 
   const sendMessage = async () => {
     if (!body.trim()) return;
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("gig_project_messages").insert({
-      project_id: projectId, sender_id: u.user!.id, body,
+      project_id: projectId,
+      sender_id: u.user!.id,
+      body,
     });
-    if (error) toast.error(error.message); else { setBody(""); load(); }
+    if (error) {
+      await reportAnomaly("MessageDeliveryError", { error });
+      toast.error("Delivery failed.");
+    } else {
+      setBody("");
+      load();
+    }
   };
 
   const submitMilestone = async (id: string) => {
-    const { error } = await supabase.rpc("submit_milestone_deliverables", {
-      _milestone_id: id,
-      _payload: { note: submitNote, submitted_by: talent?.id },
-    });
-    if (error) toast.error(error.message); else { toast.success("Submitted"); setSubmitNote(""); load(); }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.rpc("submit_milestone_deliverables", {
+        _milestone_id: id,
+        _payload: { note: submitNote, submitted_by: talent?.id },
+      });
+      if (error) throw error;
+      toast.success("Deliverables synchronized.");
+      setSubmitNote("");
+      load();
+    } catch (e) {
+      await reportAnomaly("MilestoneSubmissionError", { id, error: e });
+      toast.error("Submission failed.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (loading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
-  if (!project) return <div className="p-4 text-sm">Project not found.</div>;
+  if (loading)
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+      </div>
+    );
+  if (!project) return <div className="p-4 text-sm">Project state not found.</div>;
 
   return (
-    <div className="p-3 space-y-3">
-      <div>
-        <h1 className="text-lg font-semibold">{project.title}</h1>
-        <div className="flex gap-2 text-xs text-muted-foreground items-center">
-          <Badge variant="outline" className="capitalize">{project.status}</Badge>
-          <span>Budget {project.budget_credits} cr</span>
-          {escrow && <>
-            <span>·</span><span>Held {escrow.held_credits}</span>
-            <span>·</span><span>Released {escrow.released_credits}</span>
-          </>}
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 animate-in fade-in duration-700">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-black uppercase tracking-tighter italic">{project.title}</h1>
+        <div className="flex gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground items-center">
+          <Badge variant="outline" className="capitalize">
+            {project.status}
+          </Badge>
+          <span>Budget: {project.budget_credits} cr</span>
+          {escrow && <span className="flex gap-2">· Escrow: {escrow.held_credits} held</span>}
         </div>
-      </div>
+      </header>
 
-      <Tabs defaultValue="milestones">
-        <TabsList>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
-          <TabsTrigger value="room">Room</TabsTrigger>
+      <Tabs defaultValue="milestones" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/30 rounded-2xl">
+          <TabsTrigger value="milestones" className="font-black uppercase text-[10px] tracking-widest rounded-xl">
+            Milestones
+          </TabsTrigger>
+          <TabsTrigger value="room" className="font-black uppercase text-[10px] tracking-widest rounded-xl">
+            Project Room
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="milestones" className="space-y-2 mt-3">
+        <TabsContent value="milestones" className="space-y-4 mt-6">
           {milestones.map((m) => (
-            <Card key={m.id} className="p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-sm">{m.seq}. {m.title}</div>
-                <Badge variant="outline" className="capitalize">{m.status}</Badge>
-              </div>
-              {m.summary && <p className="text-xs text-muted-foreground">{m.summary}</p>}
-              <div className="text-xs text-muted-foreground">{m.budget_credits} cr {m.due_at && `· due ${new Date(m.due_at).toLocaleDateString()}`}</div>
-              {(m.status === "in_progress" || m.status === "revising") && (
-                <div className="space-y-2">
-                  <Textarea value={submitNote} onChange={(e) => setSubmitNote(e.target.value)} placeholder="Notes / links to your deliverable" rows={2} />
-                  <Button size="sm" onClick={() => submitMilestone(m.id)}>Submit deliverable</Button>
+            <Card key={m.id} className="rounded-3xl border-2 border-border/40 bg-card/30 backdrop-blur-sm">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="font-black text-sm uppercase italic">
+                    {m.seq}. {m.title}
+                  </div>
+                  <Badge variant="secondary" className="capitalize">
+                    {m.status}
+                  </Badge>
                 </div>
-              )}
+                <p className="text-xs text-muted-foreground italic">{m.summary}</p>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  {m.budget_credits} cr {m.due_at && `· due ${new Date(m.due_at).toLocaleDateString()}`}
+                </div>
+                {(m.status === "in_progress" || m.status === "revising") && (
+                  <div className="space-y-3 pt-2 border-t border-border/10">
+                    <Textarea
+                      value={submitNote}
+                      onChange={(e) => setSubmitNote(e.target.value)}
+                      placeholder="Attach deliverable notes or artifacts…"
+                      className="rounded-xl bg-background/50"
+                    />
+                    <Button
+                      size="sm"
+                      className="w-full rounded-xl font-black uppercase text-[10px] tracking-widest"
+                      onClick={() => submitMilestone(m.id)}
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <Loader2 className="animate-spin h-3 w-3 mr-2" />
+                      ) : (
+                        <ShieldCheck className="h-3 w-3 mr-2" />
+                      )}
+                      Sync Deliverables
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           ))}
         </TabsContent>
 
-        <TabsContent value="room" className="mt-3 space-y-2">
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+        <TabsContent value="room" className="mt-6 space-y-4">
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
             {messages.map((msg) => (
-              <Card key={msg.id} className="p-2 text-sm">
-                <div className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</div>
-                <div>{msg.body}</div>
-              </Card>
+              <div key={msg.id} className="bg-muted/30 p-4 rounded-2xl border border-border/40 text-sm">
+                <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <div className="italic font-medium">{msg.body}</div>
+              </div>
             ))}
-            {messages.length === 0 && <p className="text-sm text-muted-foreground text-center">No messages yet.</p>}
+            {messages.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center italic">No message nodes.</p>
+            )}
           </div>
-          <div className="space-y-2">
-            <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message…" rows={2} />
-            <Button size="sm" onClick={sendMessage}>Send</Button>
+          <div className="flex gap-2">
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Type communication node…"
+              className="rounded-2xl"
+              rows={2}
+            />
+            <Button size="icon" className="rounded-2xl shrink-0" onClick={sendMessage}>
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
         </TabsContent>
       </Tabs>
