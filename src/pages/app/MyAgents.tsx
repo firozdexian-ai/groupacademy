@@ -11,6 +11,7 @@ import { Loader2, Bot, TrendingUp, Coins, Wallet, PlusCircle, Rocket, Sparkles }
 import { toast } from "sonner";
 import { CreatorOnboardingDialog } from "@/components/agents/CreatorOnboardingDialog";
 import { PayoutDialog } from "@/components/agents/PayoutDialog"; // Recommended extraction
+import { cn } from "@/lib/utils";
 
 // =========================================================================
 // DETERMINISTIC CONTRACTS
@@ -104,13 +105,14 @@ export default function MyAgents() {
 
       <div className="flex flex-wrap gap-2">
         <CreatorOnboardingDialog
+          open={false}
+          onOpenChange={() => {}}
           onCreated={() => queryClient.invalidateQueries({ queryKey: ["talent-agent-dashboard"] })}
-        >
-          <Button>
-            <Rocket className="h-4 w-4 mr-2" />
-            Become a builder
-          </Button>
-        </CreatorOnboardingDialog>
+        />
+        <Button>
+          <Rocket className="h-4 w-4 mr-2" />
+          Become a builder
+        </Button>
         <PayoutDialog
           available={summary.available}
           onCreated={() => queryClient.invalidateQueries({ queryKey: ["talent-agent-dashboard"] })}
