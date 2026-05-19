@@ -1,192 +1,205 @@
-import { useEffect, useState, useRef } from "react";
+import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Bot, Sparkles, User as UserIcon, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { ChatBubble } from "@/components/messages/ChatBubble";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useMessageThreads } from "@/hooks/useMessageThreads";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { ChatBubble } from "@/components/messages/ChatBubble";
+import { ArrowLeft, Bot, Sparkles, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { PAGE_SHELL } from "@/lib/uiTokens";
+
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface NotificationRecord {
+  id: string;
+  title: string;
+  message: string | null;
+  link: string | null;
+  created_at: string;
+}
+
+interface AgentRecord {
+  id: string;
+  name: string;
+  agent_key: string;
+  avatar_url: string | null;
+  bg_color: string;
+}
 
 /**
- * Single thread view. /app/messages/system shows the AI General system feed.
- * /app/messages/:agentKey shows an agent conversation.
+ * GroUp Academy: Unified Thread Viewport (MessageThread)
+ * Hardened responsive chat orchestrator managing dual-stream (System/Agent) communication pipelines.
+ * Version: Launch Candidate · Phase Z1 Production Contract Sealed
  */
 export default function MessageThread() {
   const { threadKey } = useParams<{ threadKey: string }>();
-  const navigate = useNavigate();
+  const navigateHook = useNavigate();
   const { talent } = useTalent();
   const { markThreadRead } = useMessageThreads();
-  const isSystem = threadKey === "system";
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ------- System / AI General thread (renders notifications) -------
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [systemThreadId, setSystemThreadId] = useState<string | null>(null);
+  const isSystemThread = threadKey === "system";
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isSystem || !talent?.id) return;
-    (async () => {
-      const { data: tid } = await supabase.rpc("ensure_system_thread", { _talent_id: talent.id });
-      setSystemThreadId(tid as string | null);
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("talent_id", talent.id)
-        .order("created_at", { ascending: true })
-        .limit(200);
-      setNotifications(data || []);
-      if (tid) markThreadRead(tid as string);
-    })();
-  }, [isSystem, talent?.id, markThreadRead]);
+  // --- Agent State ---
+  const { messages, isStreaming, sendMessage, startOrResumeSession, perResponseCost } = useAgentChat();
+  const [activeAgent, setActiveAgent] = React.useState<AgentRecord | null>(null);
+  const [textComposerInput, setTextComposerInput] = React.useState<string>("");
+  const [isBootstrapping, setIsBootstrapping] = React.useState<boolean>(true);
 
-  // ------- Agent thread -------
-  const {
-    messages,
-    isStreaming,
-    sendMessage,
-    startOrResumeSession,
-    perResponseCost,
-  } = useAgentChat();
-  const [agent, setAgent] = useState<any>(null);
-  const [input, setInput] = useState("");
-  const [bootstrapping, setBootstrapping] = useState(true);
+  // --- System State ---
+  const [systemNotifications, setSystemNotifications] = React.useState<NotificationRecord[]>([]);
 
-  useEffect(() => {
-    if (isSystem || !threadKey) return;
-    (async () => {
-      setBootstrapping(true);
-      const { data } = await supabase
-        .from("ai_agents")
-        .select("*")
-        .eq("agent_key", threadKey)
-        .maybeSingle();
-      setAgent(data);
-      await startOrResumeSession(threadKey);
-      // mark thread read
-      if (talent?.id) {
-        const { data: row } = await supabase
+  // =========================================================================
+  // LIFECYCLE SECTOR: THREAD INGRESS PROTOCOL
+  // =========================================================================
+  React.useEffect(() => {
+    if (!talent?.id || !threadKey) return;
+
+    if (isSystemThread) {
+      const loadSystemFeed = async () => {
+        const { data: tid } = await supabase.rpc("ensure_system_thread", { _talent_id: talent.id });
+        if (tid) markThreadRead(tid as string);
+
+        const { data } = await supabase
+          .from("notifications")
+          .select("id, title, message, link, created_at")
+          .eq("talent_id", talent.id)
+          .order("created_at", { ascending: true })
+          .limit(200);
+
+        setSystemNotifications(data ?? []);
+        setIsBootstrapping(false);
+      };
+      void loadSystemFeed();
+    } else {
+      const loadAgentSession = async () => {
+        setIsBootstrapping(true);
+        const { data } = await supabase
+          .from("ai_agents")
+          .select("id, name, agent_key, avatar_url, bg_color")
+          .eq("agent_key", threadKey)
+          .maybeSingle();
+
+        if (data) setActiveAgent(data as unknown as AgentRecord);
+        await startOrResumeSession(threadKey);
+
+        const { data: threadRow } = await supabase
           .from("message_threads")
           .select("id")
           .eq("talent_id", talent.id)
           .eq("agent_key", threadKey)
           .maybeSingle();
-        if (row?.id) markThreadRead(row.id);
-      }
-      setBootstrapping(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadKey, isSystem]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, notifications]);
+        if (threadRow?.id) markThreadRead(threadRow.id);
+        setIsBootstrapping(false);
+      };
+      void loadAgentSession();
+    }
+  }, [threadKey, isSystemThread, talent?.id, markThreadRead, startOrResumeSession]);
 
-  const headerName = isSystem ? "AI General" : agent?.name || "Agent";
-  const headerAvatar = isSystem ? null : agent?.avatar_url;
-  const headerColor = isSystem ? "#2A7DDE" : agent?.bg_color || "#10D576";
+  // Sync scroll-to-bottom anchor
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages, systemNotifications]);
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    setInput("");
-    await sendMessage(text);
+  const handleDispatchMessage = async () => {
+    const trimmedInput = textComposerInput.trim();
+    if (!trimmedInput || isStreaming) return;
+    setTextComposerInput("");
+    await sendMessage(trimmedInput);
   };
 
+  const headerLabel = isSystemThread ? "AI General Feed" : (activeAgent?.name ?? "Assistant");
+
   return (
-    <div className="flex flex-col h-[calc(100dvh-env(safe-area-inset-bottom))] max-w-2xl mx-auto">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/40 flex items-center gap-2 px-2 py-2">
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/app/messages")}>
+    <div className={cn(PAGE_SHELL, "flex flex-col h-[100dvh] max-w-2xl mx-auto bg-background")}>
+      {/* HUD LEVEL 1: CONTEXT HEADER */}
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/40 flex items-center gap-3 px-4 py-3">
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navigateHook("/app/messages")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Avatar className="h-9 w-9 rounded-full">
-          {headerAvatar && <AvatarImage src={headerAvatar} alt={headerName} />}
-          <AvatarFallback className="rounded-full text-white" style={{ backgroundColor: headerColor }}>
-            {isSystem ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+
+        <Avatar className="h-9 w-9 rounded-full shrink-0">
+          {activeAgent?.avatar_url && <AvatarImage src={activeAgent.avatar_url} />}
+          <AvatarFallback className="text-white" style={{ backgroundColor: activeAgent?.bg_color ?? "#2A7DDE" }}>
+            {isSystemThread ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
           </AvatarFallback>
         </Avatar>
+
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm truncate">{headerName}</p>
-          <p className="text-[11px] text-muted-foreground truncate">
-            {isSystem
-              ? "Platform updates & alerts"
+          <p className="font-bold text-sm truncate">{headerLabel}</p>
+          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest truncate">
+            {isSystemThread
+              ? "Platform Telemetry"
               : isStreaming
-              ? "Typing…"
-              : `${perResponseCost} credit per reply`}
+                ? "Synthesizing Response..."
+                : `${perResponseCost} Credit Cost`}
           </p>
         </div>
-        {!isSystem && agent && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs h-8"
-            onClick={() => navigate(`/app/agents/${threadKey}/profile`)}
-          >
-            View Profile
-          </Button>
-        )}
       </header>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 bg-muted/20">
-        {isSystem ? (
-          notifications.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-12">No system messages yet.</div>
+      {/* HUD LEVEL 2: MESSAGING VIEWPORT */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6 bg-muted/10 space-y-4">
+        {isBootstrapping ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : isSystemThread ? (
+          systemNotifications.length === 0 ? (
+            <div className="text-center text-xs text-muted-foreground py-10">No telemetry alerts present.</div>
           ) : (
-            notifications.map((n) => (
+            systemNotifications.map((n) => (
               <ChatBubble
                 key={n.id}
                 role="assistant"
-                content={`${n.title}${n.message ? `\n${n.message}` : ""}`}
+                content={`${n.title}${n.message ? `\n\n${n.message}` : ""}`}
                 timestamp={format(new Date(n.created_at), "MMM d, h:mm a")}
-                ctaLabel={n.link ? "Open" : undefined}
+                ctaLabel={n.link ? "Navigate" : undefined}
                 ctaLink={n.link || undefined}
               />
             ))
           )
-        ) : bootstrapping ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-12">
-            Say hi to {headerName} 👋
-          </div>
         ) : (
-          messages.map((m, i) => <ChatBubble key={i} role={m.role} content={m.content} />)
-        )}
-        {isStreaming && !isSystem && (
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> {headerName} is typing…
-          </div>
+          <>
+            {messages.map((m, i) => (
+              <ChatBubble key={i} role={m.role} content={m.content} />
+            ))}
+            {isStreaming && (
+              <div className="flex items-center gap-2 px-3 py-2 text-[10px] uppercase font-bold text-muted-foreground animate-pulse">
+                <Loader2 className="h-3 w-3 animate-spin" /> {headerLabel} is generating...
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Composer (hidden for system thread) */}
-      {!isSystem && (
-        <div className="border-t border-border/40 bg-background px-2 py-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] flex items-center gap-2">
+      {/* HUD LEVEL 3: INPUT COMPOSER */}
+      {!isSystemThread && (
+        <div className="border-t border-border/40 bg-background p-4 flex gap-2">
           <Input
-            placeholder={`Message ${headerName}…`}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            className="h-10 rounded-full bg-muted/40 border-none"
-            disabled={isStreaming || bootstrapping}
+            placeholder={`Message ${headerLabel}...`}
+            value={textComposerInput}
+            onChange={(e) => setTextComposerInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleDispatchMessage()}
+            className="h-11 rounded-xl bg-muted/30 border-transparent focus-visible:bg-background"
+            disabled={isStreaming || isBootstrapping}
           />
           <Button
             size="icon"
-            className="h-10 w-10 rounded-full shrink-0"
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming || bootstrapping}
+            className="h-11 w-11 rounded-xl shrink-0"
+            onClick={handleDispatchMessage}
+            disabled={!textComposerInput.trim() || isStreaming}
           >
             <Send className="h-4 w-4" />
           </Button>
