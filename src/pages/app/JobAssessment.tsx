@@ -299,7 +299,7 @@ export default function JobAssessment() {
                   <div className="font-mono text-xl font-bold">
                     {Math.floor(recordingIntervalTime / 60)}:{String(recordingIntervalTime % 60).padStart(2, "0")}
                   </div>
-                  <Button onClick={stopRecording} variant="destructive" className="w-full rounded-lg">
+                  <Button onClick={stopHardwareRecording} variant="destructive" className="w-full rounded-lg">
                     Stop Pipeline
                   </Button>
                 </>
