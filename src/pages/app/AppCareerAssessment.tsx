@@ -224,7 +224,7 @@ export default function AppCareerAssessment() {
   }, []);
 
   const handleAssessmentQuestionsComplete = React.useCallback((answersPayload: Record<string, any>) => {
-    setAnswers(answersPayload);
+    setAccumulatedAnswersState(answersPayload);
     setAssessmentStepState("lead-capture");
   }, []);
 
