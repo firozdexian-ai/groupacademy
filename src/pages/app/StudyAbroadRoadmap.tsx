@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Map, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
