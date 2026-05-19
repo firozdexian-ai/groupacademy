@@ -141,11 +141,11 @@ export default function ProfileEdit() {
         profilePhotoUrl,
         coverImageUrl,
         cvUrl,
-        skills,
-        experience,
-        education,
+        skills: skills as any,
+        experience: experience as any,
+        education: education as any,
         languages,
-        achievements,
+        achievements: achievements as any,
       });
       await refreshTalent();
       setIsDirty(false);
