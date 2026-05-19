@@ -806,7 +806,7 @@ export default function AppJobDetail() {
             type="button"
             size="lg"
             disabled={isCtaDisabledFlag}
-            onClick={computedCtaAction}
+            onClick={computedCtaCallback}
             className="shrink-0 h-11 px-5 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center"
           >
             <span>{buttonLabelString}</span>
