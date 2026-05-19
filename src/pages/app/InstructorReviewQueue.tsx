@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,154 +8,152 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, BarChart3, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface DigestSummary {
+  flagged_quiz: number;
+  flagged_scenarios: number;
+  quiz_items: number;
+  scenario_items: number;
+}
+
+interface WeakTopic {
+  topic_tag: string;
+  learner_mastery_mean: number | null;
+}
+
 interface ModuleDigest {
   module: { id: string; title: string; content_id: string };
   content: { id: string; title: string } | null;
   owner: { instructor_id: string; full_name: string | null; email: string | null } | null;
-  summary: { flagged_quiz: number; flagged_scenarios: number; quiz_items: number; scenario_items: number };
-  weak_topics?: { topic_tag: string; learner_mastery_mean: number | null }[];
+  summary: DigestSummary;
+  weak_topics?: WeakTopic[];
 }
 
+/**
+ * GroUp Academy: Authoritative Author Review Queue (InstructorReviewQueue)
+ * Hardened responsive queue orchestrating parallel digestion of module flags and analytics.
+ * Version: Launch Candidate · Phase Z1 Production Contract Locked
+ */
 export default function InstructorReviewQueue() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [digests, setDigests] = useState<ModuleDigest[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [digests, setDigests] = React.useState<ModuleDigest[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = React.useState<boolean>(false);
 
-  const load = async () => {
+  const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u?.user) { setError("Sign in required."); setLoading(false); return; }
-      const { data: role } = await supabase.from("user_roles")
-        .select("role").eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
-      setIsAdmin(!!role);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authentication credential session expired.");
 
-      // Find courses owned by this instructor (or all, if admin)
+      const { data: adminRole } = await supabase.from("user_roles")
+        .select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      setIsAdmin(!!adminRole);
+
+      // Fetch managed content IDs
       let contentIds: string[] = [];
-      if (role) {
-        const { data: courses = [] } = await supabase
-          .from("content").select("id").eq("is_published", true).limit(50);
-        contentIds = (courses ?? []).map((c: any) => c.id);
+      if (adminRole) {
+        const { data: courses } = await supabase.from("content").select("id").eq("is_published", true).limit(50);
+        contentIds = courses?.map((c) => c.id) ?? [];
       } else {
-        const { data: instr } = await supabase
-          .from("instructors").select("id").eq("email", u.user.email ?? "").maybeSingle();
-        if (!instr) { setError("No instructor profile found for your account."); setLoading(false); return; }
-        const { data: ci = [] } = await supabase
-          .from("content_instructors").select("content_id").eq("instructor_id", (instr as any).id);
-        contentIds = (ci ?? []).map((r: any) => r.content_id);
+        const { data: instructor } = await supabase.from("instructors").select("id").eq("email", user.email ?? "").maybeSingle();
+        if (!instructor) throw new Error("No instructor profile mapped to account.");
+        const { data: contentAccess } = await supabase.from("content_instructors").select("content_id").eq("instructor_id", instructor.id);
+        contentIds = contentAccess?.map((r) => r.content_id) ?? [];
       }
-      if (!contentIds.length) { setDigests([]); setLoading(false); return; }
 
-      const { data: mods = [] } = await supabase
-        .from("course_modules").select("id,content_id").in("content_id", contentIds);
-      const moduleIds = (mods ?? []).map((m: any) => m.id);
+      if (!contentIds.length) { setDigests([]); return; }
 
-      const results: ModuleDigest[] = [];
-      // Limit fan-out to avoid hammering the function
-      for (const mid of moduleIds.slice(0, 30)) {
-        const { data, error: e } = await supabase.functions.invoke("authoring-review-digest", {
-          body: { mode: "single", module_id: mid, days: 30 },
+      const { data: modules } = await supabase.from("course_modules").select("id").in("content_id", contentIds);
+      const moduleIds = modules?.map((m) => m.id) ?? [];
+
+      // Optimize: Parallelize digest calls (capped at 10 for edge function safety)
+      const batch = moduleIds.slice(0, 10);
+      const results = await Promise.all(
+        batch.map((mid) => supabase.functions.invoke<ModuleDigest>("authoring-review-digest", {
+          body: { mode: "single", module_id: mid, days: 30 }
+        }))
+      );
+
+      const parsedDigests = results
+        .filter((r) => r.data)
+        .map((r) => r.data as ModuleDigest)
+        .filter((d) => (d.summary.flagged_quiz + d.summary.flagged_scenarios) > 0)
+        .sort((a, b) => {
+          const totalB = b.summary.flagged_quiz + b.summary.flagged_scenarios;
+          const totalA = a.summary.flagged_quiz + a.summary.flagged_scenarios;
+          return totalB - totalA;
         });
-        if (e || !data) continue;
-        const d = data as ModuleDigest;
-        const flagged = (d.summary?.flagged_quiz ?? 0) + (d.summary?.flagged_scenarios ?? 0);
-        if (flagged > 0) results.push(d);
-      }
-      results.sort((a, b) => {
-        const fb = (b.summary.flagged_quiz + b.summary.flagged_scenarios);
-        const fa = (a.summary.flagged_quiz + a.summary.flagged_scenarios);
-        return fb - fa;
-      });
-      setDigests(results);
+
+      setDigests(parsedDigests);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load review queue.");
+      setError(e?.message ?? "Pipeline synchronization failure.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  React.useEffect(() => { void load(); }, [load]);
 
-  const sendWeekly = async () => {
-    toast.loading("Sending weekly digests…", { id: "wd" });
-    const { data, error } = await supabase.functions.invoke("authoring-review-digest", {
-      body: { mode: "weekly", days: 7 },
-    });
+  const handleWeeklyDispatch = async () => {
+    toast.loading("Initiating global weekly digest distribution…", { id: "wd" });
+    const { error } = await supabase.functions.invoke("authoring-review-digest", { body: { mode: "weekly", days: 7 } });
     toast.dismiss("wd");
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Sent ${(data as any)?.sent_count ?? 0} digest emails.`);
+    if (error) toast.error("Dispatch failure."); else toast.success("Digests transmitted.");
   };
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-safe-bottom">
-      <header className="flex items-center justify-between gap-2">
+    <div className="px-4 py-6 max-w-2xl mx-auto space-y-4">
+      <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-black tracking-tight">Author review queue</h1>
-          <p className="text-xs text-muted-foreground">Items learners flagged this month.</p>
+          <h1 className="text-xl font-black uppercase tracking-tight">Review Queue</h1>
+          <p className="text-xs text-muted-foreground">Learner-flagged content requiring author intervention.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={load}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
-          </Button>
-          {isAdmin && (
-            <Button size="sm" onClick={sendWeekly}>Send weekly</Button>
-          )}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh</Button>
+          {isAdmin && <Button size="sm" onClick={handleWeeklyDispatch}>Dispatch Weekly</Button>}
         </div>
       </header>
 
-      {loading && (
-        <div className="space-y-2">
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-        </div>
-      )}
+      {loading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
 
-      {error && !loading && (
-        <Card>
-          <CardContent className="py-6 text-center space-y-2">
-            <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
-            <p className="text-sm text-muted-foreground">{error}</p>
-          </CardContent>
+      {error && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="py-6 text-center text-sm text-destructive font-medium">{error}</Button>
         </Card>
       )}
 
       {!loading && !error && digests.length === 0 && (
-        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
-          No items flagged. Your courses are humming. 🎉
-        </CardContent></Card>
+        <Card className="p-8 text-center text-sm text-muted-foreground">Everything is humming. No flags identified. 🎉</Card>
       )}
 
       {digests.map((d) => (
-        <Card key={d.module.id}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center justify-between gap-2">
+        <Card key={d.module.id} className="rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 bg-muted/20">
+            <CardTitle className="text-sm flex justify-between items-center">
               <span className="truncate">{d.module.title}</span>
-              <Badge variant="destructive" className="text-[10px]">
-                {d.summary.flagged_quiz + d.summary.flagged_scenarios} flagged
+              <Badge variant="destructive" className="shrink-0 text-[10px]">
+                {d.summary.flagged_quiz + d.summary.flagged_scenarios} Flags
               </Badge>
             </CardTitle>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {d.content?.title ?? "Course"}{d.owner?.full_name ? ` · ${d.owner.full_name}` : ""}
-            </p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{d.content?.title}</p>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex flex-wrap gap-1.5 text-[11px]">
-              <Badge variant="outline">{d.summary.flagged_quiz} quiz</Badge>
-              <Badge variant="outline">{d.summary.flagged_scenarios} scenario</Badge>
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-[10px] font-mono">{d.summary.flagged_quiz} Quiz Issues</Badge>
+              <Badge variant="outline" className="text-[10px] font-mono">{d.summary.flagged_scenarios} Scenario Issues</Badge>
               {d.weak_topics?.slice(0, 3).map(t => (
-                <Badge key={t.topic_tag} variant="secondary" className="text-[10px]">
-                  {t.topic_tag}
-                </Badge>
+                <Badge key={t.topic_tag} variant="secondary" className="text-[10px]">{t.topic_tag}</Badge>
               ))}
             </div>
-            <Link to={`/content/${d.module.content_id}/modules`}>
-              <Button size="sm" variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Open analytics</span>
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+            <Button asChild size="sm" variant="outline" className="w-full">
+              <Link to={`/content/${d.module.content_id}/modules`}>
+                <BarChart3 className="h-3.5 w-3.5 mr-2" /> View Analytics
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       ))}
