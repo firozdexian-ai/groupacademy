@@ -46,17 +46,15 @@ const ACADEMY_LEARN_HOME_ROUTER_PATH = IS_GRO10X ? "/gro10x/learn" : "/app/learn
 /**
  * GroUp Academy: Personal Career Track Progress Monitor (AppTrackDetail)
  * Hardened roadmap portal calculating structural course milestone dependencies and locking date intervals against localization drifts.
- * Version: Launch Candidate · Phase Z1 Production Contract Locked
+ * Version: Launch Candidate · Phase Z2 Optional-Aware Dependency Pass
  */
 export default function AppTrackDetail() {
   const { trackId: unverifiedTrackIdStr } = useParams<{ trackId: string }>();
 
   const { data: trackAssignmentsPayload, isLoading: isAssignmentsCacheResolving } = useMyTrackAssignments();
 
-  // Cast incoming query vectors securely to shield child components from type decay
   const typedAssignmentsArray = trackAssignmentsPayload as unknown as TrackAssignment[] | undefined;
 
-  // Isolate current active track assignment using an isolated memo checkpoint
   const contextualActiveAssignment = React.useMemo(() => {
     if (!typedAssignmentsArray || !unverifiedTrackIdStr) return null;
     return typedAssignmentsArray.find((assignmentItem) => assignmentItem.track_id === unverifiedTrackIdStr) || null;
@@ -68,18 +66,28 @@ export default function AppTrackDetail() {
   const typedProgressPayload = progressPayloadResponse as unknown as TrackProgressPayload | undefined;
 
   // =========================================================================
-  // MEMOIZED PARAMETER SECTOR: PROGRAMMATIC LEVEL MAP VECTOR PREREQUISITES
+  // HARDENED PARAMETER SECTOR: BYPASS OPTIONAL BLOCKS FOR DEPENDENCY UNLOCKS
   // =========================================================================
   const calculatedPrerequisiteLocksArray = React.useMemo<boolean[]>(() => {
     if (!typedProgressPayload?.items || typedProgressPayload.items.length === 0) return [];
 
     const itemsCollection = typedProgressPayload.items;
-    return itemsCollection.map((_, indexPosition) => {
-      if (indexPosition === 0) return true; // Foundation block step initialization is consistently un-locked
 
-      const upstreamSiblingNode = itemsCollection[indexPosition - 1];
-      const isCompletedFlag = upstreamSiblingNode.status === "completed" || upstreamSiblingNode.completed_at !== null;
-      return isCompletedFlag;
+    return itemsCollection.map((_, indexPosition) => {
+      if (indexPosition === 0) return true; // Initial course is uniformly accessible
+
+      // Inspect all previous items in sequence array
+      for (let i = 0; i < indexPosition; i++) {
+        const structuralPriorNode = itemsCollection[i];
+
+        // If a preceding node is strictly mandatory and incomplete, block further path traversal
+        if (structuralPriorNode.is_required) {
+          const isNodePassed = structuralPriorNode.status === "completed" || structuralPriorNode.completed_at !== null;
+          if (!isNodePassed) return false;
+        }
+      }
+
+      return true;
     });
   }, [typedProgressPayload]);
 
@@ -87,7 +95,7 @@ export default function AppTrackDetail() {
     return (
       <div
         role="status"
-        className="min-h-[60vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none antialiased"
+        className="min-h-[60vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/40 select-none antialiased"
       >
         <div className="flex items-center gap-2.5">
           <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
@@ -156,7 +164,7 @@ export default function AppTrackDetail() {
             {targetedTrackNodeDetails?.summary && (
               <p
                 className={cn(
-                  "text-xs leading-normal block select-text font-medium text-muted-foreground/80 line-clamp-2",
+                  "text-xs leading-normal block select-text font-medium text-muted-foreground/70 line-clamp-2",
                   !IS_GRO10X && "text-muted-foreground/70",
                   GRO10X_MUTED,
                 )}
@@ -207,7 +215,7 @@ export default function AppTrackDetail() {
 
             return (
               <div
-                key={`track-sequence-item-node-${itemNode.content_id}`}
+                key={itemNode.content_id}
                 className={cn(
                   "rounded-lg border border-border/60 bg-card/40 p-3 flex items-center justify-between gap-4 leading-none w-full block transform-gpu transition-colors duration-100 shadow-2xs",
                   !isStepSequenceAccessibleFlag && "opacity-50 bg-muted/10 border-border/20",
