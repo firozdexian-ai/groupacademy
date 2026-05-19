@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useTalent } from "@/hooks/useTalent";
 import { useTalentPitches } from "@/hooks/useTalentPitches";
 import { useSkillCredentials } from "@/hooks/useSkillCredentials";
