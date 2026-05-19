@@ -122,7 +122,7 @@ export default function InstructorReviewQueue() {
 
       {error && (
         <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="py-6 text-center text-sm text-destructive font-medium">{error}</Button>
+          <CardContent className="py-6 text-center text-sm text-destructive font-medium">{error}</CardContent>
         </Card>
       )}
 
