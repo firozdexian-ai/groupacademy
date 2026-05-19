@@ -302,7 +302,7 @@ export default function AppJobDetail() {
 
       if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
 
-      setLiveScore({
+      setLiveEvaluationScoreState({
         score: edgeFunctionResponseData?.match_score ?? 0,
         rationale: edgeFunctionResponseData?.rationale,
       });
