@@ -158,7 +158,7 @@ export default function BlogPost() {
     return (
       <div className={cn(PAGE_SHELL, "w-full text-left block antialiased")}>
         <EmptyState
-          icon={ShieldAlertNodeHelper}
+          icon={ShieldAlert}
           title="Brief Record De-Indexed"
           description="The requested insight analysis pipeline data mapping parameters have been restricted or pruned from active catalog tracks."
           action={{ label: "Return to Insights Board", onClick: handleReturnToInsightsCatalog }}
