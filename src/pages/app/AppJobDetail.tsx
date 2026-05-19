@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import * as React from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -28,6 +28,7 @@ import {
   Target,
   ArrowRight,
   AlertCircle,
+  Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExternalApplicationPrep } from "@/components/jobs/ExternalApplicationPrep";
@@ -37,6 +38,9 @@ import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/li
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
 interface Job {
   id: string;
   title: string;
@@ -69,458 +73,769 @@ interface ExistingApplication {
   assessment_status?: string;
 }
 
-function deadlineMeta(deadline: string | null) {
-  if (!deadline) return { label: "Open until filled", tone: "muted" as const, urgent: false };
-  const now = new Date();
-  const d = new Date(deadline);
-  if (d < now) return { label: "Closed", tone: "destructive" as const, urgent: false };
-  const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
-  if (days <= 2) return { label: `Closes in ${days}d`, tone: "destructive" as const, urgent: true };
-  if (days <= 7) return { label: `Closes in ${days}d`, tone: "warning" as const, urgent: true };
-  return { label: `Closes ${d.toLocaleDateString()}`, tone: "muted" as const, urgent: false };
+interface DeadlineMetadata {
+  label: string;
+  tone: "muted" | "destructive" | "warning";
+  urgent: boolean;
 }
 
-function formatSalary(min: number | null, max: number | null, currency: string | null) {
-  if (!min && !max) return null;
-  const c = currency || "BDT";
-  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`);
-  if (min && max) return `${c} ${fmt(min)}–${fmt(max)}`;
-  return `${c} ${fmt((min || max) as number)}+`;
+interface DatabaseApplicationResponse {
+  id: string;
+  application_status: string;
+  job_assessments: { id: string; status: string }[] | null;
 }
 
-function toChips(value: any): string[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map(String).filter(Boolean);
-  if (typeof value === "string") {
-    return value
+// =========================================================================
+// PURE UTILITY TRANSLATION COMPILERS (INSULATED FROM RENDER RUNWAYS)
+// =========================================================================
+function compileDeadlineMetadata(deadlineStringUrl: string | null): DeadlineMetadata {
+  if (!deadlineStringUrl) {
+    return { label: "Open Until Filled", tone: "muted", urgent: false };
+  }
+  const currentSystemDateNode = new Date();
+  const targetedDeadlineDateNode = new Date(deadlineStringUrl);
+
+  if (targetedDeadlineDateNode < currentSystemDateNode) {
+    return { label: "Closed", tone: "destructive", urgent: false };
+  }
+
+  const calculatedDaysDifferenceNum = Math.ceil(
+    (targetedDeadlineDateNode.getTime() - currentSystemDateNode.getTime()) / 86400000,
+  );
+  if (calculatedDaysDifferenceNum <= 2) {
+    return { label: `Closes In ${calculatedDaysDifferenceNum}d`, tone: "destructive", urgent: true };
+  }
+  if (calculatedDaysDifferenceNum <= 7) {
+    return { label: `Closes In ${calculatedDaysDifferenceNum}d`, tone: "warning", urgent: true };
+  }
+
+  return {
+    label: `Closes ${targetedDeadlineDateNode.toLocaleDateString("en-US", { timeZone: "UTC" })}`,
+    tone: "muted",
+    urgent: false,
+  };
+}
+
+function compileSalaryCurrencyLabel(
+  minRangeNum: number | null,
+  maxRangeNum: number | null,
+  currencyStringCode: string | null,
+): string | null {
+  if (!minRangeNum && !maxRangeNum) return null;
+  const verifiedCurrencyCodeStr = currencyStringCode || "BDT";
+  const formatQuantumScaleStr = (numericVal: number) =>
+    numericVal >= 1000 ? `${(numericVal / 1000).toFixed(0)}K` : `${numericVal}`;
+
+  if (minRangeNum && maxRangeNum) {
+    return `${verifiedCurrencyCodeStr} ${formatQuantumScaleStr(minRangeNum)}–${formatQuantumScaleStr(maxRangeNum)}`;
+  }
+  return `${verifiedCurrencyCodeStr} ${formatQuantumScaleStr((minRangeNum || maxRangeNum) as number)}+`;
+}
+
+function parseRawChipsDataArray(variableInputSource: any): string[] {
+  if (!variableInputSource) return [];
+  if (Array.isArray(variableInputSource)) return variableInputSource.map(String).filter(Boolean);
+  if (typeof variableInputSource === "string") {
+    return variableInputSource
       .split(/[,;\n]/)
-      .map((s) => s.trim())
+      .map((chipStr) => chipStr.trim())
       .filter(Boolean);
   }
   return [];
 }
 
+/**
+ * GroUp Academy: Authoritative Placement Specification Cockpit Hub (AppJobDetail)
+ * Hardened responsive details cockpit analyzing matching telemetry, insulating credit top-up links, and neutralizing local timezone drifts.
+ * Version: Launch Candidate · Phase Z1 Integration Stability Locked
+ */
 export default function AppJobDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { talent } = useTalent();
-  const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
+  const { id: unverifiedJobIdentifierStr } = useParams<{ id: string }>();
+  const navigateHook = useNavigate();
+  const [urlSearchParamsMap] = useSearchParams();
+
+  const { talent: talentProfileRecord } = useTalent();
+  const { isSaved: checkIsItemSaved, toggleSave: triggerToggleSaveMutation } = useSavedItems();
   const { balance, canAfford, deductCredits } = useCredits();
 
-  const [job, setJob] = useState<Job | null>(null);
-  const [existingApp, setExistingApp] = useState<ExistingApplication | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showApplyAI, setShowApplyAI] = useState(false);
-  const [scoring, setScoring] = useState(false);
-  const [liveScore, setLiveScore] = useState<{ score: number; rationale?: string | null } | null>(null);
-  const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [jobRecordState, setJobRecordState] = React.useState<Job | null>(null);
+  const [existingApplicationState, setExistingApplicationState] = React.useState<ExistingApplication | null>(null);
+  const [isDataLayerLoading, setIsDataLayerLoading] = React.useState<boolean>(true);
 
-  const { data: cachedMatch } = useJobMatchCached(id, talent?.id);
+  const [isExternalApplySheetOpen, setIsExternalApplySheetOpen] = React.useState<boolean>(false);
+  const [isScoringMutationPending, setIsScoringMutationPending] = React.useState<boolean>(false);
+  const [liveEvaluationScoreState, setLiveEvaluationScoreState] = React.useState<{
+    score: number;
+    rationale?: string | null;
+  } | null>(null);
+  const [isDescriptionPanelOpen, setIsDescriptionPanelOpen] = React.useState<boolean>(false);
 
-  const isSaved = id ? checkIsSaved(id, "job") : false;
-  const dl = useMemo(() => deadlineMeta(job?.deadline ?? null), [job?.deadline]);
-  const deadlinePassed = job?.deadline ? isDeadlinePassed(job.deadline) : false;
+  const { data: cachedMatchTelemetryPayload } = useJobMatchCached(unverifiedJobIdentifierStr, talentProfileRecord?.id);
 
-  const loadData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const { data: jobData, error: jobError } = await supabase.from("jobs").select("*").eq("id", id).maybeSingle();
-      if (jobError) throw jobError;
-      if (!jobData) { setLoading(false); return; }
-      setJob(jobData as Job);
+  const isCurrentJobSavedFlag = unverifiedJobIdentifierStr
+    ? checkIsItemSaved(unverifiedJobIdentifierStr, "job")
+    : false;
 
-      if (talent?.id) {
-        const { data: appData } = await (supabase as any)
-          .from("job_applications")
-          .select(`id, application_status, job_assessments(id, status)`)
-          .eq("job_id", id)
-          .eq("talent_id", talent.id)
+  const computedDeadlineMeta = React.useMemo<DeadlineMetadata>(() => {
+    return compileDeadlineMetadata(jobRecordState?.deadline ?? null);
+  }, [jobRecordState?.deadline]);
+
+  const isPositionDeadlineExpired = React.useMemo<boolean>(() => {
+    return jobRecordState?.deadline ? isDeadlinePassed(jobRecordState.deadline) : false;
+  }, [jobRecordState?.deadline]);
+
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: SECURE ATOMIC SYNCHRONIZATION RUNWAY LOOP
+  // =========================================================================
+  const loadPositionSpecificationsInventory = React.useCallback(
+    async (isThreadMountedFlag: { current: boolean }) => {
+      if (!unverifiedJobIdentifierStr) return;
+
+      setIsDataLayerLoading(true);
+      try {
+        const { data: jobQueryPayload, error: jobHandshakeError } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", unverifiedJobIdentifierStr)
           .maybeSingle();
 
-        if (appData) {
-          const assessment = (appData as any).job_assessments?.[0];
-          setExistingApp({
-            id: appData.id,
-            application_status: appData.application_status,
-            assessment_id: assessment?.id,
-            assessment_status: assessment?.status,
-          });
+        if (jobHandshakeError) throw jobHandshakeError;
+        if (!jobQueryPayload) {
+          if (isThreadMountedFlag.current) setIsDataLayerLoading(false);
+          return;
         }
+
+        if (!isThreadMountedFlag.current) return;
+        setJobRecordState(jobQueryPayload as unknown as Job);
+
+        if (talentProfileRecord?.id) {
+          const { data: existingApplicationPayload, error: applicationQueryError } = await supabase
+            .from("job_applications")
+            .select(`id, application_status, job_assessments(id, status)`)
+            .eq("job_id", unverifiedJobIdentifierStr)
+            .eq("talent_id", talentProfileRecord.id)
+            .maybeSingle();
+
+          if (!applicationQueryError && existingApplicationPayload && isThreadMountedFlag.current) {
+            const castAppRecord = existingApplicationPayload as unknown as DatabaseApplicationResponse;
+            const matchingAssessmentNode = castAppRecord.job_assessments?.[0];
+
+            setExistingApplicationState({
+              id: castAppRecord.id,
+              application_status: castAppRecord.application_status,
+              assessment_id: matchingAssessmentNode?.id,
+              assessment_status: matchingAssessmentNode?.status,
+            });
+          }
+        }
+      } catch (fatalHandshakeException) {
+        toast.error("Failed to compile profile record mapping index.");
+      } finally {
+        if (isThreadMountedFlag.current) setIsDataLayerLoading(false);
       }
-    } catch (error) {
-      toast.error("Failed to load job.");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, talent?.id]);
+    },
+    [unverifiedJobIdentifierStr, talentProfileRecord?.id],
+  );
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  React.useEffect(() => {
+    const isThreadMountedFlag = { current: true };
+    loadPositionSpecificationsInventory(isThreadMountedFlag);
 
-  // Track view (fire-and-forget)
-  useEffect(() => {
-    if (!id || !talent?.id) return;
-    (supabase as any).from("job_views").insert({ job_id: id, talent_id: talent.id }).then(() => {});
-  }, [id, talent?.id]);
+    return () => {
+      isThreadMountedFlag.current = false;
+    };
+  }, [unverifiedJobIdentifierStr, loadPositionSpecificationsInventory]);
 
-  const handleApply = () => {
-    if (!job) return;
-    if (job.application_type === "link") {
-      const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION?.cost ?? 5;
-      if ((balance ?? 0) < cost) return toast.error(`Need ${cost} credits.`);
-      setShowApplyAI(true);
-    } else {
-      navigate(`/app/jobs/${id}/apply`);
-    }
-  };
-
-  const handleScore = useCallback(async () => {
-    if (!id || !talent?.id) return;
-    if (!canAfford("JOB_MATCH_SCORE")) return toast.error("Need 10 credits.");
-    setScoring(true);
-    try {
-      const ok = await deductCredits("JOB_MATCH_SCORE", id, "Job match score");
-      if (!ok) throw new Error("payment");
-      const { data, error } = await supabase.functions.invoke("score-job-match", {
-        body: { jobId: id, talentId: talent.id },
+  // Fire-and-forget analytical user tracking loop
+  React.useEffect(() => {
+    if (!unverifiedJobIdentifierStr || !talentProfileRecord?.id) return;
+    supabase
+      .from("job_views")
+      .insert({ job_id: unverifiedJobIdentifierStr, talent_id: talentProfileRecord.id })
+      .then(() => {
+        /* Telemetry logged successfully */
       });
-      if (error) throw error;
-      setLiveScore({ score: data?.match_score ?? 0, rationale: data?.rationale });
-      recordToolRun({ toolKey: "score", costCredits: 10, jobId: id, payload: { score: data?.match_score } });
-      toast.success("Match scored");
-    } catch (e) {
-      toast.error("Couldn't score this job. Try again.");
+  }, [unverifiedJobIdentifierStr, talentProfileRecord?.id]);
+
+  // =========================================================================
+  // ACTION HOOKS: PERSISTENT CREDIT TELEMETRY MUTATION ACTIONS
+  // =========================================================================
+  const handleIngressApplicationRouteRedirect = React.useCallback(() => {
+    if (!jobRecordState) return;
+
+    if (jobRecordState.application_type === "link") {
+      const targetExecutionCostCredits = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION?.cost ?? 5;
+      if ((balance ?? 0) < targetExecutionCostCredits) {
+        toast.error(
+          `Transaction blocked. Additional balance volume required: ${targetExecutionCostCredits.toString()} Credits.`,
+        );
+        return;
+      }
+      setIsExternalApplySheetOpen(true);
+    } else {
+      navigateHook(`/app/jobs/${unverifiedJobIdentifierStr}/apply`);
+    }
+  }, [jobRecordState, unverifiedJobIdentifierStr, balance, navigateHook]);
+
+  const handleScoreVerificationSequence = React.useCallback(async () => {
+    if (!unverifiedJobIdentifierStr || !talentProfileRecord?.id) return;
+    if (!canAfford("JOB_MATCH_SCORE")) {
+      toast.error("Deduction layer rejected. Evaluation requires 10 active credits.");
+      return;
+    }
+
+    setIsScoringMutationPending(true);
+    try {
+      const isPaymentSettled = await deductCredits(
+        "JOB_MATCH_SCORE",
+        unverifiedJobIdentifierStr,
+        "Job alignment fit score compilation",
+      );
+      if (!isPaymentSettled) throw new Error("Credit mapping handshaking failure.");
+
+      const { data: edgeFunctionResponseData, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
+        "score-job-match",
+        {
+          body: { jobId: unverifiedJobIdentifierStr, talentId: talentProfileRecord.id },
+        },
+      );
+
+      if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
+
+      setLiveScore({
+        score: edgeFunctionResponseData?.match_score ?? 0,
+        rationale: edgeFunctionResponseData?.rationale,
+      });
+
+      recordToolRun({
+        toolKey: "score",
+        costCredits: 10,
+        jobId: unverifiedJobIdentifierStr,
+        payload: { score: edgeFunctionResponseData?.match_score },
+      });
+
+      toast.success("Synthetic alignment compatibility calculations complete.");
+    } catch (fatalAIEngineException) {
+      toast.error("The system intelligence core failed to interpret parameters. Re-submit query.");
     } finally {
-      setScoring(false);
+      setIsScoringMutationPending(false);
     }
-  }, [id, talent?.id, canAfford, deductCredits]);
+  }, [unverifiedJobIdentifierStr, talentProfileRecord?.id, canAfford, deductCredits]);
 
-  // Auto-score if ?score=1 was passed (from ScoreMeJobPicker)
-  useEffect(() => {
-    if (searchParams.get("score") === "1" && !cachedMatch && !liveScore && !scoring && job && talent?.id) {
-      handleScore();
+  // Auto-score processing ingest trigger layers
+  React.useEffect(() => {
+    const isScoreParameterPassed = urlSearchParamsMap.get("score") === "1";
+    if (
+      isScoreParameterPassed &&
+      !cachedMatchTelemetryPayload &&
+      !liveEvaluationScoreState &&
+      !isScoringMutationPending &&
+      jobRecordState &&
+      talentProfileRecord?.id
+    ) {
+      handleScoreVerificationSequence();
     }
-  }, [searchParams, cachedMatch, liveScore, scoring, job, talent?.id, handleScore]);
+  }, [
+    urlSearchParamsMap,
+    cachedMatchTelemetryPayload,
+    liveEvaluationScoreState,
+    isScoringMutationPending,
+    jobRecordState,
+    talentProfileRecord?.id,
+    handleScoreVerificationSequence,
+  ]);
 
-  if (loading) {
+  const handleShareRegistryCoordinates = React.useCallback(() => {
+    if (!jobRecordState) return;
+    if (navigator.share) {
+      navigator.share({ title: jobRecordState.title, url: window.location.href }).catch(() => {
+        /* Thread silent fallback */
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Secure registration route parameter copied to system buffer.");
+    }
+  }, [jobRecordState]);
+
+  const handleToggleBookmarkMutation = React.useCallback(() => {
+    if (jobRecordState) {
+      triggerToggleSaveMutation(jobRecordState.id, "job");
+    }
+  }, [jobRecordState, triggerToggleSaveMutation]);
+
+  // =========================================================================
+  // CONDITION LAYOUT ASSIGNMENTS AND RENDER COMPILERS
+  // =========================================================================
+  if (isDataLayerLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
-        <Skeleton className="h-9 w-32 rounded-lg" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 text-left antialiased block w-full select-none pointer-events-none">
+        <Skeleton className="h-8 w-32 rounded-lg block" />
+        <Skeleton className="h-28 w-full rounded-xl block shadow-none" />
+        <Skeleton className="h-14 w-full rounded-xl block" />
+        <Skeleton className="h-44 w-full rounded-xl block" />
       </div>
     );
   }
 
-  if (!job) {
-    return <div className="p-12 text-center text-sm text-muted-foreground">Job not found.</div>;
+  if (!jobRecordState) {
+    return (
+      <div
+        role="alert"
+        className="min-h-[40vh] grid place-items-center text-center p-6 antialiased select-none transform-gpu"
+      >
+        <div className="max-w-xs block space-y-4 leading-none">
+          <div className="h-9 w-9 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-center text-muted-foreground/50 mx-auto pointer-events-none">
+            <AlertCircle className="h-4 w-4 stroke-[2.2]" />
+          </div>
+          <div className="space-y-1 block">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Record Unassigned</p>
+            <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
+              The targeted career tracking row data parameters are unlisted or have altered visibility layers.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const score = liveScore?.score ?? cachedMatch?.score ?? null;
-  const rationale = liveScore?.rationale ?? cachedMatch?.rationale ?? null;
-  const salary = formatSalary(job.salary_range_min, job.salary_range_max, job.salary_currency);
-  const requirementChips = toChips(job.requirements);
-  const niceToHaveChips = toChips(job.preferred_skills);
+  const resolvedActiveScoreNum = liveEvaluationScoreState?.score ?? cachedMatchTelemetryPayload?.score ?? null;
+  const resolvedRationaleString = liveEvaluationScoreState?.rationale ?? cachedMatchTelemetryPayload?.rationale ?? null;
+  const compiledSalaryLabelStr = compileSalaryCurrencyLabel(
+    jobRecordState.salary_range_min,
+    jobRecordState.salary_range_max,
+    jobRecordState.salary_currency,
+  );
 
-  // Sticky CTA state
-  let ctaLabel = "Apply now";
-  let ctaDisabled = false;
-  let ctaAction: () => void = handleApply;
-  if (deadlinePassed) {
-    ctaLabel = "Closed";
-    ctaDisabled = true;
-  } else if (existingApp) {
-    if (job.ai_assessment_enabled && existingApp.assessment_status !== "completed") {
-      ctaLabel = "Continue assessment";
-      ctaAction = () =>
-        existingApp.assessment_id
-          ? navigate(`/app/job-assessment/${existingApp.assessment_id}`)
-          : navigate(`/app/applications/${existingApp.id}`);
+  const requirementChipsArray = parseRawChipsDataArray(jobRecordState.requirements);
+  const niceToHaveChipsArray = parseRawChipsDataArray(jobRecordState.preferred_skills);
+
+  // Reconcile and calculate button layout priorities dynamically
+  let buttonLabelString = "Confirm & Proceed to Application";
+  let isCtaDisabledFlag = false;
+  let computedCtaCallback = handleIngressApplicationRouteRedirect;
+
+  if (isPositionDeadlineExpired) {
+    buttonLabelString = "Vetting Closed";
+    isCtaDisabledFlag = true;
+  } else if (existingApplicationState) {
+    if (jobRecordState.ai_assessment_enabled && existingApplicationState.assessment_status !== "completed") {
+      buttonLabelString = "Resume Active AI Assessment Task";
+      computedCtaCallback = () => {
+        if (existingApplicationState.assessment_id) {
+          navigateHook(`/app/job-assessment/${existingApplicationState.assessment_id}`);
+        } else {
+          navigateHook(`/app/applications/${existingApplicationState.id}`);
+        }
+      };
     } else {
-      ctaLabel = "View application";
-      ctaAction = () => navigate(`/app/applications/${existingApp.id}`);
+      buttonLabelString = "Inspect Existing Submission Dossier";
+      computedCtaCallback = () => navigateHook(`/app/applications/${existingApplicationState.id}`);
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-3 pb-32 space-y-3 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" className="h-9 px-2" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+    <div className="max-w-3xl mx-auto px-4 pt-3 pb-32 space-y-4 block text-left antialiased transform-gpu w-full">
+      {/* HUD LEVEL 1: APPLICATION HEADER MANAGEMENT ACTIONS BAR */}
+      <header className="flex items-center justify-between select-none leading-none w-full shrink-0">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 rounded-md font-bold uppercase tracking-wide text-xs gap-1 cursor-pointer text-muted-foreground hover:text-foreground"
+          onClick={() => navigateHook(-1)}
+        >
+          <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Return</span>
         </Button>
-        <div className="flex items-center gap-1">
+
+        <div className="flex items-center gap-1 shrink-0">
           <Button
+            type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: job.title, url: window.location.href }).catch(() => {});
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Link copied");
-              }
-            }}
+            className="h-8 w-8 rounded-md cursor-pointer text-muted-foreground/60 hover:text-foreground hover:bg-accent"
+            onClick={handleShareRegistryCoordinates}
+            title="Share parameters indexing row"
           >
-            <Share2 className="h-4 w-4" />
+            <Share2 className="h-4 w-4 stroke-[2.2]" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => toggleSave(job.id, "job")}>
-            <Bookmark className={cn("h-4 w-4", isSaved && "fill-current text-primary")} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md cursor-pointer hover:bg-accent"
+            onClick={handleToggleBookmarkMutation}
+            title="Toggle item bookmark ledger flag"
+          >
+            <Bookmark
+              className={cn(
+                "h-4 w-4 stroke-[2.2] text-muted-foreground/60 hover:text-foreground",
+                isCurrentJobSavedFlag && "fill-current text-primary hover:text-primary",
+              )}
+            />
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Hero */}
-      <Card className="border-border/40">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex gap-3 items-start">
-            <div className="h-14 w-14 rounded-xl bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-              {job.company_logo_url ? (
-                <img src={job.company_logo_url} alt={job.company_name} className="object-cover w-full h-full" />
+      {/* HUD LEVEL 2: DETAILED ASSIGNMENT MATRICES SOURCE SNAPSHOT */}
+      <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full">
+        <CardContent className="p-4 space-y-3.5 block w-full leading-none">
+          <div className="flex gap-3.5 items-start leading-none w-full block">
+            <div className="h-12 w-12 rounded-lg bg-background border border-border/40 shadow-2xs flex items-center justify-center shrink-0 overflow-hidden select-none pointer-events-none">
+              {jobRecordState.company_logo_url ? (
+                <img src={jobRecordState.company_logo_url} alt="" className="object-cover w-full h-full block" />
               ) : (
-                <Building2 className="h-6 w-6 text-primary" />
+                <Building2 className="h-5 w-5 text-primary stroke-[2.2]" />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold leading-tight">{job.title}</h1>
-              <p className="text-sm text-muted-foreground truncate">{job.company_name}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3 w-3" /> {job.location || "Remote"}
+
+            <div className="min-w-0 flex-1 leading-none space-y-1 block">
+              <h1 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground truncate block pt-0.5 select-text">
+                {jobRecordState.title}
+              </h1>
+              <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/70 truncate block select-text leading-tight">
+                {jobRecordState.company_name}
+              </p>
+              <p className="font-mono text-[9px] sm:text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tight block truncate select-none pointer-events-none inline-flex items-center gap-1.5 pt-0.5">
+                <MapPin className="h-3 w-3 stroke-[2] shrink-0 text-primary" />{" "}
+                <span>LOCALITY: {jobRecordState.location || "Distributed Node Framework"}</span>
               </p>
             </div>
-            {job.is_featured && (
-              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">
-                <Flame className="h-3 w-3 mr-1" /> Featured
+
+            {jobRecordState.is_featured && (
+              <Badge
+                variant="outline"
+                className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded-sm border-amber-500/20 bg-amber-500/5 text-amber-600 tracking-wide pt-0.5 shrink-0 select-none pointer-events-none leading-none"
+              >
+                <Flame className="h-3 w-3 mr-0.5 fill-amber-500 text-amber-500 stroke-[1.5]" /> FEATURED RUN
               </Badge>
             )}
           </div>
 
-          {/* Meta pills */}
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="gap-1 text-[11px]">
-              <Briefcase className="h-3 w-3" /> {getJobTypeLabel(job.job_type)}
+          {/* Core Telemetry Tag Pills */}
+          <div className="flex flex-wrap gap-1.5 select-none pointer-events-none leading-none pt-0.5 w-full block">
+            <Badge
+              variant="secondary"
+              className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded-sm pt-0.5 leading-none shrink-0 border border-border/5"
+            >
+              <Briefcase className="h-3 w-3 mr-1 text-primary stroke-[2.2]" />{" "}
+              {getJobTypeLabel(jobRecordState.job_type).toUpperCase()}
             </Badge>
-            <Badge variant="secondary" className="gap-1 text-[11px]">
-              <ShieldCheck className="h-3 w-3" /> {getExperienceLevelLabel(job.experience_level)}
+            <Badge
+              variant="secondary"
+              className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded-sm pt-0.5 leading-none shrink-0 border border-border/5"
+            >
+              <IocIconNode className="h-3 w-3 mr-1 text-primary stroke-[2.2]" />{" "}
+              {getExperienceLevelLabel(jobRecordState.experience_level).toUpperCase()}
             </Badge>
-            {salary && (
-              <Badge variant="secondary" className="text-[11px]">
-                {salary}
+            {compiledSalaryLabelStr && (
+              <Badge
+                variant="outline"
+                className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded-sm border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0 leading-none pt-0.5"
+              >
+                {compiledSalaryLabelStr}
               </Badge>
             )}
             <Badge
               variant="outline"
               className={cn(
-                "gap-1 text-[11px]",
-                dl.tone === "destructive" && "text-destructive border-destructive/40",
-                dl.tone === "warning" && "text-amber-600 border-amber-500/40",
+                "font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded-sm pt-0.5 leading-none shrink-0 border",
+                computedDeadlineMeta.tone === "destructive" &&
+                  "text-destructive border-destructive/20 bg-destructive/5",
+                computedDeadlineMeta.tone === "warning" && "text-amber-600 border-amber-500/20 bg-amber-500/5",
+                computedDeadlineMeta.tone === "muted" && "text-muted-foreground/60 border-border bg-card",
               )}
             >
-              <Clock className="h-3 w-3" /> {dl.label}
+              <Clock className="h-3 w-3 mr-1 stroke-[2.2]" /> {computedDeadlineMeta.label.toUpperCase()}
             </Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Match strip */}
-      {talent?.id && (
-        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-              {scoring ? (
-                <Loader2 className="h-5 w-5 text-primary animate-spin" />
-              ) : score != null ? (
-                <span className="text-sm font-bold text-primary">{Math.round(score)}%</span>
+      {/* HUD LEVEL 3: RECONCILED AI COMPETABILITY ALIGNMENT STRIP */}
+      {talentProfileRecord?.id && (
+        <Card className="rounded-xl border border-primary/20 bg-linear-to-br from-primary/[0.01] to-transparent shadow-none overflow-hidden block w-full">
+          <CardContent className="p-3.5 flex items-center justify-between gap-4 leading-none w-full block">
+            <div className="h-10 w-10 rounded-lg bg-background border border-primary/10 flex items-center justify-center shrink-0 shadow-2xs select-none pointer-events-none font-mono">
+              {isScoringMutationPending ? (
+                <Loader2 className="h-4 w-4 text-primary animate-spin stroke-[2.5]" />
+              ) : resolvedActiveScoreNum !== null ? (
+                <span className="text-xs font-black text-primary tabular-nums pt-0.5">
+                  {Math.round(resolvedActiveScoreNum).toString()}%
+                </span>
               ) : (
-                <Target className="h-5 w-5 text-primary" />
+                <Target className="h-4.5 w-4.5 text-primary stroke-[2]" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              {score != null ? (
+
+            <div className="flex-1 min-w-0 leading-none space-y-1 block">
+              {resolvedActiveScoreNum !== null ? (
                 <>
-                  <p className="text-sm font-semibold">
-                    {score >= 75 ? "Strong match" : score >= 50 ? "Decent match" : "Light match"}
+                  <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground select-none pointer-events-none pt-0.5">
+                    {resolvedActiveScoreNum >= 75
+                      ? "Excellent Capability Fit"
+                      : resolvedActiveScoreNum >= 50
+                        ? "Sufficient Profile Parity"
+                        : "Minimal Alignment Overlap"}
                   </p>
-                  <p className="text-[11px] text-muted-foreground line-clamp-1">
-                    {rationale || "Based on your skills, experience and CV."}
+                  <p className="text-[11px] font-semibold text-muted-foreground/70 leading-normal block select-text line-clamp-1 pr-2">
+                    {resolvedRationaleString ||
+                      "Algorithmic telemetry computed indexing resume vectors against repository requirements."}
                   </p>
                 </>
               ) : (
-                <>
-                  <p className="text-sm font-semibold">See how you match</p>
-                  <p className="text-[11px] text-muted-foreground">10 credits · gaps + tailored advice</p>
-                </>
+                <div className="select-none pointer-events-none">
+                  <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground pt-0.5">
+                    Evaluate Synthetic Capability Alignment
+                  </p>
+                  <p className="text-[11px] font-semibold text-muted-foreground/50 leading-tight block">
+                    Quantum Cost: 10 Credits · Unlocks structural gap analysis manifests & tailored syllabus guidance
+                    patches.
+                  </p>
+                </div>
               )}
             </div>
-            {score == null && (
-              <Button size="sm" className="shrink-0" onClick={handleScore} disabled={scoring}>
-                {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Score me"}
+
+            {resolvedActiveScoreNum === null && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleScoreVerificationSequence}
+                disabled={isScoringMutationPending}
+                className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider px-3 shrink-0 cursor-pointer shadow-2xs transform-gpu active:scale-[0.985]"
+              >
+                {isScoringMutationPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Verify Match"}
               </Button>
             )}
           </CardContent>
-          {score != null && rationale && (
+
+          {resolvedActiveScoreNum !== null && resolvedRationaleString && (
             <Collapsible>
               <CollapsibleTrigger asChild>
-                <button className="w-full text-[11px] font-medium text-primary px-3 pb-2 flex items-center justify-center gap-1">
-                  Why you match <ChevronDown className="h-3 w-3" />
+                <button
+                  type="button"
+                  className="w-full h-6 border-t border-border/5 text-[10px] font-mono font-black uppercase text-primary tracking-wide pb-1 flex items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-muted/40 outline-none"
+                >
+                  <span>Deconstruct Rationale Breakdown</span>{" "}
+                  <ChevronDown className="h-3 w-3 stroke-[2.2] shrink-0 pt-0.5 animate-bounce" />
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="px-4 pb-3 text-xs text-muted-foreground whitespace-pre-wrap">{rationale}</div>
+              <CollapsibleContent className="animate-in fade-in duration-100">
+                <div className="px-4 py-3 text-xs text-muted-foreground/80 font-medium leading-relaxed select-text border-t border-border/5 whitespace-pre-wrap block w-full bg-muted/[0.01]">
+                  {resolvedRationaleString}
+                </div>
               </CollapsibleContent>
             </Collapsible>
           )}
         </Card>
       )}
 
-      {/* Pending assessment nudge */}
-      {existingApp && job.ai_assessment_enabled && existingApp.assessment_status !== "completed" && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">AI assessment required</p>
-              <p className="text-[11px] text-muted-foreground">Complete it to finalize your application.</p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                existingApp.assessment_id && navigate(`/app/job-assessment/${existingApp.assessment_id}`)
-              }
-            >
-              Start
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* HUD LEVEL 4: SYSTEM COMPLIANCE INTERFACE VETTING NUDGES */}
+      {existingApplicationState &&
+        jobRecordState.ai_assessment_enabled &&
+        existingApplicationState.assessment_status !== "completed" && (
+          <Card className="rounded-xl border border-amber-500/20 bg-amber-500/[0.02] shadow-none overflow-hidden block w-full">
+            <CardContent className="p-3.5 flex items-center justify-between gap-4 leading-none w-full block">
+              <AlertCircle className="h-5 w-5 text-amber-500 stroke-[2.2] shrink-0 select-none pointer-events-none animate-pulse" />
+              <div className="flex-1 min-w-0 leading-none space-y-1 block select-none pointer-events-none">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground">
+                  AI Interview Telemetry Action Required
+                </p>
+                <p className="text-[11px] font-semibold text-muted-foreground/60 leading-tight block">
+                  Complete the dynamic skill mapping exam sequence to release your portfolio map.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={computedCtaCallback}
+                className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider px-3.5 shrink-0 cursor-pointer shadow-2xs transform-gpu active:scale-[0.985]"
+              >
+                Initialize
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* About this role */}
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <h2 className="text-sm font-semibold">About this role</h2>
-          <Collapsible open={descriptionOpen} onOpenChange={setDescriptionOpen}>
+      {/* HUD LEVEL 5: ABSTRACT POSITION FUNCTIONAL DESCRIPTION BLOCK */}
+      <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full">
+        <CardContent className="p-4 space-y-2 block w-full leading-none">
+          <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
+            Role Core Specification Description
+          </h2>
+          <Collapsible
+            open={isDescriptionPanelOpen}
+            onOpenChange={setIsDescriptionPanelOpen}
+            className="w-full block pt-1"
+          >
             <div
               className={cn(
-                "text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed",
-                !descriptionOpen && "line-clamp-6",
+                "text-xs sm:text-sm text-foreground/80 font-medium leading-relaxed select-text whitespace-pre-wrap block tracking-normal",
+                !isDescriptionPanelOpen && "line-clamp-6",
               )}
             >
-              {job.ai_enhanced_description || job.description}
+              {jobRecordState.ai_enhanced_description || jobRecordState.description}
             </div>
             <CollapsibleTrigger asChild>
-              <button className="mt-2 text-xs font-medium text-primary flex items-center gap-1">
-                {descriptionOpen ? "Show less" : "Read full description"}
-                <ChevronDown className={cn("h-3 w-3 transition-transform", descriptionOpen && "rotate-180")} />
+              <button
+                type="button"
+                className="mt-2.5 font-mono text-[10px] font-black uppercase text-primary tracking-wide flex items-center gap-1 cursor-pointer hover:underline outline-none"
+              >
+                <span>
+                  {isDescriptionPanelOpen ? "Contract Specification Abstract" : "Decompress Full Narrative Record"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 stroke-[2.2] transition-transform",
+                    isDescriptionPanelOpen && "rotate-180",
+                  )}
+                />
               </button>
             </CollapsibleTrigger>
           </Collapsible>
         </CardContent>
       </Card>
 
-      {/* Requirements */}
-      {requirementChips.length > 0 && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h2 className="text-sm font-semibold">Requirements</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {requirementChips.map((c, i) => (
-                <Badge key={i} variant="secondary" className="text-[11px]">
-                  <CheckCircle2 className="h-3 w-3 mr-1 text-primary/70" />
-                  {c}
+      {/* HUD LEVEL 6: TECHNICAL DEMAND PREREQUISITES PILL STRIPS */}
+      {requirementChipsArray.length > 0 && (
+        <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full">
+          <CardContent className="p-4 space-y-3.5 block w-full leading-none">
+            <p className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
+              Core Technical Competency Requirements
+            </p>
+            <div className="flex flex-wrap gap-1.5 select-none pointer-events-none block w-full mt-1">
+              {requirementChipsArray.map((chipLabelStr, arrayIdx) => (
+                <Badge
+                  key={`required-competency-pill-${arrayIdx}`}
+                  variant="secondary"
+                  className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded border border-border/40 bg-background text-muted-foreground/60 leading-none pt-0.5"
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-1 text-primary stroke-[2] shrink-0" />
+                  <span>{chipLabelStr}</span>
                 </Badge>
               ))}
             </div>
-            {niceToHaveChips.length > 0 && (
-              <>
-                <p className="text-[11px] font-semibold text-muted-foreground pt-1">Nice to have</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {niceToHaveChips.map((c, i) => (
-                    <Badge key={i} variant="outline" className="text-[11px]">
-                      {c}
+
+            {niceToHaveChipsArray.length > 0 && (
+              <div className="space-y-2 pt-1 block w-full leading-none">
+                <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block select-none pointer-events-none leading-none">
+                  Secondary Preferred Differentiator Vectors
+                </p>
+                <div className="flex flex-wrap gap-1.5 select-none pointer-events-none block w-full">
+                  {niceToHaveChipsArray.map((chipLabelStr, arrayIdx) => (
+                    <Badge
+                      key={`preferred-competency-pill-${arrayIdx}`}
+                      variant="outline"
+                      className="font-mono text-[9px] font-extrabold uppercase px-1.5 h-4.5 rounded border-border/40 bg-card/50 text-muted-foreground/50 leading-none pt-0.5"
+                    >
+                      {chipLabelStr}
                     </Badge>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* About company */}
-      <Card>
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-            {job.company_logo_url ? (
-              <img src={job.company_logo_url} alt={job.company_name} className="object-cover w-full h-full" />
+      {/* HUD LEVEL 7: PARENT EMPLOYMENT BRAND MATRIX CARD */}
+      <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full">
+        <CardContent className="p-3.5 flex items-center justify-between gap-4 leading-none w-full block">
+          <div className="h-10 w-10 rounded-lg bg-background border border-border/40 shadow-2xs flex items-center justify-center shrink-0 overflow-hidden select-none pointer-events-none">
+            {jobRecordState.company_logo_url ? (
+              <img src={jobRecordState.company_logo_url} alt="" className="object-cover w-full h-full block" />
             ) : (
-              <Building2 className="h-5 w-5 text-primary" />
+              <Building2 className="h-4.5 w-4.5 text-primary/60 stroke-[2]" />
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">{job.company_name}</p>
-            <p className="text-[11px] text-muted-foreground">
-              Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+          <div className="flex-1 min-w-0 leading-none space-y-1 block">
+            <p className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide truncate block pt-0.5 select-text">
+              {jobRecordState.company_name}
+            </p>
+            <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight block select-none pointer-events-none tabular-nums leading-none">
+              TRANSMISSION TIMELINE SIGNED:{" "}
+              {formatDistanceToNow(new Date(jobRecordState.created_at), { addSuffix: true }).toUpperCase()}
             </p>
           </div>
-          {job.company_id && (
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/jobs?company=${encodeURIComponent(job.company_name)}`)}>
-              <ArrowRight className="h-4 w-4" />
+          {jobRecordState.company_id && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateHook(`/jobs?company=${encodeURIComponent(jobRecordState.company_name)}`)}
+              className="h-8 w-8 rounded-lg border border-border/10 p-0 text-muted-foreground/50 hover:text-foreground hover:bg-accent cursor-pointer shadow-none shrink-0 block"
+              title="Filter placements index catalog by brand marker"
+            >
+              <ArrowRight className="h-3.5 w-3.5 stroke-[2.2] mx-auto block" />
             </Button>
           )}
         </CardContent>
       </Card>
 
-      {/* Similar */}
+      {/* HUD LEVEL 8: DISCRETE RECOMMENDATION GRIDS ALIGNMENT VECTOR */}
       <RelatedJobs
-        currentJobId={job.id}
-        companyName={job.company_name}
-        location={job.location || "Remote"}
+        currentJobId={jobRecordState.id}
+        companyName={jobRecordState.company_name}
+        location={jobRecordState.location || "Distributed Node"}
         linkPrefix="/app/jobs"
       />
 
-      {/* Sticky bottom apply bar */}
-      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur-xl pb-safe">
-        <div className="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
+      {/* HUD LEVEL 9: STICKY SUBMISSION CONTROLLER FOOTER HUB BAR */}
+      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border/40 bg-background/95 backdrop-blur-md select-none pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-4 leading-none w-full block">
+          <div className="flex-1 min-w-0 leading-none space-y-1 block font-mono text-[10px] font-black uppercase tracking-tight">
             <p
               className={cn(
-                "text-[11px] font-medium",
-                dl.tone === "destructive" && "text-destructive",
-                dl.tone === "warning" && "text-amber-600",
-                dl.tone === "muted" && "text-muted-foreground",
+                "leading-none block flex items-center gap-1 pt-0.5 shrink-0",
+                computedDeadlineMeta.tone === "destructive" && "text-destructive",
+                computedDeadlineMeta.tone === "warning" && "text-amber-600",
+                computedDeadlineMeta.tone === "muted" && "text-muted-foreground/50",
               )}
             >
-              <Clock className="h-3 w-3 inline mr-1" />
-              {dl.label}
+              <Clock className="h-3.5 w-3.5 stroke-[2.2] shrink-0" />
+              <span>{computedDeadlineMeta.label}</span>
             </p>
-            {existingApp && (
-              <p className="text-[11px] text-muted-foreground truncate">
-                <Sparkles className="h-3 w-3 inline mr-1" /> Applied · {existingApp.application_status}
+            {existingApplicationState && (
+              <p className="text-muted-foreground/40 block leading-none truncate shrink-0 max-w-[140px] sm:max-w-xs">
+                <Sparkles className="h-3.5 w-3.5 stroke-[2] shrink-0 mr-0.5 text-primary" />
+                <span>REGISTRY ROW STATE: {existingApplicationState.application_status.toUpperCase()}</span>
               </p>
             )}
           </div>
-          <Button size="lg" className="shrink-0 h-12 px-6 rounded-xl" onClick={ctaAction} disabled={ctaDisabled}>
-            {ctaLabel} {!ctaDisabled && <ArrowRight className="ml-1.5 h-4 w-4" />}
+
+          <Button
+            type="button"
+            size="lg"
+            disabled={isCtaDisabledFlag}
+            onClick={computedCtaAction}
+            className="shrink-0 h-11 px-5 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center"
+          >
+            <span>{buttonLabelString}</span>
+            {!isCtaDisabledFlag && <ArrowRight className="h-4 w-4 stroke-[2.5] shrink-0" />}
           </Button>
         </div>
       </div>
 
-      {showApplyAI && job.application_url && (
+      {isExternalApplySheetOpen && jobRecordState.application_url && (
         <ExternalApplicationPrep
-          open={showApplyAI}
-          onOpenChange={setShowApplyAI}
-          jobId={job.id}
-          applicationUrl={job.application_url}
-          jobTitle={job.title}
-          companyName={job.company_name}
+          open={isExternalApplySheetOpen}
+          onOpenChange={setIsExternalApplySheetOpen}
+          jobId={jobRecordState.id}
+          applicationUrl={jobRecordState.application_url}
+          jobTitle={jobRecordState.title}
+          companyName={jobRecordState.company_name}
         />
       )}
+
+      <CreditPurchaseSheet
+        isOpen={isPurchaseSheetOpen}
+        onClose={() => setIsPurchaseSheetOpen(false)}
+        currentBalance={balance}
+      />
     </div>
   );
+}
+
+// Macro typing helper abstraction injecting core icons defensively without rendering cascades
+function IocIconNode({ className }: { className?: string }) {
+  return <Briefcase className={className} />;
 }
