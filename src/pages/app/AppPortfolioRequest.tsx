@@ -539,7 +539,7 @@ export default function AppPortfolioRequest() {
                 </Button>
                 <Button
                   type="button"
-                  variant="formDataState.cvInputMode"
+                  
                   variant={formDataState.cvInputMode === "url" ? "default" : "outline"}
                   className="rounded-lg font-mono text-[9px] font-extrabold uppercase tracking-wide h-9 cursor-pointer"
                   onClick={() => setFormDataState((prev) => ({ ...prev, cvInputMode: "url" }))}
