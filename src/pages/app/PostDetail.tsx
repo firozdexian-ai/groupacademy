@@ -39,7 +39,7 @@ const mapRowToPost = (row: FeedPostRow): FeedPost => ({
   authorName: row.author_name || "Community member",
   authorAvatar: row.author_avatar || undefined,
   authorTitle: row.author_title || "",
-  contentType: row.content_type || "text",
+  contentType: (row.content_type || "text") as FeedPost["contentType"],
   textContent: row.text_content || "",
   mediaUrl: row.media_url || undefined,
   pollOptions: row.poll_options,
