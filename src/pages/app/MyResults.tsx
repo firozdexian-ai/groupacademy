@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardCheck, Mic, DollarSign, Palette, Award, ChevronRight, Calendar, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
+import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
 
 // --- Types ---
 interface ServiceResult {
