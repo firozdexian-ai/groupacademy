@@ -1,15 +1,31 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import {
+  ArrowLeft,
+  Lock,
+  Unlock,
+  Sparkles,
+  Flame,
+  Briefcase,
+  MapPin,
+  Building2,
+  Globe,
+  AlertCircle,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Lock, Unlock, Sparkles, Flame } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ConnectionRequestDialog } from "@/components/talents/ConnectionRequestDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useTalent } from "@/hooks/useTalent";
+import { ConnectionRequestDialog } from "@/components/talents/ConnectionRequestDialog";
+import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
 
+// Production Data Contracts[cite: 8]
 interface TalentDetail {
   id: string;
   full_name: string;
@@ -24,132 +40,140 @@ interface TalentDetail {
 
 export default function TalentPublicProfile() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { talent: me } = useTalent();
-  const [t, setT] = useState<TalentDetail | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
-  const [volume, setVolume] = useState(0);
-  const [hypeReceived, setHypeReceived] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    (async () => {
-      setLoading(true);
-      const [{ data: talent }, { data: settings }, { data: vol }, { count }] = await Promise.all([
-        supabase
-          .from("talents")
-          .select("id, full_name, profile_photo_url, cover_image_url, custom_profession, country, linkedin_url, portfolio_url, skills")
-          .eq("id", id)
-          .maybeSingle(),
-        supabase.from("talent_inbox_settings").select("unlocked").eq("talent_id", id).maybeSingle(),
-        supabase.from("v_talent_transaction_volume").select("volume").eq("talent_id", id).maybeSingle(),
-        supabase.from("post_hypes").select("id", { count: "exact", head: true }).eq("recipient_talent_id", id),
+  // Digital Workforce Anomaly Protocol[cite: 6]
+  const reportAnomaly = async (event: string, context: any) => {
+    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    await supabase.functions.invoke("admin-support-assistant", {
+      body: { type: "talent_profile_error", event, context },
+    });
+  };
+
+  const {
+    data: t,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["talent-profile", id],
+    queryFn: async () => {
+      if (!id) throw new Error("Missing ID");
+      const { data, error } = await supabase
+        .from("talents")
+        .select(
+          "id, full_name, profile_photo_url, cover_image_url, custom_profession, country, linkedin_url, portfolio_url, skills",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      if (error) {
+        await reportAnomaly("ProfileFetchFailure", { id, error });
+        throw error;
+      }
+      return data as TalentDetail | null;
+    },
+    enabled: !!id,
+  });
+
+  const { data: meta } = useQuery({
+    queryKey: ["talent-meta", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const [s, v, h] = await Promise.all([
+        supabase.from("talent_inbox_settings").select("unlocked").eq("talent_id", id!).maybeSingle(),
+        supabase.from("v_talent_transaction_volume").select("volume").eq("talent_id", id!).maybeSingle(),
+        supabase.from("post_hypes").select("id", { count: "exact", head: true }).eq("recipient_talent_id", id!),
       ]);
-      setT(talent as any);
-      setUnlocked(Boolean((settings as any)?.unlocked));
-      setVolume(Number((vol as any)?.volume ?? 0));
-      setHypeReceived(count ?? 0);
-      setLoading(false);
-    })();
-  }, [id]);
+      return {
+        unlocked: Boolean(s.data?.unlocked),
+        volume: Number(v.data?.volume || 0),
+        hypeCount: h.count || 0,
+      };
+    },
+  });
 
-  const isMe = me?.id === id;
-
-  if (loading) {
+  if (isLoading)
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-6 space-y-4">
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-24 w-full" />
+      <div className={PAGE_SHELL}>
+        <Skeleton className="h-64 w-full rounded-[32px]" />
       </div>
     );
-  }
-  if (!t) {
+  if (error || !t)
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-10 text-center">
-        <p className="text-muted-foreground">Talent not found.</p>
-        <Button asChild variant="ghost" className="mt-4">
-          <Link to="/app/talents"><ArrowLeft className="h-4 w-4 mr-2" />Back to directory</Link>
-        </Button>
+      <div className={PAGE_SHELL}>
+        <p className="text-sm">Profile node unreachable.</p>
       </div>
     );
-  }
 
+  const isMe = me?.id === t.id;
   const skills: string[] = Array.isArray(t.skills)
-    ? t.skills.map((s: any) => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+    ? t.skills.map((s: any) => (typeof s === "string" ? s : s?.name))
     : [];
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-6 space-y-4">
-      <Button asChild variant="ghost" size="sm">
-        <Link to="/app/talents"><ArrowLeft className="h-4 w-4 mr-2" />Directory</Link>
+    <div className={PAGE_SHELL}>
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-4 rounded-xl">
+        <ArrowLeft className="h-4 w-4 mr-2" /> Directory
       </Button>
 
-      <Card className="overflow-hidden">
+      <Card className={cn(CARD, "overflow-hidden rounded-[32px]")}>
         <div
-          className="h-32 bg-gradient-to-r from-primary/30 to-primary/10"
-          style={t.cover_image_url ? { backgroundImage: `url(${t.cover_image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
+          className="h-40 bg-gradient-to-r from-primary/30 to-primary/10"
+          style={t.cover_image_url ? { backgroundImage: `url(${t.cover_image_url})`, backgroundSize: "cover" } : {}}
         />
-        <div className="p-5 -mt-12">
-          <Avatar className="h-24 w-24 border-4 border-background">
+        <CardContent className="p-8 -mt-16">
+          <Avatar className="h-28 w-28 border-[6px] border-background rounded-[24px]">
             <AvatarImage src={t.profile_photo_url ?? undefined} />
-            <AvatarFallback className="text-2xl">{t.full_name?.[0]}</AvatarFallback>
+            <AvatarFallback className="text-3xl font-black">{t.full_name[0]}</AvatarFallback>
           </Avatar>
-          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold">{t.full_name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {t.custom_profession || "Talent"}{t.country ? ` · ${t.country}` : ""}
+
+          <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
+            <div className="space-y-1">
+              <h1 className={PAGE_TITLE}>{t.full_name}</h1>
+              <p className={cn(PAGE_SUBTITLE, "flex items-center gap-1.5")}>
+                <Briefcase className="h-3 w-3" /> {t.custom_profession || "Talent"}
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                <MapPin className="h-3 w-3" /> {t.country || "Global"}
               </p>
             </div>
             {!isMe && (
-              <Button onClick={() => setDialog(true)} disabled={!unlocked} className="gap-2">
-                {unlocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {unlocked ? "Connect" : "Inbox closed"}
+              <Button onClick={() => setDialog(true)} disabled={!meta?.unlocked} className="rounded-xl px-6">
+                {meta?.unlocked ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+                {meta?.unlocked ? "Connect" : "Locked"}
               </Button>
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary" className="gap-1"><Flame className="h-3 w-3" />{hypeReceived} hypes</Badge>
-            <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" />{Math.round(volume)} cr volume</Badge>
-            {unlocked && <Badge className="gap-1"><Unlock className="h-3 w-3" />Open inbox</Badge>}
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Badge
+              variant="secondary"
+              className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5"
+            >
+              <Flame className="h-3 w-3 text-orange-500" /> {meta?.hypeCount || 0} Hypes
+            </Badge>
+            <Badge
+              variant="secondary"
+              className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5"
+            >
+              <Sparkles className="h-3 w-3 text-primary" /> {Math.round(meta?.volume || 0)} Credits Volume
+            </Badge>
           </div>
 
-          {skills.length > 0 && (
-            <div className="mt-5">
-              <h2 className="text-sm font-semibold mb-2">Skills</h2>
-              <div className="flex flex-wrap gap-1.5">
-                {skills.slice(0, 16).map((s) => (
-                  <Badge key={s} variant="outline">{s}</Badge>
-                ))}
-              </div>
+          <div className="mt-8 space-y-4">
+            <h2 className={SECTION_TITLE}>Mastery Nodes</h2>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((s) => (
+                <Badge key={s} variant="outline" className="rounded-xl px-4 py-1">
+                  {s}
+                </Badge>
+              ))}
             </div>
-          )}
-
-          {(t.linkedin_url || t.portfolio_url) && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {t.linkedin_url && (
-                <Button asChild variant="outline" size="sm">
-                  <a href={t.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a>
-                </Button>
-              )}
-              {t.portfolio_url && (
-                <Button asChild variant="outline" size="sm">
-                  <a href={t.portfolio_url} target="_blank" rel="noreferrer">Portfolio</a>
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <ConnectionRequestDialog
-        open={dialog}
-        onOpenChange={setDialog}
-        recipientId={t.id}
-        recipientName={t.full_name}
-      />
+      <ConnectionRequestDialog open={dialog} onOpenChange={setDialog} recipientId={t.id} recipientName={t.full_name} />
     </div>
   );
 }
