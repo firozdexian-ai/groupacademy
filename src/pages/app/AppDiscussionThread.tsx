@@ -46,7 +46,7 @@ export default function AppDiscussionThread() {
   const reportContentMutation = useReportContent();
   const { toast } = useToast();
 
-  const [replyConsoleBodyStr, setReplyConsoleBodyStr] = React.useState<string Crete>("");
+  const [replyConsoleBodyStr, setReplyConsoleBodyStr] = React.useState<string>("");
 
   // Safely translate generic record maps via explicit database type schemas
   const resolvedThreadData = threadQueryPayload as unknown as ThreadDataResponse | undefined;
