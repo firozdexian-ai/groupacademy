@@ -382,7 +382,7 @@ export default function Gigs() {
                     <GigCard
                       key={gigItemRow.id}
                       gig={gigItemRow}
-                      userSubmissions={submissionCountsMap?.[gigItemRow.id]}
+                      userSubmissions={submissionCountsMap?.[gigItemRow.id] as any}
                     />
                   ))}
           </div>
