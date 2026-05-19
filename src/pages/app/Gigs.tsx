@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,280 +28,455 @@ import {
   Briefcase,
   Activity,
   ShieldCheck,
-  
   BookOpen,
   Zap,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface MarketplaceGigItem {
+  id: string;
+  title: string;
+  employer_name: string | null;
+  budget_amount: number;
+  total_bids: number | null;
+  is_featured: boolean | null;
+}
+
+interface CourseSpecs {
+  id: string;
+  title: string | null;
+  description: string | null;
+  cover_image_url: string | null;
+}
+
+interface CourseProjectItem {
+  projectId: string;
+  status: string;
+  totalReward: number;
+  course: CourseSpecs;
+  subtasks: unknown[];
+}
+
+interface BidRecord {
+  id: string;
+  status: string;
+  marketplace_gigs: {
+    title: string;
+    employer_name: string | null;
+  } | null;
+}
+
+interface ContractRecord {
+  id: string;
+  status: string;
+  agreed_amount: number;
+  marketplace_gigs: {
+    title: string;
+  } | null;
+}
+
+interface GigsDashboardPayload {
+  talent_id: string;
+  featured: unknown[];
+  submission_counts: Record<string, number>;
+  course_projects: CourseProjectItem[];
+  marketplace_projects: MarketplaceGigItem[];
+  my_bids: BidRecord[];
+  my_contracts: ContractRecord[];
+}
+
+interface TalentVerificationResponse {
+  verification_status: string | null;
+}
+
+type TabVariant = "for-you" | "tasks" | "course" | "client" | "work";
+
+const SKELETON_ROWS_ROSTER = [1, 2, 3, 4];
+
 /**
- * Gig Hub v3 — Two-tab simplified surface.
- *
- * Tab 1 — Earn: Quick Tasks (1-tap micro gigs) + Course Projects (course-bundled work)
- *               + Marketplace Projects (employer-posted) shown below the fold.
- * Tab 2 — My Work: My submissions, bids, contracts, deliverables.
- *
- * Build Academy (Content Lead studio) is now a thin banner shown only to roles
- * Course Projects (course-as-project) is the single source of truth for build work.
+ * GroUp Academy: Authoritative Gig Hub Center Ecosystem (Gigs)
+ * Hardened transaction cockpit processing freelance subtasks, syncing AI listings, and insulating search state inputs.
+ * Version: Launch Candidate · Phase Z1 Production Contract Locked
  */
-
 export default function Gigs() {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { talent } = useTalent();
-  const queryClient = useQueryClient();
+  const navigateHook = useNavigate();
+  const [searchParamsRoute, setSearchParamsRoute] = useSearchParams();
+  const { talent: talentProfileRecord } = useTalent();
+  const tanstackQueryClient = useQueryClient();
 
-  // 4-tab layout with back-compat for older links
-  const rawTab = searchParams.get("tab") || "for-you";
-  const activeTab = ["work", "activity"].includes(rawTab)
-    ? "work"
-    : ["projects", "course", "courses", "course-projects"].includes(rawTab)
-    ? "course"
-    : ["client", "marketplace", "employer"].includes(rawTab)
-    ? "client"
-    : ["earn", "tasks", "quick"].includes(rawTab)
-    ? "tasks"
-    : ["for-you", "foryou", "matches"].includes(rawTab)
-    ? "for-you"
-    : "for-you";
+  // =========================================================================
+  // MEMOIZED PARAMETER SECTOR: BACK-COMPAT ROUTE TRANSITION INTERCEPTORS
+  // =========================================================================
+  const activeTabPanelKey = React.useMemo<TabVariant>(() => {
+    const rawTabQueryStr = searchParamsRoute.get("tab") || "for-you";
 
-  const [search, setSearch] = useState("");
-  const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
+    if (["work", "activity"].includes(rawTabQueryStr)) return "work";
+    if (["projects", "course", "courses", "course-projects"].includes(rawTabQueryStr)) return "course";
+    if (["client", "marketplace", "employer"].includes(rawTabQueryStr)) return "client";
+    if (["earn", "tasks", "quick"].includes(rawTabQueryStr)) return "tasks";
+    if (["for-you", "foryou", "matches"].includes(rawTabQueryStr)) return "for-you";
 
-  useEffect(() => {
-    if (!talent?.id) return;
-    supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
-      .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
-  }, [talent?.id]);
+    return "for-you";
+  }, [searchParamsRoute]);
 
-  const handleTabChange = (tab: string) => setSearchParams({ tab });
+  const [textSearchInputStr, setTextSearchInputStr] = React.useState<string>("");
+  const [debouncedSearchQueryStr, setDebouncedSearchQueryStr] = React.useState<string>("");
+  const [verificationStatusState, setVerificationStatusState] = React.useState<string>("unverified");
 
-  // ── Single zero-latency dashboard hook (replaces 6 legacy useQuery calls) ──
-  const { data: dash, isLoading: dashLoading } = useGigsHubDashboard();
+  const [activeDeliverableContractId, setActiveDeliverableContractId] = React.useState<string | null>(null);
+  const [textDeliverableTitleInput, setTextDeliverableTitleInput] = React.useState<string>("");
+  const [textDeliverableDescInput, setTextDeliverableDescInput] = React.useState<string>("");
+  const [uploadedFilesCollection, setUploadedFilesCollection] = React.useState<UploadedFile[]>([]);
 
-  const gigs = dash?.featured ?? [];
-  const submissionCounts = dash?.submission_counts ?? {};
-  const courseProjects = dash?.course_projects ?? [];
-  const marketProjects = dash?.marketplace_projects ?? [];
-  const myBids = dash?.my_bids ?? [];
-  const myContracts = dash?.my_contracts ?? [];
-  const gigsLoading = dashLoading;
-  const courseProjectsLoading = dashLoading;
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: SEARCH DEBOUNCER & ATOMIC PROFILE SYNC
+  // =========================================================================
+  React.useEffect(() => {
+    const filteringDebounceTimerToken = setTimeout(() => {
+      setDebouncedSearchQueryStr(textSearchInputStr.trim().toLowerCase());
+    }, 250);
 
-  const [deliverableDialog, setDeliverableDialog] = useState<string | null>(null);
-  const [delivTitle, setDelivTitle] = useState("");
-  const [delivDesc, setDelivDesc] = useState("");
-  const [delivFiles, setDelivFiles] = useState<UploadedFile[]>([]);
+    return () => clearTimeout(filteringDebounceTimerToken);
+  }, [textSearchInputStr]);
 
-  const submitDeliverable = useMutation({
+  React.useEffect(() => {
+    if (!talentProfileRecord?.id) return;
+
+    let isThreadActive = true;
+    const loadVerificationStatusCredentials = async () => {
+      try {
+        const { data: dbTalentRow, error: queryHandshakeError } = await supabase
+          .from("talents")
+          .select("verification_status")
+          .eq("id", talentProfileRecord.id)
+          .maybeSingle();
+
+        if (!queryHandshakeError && dbTalentRow && isThreadActive) {
+          const castRow = dbTalentRow as unknown as TalentVerificationResponse;
+          setVerificationStatusState(castRow.verification_status || "unverified");
+        }
+      } catch (suppressedException) {
+        // Suppress credential tracking anomalies safely from parent layout frames
+      }
+    };
+
+    loadVerificationStatusCredentials();
+
+    return () => {
+      isThreadActive = false;
+    };
+  }, [talentProfileRecord?.id]);
+
+  // Zero-latency cohesive matrix dashboard cache channel fetch hook
+  const gigsDashboardQuery = useGigsHubDashboard();
+  const isDashboardResolving = gigsDashboardQuery.isLoading;
+  const resolvedDashboardData = gigsDashboardQuery.data as unknown as GigsDashboardPayload | undefined;
+
+  const gigsArray = resolvedDashboardData?.featured ?? [];
+  const submissionCountsMap = resolvedDashboardData?.submission_counts ?? {};
+  const courseProjectsArray = resolvedDashboardData?.course_projects ?? [];
+  const marketProjectsArray = resolvedDashboardData?.marketplace_projects ?? [];
+  const myBidsArray = resolvedDashboardData?.my_bids ?? [];
+  const myContractsArray = resolvedDashboardData?.my_contracts ?? [];
+
+  // =========================================================================
+  // TRANSACTION MUTATION LANE: SUBMISSION ROUTING COEFFICIENTS
+  // =========================================================================
+  const submitDeliverableMutation = useMutation({
     mutationFn: async () => {
-      if (!deliverableDialog) throw new Error("Contract context lost");
-      // Store the first uploaded file URL for back-compat with the existing schema.
-      const primary = delivFiles[0];
-      const fileUrl = primary
-        ? supabase.storage.from("gig-submissions").getPublicUrl(primary.path).data.publicUrl
+      if (!activeDeliverableContractId) throw new Error("Contract reference channel token unassigned.");
+
+      const primaryTargetFile = uploadedFilesCollection[0];
+      const resolvedSecurePublicUrl = primaryTargetFile
+        ? supabase.storage.from("gig-submissions").getPublicUrl(primaryTargetFile.path).data.publicUrl
         : null;
-      const { error } = await supabase.from("marketplace_deliverables").insert({
-        contract_id: deliverableDialog,
-        title: delivTitle,
-        description: delivDesc || null,
-        file_url: fileUrl,
+
+      const { error: insertPipelineHandshakeError } = await supabase.from("marketplace_deliverables").insert({
+        contract_id: activeDeliverableContractId,
+        title: textDeliverableTitleInput.trim(),
+        description: textDeliverableDescInput.trim() || null,
+        file_url: resolvedSecurePublicUrl,
       });
-      if (error) throw error;
+
+      if (insertPipelineHandshakeError) throw insertPipelineHandshakeError;
     },
     onSuccess: () => {
-      setDeliverableDialog(null);
-      setDelivTitle("");
-      setDelivDesc("");
-      setDelivFiles([]);
-      queryClient.invalidateQueries({ queryKey: ["gigs-hub-dashboard"] });
+      toast.success("Freelance project deliverables signed and transmitted safely.");
+      setActiveDeliverableContractId(null);
+      setTextDeliverableTitleInput("");
+      setTextDeliverableDescInput("");
+      setUploadedFilesCollection([]);
+      tanstackQueryClient.invalidateQueries({ queryKey: ["gigs-hub-dashboard"] });
+    },
+    onError: (mutationRejectionPayload: Error) => {
+      toast.error(mutationRejectionPayload.message || "Failed to commit project deliverable manifest.");
     },
   });
 
-  const filteredCourseProjects = useMemo(() => {
-    if (!search) return courseProjects;
-    const q = search.toLowerCase();
-    return (courseProjects || []).filter(
-      (p: any) => p.course?.title?.toLowerCase().includes(q),
-    );
-  }, [courseProjects, search]);
+  const handleTabSelectionTransition = React.useCallback(
+    (targetTabKeyStr: string) => {
+      setSearchParamsRoute({ tab: targetTabKeyStr });
+      setTextSearchInputStr("");
+      setDebouncedSearchQueryStr("");
+    },
+    [setSearchParamsRoute],
+  );
+
+  // =========================================================================
+  // MEMOIZED PARAMETER SECTOR: INLINE SEARCH CORRECTIONS AND BALANCES
+  // =========================================================================
+  const filteredCourseProjectsList = React.useMemo<CourseProjectItem[]>(() => {
+    if (!debouncedSearchQueryStr) return courseProjectsArray;
+    return courseProjectsArray.filter((projectNodeItem) => {
+      return projectNodeItem.course?.title?.toLowerCase().includes(debouncedSearchQueryStr);
+    });
+  }, [courseProjectsArray, debouncedSearchQueryStr]);
+
+  const filteredMarketplaceProjectsList = React.useMemo<MarketplaceGigItem[]>(() => {
+    if (!debouncedSearchQueryStr) return marketProjectsArray;
+    return marketProjectsArray.filter((marketplaceNodeItem) => {
+      return marketplaceNodeItem.title?.toLowerCase().includes(debouncedSearchQueryStr);
+    });
+  }, [marketProjectsArray, debouncedSearchQueryStr]);
+
+  const handleTransitionToAICreatorWorkspace = React.useCallback(() => {
+    navigateHook("/app/gigs/new");
+  }, [navigateHook]);
+
+  const handleTransitionToIdentityVerification = React.useCallback(() => {
+    navigateHook("/app/profile/verify");
+  }, [navigateHook]);
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 pb-32 animate-in fade-in duration-500">
-      {/* Header */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none truncate">Gig Hub</h1>
-          <p className="text-[11px] text-muted-foreground mt-1">Earn credits by building the platform.</p>
+    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10 space-y-6 text-left antialiased block transform-gpu w-full pb-32">
+      {/* HUD LEVEL 1: APPLICATION HEADER MODULE DESCRIPTION COCKPIT */}
+      <header className="flex items-center justify-between gap-4 leading-none w-full shrink-0 select-none border-b border-border/5 pb-4">
+        <div className="min-w-0 flex-1 leading-none space-y-1.5 block">
+          <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground leading-none m-0">
+            Ecosystem Gig Hub
+          </h1>
+          <p className="font-mono text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tight block leading-none">
+            Execute operational system parameters tasks to draw direct platform verification tokens.
+          </p>
         </div>
+
         <button
           type="button"
-          onClick={() => navigate("/app/profile/verify")}
+          onClick={handleTransitionToIdentityVerification}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-semibold shrink-0 transition-all active:scale-95",
-            verificationStatus === "verified"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
-              : "border-amber-500/30 bg-amber-500/10 text-amber-700",
+            "flex items-center gap-2 px-3 h-9 rounded-lg border font-mono text-[9px] font-black uppercase tracking-wider shrink-0 transition-transform transform-gpu active:scale-95 cursor-pointer shadow-3xs pt-0.5 leading-none",
+            verificationStatusState === "verified"
+              ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600"
+              : "border-amber-500/20 bg-amber-500/5 text-amber-600",
           )}
         >
-          <ShieldCheck className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {verificationStatus === "verified" ? "Verified" : "Verify to withdraw"}
-          </span>
-          <span className="sm:hidden">{verificationStatus === "verified" ? "Verified" : "Verify"}</span>
+          <ShieldCheck className="h-4 w-4 stroke-[2.2]" />
+          <span>{verificationStatusState === "verified" ? "Verified" : "Verify Account Ingress"}</span>
         </button>
       </header>
 
-      <div className="px-3 pt-2">
-        <Button size="sm" className="w-full" onClick={() => navigate("/app/gigs/new")}>
-          <Sparkles className="h-4 w-4 mr-1" /> Post a gig with AI
+      <div className="block w-full select-none shrink-0 leading-none">
+        <Button
+          type="button"
+          size="sm"
+          className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider cursor-pointer shadow-2xs gap-1.5"
+          onClick={handleTransitionToAICreatorWorkspace}
+        >
+          <Sparkles className="h-4 w-4 stroke-[2] fill-current text-primary-foreground shrink-0" />
+          <span>Post New Custom Assignment via Copilot AI</span>
         </Button>
       </div>
 
-
-      {/* 4-tab strip */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-11 bg-muted/40 p-1 rounded-xl border border-border/40">
-          <TabsTrigger value="for-you" className="rounded-lg text-[11px] font-bold uppercase tracking-wide gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">For You</span>
-            <span className="sm:hidden">You</span>
+      {/* HUD LEVEL 2: IMMERSIVE FIVE-WAY SEGMENT FILTER MATRIX BAR */}
+      <Tabs value={activeTabPanelKey} onValueChange={handleTabSelectionTransition} className="w-full block">
+        <TabsList className="grid w-full grid-cols-5 p-1 h-10 bg-muted/40 rounded-lg border border-border/10 select-none mb-6">
+          <TabsTrigger
+            value="for-you"
+            className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
+          >
+            <Sparkles className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">Matched Gigs</span>
+            <span className="sm:hidden">For You</span>
           </TabsTrigger>
           <TabsTrigger
             value="tasks"
-            className="rounded-lg text-[11px] font-bold uppercase tracking-wide gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Zap className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Quick Tasks</span>
+            <Zap className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">Quick Micro Tasks</span>
             <span className="sm:hidden">Tasks</span>
           </TabsTrigger>
           <TabsTrigger
             value="course"
-            className="rounded-lg text-[11px] font-bold uppercase tracking-wide gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Course</span>
-            <span className="sm:hidden">Course</span>
+            <BookOpen className="h-3.5 w-3.5 stroke-[2]" /> <span>Course Bundle</span>
           </TabsTrigger>
           <TabsTrigger
             value="client"
-            className="rounded-lg text-[11px] font-bold uppercase tracking-wide gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Briefcase className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Client</span>
+            <Briefcase className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">Client Market</span>
             <span className="sm:hidden">Client</span>
           </TabsTrigger>
           <TabsTrigger
             value="work"
-            className="rounded-lg text-[11px] font-bold uppercase tracking-wide gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Activity className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">My Work</span>
+            <Activity className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">My Activity</span>
             <span className="sm:hidden">Mine</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="for-you" className="mt-4 space-y-4 animate-in fade-in duration-300">
+        {/* VIEWPORT CHANNEL A: PERSONAL MATCH TARGET METRICS */}
+        <TabsContent
+          value="for-you"
+          className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
+        >
           <AvailabilityWidget />
           <GigForYouTab />
-          <div className="pt-4 border-t border-border/40 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5" /> Browse all open gigs
+          <div className="pt-4 border-t border-border/40 block w-full leading-none">
+            <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/50 flex items-center gap-2 mb-4 select-none pointer-events-none">
+              <Briefcase className="h-4 w-4 stroke-[2.2]" /> <span>Browse System Absolute Open Vacancies Pool</span>
             </h3>
-            <InfiniteGigsList talentId={dash?.talent_id ?? talent?.id} />
+            <InfiniteGigsList talentId={resolvedDashboardData?.talent_id ?? talentProfileRecord?.id} />
           </div>
         </TabsContent>
 
-        {/* ───── QUICK TASKS ───── */}
-        <TabsContent value="tasks" className="mt-4 space-y-4 animate-in fade-in duration-300">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+        {/* VIEWPORT CHANNEL B: ONE-TAP MICRO GIGS CONTROLLER PANEL */}
+        <TabsContent
+          value="tasks"
+          className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
+        >
+          <div className="relative w-full block shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
             <Input
-              placeholder="Search quick tasks..."
-              className="pl-9 h-10 rounded-xl text-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              type="search"
+              placeholder="Filter quick micro tasks inventory by structural property title keyword..."
+              className="w-full h-10 pl-9 pr-3 bg-background border border-border/40 text-xs sm:text-sm font-semibold rounded-lg shadow-none"
+              value={textSearchInputStr}
+              onChange={(e) => setTextSearchInputStr(e.target.value)}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            1-tap gigs · auto-reviewed · instant credits
+          <p className="font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/40 leading-none select-none pointer-events-none pl-0.5">
+            System Index Strategy: 1-Tap Execution Assignments · Auto-Reviewed Analytics Validation Matrix · Instant
+            Wallet Allocation
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {gigsLoading
-              ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl bg-muted/40" />)
-              : (gigs || [])
-                  .filter((g: any) => !search || g.title.toLowerCase().includes(search.toLowerCase()))
-                  .map((gig: any) => (
-                    <GigCard key={gig.id} gig={gig} userSubmissions={submissionCounts?.[gig.id]} />
+
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 block w-full align-top">
+            {isDashboardResolving
+              ? SKELETON_ROWS_ROSTER.slice(0, 2).map((idxNum) => (
+                  <Skeleton
+                    key={`tasks-skeleton-card-${idxNum}`}
+                    className="h-20 w-full rounded-lg bg-card/10 block shadow-none border border-transparent"
+                  />
+                ))
+              : gigsArray
+                  .filter(
+                    (g: any) => !debouncedSearchQueryStr || g.title.toLowerCase().includes(debouncedSearchQueryStr),
+                  )
+                  .map((gigItemRow: any) => (
+                    <GigCard
+                      key={gigItemRow.id}
+                      gig={gigItemRow}
+                      userSubmissions={submissionCountsMap?.[gigItemRow.id]}
+                    />
                   ))}
           </div>
         </TabsContent>
 
-        {/* ───── COURSE PROJECTS ───── */}
-        <TabsContent value="course" className="mt-4 space-y-4 animate-in fade-in duration-300">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+        {/* VIEWPORT CHANNEL C: COURSE BUNDLED BLUEPRINT OPERATIONS */}
+        <TabsContent
+          value="course"
+          className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
+        >
+          <div className="relative w-full block shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
             <Input
-              placeholder="Search course projects..."
-              className="pl-9 h-10 rounded-xl text-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              type="search"
+              placeholder="Filter master structural courses blueprint series by topic taxonomy title..."
+              className="w-full h-10 pl-9 pr-3 bg-background border border-border/40 text-xs sm:text-sm font-semibold rounded-lg shadow-none"
+              value={textSearchInputStr}
+              onChange={(e) => setTextSearchInputStr(e.target.value)}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Build a full course — bundled subtasks · higher payout
+          <p className="font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/40 leading-none select-none pointer-events-none pl-0.5">
+            System Production Blueprint Framework: Comprehensive Curriculum Assemblies · Scaled Subtasks Distributions
+            Hierarchy · High-Budgets Draw Payouts
           </p>
-          <div className="space-y-2">
-            {courseProjectsLoading ? (
-              [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl bg-muted/40" />)
-            ) : (filteredCourseProjects || []).length === 0 ? (
-              <Card className="rounded-2xl border-dashed">
-                <CardContent className="p-6 text-center text-xs text-muted-foreground">
-                  No open course projects right now. Check back soon.
+
+          <div className="space-y-2.5 block w-full align-top">
+            {isDashboardResolving ? (
+              SKELETON_ROWS_ROSTER.slice(0, 3).map((idxNum) => (
+                <Skeleton
+                  key={`courses-skeleton-card-${idxNum}`}
+                  className="h-24 w-full rounded-lg bg-card/10 block shadow-none border border-transparent"
+                />
+              ))
+            ) : filteredCourseProjectsList.length === 0 ? (
+              <Card className="rounded-lg border border-dashed border-border/80 bg-muted/5 p-8 text-center select-none block w-full shadow-none pointer-events-none">
+                <CardContent className="p-0 text-xs font-semibold text-muted-foreground/40 leading-normal block">
+                  No open course curriculum build projects match active parameter criteria maps.
                 </CardContent>
               </Card>
             ) : (
-              (filteredCourseProjects || []).map((proj: any) => (
+              filteredCourseProjectsList.map((projectItem) => (
                 <button
-                  key={proj.projectId || proj.course.id}
+                  key={`course-project-trigger-item-${projectItem.projectId}`}
                   type="button"
-                  onClick={() => navigate(`/app/course-project/${proj.projectId}`)}
-                  className="w-full text-left rounded-2xl border border-border/50 bg-card/60 hover:border-primary/40 hover:shadow-md transition-all p-3 active:scale-[0.99]"
+                  onClick={() => navigateHook(`/app/course-project/${projectItem.projectId}`)}
+                  className="w-full text-left rounded-lg border border-border/60 bg-card/30 hover:border-border-foreground/10 hover:shadow-3xs transition-all p-3.5 active:scale-[0.99] cursor-pointer block leading-none"
                 >
-                  <div className="flex items-start gap-3">
-                    {proj.course.cover_image_url ? (
-                      <img
-                        src={proj.course.cover_image_url}
-                        alt=""
-                        className="h-14 w-14 rounded-xl object-cover shrink-0"
-                      />
+                  <div className="flex items-start gap-3.5 leading-none w-full block">
+                    {projectItem.course.cover_image_url ? (
+                      <div className="h-12 w-12 rounded bg-background border border-border/40 shadow-3xs overflow-hidden shrink-0 pointer-events-none select-none">
+                        <img
+                          src={projectItem.course.cover_image_url}
+                          alt=""
+                          className="w-full h-full object-cover block"
+                        />
+                      </div>
                     ) : (
-                      <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <BookOpen className="h-6 w-6 text-primary" />
+                      <div className="h-12 w-12 rounded bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-primary pointer-events-none select-none shadow-3xs">
+                        <BookOpen className="h-5 w-5 stroke-[2.2]" />
                       </div>
                     )}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-1.5 h-5">
-                          Course
+
+                    <div className="min-w-0 flex-1 leading-none space-y-1.5 block">
+                      <div className="flex items-center gap-1.5 flex-wrap select-none pointer-events-none leading-none">
+                        <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-transparent bg-primary/5 text-primary tracking-wide pt-0 leading-none shrink-0">
+                          COURSE MATRIX BUNDLE
                         </Badge>
-                        <Badge variant="outline" className="text-[10px] font-semibold px-1.5 h-5">
-                          {proj.subtasks.length} subtasks
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-border/40 bg-background text-muted-foreground/60 tracking-wide pt-0 leading-none shrink-0 rounded-xs tabular-nums"
+                        >
+                          {projectItem.subtasks.length.toString()} SUBTASKS BOUND
                         </Badge>
-                        <Badge variant="outline" className="text-[10px] font-semibold px-1.5 h-5 capitalize">
-                          {proj.status}
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-border/40 bg-background text-muted-foreground/60 tracking-wide pt-0 leading-none shrink-0 rounded-xs uppercase"
+                        >
+                          {projectItem.status}
                         </Badge>
                       </div>
-                      <h3 className="text-sm font-bold leading-tight line-clamp-1">{proj.course.title}</h3>
-                      <div className="flex items-center gap-3 pt-0.5">
-                        <span className="flex items-center gap-1 text-xs font-bold text-amber-700">
-                          <Coins className="h-3 w-3" /> {proj.totalReward} total
+                      <h3 className="text-xs sm:text-sm font-bold leading-snug uppercase tracking-wide text-foreground truncate block select-text pt-0.5">
+                        {projectItem.course.title}
+                      </h3>
+                      <div className="flex items-center gap-3 font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none leading-none pt-0.5 tabular-nums">
+                        <span className="flex items-center gap-0.5 font-extrabold text-amber-600 shrink-0">
+                          <Coins className="h-3.5 w-3.5 stroke-[2] text-amber-500" />{" "}
+                          {projectItem.totalReward.toLocaleString()} Total Credits
                         </span>
-                        <span className="text-[11px] text-muted-foreground">Tap to claim subtasks</span>
+                        <span className="opacity-30 block select-none shrink-0">•</span>
+                        <span className="text-primary tracking-normal font-semibold">
+                          Inspect Workspace Matrix to Claim Subtasks
+                        </span>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 stroke-[2.5] mt-2 select-none pointer-events-none shrink-0 ml-auto" />
                   </div>
                 </button>
               ))
@@ -309,145 +484,170 @@ export default function Gigs() {
           </div>
         </TabsContent>
 
-        {/* ───── CLIENT PROJECTS (Marketplace) ───── */}
-        <TabsContent value="client" className="mt-4 space-y-4 animate-in fade-in duration-300">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+        {/* VIEWPORT CHANNEL D: FREELANCE CLIENT PROJECT ALLOCATIONS */}
+        <TabsContent
+          value="client"
+          className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
+        >
+          <div className="relative w-full block shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
             <Input
-              placeholder="Search client projects..."
-              className="pl-9 h-10 rounded-xl text-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              type="search"
+              placeholder="Filter external commercial client assignments database by contract keyword moniker..."
+              className="w-full h-10 pl-9 pr-3 bg-background border border-border/40 text-xs sm:text-sm font-semibold rounded-lg shadow-none"
+              value={textSearchInputStr}
+              onChange={(e) => setTextSearchInputStr(e.target.value)}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Bid on freelance gigs from companies · negotiate scope and price
+          <p className="font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/40 leading-none select-none pointer-events-none pl-0.5">
+            Freelance Procurement Runway: Deploy Competitive Project Proposals · Negotiate Functional Execution Bounds &
+            Milestones Budget Allocations
           </p>
-          <div className="space-y-2">
-            {(marketProjects || []).length === 0 ? (
-              <Card className="rounded-2xl border-dashed">
-                <CardContent className="p-6 text-center text-xs text-muted-foreground">
-                  No open client projects right now.
+
+          <div className="space-y-2.5 block w-full align-top">
+            {filteredMarketplaceProjectsList.length === 0 ? (
+              <Card className="rounded-lg border border-dashed border-border/80 bg-muted/5 p-8 text-center select-none block w-full shadow-none pointer-events-none">
+                <CardContent className="p-0 text-xs font-semibold text-muted-foreground/40 leading-normal block">
+                  No external client organizational hackathons or projects match current filter search tokens.
                 </CardContent>
               </Card>
             ) : (
-              (marketProjects || [])
-                .filter((m: any) => !search || m.title.toLowerCase().includes(search.toLowerCase()))
-                .map((m: any) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => navigate(`/app/marketplace/${m.id}`)}
-                    className="w-full text-left rounded-2xl border border-border/50 bg-card/60 hover:border-primary/40 transition-all p-3 active:scale-[0.99]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Briefcase className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-1.5 h-5">
-                            Client
-                          </Badge>
-                          {m.is_featured && (
-                            <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 text-[10px] font-bold px-1.5 h-5">
-                              Featured
-                            </Badge>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-bold leading-tight line-clamp-1">{m.title}</h3>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">
-                          {m.employer_name || "Anonymous employer"}
-                        </p>
-                        <div className="flex items-center gap-3 pt-0.5">
-                          <span className="flex items-center gap-1 text-xs font-bold text-amber-700">
-                            <Coins className="h-3 w-3" /> {m.budget_amount}
-                          </span>
-                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <Send className="h-3 w-3" /> {m.total_bids || 0} bids
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              filteredMarketplaceProjectsList.map((marketItemNode) => (
+                <button
+                  key={`marketplace-gig-row-trigger-${marketItemNode.id}`}
+                  type="button"
+                  onClick={() => navigateHook(`/app/marketplace/${marketItemNode.id}`)}
+                  className="w-full text-left rounded-lg border border-border/60 bg-card/30 hover:border-border-foreground/10 hover:shadow-3xs transition-all p-3.5 active:scale-[0.99] cursor-pointer block leading-none"
+                >
+                  <div className="flex items-start gap-3.5 leading-none w-full block">
+                    <div className="h-12 w-12 rounded bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-primary pointer-events-none select-none shadow-3xs">
+                      <Briefcase className="h-5 w-5 stroke-[2.2]" />
                     </div>
-                  </button>
-                ))
+
+                    <div className="min-w-0 flex-1 leading-none space-y-1 block pr-2">
+                      <div className="flex items-center gap-1.5 flex-wrap select-none pointer-events-none leading-none">
+                        <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-transparent bg-primary/5 text-primary tracking-wide pt-0 leading-none shrink-0">
+                          EXTERNAL CORPORATE GIG
+                        </Badge>
+                        {marketItemNode.is_featured && (
+                          <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-amber-500/20 bg-amber-500/5 text-amber-600 tracking-wide pt-0 leading-none shrink-0 rounded-xs shadow-3xs">
+                            FLAG_PRIORITY
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="text-xs sm:text-sm font-bold leading-snug uppercase tracking-wide text-foreground truncate block pt-0.5 select-text">
+                        {marketItemNode.title}
+                      </h3>
+                      <p className="font-sans text-[11px] font-semibold text-muted-foreground/50 truncate block select-text leading-tight">
+                        {marketItemNode.employer_name || "Hashed Corporate Identity Pool"}
+                      </p>
+
+                      <div className="flex items-center gap-3.5 font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none leading-none pt-0.5 tabular-nums w-full shrink-0">
+                        <span className="flex items-center gap-0.5 font-extrabold text-amber-600 shrink-0">
+                          <Coins className="h-3.5 w-3.5 stroke-[2] text-amber-500" />{" "}
+                          {marketItemNode.budget_amount.toLocaleString()} Budget Credits
+                        </span>
+                        <span className="opacity-30 block select-none shrink-0">•</span>
+                        <span className="flex items-center gap-1 shrink-0">
+                          <Send className="h-3.5 w-3.5 stroke-[2.2]" /> {marketItemNode.total_bids || 0} Bid Profiles
+                          Logged
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 stroke-[2.5] mt-2 select-none pointer-events-none shrink-0 ml-auto" />
+                  </div>
+                </button>
+              ))
             )}
           </div>
         </TabsContent>
 
-        {/* ───── MY WORK ───── */}
-        <TabsContent value="work" className="mt-4 space-y-6 animate-in fade-in duration-300">
-          <section className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-primary flex items-center gap-2">
-              <Zap className="h-3.5 w-3.5" /> Quick Task Submissions
+        {/* VIEWPORT CHANNEL E: CANDIDATE TRANSACTIONS DIRECTORY MONITOR */}
+        <TabsContent
+          value="work"
+          className="space-y-6 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200 leading-none"
+        >
+          <section className="space-y-3 block w-full">
+            <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-primary flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
+              <Zap className="h-3.5 w-3.5 stroke-[2.2] fill-current text-primary" />{" "}
+              <span>Hashed Micro Task Submission Logs</span>
             </h3>
-            <MySubmissions talentId={talent?.id} />
+            <MySubmissions talentId={talentProfileRecord?.id} />
           </section>
 
-          <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-border/40">
-            <section className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-blue-600 flex items-center gap-1.5">
-                <Send className="h-3.5 w-3.5" /> My Bids
+          <div className="grid sm:grid-cols-2 gap-4 block w-full pt-2 align-top">
+            <section className="space-y-3 block flex-1 min-w-0">
+              <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-blue-600 flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
+                <Send className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Proposals Bids Register</span>
               </h3>
-              <div className="space-y-2">
-                {myBids?.length ? (
-                  myBids.map((bid: any) => (
+
+              <div className="space-y-2 block w-full">
+                {myBidsArray.length > 0 ? (
+                  myBidsArray.map((bidItem) => (
                     <div
-                      key={bid.id}
-                      className="rounded-2xl border border-border/40 bg-card p-3 hover:border-blue-500/40 transition-all"
+                      key={`proposal-row-card-${bidItem.id}`}
+                      className="rounded-lg border border-border/60 bg-card/60 p-3 flex flex-col gap-2 block w-full leading-none transform-gpu"
                     >
-                      <div className="flex justify-between items-start gap-2">
-                        <h4 className="text-sm font-semibold leading-tight">
-                          {bid.marketplace_gigs?.title}
+                      <div className="flex justify-between items-start gap-4 leading-none w-full block">
+                        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground truncate block pt-0.5 flex-1 min-w-0 select-text">
+                          {bidItem.marketplace_gigs?.title || "Untitled Assignment Target Specification"}
                         </h4>
-                        <Badge variant="outline" className="text-[10px] h-5 capitalize shrink-0">
-                          {bid.status}
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-border/40 bg-background text-muted-foreground/60 tracking-wide pt-0 select-none pointer-events-none shrink-0 leading-none capitalize"
+                        >
+                          {bidItem.status}
                         </Badge>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {bid.marketplace_gigs?.employer_name}
+                      <p className="font-sans text-[11px] font-semibold text-muted-foreground/50 truncate block select-text leading-tight">
+                        {bidItem.marketplace_gigs?.employer_name || "Corporate Client Identity Pool"}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[11px] text-muted-foreground italic px-1">No bids yet.</p>
+                  <p className="font-sans text-xs italic font-medium text-muted-foreground/40 block py-1 px-0.5 select-none pointer-events-none">
+                    No active commercial proposal indices logged.
+                  </p>
                 )}
               </div>
             </section>
 
-            <section className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-600 flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" /> Active Contracts
+            <section className="space-y-3 block flex-1 min-w-0">
+              <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-emerald-600 flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
+                <ShieldCheck className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Operational Contracts Vault</span>
               </h3>
-              <div className="space-y-2">
-                {myContracts?.filter((c: any) => c.status === "active").length ? (
-                  myContracts
-                    ?.filter((c: any) => c.status === "active")
-                    .map((contract: any) => (
+
+              <div className="space-y-2 block w-full">
+                {myContractsArray.filter((contractNode) => contractNode.status === "active").length > 0 ? (
+                  myContractsArray
+                    .filter((contractNode) => contractNode.status === "active")
+                    .map((contractItem) => (
                       <div
-                        key={contract.id}
-                        className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex justify-between items-center gap-2"
+                        key={`contract-vault-card-${contractItem.id}`}
+                        className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.01] p-3 flex justify-between items-center gap-4 block w-full leading-none transform-gpu shadow-3xs"
                       >
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-semibold leading-tight truncate">
-                            {contract.marketplace_gigs?.title}
+                        <div className="min-w-0 flex-1 leading-none space-y-1 block pr-1">
+                          <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground truncate block pt-0.5 select-text">
+                            {contractItem.marketplace_gigs?.title || "Untitled Active Milestone Space"}
                           </h4>
-                          <p className="text-[11px] text-emerald-700 mt-0.5">
-                            {contract.agreed_amount} credits
+                          <p className="font-mono text-[9px] font-black text-emerald-600 uppercase tracking-tight leading-none block pt-0.5 select-text tabular-nums">
+                            Escrow Balance: {contractItem.agreed_amount.toLocaleString()} Credits Draw
                           </p>
                         </div>
                         <Button
+                          type="button"
                           size="sm"
-                          className="h-8 px-3 rounded-lg text-[11px] shrink-0"
-                          onClick={() => setDeliverableDialog(contract.id)}
+                          className="h-7.5 px-3 rounded font-mono text-[10px] font-extrabold uppercase tracking-wide cursor-pointer shrink-0 shadow-2xs transform-gpu active:scale-95 pt-0.5"
+                          onClick={() => setActiveDeliverableContractId(contractItem.id)}
                         >
-                          Deliver
+                          Deliver Artifact
                         </Button>
                       </div>
                     ))
                 ) : (
-                  <p className="text-[11px] text-muted-foreground italic px-1">No active contracts.</p>
+                  <p className="font-sans text-xs italic font-medium text-muted-foreground/40 block py-1 px-0.5 select-none pointer-events-none">
+                    No active legal assignment matrices validated in escrow handles.
+                  </p>
                 )}
               </div>
             </section>
@@ -455,48 +655,74 @@ export default function Gigs() {
         </TabsContent>
       </Tabs>
 
-      {/* Submit deliverable */}
-      <Dialog open={!!deliverableDialog} onOpenChange={(o) => !o && setDeliverableDialog(null)}>
-        <DialogContent className="rounded-2xl max-w-md p-4">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">Submit deliverable</DialogTitle>
-            <p className="text-xs text-muted-foreground">Share your work for review.</p>
+      {/* HUD LEVEL 3: ARTIFACT MANIFEST TRANSMISSION DISPATCH MODAL LAYER */}
+      <Dialog
+        open={!!activeDeliverableContractId}
+        onOpenChange={(isOpenState) => !isOpenState && setActiveDeliverableContractId(null)}
+      >
+        <DialogContent className="rounded-lg max-w-md border border-border/60 bg-popover text-popover-foreground shadow-2xl select-none leading-none p-5">
+          <DialogHeader className="text-left leading-none pb-2 border-b border-border/5">
+            <DialogTitle className="text-sm font-bold uppercase tracking-wide text-foreground leading-none m-0">
+              Transmit Assignment Deliverable Archive
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Title</Label>
+
+          <div className="space-y-4 pt-4 block w-full leading-none">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+                Deliverable Manifest Document Title
+              </Label>
               <Input
-                value={delivTitle}
-                onChange={(e) => setDelivTitle(e.target.value)}
-                placeholder="My deliverable"
-                className="h-10 rounded-xl text-sm"
+                type="text"
+                value={textDeliverableTitleInput}
+                onChange={(e) => setTextDeliverableTitleInput(e.target.value)}
+                placeholder="e.g. Completed System Core Abstraction Layer specs"
+                className="h-10 text-xs sm:text-sm bg-background border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Description</Label>
+
+            <div className="space-y-1 block leading-none pt-1">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+                Implementation Architecture Remarks Summary
+              </Label>
               <Textarea
-                value={delivDesc}
-                onChange={(e) => setDelivDesc(e.target.value)}
-                placeholder="Brief notes about your submission..."
-                className="rounded-xl min-h-[100px] text-sm"
+                value={textDeliverableDescInput}
+                onChange={(e) => setTextDeliverableDescInput(e.target.value)}
+                placeholder="Outline explicit technical details, build artifacts logs, or structural adjustments performed down-stream for client verification notes..."
+                className="bg-background border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg text-xs sm:text-sm font-sans leading-relaxed resize-none p-2.5 min-h-[100px]"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Files</Label>
+
+            <div className="space-y-1 block leading-none pt-1">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-primary tracking-wide block leading-none ml-0.5">
+                Secure Document Asset Files Ledger
+              </Label>
               <GigUploader
-                value={delivFiles}
-                onChange={setDelivFiles}
-                folder={`deliverable/${deliverableDialog || "misc"}`}
+                value={uploadedFilesCollection}
+                onChange={setUploadedFilesCollection}
+                folder={`deliverable/${activeDeliverableContractId || "misc-pool"}`}
                 maxFiles={5}
               />
             </div>
+
             <Button
-              className="w-full h-11 rounded-xl text-sm"
-              onClick={() => submitDeliverable.mutate()}
-              disabled={submitDeliverable.isPending}
+              type="button"
+              disabled={
+                submitDeliverableMutation.isPending ||
+                !textDeliverableTitleInput.trim() ||
+                uploadedFilesCollection.length === 0
+              }
+              onClick={() => submitDeliverableMutation.mutate()}
+              className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center"
             >
-              {submitDeliverable.isPending && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              Submit deliverable
+              {submitDeliverableMutation.isPending ? (
+                <div className="flex items-center justify-center gap-1.5 mx-auto leading-none">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-primary-foreground stroke-[2.5]" />
+                  <span className="pt-0.5">Authorizing Archive Transport Loop...</span>
+                </div>
+              ) : (
+                <span>Publish Escrow Deliverable Artifacts</span>
+              )}
             </Button>
           </div>
         </DialogContent>
