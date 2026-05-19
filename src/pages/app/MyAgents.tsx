@@ -104,6 +104,8 @@ export default function MyAgents() {
 
       <div className="flex flex-wrap gap-2">
         <CreatorOnboardingDialog
+          open={false}
+          onOpenChange={() => {}}
           onCreated={() => queryClient.invalidateQueries({ queryKey: ["talent-agent-dashboard"] })}
         />
         <Button>
