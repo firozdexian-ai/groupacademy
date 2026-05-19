@@ -13,12 +13,13 @@ import { cn } from "@/lib/utils";
 // =========================================================================
 interface MessageThread {
   id: string;
-  agentName: string | null;
+  agentName?: string | null;
   agent_key: string | null;
   thread_type: "agent" | "system" | string;
   last_message_preview: string | null;
   unread_count: number;
-  updated_at: string;
+  updated_at?: string;
+  last_message_at?: string;
 }
 
 type FilterKey = "all" | "unread" | "agents" | "system";
