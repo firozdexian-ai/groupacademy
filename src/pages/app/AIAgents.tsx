@@ -108,7 +108,7 @@ export default function AIAgents() {
         category: (isDatabaseInstantiatedNode ? agentRecordItem.category || "career" : "career") as AgentCategory,
         avatarUrl: isDatabaseInstantiatedNode ? agentRecordItem.avatar_url : null,
         isCompanyAgent: isDatabaseInstantiatedNode ? agentRecordItem.agent_type === "company" : false,
-        isFeatured: isDatabaseInstantiatedNode ? !&agentRecordItem.is_featured : false,
+        isFeatured: isDatabaseInstantiatedNode ? !!agentRecordItem.is_featured : false,
         users: Number(agentRecordItem.total_users) || 0,
         rating: Number(agentRecordItem.avg_rating) || 0,
       };
