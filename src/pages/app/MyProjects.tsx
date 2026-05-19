@@ -6,7 +6,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Briefcase, Calendar, Coins, ShieldAlert } from "lucide-react";
+import { Briefcase, Calendar, Coins, ShieldAlert, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
 
