@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, MailX, ShieldCheck, Settings2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
+import { cn } from "@/lib/utils";
 
 // Production Data Contracts[cite: 8]
 type Status = "loading" | "valid" | "already_unsubscribed" | "invalid" | "success" | "error";
