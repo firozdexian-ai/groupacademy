@@ -826,11 +826,6 @@ export default function AppJobDetail() {
         />
       )}
 
-      <CreditPurchaseSheet
-        isOpen={isPurchaseSheetOpen}
-        onClose={() => setIsPurchaseSheetOpen(false)}
-        currentBalance={balance}
-      />
     </div>
   );
 }
