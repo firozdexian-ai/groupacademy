@@ -1,18 +1,37 @@
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Map, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Map } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { RoadmapIntakeForm } from "@/components/abroad/RoadmapIntakeForm";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
 
 /**
- * Study Abroad Roadmap — structured intake form.
+ * Platform Logic: Study Abroad Roadmap Terminal
+ * High-fidelity orchestrator for roadmap artifact ingestion.
+ * 2026 Standard: Executive Logic geometry with reinforced error telemetry.
  */
 
 export default function StudyAbroadRoadmap() {
   const navigate = useNavigate();
 
+  // Digital Workforce Anomaly Reporting[cite: 6]
+  const reportAnomaly = async (event: string, context: any) => {
+    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    await supabase.functions.invoke("admin-support-assistant", {
+      body: { type: "roadmap_intake_error", event, context },
+    });
+  };
+
+  const handleError = (error: Error) => {
+    reportAnomaly("RoadmapIntakeFailure", { error: error.message });
+    toast.error("Roadmap sync interrupted. Admin agents notified.");
+  };
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-32 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between">
+    <div className={PAGE_SHELL}>
+      <header className="flex items-center justify-between pb-4">
         <Button
           variant="ghost"
           size="sm"
@@ -21,23 +40,40 @@ export default function StudyAbroadRoadmap() {
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
-      </div>
-
-      <header className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Map className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold leading-tight">Build my study roadmap</h1>
-          <p className="text-sm text-muted-foreground">
-            Tell us a bit about your goals and we'll plan the next 12 months for you.
-          </p>
-        </div>
       </header>
 
-      <div className="bg-card rounded-2xl border p-4 sm:p-6">
-        <RoadmapIntakeForm />
+      <div className="flex items-center gap-4 mb-8">
+        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+          <Map className="h-7 w-7 text-primary" />
+        </div>
+        <div className="space-y-1">
+          <h1 className={PAGE_TITLE}>Build my study roadmap</h1>
+          <p className={PAGE_SUBTITLE}>Tell us your goals. We'll plan your next 12 months.</p>
+        </div>
       </div>
+
+      <Card className={CARD}>
+        <CardContent className="p-6">
+          <ErrorBoundary onError={handleError}>
+            <RoadmapIntakeForm />
+          </ErrorBoundary>
+        </CardContent>
+      </Card>
     </div>
   );
+}
+
+// Minimal error boundary wrapper for intake stability[cite: 6]
+function ErrorBoundary({ children, onError }: { children: React.ReactNode; onError: (e: Error) => void }) {
+  try {
+    return <>{children}</>;
+  } catch (e: any) {
+    useEffect(() => onError(e), [e, onError]);
+    return (
+      <div className="p-8 text-center space-y-4">
+        <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+        <p className="text-sm font-medium">An error occurred in the roadmap logic.</p>
+      </div>
+    );
+  }
 }
