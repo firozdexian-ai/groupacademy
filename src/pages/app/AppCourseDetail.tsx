@@ -400,7 +400,7 @@ function LiveSessionPanels({ course }: SubComponentProps) {
   const { enrollment: liveSessionEnrollmentRecord } = useEnrollment(course.id);
 
   if (liveSessionEnrollmentRecord) {
-    return <JoinLivePanel course={course} />;
+    return <JoinLivePanel course={course as any} />;
   }
-  return <WebinarEnrollPanel course={course} />;
+  return <WebinarEnrollPanel course={course as any} />;
 }
