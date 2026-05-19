@@ -146,7 +146,7 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
       if (queryHandshakeError) throw queryHandshakeError;
       return dbSubmissionPayload as unknown as CompetitionSubmission | null;
     },
-    enabled: !!activeChallengeItem?.id && !&talentProfileRecord?.id,
+    enabled: !!activeChallengeItem?.id && !!talentProfileRecord?.id,
   });
 
   // =========================================================================
