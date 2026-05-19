@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Search, Sparkles, MessageCircle, Inbox } from "lucide-react";
+import { Bot, Search, Sparkles, MessageCircle, Inbox, type LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ interface TransformedAgent {
   agent_key: string;
   name: string;
   description: string;
-  icon: string | undefined;
+  icon: LucideIcon | undefined;
   bgColor: string;
   color: string;
   expertise: string[];
@@ -92,7 +92,7 @@ export default function AIAgents() {
 
     return baselineInventorySource.map((agentRecordItem) => {
       const isDatabaseInstantiatedNode = "agent_key" in agentRecordItem;
-      const targetIdentificationKeyStr = isDatabaseInstantiatedNode ? agentRecordItem.agent_key : agentRecordItem.id;
+      const targetIdentificationKeyStr = isDatabaseInstantiatedNode ? agentRecordItem.agent_key : (agentRecordItem as any).id;
       const verifiedStaticMetaRecord = getAgentById(targetIdentificationKeyStr);
 
       return {
