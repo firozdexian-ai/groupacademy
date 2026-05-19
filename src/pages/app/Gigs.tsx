@@ -32,6 +32,7 @@ import {
   Zap,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // =========================================================================
@@ -381,7 +382,7 @@ export default function Gigs() {
                     <GigCard
                       key={gigItemRow.id}
                       gig={gigItemRow}
-                      userSubmissions={submissionCountsMap?.[gigItemRow.id]}
+                      userSubmissions={submissionCountsMap?.[gigItemRow.id] as any}
                     />
                   ))}
           </div>
