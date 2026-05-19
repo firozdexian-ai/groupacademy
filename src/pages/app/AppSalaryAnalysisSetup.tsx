@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,18 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Upload,
-  FileText,
-  Loader2,
-  CheckCircle,
-  FileCheck,
-  ArrowLeft,
-  Coins,
-  Zap,
-  Target,
-  ShieldCheck,
-} from "lucide-react";
+import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
@@ -31,339 +20,482 @@ import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionP
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { cn } from "@/lib/utils";
+import { PAGE_SHELL, PAGE_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 
-/**
- * Platform Logic: Market Value Diagnostic
- * High-fidelity orchestrator for AI-powered salary telemetry.
- * Synchronized with the 2026 'Executive Logic' depth and transaction standards.
- */
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface ProfessionCategory {
+  id: string;
+  name: string;
+}
 
 const SALARY_ANALYSIS_COST = 50;
 
+/**
+ * GroUp Academy: AI Salary Synthesis & Market Telemetry Setup (AppSalaryAnalysisSetup)
+ * Hardened responsive entry cockpit processing dynamic resume uploads and checking credit gate parameters defensively.
+ * Version: Launch Candidate · Phase Z1 Transaction Matrix Sealed
+ */
 export default function AppSalaryAnalysisSetup() {
-  const navigate = useNavigate();
+  const navigateHook = useNavigate();
   const { toast } = useToast();
-  const { talent, user, addServiceUsed, updateTalent, refreshTalent } = useTalent();
+  const {
+    talent: talentProfileRecord,
+    user: userAuthRecord,
+    addServiceUsed,
+    updateTalent,
+    refreshTalent,
+  } = useTalent();
   const { canAfford, deductCredits, balance } = useCredits();
 
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [cvText, setCvText] = useState("");
-  const [cvInputMode, setCvInputMode] = useState<"text" | "file" | "existing">("text");
-  const [cvFile, setCvFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [cvUrl, setCvUrl] = useState("");
+  const [candidateEmailState, setCandidateEmailState] = React.useState<string>("");
+  const [fullNameState, setFullNameState] = React.useState<string>("");
+  const [phoneInputStr, setPhoneInputStr] = React.useState<string>("");
+  const [jobTitleInputStr, setJobTitleInputStr] = React.useState<string>("");
+  const [companyNameInputStr, setCompanyNameInputStr] = React.useState<string>("");
+  const [jobDescriptionInputStr, setJobDescriptionInputStr] = React.useState<string>("");
+  const [cvTextInputStr, setCvTextInputStr] = React.useState<string>("");
+  const [cvInputMode, setCvInputMode] = React.useState<"text" | "file" | "existing">("text");
 
-  const [professionCategories, setProfessionCategories] = useState<any[]>([]);
-  const [selectedProfession, setSelectedProfession] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCreditGate, setShowCreditGate] = useState(false);
-  const [showCreditSheet, setShowCreditSheet] = useState(false);
+  const [cvFileState, setCvFileState] = React.useState<File | null>(null);
+  const [isCVStorageUploading, setIsCVStorageUploading] = React.useState<boolean>(false);
+  const [cvSecureUrlStr, setCvSecureUrlStr] = React.useState<string>("");
 
-  const hasExistingCv = !!(talent?.cvUrl || talent?.cvText);
+  const [professionCategoriesArray, setProfessionCategoriesArray] = React.useState<ProfessionCategory[]>([]);
+  const [selectedProfessionId, setSelectedProfessionId] = React.useState<string>("");
+  const [isSubmissionPending, setIsSubmissionPending] = React.useState<boolean>(false);
+  const [isCreditGateOpen, setIsCreditGateOpen] = React.useState<boolean>(false);
+  const [isCreditPurchaseSheetOpen, setIsCreditPurchaseSheetOpen] = React.useState<boolean>(false);
 
-  useEffect(() => {
-    if (talent) {
-      setEmail((prev) => prev || talent.email || "");
-      setFullName((prev) => prev || talent.fullName || "");
-      setPhone((prev) => prev || talent.phone?.replace(/^\+880/, "") || "");
-      if (talent.professionCategoryId) {
-        setSelectedProfession((prev) => prev || talent.professionCategoryId || "");
+  const hasExistingCvOnFile = !!(talentProfileRecord?.cvUrl || talentProfileRecord?.cvText);
+
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: RETRIEVAL SYNCHRONIZATION RUNWAY MATRIX
+  // =========================================================================
+  React.useEffect(() => {
+    if (talentProfileRecord) {
+      setCandidateEmailState((prev) => prev || talentProfileRecord.email || "");
+      setFullNameState((prev) => prev || talentProfileRecord.fullName || "");
+      setPhoneInputStr((prev) => prev || talentProfileRecord.phone?.replace(/^\+880/, "") || "");
+
+      if (talentProfileRecord.professionCategoryId) {
+        setSelectedProfessionId((prev) => prev || talentProfileRecord.professionCategoryId || "");
       }
-      if (hasExistingCv && cvInputMode === "text") {
+
+      if (hasExistingCvOnFile && cvInputMode === "text") {
         setCvInputMode("existing");
-        if (talent.cvUrl) setCvUrl(talent.cvUrl);
-        if (talent.cvText) setCvText(talent.cvText);
+        if (talentProfileRecord.cvUrl) setCvSecureUrlStr(talentProfileRecord.cvUrl);
+        if (talentProfileRecord.cvText) setCvTextInputStr(talentProfileRecord.cvText);
       }
-    } else if (user?.email) {
-      setEmail((prev) => prev || user.email || "");
+    } else if (userAuthRecord?.email) {
+      setCandidateEmailState((prev) => prev || userAuthRecord.email || "");
     }
-  }, [talent, user, hasExistingCv]);
+  }, [talentProfileRecord, userAuthRecord, hasExistingCvOnFile, cvInputMode]);
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
+  React.useEffect(() => {
+    let isThreadActive = true;
+    const macroAbortControllerInstance = new AbortController();
+
+    const networkSchedulingTimerToken = setTimeout(() => {
+      macroAbortControllerInstance.abort();
+    }, TIMEOUTS.CATEGORY_LOAD || 10000);
+
+    const loadProfessionCategoriesDirectory = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: dbCategoriesPayload, error: queryHandshakeError } = await supabase
           .from("profession_categories")
           .select("id, name")
           .eq("is_active", true)
           .order("display_order")
-          .abortSignal(controller.signal);
-        clearTimeout(timeoutId);
-        if (error) throw error;
-        if (data) setProfessionCategories(data);
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        console.error("Tracking Failure: Category Load", error);
+          .abortSignal(macroAbortControllerInstance.signal);
+
+        clearTimeout(networkSchedulingTimerToken);
+
+        if (queryHandshakeError) throw queryHandshakeError;
+        if (dbCategoriesPayload && isThreadActive) {
+          setProfessionCategoriesArray(dbCategoriesPayload as unknown as ProfessionCategory[]);
+        }
+      } catch (pipelineException: any) {
+        clearTimeout(networkSchedulingTimerToken);
+        if (pipelineException?.name !== "AbortError" && isThreadActive) {
+          console.error("Diagnostic Failure: Profession Configuration Load Exception:", pipelineException);
+        }
       }
     };
-    loadCategories();
+
+    loadProfessionCategoriesDirectory();
+
+    return () => {
+      clearTimeout(networkSchedulingTimerToken);
+      macroAbortControllerInstance.abort();
+      isThreadActive = false;
+    };
   }, []);
 
-  const handleFileUpload = async (file: File) => {
-    if (!file.type.includes("pdf") && !file.type.includes("document")) {
-      toast({ title: "Unsupported Artifact", description: "Please upload a PDF or DOC.", variant: "destructive" });
+  // =========================================================================
+  // ACTION HOOKS: CLOUD SECURE CV REPOSITORY STORAGE METRICS DISPATCH
+  // =========================================================================
+  const handleSecureCVStorageUploadSequence = async (targetFileObj: File) => {
+    if (!targetFileObj.type.includes("pdf") && !targetFileObj.type.includes("document")) {
+      toast({
+        title: "Unsupported File Format",
+        description: "Vetting files must conform strictly to PDF, DOC, or DOCX specifications.",
+        variant: "destructive",
+      });
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "Capacity Exceeded", description: "Artifact must be under 10MB.", variant: "destructive" });
+    if (targetFileObj.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Capacity Threshold Bound Exceeded",
+        description: "The transmitted credentials payload must remain below 10.0 MB.",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsUploading(true);
-    setCvFile(file);
+    setIsCVStorageUploading(true);
+    setCvFileState(targetFileObj);
 
     try {
-      const fileName = `salary-cv/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("portfolio-uploads").upload(fileName, file);
-      if (error) throw error;
+      const generatedTargetStoragePath = `salary-cv/${Date.now().toString()}-${targetFileObj.name}`;
+      const { error: storageUploadError } = await supabase.storage
+        .from("portfolio-uploads")
+        .upload(generatedTargetStoragePath, targetFileObj);
 
-      const { data: publicUrl } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
-      setCvUrl(publicUrl.publicUrl);
+      if (storageUploadError) throw storageUploadError;
 
-      if (talent?.id) {
-        await updateTalent({ cvUrl: publicUrl.publicUrl });
+      const { data: publicUrlPayloadResponse } = supabase.storage
+        .from("portfolio-uploads")
+        .getPublicUrl(generatedTargetStoragePath);
+      setCvSecureUrlStr(publicUrlPayloadResponse.publicUrl);
+
+      if (talentProfileRecord?.id) {
+        await updateTalent({ cvUrl: publicUrlPayloadResponse.publicUrl });
         await refreshTalent();
       }
-      toast({ title: "Saved" });
-    } catch (error: any) {
-      toast({ title: "Failed", description: "Revert to text paste logic.", variant: "destructive" });
+      toast({ title: "Document Artifact Hashed & Secured" });
+    } catch (storageExceptionPayload) {
+      toast({
+        title: "Subsystem Refused Payload",
+        description: "Fallback verification protocols automatically triggered. Please text paste source parameters.",
+        variant: "destructive",
+      });
       setCvInputMode("text");
     } finally {
-      setIsUploading(false);
+      setIsCVStorageUploading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!fullName.trim() || !email.trim() || !jobDescription.trim()) {
-      toast({ title: "Incomplete Parameters", description: "Required fields missing.", variant: "destructive" });
+  // =========================================================================
+  // TRANSACTION SUBMISSION ENGINE PIPELINE MUTATION EXECUTION
+  // =========================================================================
+  const handleCommitSalaryAnalysisSequence = async () => {
+    if (!fullNameState.trim() || !candidateEmailState.trim() || !jobDescriptionInputStr.trim()) {
+      toast({
+        title: "Incomplete Input Fields",
+        description: "All required structural parameter categories must be filled.",
+        variant: "destructive",
+      });
       return;
     }
-    if (!cvText.trim() && !cvUrl) {
-      toast({ title: "Missing Career Node", description: "Provide CV text or file.", variant: "destructive" });
+    if (!cvTextInputStr.trim() && !cvSecureUrlStr) {
+      toast({
+        title: "Career Record Track Missing",
+        description: "You must supply an operational CV text layout code blueprint or an artifact spec file.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!canAfford("SALARY_ANALYSIS")) {
-      setShowCreditGate(true);
+      setIsCreditGateOpen(true);
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmissionPending(true);
     try {
-      const paid = await deductCredits("SALARY_ANALYSIS", undefined, "Salary Analysis Tracking");
-      if (!paid) throw new Error("Credit handshake failed.");
+      const isCreditHandshakeSettled = await deductCredits(
+        "SALARY_ANALYSIS",
+        undefined,
+        "AI Salary Synthesis Market Analysis Run",
+      );
+      if (!isCreditHandshakeSettled) throw new Error("Credit transaction block handshake failure.");
 
-      const tempAnalysisId = crypto.randomUUID();
-      const { error } = await supabase.from("salary_analyses").insert({
-        id: tempAnalysisId,
-        user_id: user?.id || null,
-        talent_id: talent?.id || null,
-        full_name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim() ? `+880${phone.trim()}` : null,
-        job_title: jobTitle.trim() || null,
-        company_name: companyName.trim() || null,
-        job_description: jobDescription.trim(),
-        cv_text: cvText.trim() || null,
-        cv_url: cvUrl || null,
-        profession_category_id: selectedProfession || null,
+      const targetAnalysisIdUUID = crypto.randomUUID();
+      const { error: insertPipelineHandshakeError } = await supabase.from("salary_analyses").insert({
+        id: targetAnalysisIdUUID,
+        user_id: userAuthRecord?.id || null,
+        talent_id: talentProfileRecord?.id || null,
+        full_name: fullNameState.trim(),
+        email: candidateEmailState.trim().toLowerCase(),
+        phone: phoneInputStr.trim() ? `+880${phoneInputStr.trim()}` : null,
+        job_title: jobTitleInputStr.trim() || null,
+        company_name: companyNameInputStr.trim() || null,
+        job_description: jobDescriptionInputStr.trim(),
+        cv_text: cvTextInputStr.trim() || null,
+        cv_url: cvSecureUrlStr || null,
+        profession_category_id: selectedProfessionId || null,
         status: "pending",
       });
 
-      if (error) throw error;
-      if (talent?.id) await addServiceUsed("salary_analysis");
+      if (insertPipelineHandshakeError) throw insertPipelineHandshakeError;
+      if (talentProfileRecord?.id) await addServiceUsed("salary_analysis");
 
-      toast({ title: "Diagnostic Initiated" });
-      recordToolRun({ toolKey: "salary", costCredits: 50, payload: { analysis_id: tempAnalysisId, job_title: jobTitle } });
-      navigate(`/salary-analysis/processing/${tempAnalysisId}`);
-    } catch (error) {
-      toast({ title: "Failed", description: "Logic sync interrupted.", variant: "destructive" });
+      toast({ title: "Market Evaluation Run Initiated" });
+      recordToolRun({
+        toolKey: "salary",
+        costCredits: 50,
+        payload: { analysis_id: targetAnalysisIdUUID, job_title: jobTitleInputStr },
+      });
+      navigateHook(`/salary-analysis/processing/${targetAnalysisIdUUID}`);
+    } catch (fatalMutationException) {
+      toast({
+        title: "Pipeline Handshake Terminated",
+        description: "Secure transaction token verification logic interrupted. Re-submit data parameters.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmissionPending(false);
     }
   };
 
+  const handleReturnToHubRedirect = React.useCallback(() => {
+    navigateHook("/app/services");
+  }, [navigateHook]);
+
+  const handleCloseCreditGateModal = React.useCallback(() => {
+    setIsCreditGateOpen(false);
+  }, []);
+
+  const handleOpenPurchaseSheetFromModal = React.useCallback(() => {
+    setIsCreditGateOpen(false);
+    setIsCreditPurchaseSheetOpen(true);
+  }, []);
+
+  const handleClosePurchaseSheet = React.useCallback(() => {
+    setIsCreditPurchaseSheetOpen(false);
+  }, []);
+
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 min-h-svh space-y-10 animate-in fade-in duration-700">
-      <header className="flex items-center justify-between">
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 text-left antialiased block transform-gpu w-full pb-24">
+      {/* HUD LEVEL 1: OVERVIEW COMPLIANCE INTERFACE NAVIGATION BAR */}
+      <header className="flex items-center justify-between select-none leading-none w-full shrink-0">
         <Button
+          type="button"
           variant="ghost"
           size="sm"
-          className="group rounded-xl px-4 h-11 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5"
-          onClick={() => navigate("/app/services")}
+          className="group rounded-lg h-9 px-3 border border-border/5 font-mono text-[10px] font-extrabold uppercase tracking-wide hover:bg-muted cursor-pointer"
+          onClick={handleReturnToHubRedirect}
         >
-          <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" /> Revert to Hub
+          <ArrowLeft className="mr-1 h-3.5 w-3.5 stroke-[2.5] transition-transform group-hover:-translate-x-0.5" />
+          <span>Return to Dashboard Hub</span>
         </Button>
         <Badge
           variant="outline"
-          className="rounded-lg border-primary/20 text-primary font-black uppercase tracking-widest text-[9px] px-3 py-1"
+          className="font-mono text-[9px] font-extrabold uppercase px-2 h-5 tracking-wide rounded bg-primary/5 text-primary border-primary/20 shrink-0 pointer-events-none leading-none pt-0.5"
         >
-          Market Intelligence v2.6
+          Telemetry Analysis Node: v2.6 Stacked
         </Badge>
       </header>
 
-      <ProfileCompletionPrompt variant="banner" className="rounded-[24px] border-2 border-dashed border-primary/20" />
+      <ProfileCompletionPrompt
+        variant="banner"
+        className="rounded-xl border border-dashed border-primary/20 bg-card/10 block w-full shadow-none"
+      />
 
-      <div className="text-center space-y-4">
-        <div className="h-16 w-16 bg-primary/10 rounded-[28px] flex items-center justify-center mx-auto rotate-3 shadow-xl">
-          <Target className="h-8 w-8 text-primary" />
+      {/* HUD LEVEL 2: COMPOSITE DISCOVERY HEADER PANELS */}
+      <div className="text-center max-w-lg mx-auto space-y-2 select-none pointer-events-none leading-none pb-2 block">
+        <div className="h-11 w-11 bg-primary/5 border border-primary/10 rounded-xl flex items-center justify-center mx-auto rotate-2 shadow-2xs text-primary shrink-0">
+          <Target className="h-5 w-5 stroke-[2.2]" />
         </div>
-        <h1 className="text-4xl font-black uppercase tracking-tighter leading-none italic">Salary Synthesis</h1>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic max-w-lg mx-auto">
-          Input your career artifact and target parameters for high-fidelity market value telemetry.
+        <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground leading-none pt-1">
+          Market Intelligence Salary Synthesis
+        </h1>
+        <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-normal block max-w-sm mx-auto">
+          Deploy algorithmic salary benchmarking metrics mapping candidate credentials against specialized enterprise
+          vacancy blueprints.
         </p>
       </div>
 
-      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
-        <CardHeader className="p-10 border-b border-border/10 bg-muted/20">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-500" /> Parameter Input
-            </CardTitle>
-            <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">
-              <Coins className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{SALARY_ANALYSIS_COST} Credits</span>
-            </div>
+      {/* HUD LEVEL 3: INPUT OPERATIONAL CARD COMPONENT STRUCTURES */}
+      <Card className="rounded-lg border border-border/60 bg-card/40 overflow-hidden block w-full shadow-none">
+        <CardHeader className="p-4 border-b border-border/5 bg-muted/20 flex flex-row items-center justify-between w-full select-none shrink-0 leading-none">
+          <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground leading-none flex items-center gap-2 m-0">
+            <ShieldCheck className="h-4.5 w-4.5 text-emerald-600 stroke-[2.2]" />
+            <span>Evaluation Parameter Inputs Matrix</span>
+          </CardTitle>
+
+          <div className="flex items-center gap-1.5 font-mono text-[9px] font-extrabold px-2 h-5 tracking-wide uppercase bg-primary/5 text-primary border border-primary/10 rounded shadow-3xs pt-0.5 leading-none select-none pointer-events-none shrink-0">
+            <Coins className="h-3 w-3 stroke-[2] shrink-0 text-primary" />
+            <span>{SALARY_ANALYSIS_COST.toString()} Credits Fee</span>
           </div>
         </CardHeader>
-        <CardContent className="p-10 space-y-10">
-          {/* Identity Logic */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-              <Label className="text-[11px] font-black uppercase tracking-widest text-primary ml-1">Entity Name</Label>
+
+        <CardContent className="p-4 sm:p-6 block w-full space-y-6 leading-none">
+          {/* SECTION A: INDIVIDUAL MONIKER CREDENTIAL IDENTITY TRACK */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 block w-full">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-primary tracking-wide block leading-none ml-0.5">
+                Candidate Profiling Name
+              </Label>
               <Input
-                className="h-12 rounded-xl border-2 bg-background/50 font-bold"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Full Name"
+                type="text"
+                value={fullNameState}
+                onChange={(e) => setFullNameState(e.target.value)}
+                placeholder="Input legal registration entity nomenclature..."
+                className="h-10 text-xs sm:text-sm bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Email Node</Label>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+                Electronic Communication Mail Node
+              </Label>
               <Input
-                className="h-12 rounded-xl border-2 bg-background/50 font-bold"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="uplink@domain.com"
+                type="email"
+                value={candidateEmailState}
+                onChange={(e) => setCandidateEmailState(e.target.value)}
+                placeholder="uplink@domain-network.com"
+                className="h-10 text-xs sm:text-sm bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
               />
             </div>
           </div>
 
-          {/* Role Parameters */}
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Target Role</Label>
+          {/* SECTION B: TARGET OCCUPATION FOCUS AND REPOS FILTERING */}
+          <div className="space-y-4 block w-full leading-none">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 block w-full">
+              <div className="space-y-1 block leading-none">
+                <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+                  Target Role Designation
+                </Label>
                 <Input
-                  className="h-12 rounded-xl border-2 bg-background/50 font-bold"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g. Lead Architect"
+                  type="text"
+                  value={jobTitleInputStr}
+                  onChange={(e) => setJobTitleInputStr(e.target.value)}
+                  placeholder="e.g. Lead Platform Engineer"
+                  className="h-10 text-xs sm:text-sm bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Sector Alignment</Label>
-                <Select value={selectedProfession} onValueChange={setSelectedProfession}>
-                  <SelectTrigger className="h-12 rounded-xl border-2 bg-background/50 font-bold">
-                    <SelectValue placeholder="Select Category" />
+              <div className="space-y-1 block leading-none">
+                <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+                  Specialty Vertical Sector Alignment
+                </Label>
+                <Select value={selectedProfessionId} onValueChange={setSelectedProfessionId}>
+                  <SelectTrigger className="h-10 font-sans text-xs sm:text-sm rounded-lg border border-border/40 bg-background/50 shadow-none">
+                    <SelectValue placeholder="Identify specialized vertical industry discipline..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    {professionCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="font-bold">
-                        {cat.name}
+                  <SelectContent className="rounded-lg border border-border/60 bg-popover text-popover-foreground">
+                    {professionCategoriesArray.map((catNode) => (
+                      <SelectItem
+                        key={`profession-select-node-${catNode.id}`}
+                        value={catNode.id}
+                        className="text-xs font-semibold"
+                      >
+                        {catNode.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[11px] font-black uppercase tracking-widest ml-1 text-primary">
-                Job Blueprint Artifact
+
+            <div className="space-y-1 block leading-none pt-1">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-primary tracking-wide block leading-none ml-0.5">
+                Target Corporate Vacancy Blueprint Description
               </Label>
               <Textarea
-                className="min-h-[160px] rounded-2xl bg-muted/10 border-2 border-border/40 p-6 italic font-medium leading-relaxed"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste full job description for calibration..."
+                value={jobDescriptionInputStr}
+                onChange={(e) => setJobDescriptionInputStr(e.target.value)}
+                placeholder="Paste the complete text schema of the targeted role specifications here to calibrate telemetry loops..."
+                className="min-h-[140px] font-sans text-xs sm:text-sm font-medium leading-relaxed bg-muted/10 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg p-3 resize-none shadow-none"
               />
             </div>
           </div>
 
-          {/* List Registry (CV) */}
-          <div className="space-y-4">
-            <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Candidate List Node</Label>
-            <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as any)}>
-              <TabsList className="grid w-full grid-cols-3 p-1 h-12 bg-muted/30 rounded-2xl border border-border/40">
-                {hasExistingCv && (
+          {/* SECTION C: CREDENTIALS PORTFOLIO SYNTHESIS PANEL CHANNELS */}
+          <div className="space-y-2 block w-full leading-none pt-1">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none ml-0.5">
+              Candidate Experience Portfolio Registry (CV)
+            </Label>
+
+            <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as any)} className="w-full block">
+              <TabsList className="grid w-full grid-cols-3 p-1 h-10 bg-muted/40 rounded-lg border border-border/10 select-none mb-4">
+                {hasExistingCvOnFile && (
                   <TabsTrigger
                     value="existing"
-                    className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-2"
+                    className="rounded-md font-mono text-[9px] font-extrabold uppercase tracking-wider h-8 border border-transparent data-[state=active]:bg-background data-[state=active]:border-border/10 data-[state=active]:text-foreground data-[state=active]:shadow-2xs transition-all cursor-pointer outline-none pt-0.5 gap-1.5"
                   >
-                    <FileCheck className="h-3.5 w-3.5" /> List
+                    <FileCheck className="h-3.5 w-3.5 stroke-[2]" /> <span>Reuse CV</span>
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="text" className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-2">
-                  <FileText className="h-3.5 w-3.5" /> Text Synth
+                <TabsTrigger
+                  value="text"
+                  className="rounded-md font-mono text-[9px] font-extrabold uppercase tracking-wider h-8 border border-transparent data-[state=active]:bg-background data-[state=active]:border-border/10 data-[state=active]:text-foreground data-[state=active]:shadow-2xs transition-all cursor-pointer outline-none pt-0.5 gap-1.5"
+                >
+                  <FileText className="h-3.5 w-3.5 stroke-[2]" /> <span>Text Paste</span>
                 </TabsTrigger>
-                <TabsTrigger value="file" className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-2">
-                  <Upload className="h-3.5 w-3.5" /> Artifact
+                <TabsTrigger
+                  value="file"
+                  className="rounded-md font-mono text-[9px] font-extrabold uppercase tracking-wider h-8 border border-transparent data-[state=active]:bg-background data-[state=active]:border-border/10 data-[state=active]:text-foreground data-[state=active]:shadow-2xs transition-all cursor-pointer outline-none pt-0.5 gap-1.5"
+                >
+                  <Upload className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Upload Disk</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="existing" className="mt-6 animate-in zoom-in-95">
+              <TabsContent
+                value="existing"
+                className="mt-2 block w-full animate-in fade-in duration-150 outline-none focus:outline-none"
+              >
                 <ExistingCVCard
-                  talent={talent}
+                  talent={talentProfileRecord}
                   onUseExisting={() => {
-                    if (talent?.cvUrl) setCvUrl(talent.cvUrl);
-                    if (talent?.cvText) setCvText(talent.cvText);
+                    if (talentProfileRecord?.cvUrl) setCvSecureUrlStr(talentProfileRecord.cvUrl);
+                    if (talentProfileRecord?.cvText) setCvTextInputStr(talentProfileRecord.cvText);
                   }}
-                  onUploadNew={() => {}}
+                  onUploadNew={() => {
+                    /* Safe placeholder override logic paths */
+                  }}
                 />
               </TabsContent>
 
-              <TabsContent value="text" className="mt-6 animate-in slide-in-from-bottom-2">
+              <TabsContent
+                value="text"
+                className="mt-2 block w-full animate-in fade-in duration-150 outline-none focus:outline-none"
+              >
                 <Textarea
-                  placeholder="Paste CV source code/text here..."
-                  value={cvText}
-                  onChange={(e) => setCvText(e.target.value)}
-                  className="min-h-[240px] rounded-2xl bg-muted/10 border-2 p-6 italic"
+                  placeholder="Paste complete layout history text parameters directly onto this input panel sandbox..."
+                  value={cvTextInputStr}
+                  onChange={(e) => setCvTextInputStr(e.target.value)}
+                  className="min-h-[180px] font-sans text-xs sm:text-sm font-medium leading-relaxed bg-muted/10 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg p-3 resize-none shadow-none"
                 />
               </TabsContent>
 
-              <TabsContent value="file" className="mt-6">
-                <div className="border-2 border-dashed border-border/40 rounded-[32px] p-12 text-center hover:bg-primary/[0.02] transition-all group cursor-pointer relative overflow-hidden">
+              <TabsContent value="file" className="mt-2 block w-full outline-none focus:outline-none">
+                <div className="border border-dashed border-border/80 rounded-lg p-8 text-center bg-muted/5 hover:bg-primary/[0.01] transition-all group cursor-pointer relative overflow-hidden block w-full h-32 flex flex-col justify-center">
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    onChange={(e) => e.target.files?.[0] && handleSecureCVStorageUploadSequence(e.target.files[0])}
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10 block"
                   />
-                  {isUploading ? (
-                    <div className="space-y-4">
-                      <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary animate-pulse">
-                        Syncing Node...
+                  {isCVStorageUploading ? (
+                    <div className="space-y-2 block w-full select-none pointer-events-none">
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-primary stroke-[2.5]" />
+                      <p className="font-mono text-[9px] font-black uppercase tracking-widest text-primary animate-pulse leading-none pt-1">
+                        Hashing Document Node...
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-inner">
-                        <Upload className="h-7 w-7 text-muted-foreground/40" />
+                    <div className="space-y-2 block w-full select-none pointer-events-none leading-none">
+                      <div className="h-9 w-9 bg-background border border-border/40 rounded-lg flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-3xs shrink-0 text-muted-foreground/40">
+                        <Upload className="h-4.5 w-4.5 stroke-[2]" />
                       </div>
-                      <div>
-                        <p className="text-sm font-black uppercase tracking-tighter italic">
-                          {cvFile ? cvFile.name : "Upload File"}
+                      <div className="space-y-0.5 block">
+                        <p className="text-xs font-bold uppercase tracking-tight text-foreground truncate block max-w-xs mx-auto">
+                          {cvFileState ? cvFileState.name : "Select Resume Specification File"}
                         </p>
-                        <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em] mt-1">
-                          PDF or DOC • 10MB Limit
+                        <p className="font-mono text-[9px] font-bold text-muted-foreground/30 uppercase tracking-wide block leading-none">
+                          Isolated PDF, DOC or DOCX Allocation • Cap Limit Constraint: 10.0 MB
                         </p>
                       </div>
                     </div>
@@ -373,40 +505,40 @@ export default function AppSalaryAnalysisSetup() {
             </Tabs>
           </div>
 
+          {/* LOWER GRID BUTTON CONTROLLERS DISPATCH BAR */}
           <Button
-            className="w-full h-16 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
+            type="button"
+            className="w-full h-11 rounded-lg font-bold uppercase text-xs tracking-wider gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block relative overflow-hidden"
+            onClick={handleCommitSalaryAnalysisSequence}
+            disabled={isSubmissionPending}
           >
-            {isSubmitting ? (
-              <span className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin" /> Analyzing Logic...
-              </span>
+            {isSubmissionPending ? (
+              <div className="flex items-center justify-center gap-1.5 leading-none mx-auto">
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-primary-foreground stroke-[2.5]" />
+                <span className="pt-0.5">Authorizing Model Computation passes...</span>
+              </div>
             ) : (
-              <span className="flex items-center gap-3">
-                <Zap className="h-5 w-5 fill-current" /> Confirm
-              </span>
+              <div className="flex items-center justify-center gap-1.5 leading-none mx-auto">
+                <Zap className="h-4 w-4 fill-current stroke-[1.5] shrink-0 text-primary-foreground" />
+                <span>Confirm Transaction Parameters & Process</span>
+              </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </Button>
         </CardContent>
       </Card>
 
       <CreditGateModal
-        isOpen={showCreditGate}
-        onClose={() => setShowCreditGate(false)}
-        onConfirm={() => setShowCreditGate(false)}
-        onBuyCredits={() => {
-          setShowCreditGate(false);
-          setShowCreditSheet(true);
-        }}
-        serviceName="Salary Synthesis"
+        isOpen={isCreditGateOpen}
+        onClose={handleCloseCreditGateModal}
+        onConfirm={handleCloseCreditGateModal}
+        onBuyCredits={handleOpenPurchaseSheetFromModal}
+        serviceName="Salary Synthesis Market Diagnostic"
         cost={SALARY_ANALYSIS_COST}
         currentBalance={balance}
       />
       <CreditPurchaseSheet
-        isOpen={showCreditSheet}
-        onClose={() => setShowCreditSheet(false)}
+        isOpen={isCreditPurchaseSheetOpen}
+        onClose={handleClosePurchaseSheet}
         currentBalance={balance}
       />
     </div>
