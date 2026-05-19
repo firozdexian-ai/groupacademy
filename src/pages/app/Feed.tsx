@@ -6,6 +6,8 @@ import { TrackProgressRing } from "@/components/learning/TrackProgressRing";
 import { GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { IS_GRO10X } from "@/lib/host";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
