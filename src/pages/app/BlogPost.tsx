@@ -2,7 +2,7 @@ import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, ArrowLeft, User, Calendar, Tag, Share2, Eye, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { Clock, ArrowLeft, User, Calendar, Tag, Share2, Eye, ExternalLink, Sparkles, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
