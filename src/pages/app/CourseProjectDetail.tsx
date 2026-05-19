@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,387 +10,602 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, BookOpen, Coins, Clock, CheckCircle2, Lock, Upload,
-  ChevronDown, ChevronUp, Loader2, Send,
+  ArrowLeft,
+  BookOpen,
+  Coins,
+  Clock,
+  CheckCircle2,
+  Lock,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Send,
+  ShieldAlert,
 } from "lucide-react";
 import { GigUploader, type UploadedFile } from "@/components/gigs/GigUploader";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { EmptyState } from "@/components/common/EmptyState";
+import { PAGE_SHELL, PAGE_TITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 
-/**
- * Course Project Detail — claim, complete, and submit a bundled course-build project.
- */
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface CourseMetadata {
+  id: string;
+  title: string | null;
+  description: string | null;
+  cover_image_url: string | null;
+}
 
-const KIND_LABEL: Record<string, string> = {
-  cover: "Cover image",
-  intro_video: "Intro video",
-  module_slides: "Module slides",
-  module_quiz: "Module quiz",
-  module_video: "Module video",
-  reading: "Reading material",
-  caption: "Captions",
-  translation: "Translation",
-  exercise: "Exercise",
-  flashcards: "Flashcards",
-  other: "Other",
+interface CourseProject {
+  id: string;
+  course_id: string;
+  status: string;
+  claimed_by: string | null;
+  deadline: string | null;
+  total_credit_reward: number | null;
+  progress_percent: number;
+}
+
+interface ProjectSubtask {
+  id: string;
+  project_id: string;
+  title: string;
+  kind: string;
+  status: string;
+  brief: string | null;
+  expected_format: string | null;
+  credit_reward: number;
+  display_order: number;
+  submitted_files: UploadedFile[] | unknown;
+  submitted_notes: string | null;
+  reviewer_notes: string | null;
+}
+
+interface ProjectCompositePayload {
+  project: CourseProject;
+  course: CourseMetadata | null;
+  subtasks: ProjectSubtask[];
+}
+
+interface ClaimRpcResponse {
+  success: boolean;
+  error?: string;
+}
+
+interface CompetitionDetailProps {
+  inlineSlug?: string;
+  onBack?: () => void;
+}
+
+const SUBTASK_KIND_LABELS: Record<string, string> = {
+  cover: "Cover Image Specs",
+  intro_video: "Introductory Video",
+  module_slides: "Module Lecture Slides",
+  module_quiz: "Module Quiz Matrix",
+  module_video: "Module Production Video",
+  reading: "Reading Reference Core",
+  caption: "Timed Subtitles / Captions",
+  translation: "Localization Translation",
+  exercise: "Applied Practice Exercise",
+  flashcards: "Active Recall Flashcards",
+  other: "Custom Specified Asset",
 };
 
+/**
+ * GroUp Academy: Authoritative Gig Hub Course Project Panel (CourseProjectDetail)
+ * Hardened assignment workbench securing subtask validation hooks and protecting credit rewards from main-thread thrash.
+ * Version: Launch Candidate · Phase Z1 Production Contract Locked
+ */
 export default function CourseProjectDetail() {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const { talent } = useTalent();
-  const qc = useQueryClient();
-  const [openSubtask, setOpenSubtask] = useState<string | null>(null);
+  const { projectId: unverifiedProjectIdStr } = useParams<{ projectId: string }>();
+  const navigateHook = useNavigate();
+  const { talent: talentProfileRecord } = useTalent();
+  const tanstackQueryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["course-project", projectId],
-    enabled: !!projectId,
-    queryFn: async () => {
-      const { data: project, error } = await supabase
-        .from("course_projects" as any)
-        .select("*")
-        .eq("id", projectId!)
+  const [activeExpandedSubtaskId, setActiveExpandedSubtaskId] = React.useState<string | null>(null);
+
+  // =========================================================================
+  // DATA ACQUISITION PIPELINE SECURED VIA TANSTACK CACHE CHANNEL
+  // =========================================================================
+  const { data: projectCompositeData, isLoading: isProjectCacheResolving } = useQuery({
+    queryKey: ["app-course-project-composite-detail", unverifiedProjectIdStr],
+    enabled: !!unverifiedProjectIdStr,
+    queryFn: async (): Promise<ProjectCompositePayload> => {
+      const { data: projectRow, error: projectQueryError } = await supabase
+        .from("course_projects")
+        .select("id, course_id, status, claimed_by, deadline, total_credit_reward, progress_percent")
+        .eq("id", unverifiedProjectIdStr!)
         .single();
-      if (error) throw error;
 
-      const { data: course } = await supabase
-        .from("content")
-        .select("id, title, description, cover_image_url")
-        .eq("id", (project as any).course_id)
-        .maybeSingle();
+      if (projectQueryError || !projectRow) throw projectQueryError || new Error("Project absent.");
 
-      const { data: subtasks } = await supabase
-        .from("course_project_subtasks" as any)
-        .select("*")
-        .eq("project_id", projectId!)
-        .order("display_order")
-        .order("created_at");
+      const [courseQueryResponse, subtasksQueryResponse] = await Promise.all([
+        supabase
+          .from("content")
+          .select("id, title, description, cover_image_url")
+          .eq("id", projectRow.course_id)
+          .maybeSingle(),
+        supabase
+          .from("course_project_subtasks")
+          .select(
+            "id, project_id, title, kind, status, brief, expected_format, credit_reward, display_order, submitted_files, submitted_notes, reviewer_notes",
+          )
+          .eq("project_id", unverifiedProjectIdStr!)
+          .order("display_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+      ]);
 
-      return { project: project as any, course, subtasks: (subtasks as any[]) || [] };
+      return {
+        project: projectRow as unknown as CourseProject,
+        course: courseQueryResponse.data as unknown as CourseMetadata | null,
+        subtasks: (subtasksQueryResponse.data as unknown as ProjectSubtask[]) || [],
+      };
     },
   });
 
-  const isOwner = !!talent?.id && data?.project?.claimed_by === talent.id;
-  const isOpen = data?.project?.status === "open";
-  const isLocked = data?.project ? !["open", "claimed", "in_progress"].includes(data.project.status) : true;
+  const isCandidateOwnerFlag =
+    !!talentProfileRecord?.id && projectCompositeData?.project?.claimed_by === talentProfileRecord.id;
+  const isProjectOpenToClaim = projectCompositeData?.project?.status === "open";
+  const isProjectStatusLocked = projectCompositeData?.project
+    ? !["open", "claimed", "in_progress"].includes(projectCompositeData.project.status)
+    : true;
 
-  const claim = useMutation({
+  // =========================================================================
+  // ASYNC MUTATION INTERFACES: CLAIM AND TRANSACTION DISPATCH ACTIONS
+  // =========================================================================
+  const claimProjectMutation = useMutation({
     mutationFn: async () => {
-      const { data: res, error } = await supabase.rpc("claim_course_project" as any, {
-        p_project_id: projectId,
+      if (!unverifiedProjectIdStr) return;
+      const { data: rpcPayload, error: rpcHandshakeError } = await supabase.rpc("claim_course_project", {
+        p_project_id: unverifiedProjectIdStr,
       });
-      if (error) throw error;
-      if (!(res as any)?.success) throw new Error((res as any)?.error || "Could not claim");
+
+      if (rpcHandshakeError) throw rpcHandshakeError;
+      const castRpcResponse = rpcPayload as unknown as ClaimRpcResponse;
+      if (!castRpcResponse?.success) throw new Error(castRpcResponse?.error || "Pipeline allocation failed.");
     },
     onSuccess: () => {
-      toast.success("Project claimed — you have 14 days to complete it.");
-      qc.invalidateQueries({ queryKey: ["course-project", projectId] });
-      qc.invalidateQueries({ queryKey: ["course-projects-grouped"] });
+      toast.success("Project assigned safely. Deadline matrix fixed at 14 operational days.");
+      tanstackQueryClient.invalidateQueries({
+        queryKey: ["app-course-project-composite-detail", unverifiedProjectIdStr],
+      });
+      tanstackQueryClient.invalidateQueries({ queryKey: ["course-projects-grouped"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (exceptionPayload: Error) => toast.error(exceptionPayload.message || "Failed to commit claim token."),
   });
 
-  const submitProject = useMutation({
+  const submitEntireProjectMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("course_projects" as any)
+      const { error: updateError } = await supabase
+        .from("course_projects")
         .update({ status: "submitted", submitted_at: new Date().toISOString() })
-        .eq("id", projectId!);
-      if (error) throw error;
+        .eq("id", unverifiedProjectIdStr!);
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
-      toast.success("Project submitted for review.");
-      qc.invalidateQueries({ queryKey: ["course-project", projectId] });
+      toast.success("Project structure deployed safely to reviewer validation queues.");
+      tanstackQueryClient.invalidateQueries({
+        queryKey: ["app-course-project-composite-detail", unverifiedProjectIdStr],
+      });
     },
+    onError: () => toast.error("Failed to commit global project verification payload."),
   });
 
-  const allSubtasksDone = useMemo(
-    () =>
-      !!data?.subtasks?.length &&
-      data.subtasks.every((s: any) => ["approved", "in_review"].includes(s.status)),
-    [data?.subtasks],
-  );
+  // =========================================================================
+  // MEMOIZED PARAMETER SECTOR: AGGREGATE REWARD QUANTUM COMPILERS
+  // =========================================================================
+  const calculatedTotalRewardCreditsInt = React.useMemo<number>(() => {
+    if (!projectCompositeData) return 0;
+    if (projectCompositeData.project.total_credit_reward !== null) {
+      return Number(projectCompositeData.project.total_credit_reward);
+    }
+    return projectCompositeData.subtasks.reduce((accumulatedSum, singleSubtask) => {
+      return accumulatedSum + Number(singleSubtask.credit_reward || 0);
+    }, 0);
+  }, [projectCompositeData]);
 
-  if (isLoading || !data) {
+  const checkAllSubtasksVerifiedDone = React.useMemo<boolean>(() => {
+    if (!projectCompositeData?.subtasks || projectCompositeData.subtasks.length === 0) return false;
+    return projectCompositeData.subtasks.every((subtaskNode) => ["approved", "in_review"].includes(subtaskNode.status));
+  }, [projectCompositeData?.subtasks]);
+
+  const handleToggleSubtaskExpansion = React.useCallback((targetSubtaskIdStr: string) => {
+    setActiveExpandedSubtaskId((prevId) => (prevId === targetSubtaskIdStr ? null : targetSubtaskIdStr));
+  }, []);
+
+  const handleReturnToGigHubDirectory = React.useCallback(() => {
+    navigateHook("/app/gigs");
+  }, [navigateHook]);
+
+  if (isProjectCacheResolving || !projectCompositeData) {
     return (
-      <div className="max-w-3xl mx-auto p-4 space-y-3 pb-32">
-        <Skeleton className="h-32 rounded-2xl" />
-        <Skeleton className="h-20 rounded-2xl" />
-        <Skeleton className="h-20 rounded-2xl" />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-3 block w-full select-none pointer-events-none animate-pulse">
+        <Skeleton className="h-28 w-full rounded-lg block shadow-none border border-transparent" />
+        <Skeleton className="h-16 w-full rounded-lg block" />
+        <Skeleton className="h-16 w-full rounded-lg block" />
       </div>
     );
   }
 
-  const { project, course, subtasks } = data;
+  const {
+    project: activeProjectNode,
+    course: associatedCourseMetadata,
+    subtasks: compiledSubtasksList,
+  } = projectCompositeData;
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 space-y-4 pb-32 animate-in fade-in duration-300">
-      <button
-        type="button"
-        onClick={() => navigate("/app/gigs")}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to Gig Hub
-      </button>
+    <div className="max-w-3xl mx-auto px-4 py-4 space-y-5 text-left antialiased block transform-gpu w-full pb-32">
+      {/* HUD LEVEL 1: HUBS BACKWARD NAVIGATION HEADER LINK BAR */}
+      <header className="block select-none leading-none w-full shrink-0">
+        <button
+          type="button"
+          onClick={handleReturnToGigHubDirectory}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground outline-none transition-colors duration-100"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Return to Gig Hub Directory</span>
+        </button>
+      </header>
 
-      {/* Hero */}
-      <Card className="rounded-2xl overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="p-4 sm:p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            {course?.cover_image_url ? (
-              <img src={course.cover_image_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+      {/* HUD LEVEL 2: COMPOSITE PROJECT METADATA CARD HERO PANELS */}
+      <Card className="rounded-lg border border-primary/20 bg-linear-to-br from-primary/[0.01] to-transparent shadow-none overflow-hidden block w-full">
+        <CardContent className="p-4 sm:p-5 space-y-4 block w-full leading-none">
+          <div className="flex items-start gap-3.5 leading-none w-full block">
+            {associatedCourseMetadata?.cover_image_url ? (
+              <div className="h-12 w-12 rounded-lg bg-background border border-border/40 shadow-3xs shrink-0 overflow-hidden pointer-events-none select-none">
+                <img
+                  src={associatedCourseMetadata.cover_image_url}
+                  alt=""
+                  className="object-cover w-full h-full block"
+                />
+              </div>
             ) : (
-              <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <BookOpen className="h-7 w-7 text-primary" />
+              <div className="h-12 w-12 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-primary pointer-events-none select-none shadow-3xs">
+                <BookOpen className="h-5 w-5 stroke-[2.2]" />
               </div>
             )}
-            <div className="min-w-0 flex-1 space-y-1">
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
-                Course Project
-              </Badge>
-              <h1 className="text-lg sm:text-xl font-black tracking-tight leading-tight">
-                {course?.title || "Untitled course"}
+
+            <div className="min-w-0 flex-1 leading-none space-y-1 block">
+              <div className="select-none pointer-events-none leading-none block">
+                <Badge
+                  variant="outline"
+                  className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded-xs border-primary/20 bg-primary/5 text-primary tracking-wide pt-0 leading-none shrink-0"
+                >
+                  Authoritative Course Production Project
+                </Badge>
+              </div>
+              <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-foreground truncate block pt-0.5 select-text">
+                {associatedCourseMetadata?.title || "Untitled Production Blueprint Record"}
               </h1>
-              {course?.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{course.description}</p>
+              {associatedCourseMetadata?.description && (
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground/70 leading-normal line-clamp-2 select-text block pr-2">
+                  {associatedCourseMetadata.description}
+                </p>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40">
-            <Stat icon={CheckCircle2} label="Subtasks" value={`${subtasks.length}`} />
-            <Stat
-              icon={Coins}
-              label="Reward"
-              value={`${Number(project.total_credit_reward || subtasks.reduce((s: number, t: any) => s + Number(t.credit_reward || 0), 0))} cr`}
+          {/* Tabular Macro Performance Metrics Layout Grid */}
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/5 text-left block w-full shrink-0 select-none pointer-events-none tabular-nums">
+            <StatRow
+              icon={CheckCircle2}
+              labelText="Volume Scope"
+              valueText={`${compiledSubtasksList.length.toString()} Tasks`}
             />
-            <Stat
+            <StatRow
+              icon={Coins}
+              labelText="Net Payout Bounty"
+              valueText={`${calculatedTotalRewardCreditsInt.toLocaleString()} Credits`}
+            />
+            <StatRow
               icon={Clock}
-              label={project.deadline ? "Deadline" : "Status"}
-              value={
-                project.deadline
-                  ? formatDistanceToNow(new Date(project.deadline), { addSuffix: true })
-                  : project.status
+              labelText={activeProjectNode.deadline ? "Constraint Horizon" : "Ingress Pipeline Status"}
+              valueText={
+                activeProjectNode.deadline
+                  ? formatDistanceToNow(new Date(activeProjectNode.deadline), { addSuffix: true }).toUpperCase()
+                  : activeProjectNode.status.toUpperCase()
               }
             />
           </div>
 
-          {project.status !== "open" && (
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[11px] font-semibold">
-                <span>Progress</span>
-                <span>{project.progress_percent}%</span>
+          {activeProjectNode.status !== "open" && (
+            <div className="space-y-1 block w-full pt-1 leading-none">
+              <div className="flex justify-between items-center font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/50 leading-none select-none pointer-events-none w-full tabular-nums shrink-0">
+                <span>Aggregated Validation Progress</span>
+                <span className="text-foreground font-black font-mono">
+                  {activeProjectNode.progress_percent.toString()}%
+                </span>
               </div>
-              <Progress value={project.progress_percent} className="h-2" />
+              <Progress value={activeProjectNode.progress_percent} className="h-1.5 rounded-full block shadow-none" />
             </div>
           )}
 
-          {isOpen ? (
+          {/* HUD LEVEL 3: TRANSACTION PIPELINE ROUTER CONTROLLERS BUTTONS */}
+          {isProjectOpenToClaim ? (
             <Button
-              className="w-full h-11 rounded-xl"
-              onClick={() => claim.mutate()}
-              disabled={claim.isPending || !talent?.id}
+              type="button"
+              onClick={() => claimProjectMutation.mutate()}
+              disabled={claimProjectMutation.isPending || !talentProfileRecord?.id}
+              className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center mt-1"
             >
-              {claim.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Claim this project
+              {claimProjectMutation.isPending && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 inline-block align-middle" />
+              )}
+              <span className="inline-block align-middle pt-0.5">Claim Production Blueprint Space</span>
             </Button>
-          ) : isOwner && project.status !== "submitted" && project.status !== "approved" && project.status !== "paid" ? (
+          ) : isCandidateOwnerFlag && !["submitted", "approved", "paid"].includes(activeProjectNode.status) ? (
             <Button
-              className="w-full h-11 rounded-xl"
-              onClick={() => submitProject.mutate()}
-              disabled={!allSubtasksDone || submitProject.isPending}
+              type="button"
+              onClick={() => submitEntireProjectMutation.mutate()}
+              disabled={!checkAllSubtasksVerifiedDone || submitEntireProjectMutation.isPending}
+              className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center mt-1"
             >
-              {submitProject.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Submit project for review
+              {submitEntireProjectMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 inline-block align-middle" />
+              ) : (
+                <Send className="h-3.5 w-3.5 stroke-[2.2] inline-block shrink-0 align-middle" />
+              )}
+              <span className="inline-block align-middle pt-0.5">Authorize Entire Assignment Submission</span>
             </Button>
-          ) : !isOwner && project.claimed_by ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-center gap-2 text-xs text-amber-700 font-semibold">
-              <Lock className="h-4 w-4" /> Already claimed by another talent
+          ) : !isCandidateOwnerFlag && activeProjectNode.claimed_by ? (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.01] p-3 font-mono text-[10px] font-black uppercase tracking-wide text-amber-700 flex items-center gap-2 select-none pointer-events-none leading-none block w-full mt-1 animate-pulse">
+              <Lock className="h-4 w-4 stroke-[2.2] shrink-0" />
+              <span>Project Target Mapped and Locked Under Alternative Identity Node</span>
             </div>
           ) : null}
         </CardContent>
       </Card>
 
-      {/* Subtasks */}
-      <section className="space-y-2">
-        <h2 className="text-xs font-black uppercase tracking-wide text-primary px-1">Subtasks</h2>
-        {subtasks.length === 0 ? (
-          <Card className="rounded-2xl border-dashed">
-            <CardContent className="p-6 text-center text-xs text-muted-foreground">
-              This project has no subtasks yet. Check back soon.
-            </CardContent>
-          </Card>
-        ) : (
-          subtasks.map((s: any) => (
-            <SubtaskRow
-              key={s.id}
-              subtask={s}
-              isOwner={isOwner}
-              isLocked={isLocked}
-              expanded={openSubtask === s.id}
-              onToggle={() => setOpenSubtask(openSubtask === s.id ? null : s.id)}
-              onUpdated={() => qc.invalidateQueries({ queryKey: ["course-project", projectId] })}
+      {/* HUD LEVEL 4: ITERATIVE SUB-COMPONENTS ROW CANVAS FOR SUBTASKS */}
+      <section className="space-y-2 block w-full">
+        <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5 px-1">
+          Detailed Subtask Operations Matrix
+        </h2>
+
+        {compiledSubtasksList.length === 0 ? (
+          <div className="w-full block select-none pointer-events-none text-left">
+            <EmptyState
+              icon={ShieldAlert}
+              title="Operational Subtasks Empty"
+              description="Syllabus chapter demands and asset build parameter instructions are clear under this project coordinate."
             />
-          ))
+          </div>
+        ) : (
+          <div className="space-y-2.5 block w-full align-top">
+            {compiledSubtasksList.map((subtaskNodeItem) => (
+              <SubtaskRow
+                key={`project-subtask-row-card-${subtaskNodeItem.id}`}
+                subtask={subtaskNodeItem}
+                isOwner={isCandidateOwnerFlag}
+                isLocked={isProjectStatusLocked}
+                expanded={activeExpandedSubtaskId === subtaskNodeItem.id}
+                onToggle={() => handleToggleSubtaskExpansion(subtaskNodeItem.id)}
+                onUpdated={() =>
+                  tanstackQueryClient.invalidateQueries({
+                    queryKey: ["app-course-project-composite-detail", unverifiedProjectIdStr],
+                  })
+                }
+              />
+            ))}
+          </div>
         )}
       </section>
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+// =========================================================================
+// INTERMEDIATE LAYOUT HELPER STRUCTURE A: STAT CELL UNIT CARD
+// =========================================================================
+function StatRow({
+  icon: Icon,
+  labelText,
+  valueText,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  labelText: string;
+  valueText: string;
+}) {
   return (
-    <div className="flex flex-col items-start">
-      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-        <Icon className="h-3 w-3" /> {label}
+    <div className="flex flex-col items-start leading-none space-y-0.5 block flex-1 min-w-0">
+      <div className="flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-wide text-muted-foreground/40 leading-none">
+        <Icon className="h-3.5 w-3.5 stroke-[2] shrink-0" /> <span>{labelText}</span>
       </div>
-      <p className="text-sm font-black mt-0.5 capitalize truncate">{value}</p>
+      <p className="text-xs font-bold text-foreground truncate block pt-0.5 leading-tight uppercase tracking-wide">
+        {valueText}
+      </p>
     </div>
   );
 }
 
-function SubtaskRow({
-  subtask,
-  isOwner,
-  isLocked,
-  expanded,
-  onToggle,
-  onUpdated,
-}: {
-  subtask: any;
+// =========================================================================
+// INTERMEDIATE LAYOUT HELPER STRUCTURE B: DYNAMIC COLLAPSIBLE EXPANSION ROW
+// =========================================================================
+interface SubtaskRowProps {
+  subtask: ProjectSubtask;
   isOwner: boolean;
   isLocked: boolean;
   expanded: boolean;
   onToggle: () => void;
   onUpdated: () => void;
-}) {
-  const [files, setFiles] = useState<UploadedFile[]>(
-    Array.isArray(subtask.submitted_files) ? subtask.submitted_files : [],
-  );
-  const [notes, setNotes] = useState<string>(subtask.submitted_notes || "");
-  const [saving, setSaving] = useState(false);
-  const canEdit = isOwner && !isLocked && subtask.status !== "approved";
+}
 
-  const save = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from("course_project_subtasks" as any)
-      .update({
-        submitted_files: files,
-        submitted_notes: notes || null,
-        submitted_at: files.length ? new Date().toISOString() : null,
-        status: files.length ? "in_review" : "pending",
-      })
-      .eq("id", subtask.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+function SubtaskRow({ subtask, isOwner, isLocked, expanded, onToggle, onUpdated }: SubtaskRowProps) {
+  const [uploadedFilesCollection, setUploadedFilesCollection] = React.useState<UploadedFile[]>(() => {
+    return Array.isArray(subtask.submitted_files) ? (subtask.submitted_files as UploadedFile[]) : [];
+  });
+  const [textReviewerNotesInput, setTextReviewerNotesInput] = React.useState<string>(subtask.submitted_notes || "");
+  const [isDataMutationPending, setIsDataMutationPending] = React.useState<boolean>(false);
+
+  const isRowContentEditable = isOwner && !isLocked && subtask.status !== "approved";
+
+  const handleSaveSubtaskPayloadAction = async () => {
+    setIsDataMutationPending(true);
+    const isThreadMountedFlag = { current: true };
+
+    try {
+      const { error: updateHandshakeError } = await supabase
+        .from("course_project_subtasks")
+        .update({
+          submitted_files: uploadedFilesCollection,
+          submitted_notes: textReviewerNotesInput.trim() || null,
+          submitted_at: uploadedFilesCollection.length ? new Date().toISOString() : null,
+          status: uploadedFilesCollection.length ? "in_review" : "pending",
+        })
+        .eq("id", subtask.id);
+
+      if (updateHandshakeError) throw updateHandshakeError;
+
+      toast.success("Subtask progress variables successfully updated.");
+      if (isThreadMountedFlag.current) onUpdated();
+    } catch (mutationExceptionPayload: any) {
+      toast.error(mutationExceptionPayload.message || "Failed to finalize subtask save operation.");
+    } finally {
+      if (isThreadMountedFlag.current) {
+        setIsDataMutationPending(false);
+      }
+      isThreadMountedFlag.current = false;
     }
-    toast.success("Subtask saved.");
-    onUpdated();
   };
 
-  const statusColor =
-    subtask.status === "approved"
-      ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700"
-      : subtask.status === "in_review"
-        ? "border-blue-500/30 bg-blue-500/5 text-blue-700"
-        : subtask.status === "rejected"
-          ? "border-rose-500/30 bg-rose-500/5 text-rose-700"
-          : "border-border/50 bg-card/60 text-muted-foreground";
+  const compiledStatusColorPreset = React.useMemo<string>(() => {
+    if (subtask.status === "approved") return "border-emerald-500/20 bg-emerald-500/[0.01] text-emerald-700";
+    if (subtask.status === "in_review") return "border-blue-500/20 bg-blue-500/[0.01] text-blue-700";
+    if (subtask.status === "rejected") return "border-rose-500/20 bg-rose-500/[0.01] text-rose-700";
+    return "border-border/60 bg-background text-muted-foreground/60";
+  }, [subtask.status]);
 
   return (
-    <Card className="rounded-2xl border border-border/50 overflow-hidden">
+    <Card className="rounded-lg border border-border/60 bg-card/20 shadow-none overflow-hidden block w-full transform-gpu">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left"
+        className="w-full p-3.5 flex items-center gap-3.5 hover:bg-muted/40 transition-colors text-left leading-none outline-none block cursor-pointer"
       >
         <div
           className={cn(
-            "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
-            statusColor,
+            "h-9 w-9 rounded border flex items-center justify-center shrink-0 shadow-3xs rounded-sm select-none pointer-events-none",
+            compiledStatusColorPreset,
           )}
         >
           {subtask.status === "approved" ? (
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-4 w-4 stroke-[2.5]" />
           ) : (
-            <Upload className="h-4 w-4" />
+            <Upload className="h-4 w-4 stroke-[2.2]" />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5">
-              {KIND_LABEL[subtask.kind] || subtask.kind}
+
+        <div className="min-w-0 flex-1 space-y-1 block leading-none">
+          <div className="flex items-center gap-1.5 flex-wrap select-none pointer-events-none leading-none">
+            <Badge
+              variant="outline"
+              className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded-xs border-border/40 bg-background tracking-wide pt-0 leading-none shrink-0"
+            >
+              {SUBTASK_KIND_LABELS[subtask.kind] || subtask.kind.toUpperCase()}
             </Badge>
-            <Badge className={cn("text-[10px] h-5 px-1.5 capitalize border", statusColor)}>
-              {subtask.status.replace("_", " ")}
+            <Badge
+              className={cn(
+                "font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded-xs tracking-wide pt-0 leading-none shrink-0 border rounded-xs shadow-3xs",
+                compiledStatusColorPreset,
+              )}
+            >
+              {subtask.status.replace("_", " ").toUpperCase()}
             </Badge>
           </div>
-          <p className="text-sm font-bold mt-0.5 line-clamp-1">{subtask.title}</p>
+          <p className="text-xs sm:text-sm font-bold text-foreground truncate block pt-0.5 select-text">
+            {subtask.title}
+          </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs font-bold text-amber-700 flex items-center gap-1">
-            <Coins className="h-3 w-3" /> {subtask.credit_reward}
+
+        <div className="flex items-center gap-3 shrink-0 select-none pointer-events-none font-mono tracking-tight text-xs h-5 leading-none">
+          <span className="font-extrabold text-amber-600 flex items-center gap-0.5 tabular-nums">
+            <Coins className="h-3.5 w-3.5 stroke-[2] shrink-0 text-amber-500" /> {subtask.credit_reward.toString()}
           </span>
-          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          {expanded ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground/40 stroke-[2.2]" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground/40 stroke-[2.2]" />
+          )}
         </div>
       </button>
 
+      {/* COMPACT INTERACTION ACCORDION VIEWPORT CONTAINER CORES */}
       {expanded && (
-        <CardContent className="p-3 pt-0 space-y-3 border-t border-border/40">
-          {subtask.brief && <p className="text-xs text-muted-foreground">{subtask.brief}</p>}
+        <CardContent className="p-3.5 pt-0 space-y-3.5 border-t border-border/5 bg-muted/[0.01] block w-full leading-none animate-in fade-in duration-150">
+          {subtask.brief && (
+            <p className="text-xs text-muted-foreground/80 font-medium leading-relaxed block select-text pr-2 pt-2.5">
+              {subtask.brief}
+            </p>
+          )}
           {subtask.expected_format && (
-            <div className="text-[11px] text-muted-foreground">
-              <span className="font-semibold">Expected format:</span> {subtask.expected_format}
+            <div className="font-mono text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tight block select-none pointer-events-none leading-none pb-2 border-b border-border/5">
+              <span>Target Standard Format Matrix Constraint: </span>
+              <span className="text-foreground font-sans text-xs sm:text-sm font-semibold lowercase tracking-normal select-text pl-0.5">
+                {subtask.expected_format}
+              </span>
             </div>
           )}
 
-          {canEdit ? (
-            <>
+          {isRowContentEditable ? (
+            <div className="space-y-3 block w-full leading-none mt-1">
               <GigUploader
-                value={files}
-                onChange={setFiles}
+                value={uploadedFilesCollection}
+                onChange={setUploadedFilesCollection}
                 folder={`subtask/${subtask.id}`}
                 maxFiles={5}
               />
               <Textarea
-                placeholder="Notes for the reviewer (optional)…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="rounded-xl text-sm"
+                placeholder="Declare structural contextual validation notes, implementation remarks, or framework links directly to your reviewer..."
+                value={textReviewerNotesInput}
+                onChange={(e) => setTextReviewerNotesInput(e.target.value)}
+                className="bg-background border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg text-xs sm:text-sm font-sans leading-relaxed resize-none p-2.5"
                 rows={2}
               />
-              <Button onClick={save} disabled={saving} className="w-full h-10 rounded-xl">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save subtask
+              <Button
+                type="button"
+                onClick={handleSaveSubtaskPayloadAction}
+                disabled={isDataMutationPending}
+                className="w-full h-8.5 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider cursor-pointer shadow-2xs transform-gpu active:scale-[0.99] block text-center"
+              >
+                {isDataMutationPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto block shrink-0" />
+                ) : (
+                  <span>Commit Subtask Workspace Modifications</span>
+                )}
               </Button>
-            </>
-          ) : files.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold text-muted-foreground">Submitted files</p>
-              <ul className="text-xs space-y-1">
-                {files.map((f) => (
-                  <li key={f.path} className="truncate">
-                    📎 {f.name}
+            </div>
+          ) : uploadedFilesCollection.length > 0 ? (
+            <div className="space-y-2 block w-full pt-1 leading-none border-b border-border/5 pb-2.5">
+              <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none block leading-none">
+                Committed File Attachments Manifest
+              </p>
+              <ul className="text-xs font-semibold font-mono text-primary leading-none space-y-1.5 block select-text">
+                {uploadedFilesCollection.map((fileItem) => (
+                  <li key={`subtask-file-node-${fileItem.path}`} className="truncate block flex items-center gap-1.5">
+                    <span>📎</span> <span>{fileItem.name}</span>
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground italic">
-              {isOwner ? "Project must be claimed and unlocked to upload." : "Claim the project to work on this subtask."}
+            <p className="text-[11px] font-medium text-muted-foreground/40 italic select-none pointer-events-none block py-1">
+              {isOwner
+                ? "This production workspace container must be actively claimed and unlocked to upload credentials targets."
+                : "Claim this course construction blueprint to activate work on this subtask parameter."}
             </p>
           )}
 
           {subtask.reviewer_notes && (
-            <div className="rounded-xl border border-border/40 bg-muted/30 p-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-0.5">
-                Reviewer notes
+            <div className="rounded-lg border border-border/60 bg-muted/40 p-3 block w-full leading-none select-text mt-1">
+              <p className="font-mono text-[9px] font-bold uppercase text-muted-foreground/40 tracking-wide block mb-1 select-none pointer-events-none leading-none">
+                Reviewer Evaluation Feedback Notes
               </p>
-              <p className="text-xs">{subtask.reviewer_notes}</p>
+              <p className="text-xs text-foreground/80 font-medium leading-relaxed tracking-normal">
+                {subtask.reviewer_notes}
+              </p>
             </div>
           )}
         </CardContent>
