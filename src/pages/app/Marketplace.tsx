@@ -1,118 +1,129 @@
-import { useState } from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MARKETPLACE_SCHOOLS, MARKETPLACE_SCHOOL_MAP } from "@/lib/constants/marketplaceCategories";
-import { Search, Briefcase, Clock, Coins, ChevronRight, Sparkles, Zap, ShieldCheck, Target } from "lucide-react";
+import { Search, Briefcase, Clock, Coins, ChevronRight, Zap, ShieldCheck, Target } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
+
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface GigRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  skill_category: string;
+  pricing_type: "fixed" | "competitive" | string;
+  budget_amount: number;
+  deadline: string | null;
+  total_bids: number | null;
+  is_featured: boolean | null;
+  created_at: string;
+}
 
 /**
- * Platform Logic: Professional Project List (Marketplace)
- * High-fidelity discovery engine for high-value gig artifacts.
- * 2026 Standard: Executive Logic geometry with kinetic filter nodes.
+ * GroUp Academy: Professional Project Marketplace (Marketplace)
+ * Hardened responsive discovery engine for high-value gig artifacts.
+ * Version: Launch Candidate · Phase Z1 Production Contract Sealed
  */
-
 export default function Marketplace() {
-  const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const navigateHook = useNavigate();
 
-  const { data: gigs, isLoading } = useQuery({
-    queryKey: ["marketplace-gigs", selectedCategory],
-    queryFn: async () => {
-      let query = supabase
+  const [textSearchQueryStr, setTextSearchQueryStr] = React.useState<string>("");
+  const [activeCategoryFilter, setActiveCategoryFilter] = React.useState<string | null>(null);
+
+  // =========================================================================
+  // DATA ACQUISITION PIPELINE SECURED VIA TANSTACK CACHE CHANNEL
+  // =========================================================================
+  const { data: gigsRegistryPayload = [], isLoading: isRegistryLoading } = useQuery<GigRecord[]>({
+    queryKey: ["app-marketplace-gigs-registry", activeCategoryFilter],
+    queryFn: async (): Promise<GigRecord[]> => {
+      let queryBuilder = supabase
         .from("marketplace_gigs")
-        .select("*")
+        .select(
+          "id, title, description, skill_category, pricing_type, budget_amount, deadline, total_bids, is_featured, created_at",
+        )
         .in("status", ["approved", "active"])
         .order("is_featured", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (selectedCategory) {
-        query = query.eq("skill_category", selectedCategory);
+      if (activeCategoryFilter) {
+        queryBuilder = queryBuilder.eq("skill_category", activeCategoryFilter);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await queryBuilder;
       if (error) throw error;
-      return data;
+      return (data as unknown as GigRecord[]) ?? [];
     },
   });
 
-  const filtered = gigs?.filter(
-    (g: any) =>
-      !search ||
-      g.title.toLowerCase().includes(search.toLowerCase()) ||
-      g.description?.toLowerCase().includes(search.toLowerCase()),
-  );
+  // =========================================================================
+  // MEMOIZED PARAMETER SECTOR: SECURE SEARCH FILTERING STREAM
+  // =========================================================================
+  const filteredGigsRegistry = React.useMemo(() => {
+    const normalizedQuery = textSearchQueryStr.toLowerCase();
+    return gigsRegistryPayload.filter(
+      (gig) =>
+        !normalizedQuery ||
+        gig.title.toLowerCase().includes(normalizedQuery) ||
+        gig.description?.toLowerCase().includes(normalizedQuery),
+    );
+  }, [gigsRegistryPayload, textSearchQueryStr]);
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Executive Header: Project List */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Briefcase className="h-6 w-6 text-primary" />
+    <div className={cn(PAGE_SHELL_WIDE, "max-w-5xl mx-auto space-y-10")}>
+      {/* HUD LEVEL 1: EXECUTIVE HUB HEADER */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-6">
+        <div className="space-y-1 block">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Briefcase className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">Project Hub</h1>
+            <h1 className={PAGE_TITLE}>Project Hub</h1>
           </div>
-          <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] ml-16 italic">
-            Professional Skill Monetization v2.6
-          </p>
+          <p className={PAGE_SUBTITLE}>Professional Skill Monetization v2.6</p>
         </div>
-
-        <Badge
-          variant="outline"
-          className="rounded-lg border-primary/20 text-primary font-black uppercase tracking-widest text-[9px] px-3 py-1"
-        >
-          {gigs?.length || 0} ACTIVE NODES
+        <Badge variant="outline" className="font-mono text-[9px] font-black uppercase tracking-widest px-3 h-6">
+          {filteredGigsRegistry.length.toString()} ACTIVE NODES
         </Badge>
       </header>
 
-      {/* List Query Console */}
-      <div className="space-y-6">
+      {/* HUD LEVEL 2: QUERY CONSOLE & FILTER PROTOCOL */}
+      <div className="space-y-4">
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Query artifacts by title or logic..."
-            className="pl-12 h-14 bg-card/50 backdrop-blur-sm border-2 border-border/40 rounded-2xl font-bold tracking-tight focus-visible:ring-primary/10 shadow-inner"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            className="pl-11 h-12 rounded-xl bg-card border-border/40 shadow-none focus-visible:ring-1"
+            value={textSearchQueryStr}
+            onChange={(e) => setTextSearchQueryStr(e.target.value)}
           />
         </div>
 
-        {/* Kinetic Filter Protocol */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-6 px-6">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           <Button
-            variant="ghost"
+            variant={!activeCategoryFilter ? "default" : "ghost"}
             size="sm"
-            onClick={() => setSelectedCategory(null)}
-            className={cn(
-              "shrink-0 rounded-xl px-6 h-10 font-black uppercase text-[10px] tracking-widest transition-all",
-              !selectedCategory
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                : "bg-muted/50 text-muted-foreground/60 hover:bg-muted",
-            )}
+            onClick={() => setActiveCategoryFilter(null)}
+            className="rounded-lg h-9 text-[10px] uppercase font-black tracking-widest"
           >
             Global List
           </Button>
           {MARKETPLACE_SCHOOLS.map((school) => (
             <Button
               key={school.value}
-              variant="ghost"
+              variant={activeCategoryFilter === school.value ? "default" : "ghost"}
               size="sm"
-              onClick={() => setSelectedCategory(school.value)}
-              className={cn(
-                "shrink-0 rounded-xl px-6 h-10 font-black uppercase text-[10px] tracking-widest transition-all",
-                selectedCategory === school.value
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "bg-muted/50 text-muted-foreground/60 hover:bg-muted",
-              )}
+              onClick={() => setActiveCategoryFilter(school.value)}
+              className="rounded-lg h-9 text-[10px] uppercase font-black tracking-widest"
             >
               {school.label}
             </Button>
@@ -120,115 +131,68 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Main List Viewport */}
-      {isLoading ? (
-        <div className="space-y-6">
+      {/* HUD LEVEL 3: LIST VIEWPORT */}
+      {isRegistryLoading ? (
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-40 rounded-[32px] bg-muted/40" />
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
           ))}
         </div>
-      ) : !filtered?.length ? (
-        <Card className="rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 py-24 text-center animate-in zoom-in-95 duration-700">
-          <div className="h-20 w-20 rounded-[32px] bg-muted/10 flex items-center justify-center mx-auto mb-8 border border-border/40 rotate-3">
-            <Target className="h-10 w-10 text-muted-foreground/20" />
-          </div>
-          <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">List Entry Empty</h3>
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic mb-10 max-w-xs mx-auto leading-relaxed">
-            No professional gig artifacts match this query sequence. Adjust parameters or await next sync.
-          </p>
-          <Button
-            variant="outline"
-            className="rounded-xl px-10 h-12 font-black uppercase tracking-widest text-[10px] border-2"
-            onClick={() => {
-              setSearch("");
-              setSelectedCategory(null);
-            }}
-          >
-            Clear Logic Protocol
-          </Button>
-        </Card>
+      ) : filteredGigsRegistry.length === 0 ? (
+        <div className="text-center py-20 border-2 border-dashed border-border/40 rounded-2xl">
+          <Target className="h-10 w-10 text-muted-foreground/20 mx-auto mb-4" />
+          <h3 className="text-sm font-bold uppercase tracking-wide">Registry Vacuum</h3>
+          <p className={META_TEXT}>No gig artifacts match this query sequence.</p>
+        </div>
       ) : (
-        <div className="grid gap-6">
-          {filtered.map((gig: any) => (
+        <div className="grid gap-4">
+          {filteredGigsRegistry.map((gig) => (
             <Card
               key={gig.id}
-              className="group rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-500 hover:border-primary/40 hover:shadow-2xl cursor-pointer overflow-hidden"
-              onClick={() => navigate(`/app/marketplace/${gig.id}`)}
+              className={cn(CARD, "transition-all hover:border-primary/40 cursor-pointer overflow-hidden p-6")}
+              onClick={() => navigateHook(`/app/marketplace/${gig.id}`)}
             >
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between gap-8">
-                  <div className="flex-1 min-w-0 space-y-5">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {gig.is_featured && (
-                        <Badge className="bg-amber-500/10 text-amber-600 border-none text-[8px] font-black uppercase tracking-widest px-2 py-1">
-                          <Zap className="h-3 w-3 mr-1.5 fill-current" /> Elite Artifact
-                        </Badge>
-                      )}
-                      <Badge
-                        variant="secondary"
-                        className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase tracking-widest px-2 py-1"
-                      >
-                        {MARKETPLACE_SCHOOL_MAP[gig.skill_category]?.label || gig.skill_category}
+              <CardContent className="p-0 flex items-start justify-between gap-6">
+                <div className="flex-1 min-w-0 space-y-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {gig.is_featured && (
+                      <Badge className="bg-amber-500/10 text-amber-600 border-none text-[8px] uppercase tracking-widest font-black">
+                        <Zap className="h-3 w-3 mr-1" /> Elite
                       </Badge>
-                      <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground/40 uppercase italic">
-                        <ShieldCheck className="h-3 w-3" />{" "}
-                        {gig.pricing_type === "fixed" ? "Fixed Unit" : "Competitive Bid"}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h3 className="text-2xl font-black tracking-tighter uppercase italic leading-none group-hover:text-primary transition-colors">
-                        {gig.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed line-clamp-2 italic pt-1">
-                        {gig.description}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-8 pt-4 border-t border-border/10">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 bg-amber-500/10 rounded-lg">
-                          <Coins className="h-4 w-4 text-amber-500" />
-                        </div>
-                        <span className="text-lg font-black tracking-tighter uppercase italic">
-                          {gig.budget_amount} Credits
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
-                        {gig.deadline && (
-                          <span className="flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5" />
-                            Exp: {format(new Date(gig.deadline), "MMM d")}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-2">
-                          <Zap className="h-3.5 w-3.5 text-primary" />
-                          {gig.total_bids} Handshakes
-                        </span>
-                      </div>
-                    </div>
+                    )}
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary/5 text-primary border-none text-[8px] uppercase tracking-widest font-black"
+                    >
+                      {MARKETPLACE_SCHOOL_MAP[gig.skill_category]?.label || gig.skill_category}
+                    </Badge>
                   </div>
 
-                  <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/20 flex items-center justify-center transition-all group-hover:rotate-6 group-hover:bg-primary/10">
-                    <ChevronRight className="h-6 w-6 text-muted-foreground/30 group-hover:text-primary" />
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight line-clamp-1">{gig.title}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1 italic">{gig.description}</p>
                   </div>
+
+                  <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                    <span className="flex items-center gap-1.5 text-emerald-600">
+                      <Coins className="h-3.5 w-3.5" /> {gig.budget_amount} Credits
+                    </span>
+                    {gig.deadline && (
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" /> {format(new Date(gig.deadline), "MMM d")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-
-      {/* Terminal Footer */}
-      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
-        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Market List: Verified Node v2.6</p>
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
-          ))}
-        </div>
-      </footer>
     </div>
   );
 }
