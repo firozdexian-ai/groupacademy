@@ -142,7 +142,7 @@ export default function GigAppeals() {
                   {/* Relational Nested Component Gateways */}
                   {appealItemNode.gig_verifications && (
                     <div className="block w-full leading-none select-text border-t border-border/5 pt-3 mt-1 shrink-0">
-                      <VerificationVerdictCard verification={appealItemNode.gig_verifications} />
+                      <VerificationVerdictCard verification={appealItemNode.gig_verifications as any} />
                     </div>
                   )}
 
