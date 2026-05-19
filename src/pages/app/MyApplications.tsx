@@ -172,7 +172,7 @@ export default function MyApplications() {
                 <Card
                   key={app.id}
                   className={cn(CARD, "cursor-pointer hover:border-primary/40 transition-colors p-4")}
-                  onClick={() => navigateHook(`/app/applications/${app.id}`)}
+                  onClick={() => navigate(`/app/applications/${app.id}`)}
                 >
                   <CardContent className="p-0 flex items-center gap-4">
                     <div className="h-12 w-12 rounded-xl bg-muted/40 flex items-center justify-center shrink-0 border border-border/20">
