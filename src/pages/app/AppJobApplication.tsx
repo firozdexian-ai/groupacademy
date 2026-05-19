@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -22,17 +22,15 @@ import {
   UploadCloud,
   Zap,
   ShieldCheck,
+  Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { cn } from "@/lib/utils";
 
-/**
- * Platform Logic: Job Application Connection
- * Orchestrates secure CV transmission and real-time AI interview synthesis.
- * 2026 Standard: Executive Logic geometry with reinforced transaction guards.
- */
-
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
 interface Job {
   id: string;
   title: string;
@@ -42,245 +40,350 @@ interface Job {
   ai_assessment_enabled: boolean | null;
 }
 
-const SUBMISSION_STAGES = [
-  { progress: 20, message: "Syncing..." },
-  { progress: 40, message: "Hardening CV Node..." },
-  { progress: 60, message: "Generating interview..." },
-  { progress: 85, message: "Finalizing..." },
+interface SubmissionStage {
+  progress: number;
+  message: string;
+}
+
+interface JobApplicationPayload {
+  id: string;
+  job_assessments: { id: string }[];
+}
+
+const SUBMISSION_STAGES: SubmissionStage[] = [
+  { progress: 20, message: "Syncing Repository Nodes..." },
+  { progress: 40, message: "Hardening CV Telemetry Node..." },
+  { progress: 60, message: "Generating AI Interview Matrix..." },
+  { progress: 85, message: "Finalizing Registry Handshake..." },
 ];
 
+/**
+ * GroUp Academy: Technical Job Application Transaction Ingress (AppJobApplication)
+ * Hardened submission cockpit orchestrating secure cloud CV storage mappings and insulating credit deduction loops.
+ * Version: Launch Candidate · Phase Z1 Cryptographic Gate Locked
+ */
 export default function AppJobApplication() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { talent, refreshTalent } = useTalent();
+  const { id: unverifiedJobIdentifierStr } = useParams<{ id: string }>();
+  const navigateHook = useNavigate();
+  const { talent: talentProfileRecord, refreshTalent } = useTalent();
   const { balance, canAfford, deductCredits, getServiceCost, refreshBalance } = useCredits();
 
-  const [job, setJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [coverLetter, setCoverLetter] = useState("");
-  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
-  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
-  const [submissionProgress, setSubmissionProgress] = useState(0);
-  const [submissionMessage, setSubmissionMessage] = useState("");
-  const [generatedAssessmentId, setGeneratedAssessmentId] = useState<string | null>(null);
-  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [jobRecordState, setJobRecordState] = React.useState<Job | null>(null);
+  const [isDataLayerLoading, setIsDataLayerLoading] = React.useState<boolean>(true);
+  const [isSubmissionInFlight, setIsSubmissionInFlight] = React.useState<boolean>(false);
+  const [isApplicationSubmitted, setIsApplicationSubmitted] = React.useState<boolean>(false);
+  const [coverLetterInputStr, setCoverLetterInputStr] = React.useState<string>("");
+  const [isPurchaseSheetOpen, setIsPurchaseSheetOpen] = React.useState<boolean>(false);
+  const [isAIComposerProcessing, setIsAIComposerProcessing] = React.useState<boolean>(false);
+  const [submissionProgressValue, setSubmissionProgressValue] = React.useState<number>(0);
+  const [submissionProgressMessage, setSubmissionProgressMessage] = React.useState<string>("");
+  const [generatedAssessmentId, setGeneratedAssessmentId] = React.useState<string | null>(null);
+  const [isCVStorageUploading, setIsCVStorageUploading] = React.useState<boolean>(false);
 
-  const isSubmittingRef = useRef(false);
-  const applicationCost = getServiceCost("JOB_APPLICATION");
-  const hasEnoughCredits = canAfford("JOB_APPLICATION");
+  const submissionExecutionGuardRef = React.useRef<boolean>(false);
+  const computedApplicationCost = getServiceCost("JOB_APPLICATION") || 0;
+  const isCandidateBalanceSufficient = canAfford("JOB_APPLICATION");
 
-  useEffect(() => {
-    if (id) fetchJobAndCheckStatus();
-  }, [id, talent?.id]);
+  // =========================================================================
+  // LIFECYCLE SECTOR 1: CONCURRENT ACCOUNT REGISTRY HANDSHAKE AND SANITIZATION
+  // =========================================================================
+  React.useEffect(() => {
+    if (!unverifiedJobIdentifierStr) {
+      setIsDataLayerLoading(false);
+      return;
+    }
 
-  const fetchJobAndCheckStatus = async () => {
-    try {
-      const { data: jobData, error: jobError } = await supabase
-        .from("jobs")
-        .select("id, title, company_name, company_logo_url, application_email, ai_assessment_enabled")
-        .eq("id", id)
-        .single();
+    let isThreadActive = true;
+    setIsDataLayerLoading(true);
 
-      if (jobError) throw jobError;
-      setJob(jobData);
+    const executeJobDossierAndVettingLookup = async () => {
+      try {
+        const { data: jobQueryPayload, error: jobHandshakeError } = await supabase
+          .from("jobs")
+          .select("id, title, company_name, company_logo_url, application_email, ai_assessment_enabled")
+          .eq("id", unverifiedJobIdentifierStr)
+          .single();
 
-      if (talent?.id) {
-        const { data: existingApp } = await supabase
-          .from("job_applications")
-          .select(`id, job_assessments(id)`)
-          .eq("job_id", id)
-          .eq("talent_id", talent.id)
-          .maybeSingle();
+        if (jobHandshakeError || !jobQueryPayload) throw jobQueryPayload;
 
-        if (existingApp) {
-          setSubmitted(true);
-          const assessment = (existingApp as any).job_assessments?.[0];
-          if (assessment?.id) setGeneratedAssessmentId(assessment.id);
+        if (!isThreadActive) return;
+        setJobRecordState(jobQueryPayload as unknown as Job);
+
+        if (talentProfileRecord?.id) {
+          const { data: existingApplicationRecord } = await supabase
+            .from("job_applications")
+            .select(`id, job_assessments(id)`)
+            .eq("job_id", unverifiedJobIdentifierStr)
+            .eq("talent_id", talentProfileRecord.id)
+            .maybeSingle();
+
+          if (!isThreadActive) return;
+
+          if (existingApplicationRecord) {
+            setIsApplicationSubmitted(true);
+            const verifiedCastAppRecord = existingApplicationRecord as unknown as JobApplicationPayload;
+            const extractionAssessmentNode = verifiedCastAppRecord.job_assessments?.[0];
+            if (extractionAssessmentNode?.id) {
+              setGeneratedAssessmentId(extractionAssessmentNode.id);
+            }
+          }
         }
+      } catch (fatalHandshakeException) {
+        if (isThreadActive) {
+          toast.error("Failed to localize requested position parameters inside systemic index registries.");
+          setJobRecordState(null);
+        }
+      } finally {
+        if (isThreadActive) setIsDataLayerLoading(false);
       }
-    } catch (error) {
-      console.error("Diagnostic Failure:", error);
-      toast.error("Failed to load registry entry.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !talent) return;
+    executeJobDossierAndVettingLookup();
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File exceeds 5MB limit.");
-      return;
-    }
+    return () => {
+      isThreadActive = false;
+    };
+  }, [unverifiedJobIdentifierStr, talentProfileRecord?.id]);
 
-    setIsUploadingCV(true);
+  // =========================================================================
+  // ACTION HOOKS: CLOUD FILE STORAGE CV UPLOAD VECTOR PIPELINES
+  // =========================================================================
+  const handleSecureCVStorageUploadSequence = React.useCallback(
+    async (eventObj: React.ChangeEvent<HTMLInputElement>) => {
+      const targetedUploadFileNode = eventObj.target.files?.[0];
+      if (!targetedUploadFileNode || !talentProfileRecord) return;
+
+      if (targetedUploadFileNode.size > 5 * 1024 * 1024) {
+        toast.error("Cloud document size restrictions violated. Cap threshold limits fixed at 5.0 MB.");
+        return;
+      }
+
+      setIsCVStorageUploading(true);
+      try {
+        const extractedFileExtensionStr = targetedUploadFileNode.name.split(".").pop();
+        const generatedTargetStoragePath = `${talentProfileRecord.id}/${Date.now().toString()}-cv.${extractedFileExtensionStr}`;
+
+        const { error: storageUploadError } = await supabase.storage
+          .from("talent-cvs")
+          .upload(generatedTargetStoragePath, targetedUploadFileNode);
+
+        if (storageUploadError) throw storageUploadError;
+
+        const { data: signedUrlResponsePayload, error: signingHandshakeError } = await supabase.storage
+          .from("talent-cvs")
+          .createSignedUrl(generatedTargetStoragePath, 31536000);
+
+        if (signingHandshakeError || !signedUrlResponsePayload) throw signingHandshakeError;
+
+        const { error: relationalTalentRowUpdateError } = await supabase
+          .from("talents")
+          .update({ cv_url: signedUrlResponsePayload.signedUrl })
+          .eq("id", talentProfileRecord.id);
+
+        if (relationalTalentRowUpdateError) throw relationalTalentRowUpdateError;
+
+        await refreshTalent();
+        toast.success("Continuous validation CV data artifact successfully locked & hashed.");
+      } catch (storageExceptionPayload) {
+        toast.error("Cloud infrastructure rejected credential file payload.");
+      } finally {
+        setIsCVStorageUploading(false);
+      }
+    },
+    [talentProfileRecord, refreshTalent],
+  );
+
+  // =========================================================================
+  // NARRATIVE AI COMPOSER PROMPT COMPILATION INTERFACE
+  // =========================================================================
+  const handleAICoverLetterSynthesisSequence = React.useCallback(async () => {
+    if (!talentProfileRecord || !jobRecordState) return;
+
+    setIsAIComposerProcessing(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${talent.id}/${Date.now()}-cv.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage.from("talent-cvs").upload(filePath, file);
-      if (uploadError) throw uploadError;
-
-      const { data: signedData, error: urlError } = await supabase.storage
-        .from("talent-cvs")
-        .createSignedUrl(filePath, 31536000);
-
-      if (urlError) throw urlError;
-
-      const { error: updateError } = await supabase
-        .from("talents")
-        .update({ cv_url: signedData.signedUrl })
-        .eq("id", talent.id);
-
-      if (updateError) throw updateError;
-
-      await refreshTalent();
-      toast.success("CV Node Secured.");
-    } catch (error) {
-      toast.error("CV upload failed.");
-    } finally {
-      setIsUploadingCV(false);
-    }
-  };
-
-  const handleGenerateCoverLetter = async () => {
-    if (!talent || !job) return;
-    setIsGeneratingCoverLetter(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("enhance-cover-letter", {
-        body: {
-          coverLetter:
-            coverLetter || `I am writing to express my interest in the ${job.title} position at ${job.company_name}.`,
-          jobTitle: job.title,
-          companyName: job.company_name,
-          candidateName: talent.fullName,
-          skills: talent.skills,
+      const { data: rpcResponsePayload, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
+        "enhance-cover-letter",
+        {
+          body: {
+            coverLetter:
+              coverLetterInputStr ||
+              `I am writing to express my structural interest in the ${jobRecordState.title} position at ${jobRecordState.company_name}.`,
+            jobTitle: jobRecordState.title,
+            companyName: jobRecordState.company_name,
+            candidateName: talentProfileRecord.fullName,
+            skills: talentProfileRecord.skills,
+          },
         },
-      });
-      if (error) throw error;
-      if (data?.enhancedCoverLetter) {
-        setCoverLetter(data.enhancedCoverLetter);
-        toast.success("Cover letter generated.");
+      );
+
+      if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
+
+      if (rpcResponsePayload?.enhancedCoverLetter) {
+        setCoverLetterInputStr(rpcResponsePayload.enhancedCoverLetter);
+        toast.success("Synthetic context narrative successfully parsed and written.");
       }
-    } catch (error: any) {
-      toast.error("AI service is busy. Please try again.");
+    } catch (fatalAIEngineException) {
+      toast.error("AI composition queues are currently restricted. Re-submit parameter query.");
     } finally {
-      setIsGeneratingCoverLetter(false);
+      setIsAIComposerProcessing(false);
     }
-  };
+  }, [talentProfileRecord, jobRecordState, coverLetterInputStr]);
 
-  const handleSubmit = async () => {
-    if (!talent || !job || isSubmittingRef.current) return;
+  // =========================================================================
+  // TRANSACTION SUBMISSION ENGINE PIPELINE EXECUTION
+  // =========================================================================
+  const handleCommitJobApplicationSequence = React.useCallback(async () => {
+    if (!talentProfileRecord || !jobRecordState || submissionExecutionGuardRef.current) return;
 
-    if (!hasEnoughCredits) {
-      setShowPurchaseSheet(true);
+    if (!isCandidateBalanceSufficient) {
+      setIsPurchaseSheetOpen(true);
       return;
     }
 
-    if (!talent.cvUrl) {
-      toast.error("No CV on file.");
-      document.getElementById("cv-upload-section")?.scrollIntoView({ behavior: "smooth" });
+    if (!talentProfileRecord.cvUrl) {
+      toast.error("Dossier rejected. A verified resume tracking artifact is a required dependency block.");
+      document.getElementById("cv-upload-anchor-node")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
 
-    isSubmittingRef.current = true;
-    setSubmitting(true);
-    setSubmissionProgress(20);
-    setSubmissionMessage(SUBMISSION_STAGES[0].message);
+    submissionExecutionGuardRef.current = true;
+    setIsSubmissionInFlight(true);
+    setSubmissionProgressValue(20);
+    setSubmissionProgressMessage(SUBMISSION_STAGES[0].message);
 
     try {
-      const { data: appData, error: appError } = await supabase
+      const { data: applicationInsertPayload, error: applicationInsertError } = await supabase
         .from("job_applications")
         .insert({
-          job_id: job.id,
-          talent_id: talent.id,
-          cover_letter: coverLetter,
-          cv_url: talent.cvUrl,
+          job_id: jobRecordState.id,
+          talent_id: talentProfileRecord.id,
+          cover_letter: coverLetterInputStr.trim(),
+          cv_url: talentProfileRecord.cvUrl,
           delivery_status: "pending",
         })
         .select("id")
         .single();
 
-      if (appError) throw appError;
+      if (applicationInsertError || !applicationInsertPayload) throw applicationInsertError;
 
-      await deductCredits("JOB_APPLICATION", job.id, `Application: ${job.title}`);
+      await deductCredits(
+        "JOB_APPLICATION",
+        jobRecordState.id,
+        `Application Protocol Allocation: ${jobRecordState.title}`,
+      );
 
-      setSubmissionProgress(40);
-      setSubmissionMessage("Broadcasting to Employer...");
+      setSubmissionProgressValue(40);
+      setSubmissionProgressMessage("Broadcasting Dossier Parameters to Employer...");
+
       await supabase.functions.invoke("send-job-application", {
-        body: { applicationId: appData.id },
+        body: { applicationId: applicationInsertPayload.id },
       });
 
-      if (job.ai_assessment_enabled) {
-        setSubmissionProgress(65);
-        setSubmissionMessage("Generating interview...");
+      if (jobRecordState.ai_assessment_enabled) {
+        setSubmissionProgressValue(65);
+        setSubmissionProgressMessage("Synthesizing Dynamic AI Evaluation Interview Matrix...");
 
-        const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke(
+        const { data: assessmentResponsePayload, error: assessmentGenerationError } = await supabase.functions.invoke(
           "generate-job-assessment",
-          { body: { jobId: job.id, talentId: talent.id, jobApplicationId: appData.id } },
+          {
+            body: {
+              jobId: jobRecordState.id,
+              talentId: talentProfileRecord.id,
+              jobApplicationId: applicationInsertPayload.id,
+            },
+          },
         );
 
-        if (!assessmentError && assessmentData?.assessmentId) {
-          setGeneratedAssessmentId(assessmentData.assessmentId);
+        if (!assessmentGenerationError && assessmentResponsePayload?.assessmentId) {
+          setGeneratedAssessmentId(assessmentResponsePayload.assessmentId);
         }
       }
 
-      setSubmissionProgress(100);
-      setSubmitted(true);
-      toast.success("Saved.");
+      setSubmissionProgressValue(100);
+      setIsApplicationSubmitted(true);
+      toast.success("Application successfully compiled and indexed.");
       refreshBalance();
-    } catch (error: any) {
-      toast.error("Connection interrupted. Please retry.");
-    } finally {
-      setSubmitting(false);
-      isSubmittingRef.current = false;
+    } catch (fatalSubmissionPipelineException) {
+      toast.error("Secure data pipeline transaction synchronization interrupted. Please re-verify parameters.");
     }
-  };
+    {
+      setIsSubmissionInFlight(false);
+      submissionExecutionGuardRef.current = false;
+    }
+  }, [
+    talentProfileRecord,
+    jobRecordState,
+    isCandidateBalanceSufficient,
+    coverLetterInputStr,
+    deductCredits,
+    refreshBalance,
+  ]);
 
-  if (loading)
+  const handleReturnHistoryTrigger = React.useCallback(() => {
+    navigateHook(-1);
+  }, [navigateHook]);
+
+  const handleNavigateToApplicationsIndex = React.useCallback(() => {
+    navigateHook("/app/applications");
+  }, [navigateHook]);
+
+  const handleNavigateToAIAssessmentMatrix = React.useCallback(() => {
+    if (generatedAssessmentId) {
+      navigateHook(`/app/job-assessment/${generatedAssessmentId}`);
+    }
+  }, [generatedAssessmentId, navigateHook]);
+
+  // =========================================================================
+  // CONDITION RENDERING LAYOUT SKELETON HANDSHAKE CHECKPOINTS
+  // =========================================================================
+  if (isDataLayerLoading) {
     return (
-      <div className="max-w-2xl mx-auto p-12 text-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4 opacity-20" />
-        <Skeleton className="h-80 w-full rounded-[32px] bg-muted/40" />
+      <div className="max-w-2xl mx-auto p-12 text-center select-none pointer-events-none block w-full">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-4 opacity-25 stroke-[2.5]" />
+        <Skeleton className="h-64 w-full rounded-xl bg-muted/20 block shadow-none" />
       </div>
     );
+  }
 
-  if (submitted) {
+  if (isApplicationSubmitted) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-20 animate-in fade-in zoom-in-95 duration-700">
-        <Card className="text-center py-16 bg-card/30 backdrop-blur-xl border-emerald-500/20 shadow-2xl rounded-[48px]">
-          <CardContent className="space-y-8">
-            <div className="w-24 h-24 bg-emerald-500/10 rounded-[32px] flex items-center justify-center mx-auto border border-emerald-500/20 rotate-3">
-              <CheckCircle className="h-12 w-12 text-emerald-500" />
+      <div className="max-w-2xl mx-auto px-4 py-16 text-left antialiased block transform-gpu w-full">
+        <Card className="rounded-xl border border-border/60 bg-card/30 backdrop-blur-md shadow-none overflow-hidden block w-full">
+          <CardContent className="p-8 text-center space-y-6 block w-full leading-none">
+            <div className="w-16 h-16 bg-emerald-500/5 rounded-xl border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-600 stroke-[2] select-none pointer-events-none shadow-2xs">
+              <CheckCircle className="h-7 w-7" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-black uppercase tracking-tighter">Connection Finalized</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-                Application for {job?.title} active in registry.
+
+            <div className="space-y-1 block select-none pointer-events-none leading-none">
+              <h2 className="text-base sm:text-lg font-bold uppercase tracking-wide text-foreground">
+                Submission Pipeline Finalized
+              </h2>
+              <p className="font-mono text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider leading-none block pt-0.5">
+                Application credentials for position block &quot;{jobRecordState?.title}&quot; are verified inside the
+                registry logs.
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 max-w-sm mx-auto pt-6">
+            <div className="flex flex-col gap-2.5 max-w-sm mx-auto pt-4 leading-none w-full block">
               {generatedAssessmentId && (
                 <Button
+                  type="button"
                   size="lg"
-                  className="rounded-[20px] h-14 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30 animate-pulse"
-                  onClick={() => navigate(`/app/job-assessment/${generatedAssessmentId}`)}
+                  onClick={handleNavigateToAIAssessmentMatrix}
+                  className="w-full h-11 px-4 rounded-lg font-bold uppercase text-xs tracking-wider gap-2 shadow-xs transition-transform transform-gpu active:scale-[0.985] cursor-pointer block"
                 >
-                  <Brain className="mr-3 h-5 w-5" /> Initialize AI Interview
+                  <Brain className="h-4 w-4 stroke-[2.2] shrink-0" />
+                  <span>Initialize Vetting AI Interview</span>
                 </Button>
               )}
               <Button
+                type="button"
                 variant="outline"
                 size="lg"
-                className="rounded-[20px] h-14 font-black uppercase tracking-widest text-[11px] border-2"
-                onClick={() => navigate("/app/applications")}
+                onClick={handleNavigateToApplicationsIndex}
+                className="w-full h-11 px-4 rounded-lg font-bold uppercase text-xs tracking-wider border border-border/60 bg-background/50 hover:bg-accent cursor-pointer shadow-2xs block"
               >
-                View Applications List
+                Inspect Applications Manifest Directory
               </Button>
             </div>
           </CardContent>
@@ -289,198 +392,264 @@ export default function AppJobApplication() {
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto px-6 py-10 min-h-svh space-y-10">
-      <div className="pb-40 space-y-10">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl h-11 w-11 hover:bg-primary/5"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-tighter">Submit Protocol</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-                List: Standard Application
-              </p>
-            </div>
+  if (!jobRecordState) {
+    return (
+      <div
+        role="alert"
+        className="min-h-[40vh] grid place-items-center text-center p-6 antialiased select-none transform-gpu"
+      >
+        <div className="max-w-xs block space-y-4 leading-none">
+          <div className="h-9 w-9 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-center text-muted-foreground/50 mx-auto pointer-events-none">
+            <Inbox className="h-4 w-4 stroke-[2.2]" />
           </div>
-          <Badge className="bg-primary/5 text-primary border-primary/20 rounded-lg px-3 py-1 font-black text-[9px] uppercase tracking-widest">
-            Connection Node
-          </Badge>
-        </header>
-
-        <Card className="rounded-[32px] border-2 border-primary/10 bg-card/30 backdrop-blur-xl overflow-hidden shadow-2xl">
-          <CardContent className="p-8 flex gap-6 items-center">
-            <div className="w-20 h-20 rounded-[24px] bg-primary/5 flex items-center justify-center border-2 border-border/40 shrink-0 overflow-hidden shadow-inner">
-              {job?.company_logo_url ? (
-                <img src={job.company_logo_url} className="object-cover w-full h-full" alt="logo" />
-              ) : (
-                <Building2 className="text-primary w-8 h-8" />
-              )}
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-black text-2xl uppercase tracking-tighter leading-none">{job?.title}</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
-                {job?.company_name}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CV List Section */}
-        <Card
-          id="cv-upload-section"
-          className={cn(
-            "rounded-[32px] transition-all duration-500 overflow-hidden",
-            !talent?.cvUrl ? "border-primary/40 bg-primary/[0.03] shadow-2xl shadow-primary/5" : "border-border/40",
-          )}
-        >
-          <CardHeader className="border-b bg-muted/20 px-8 py-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3">
-              <ShieldCheck className="w-4 h-4 text-primary" /> Professional List Node (CV)
-            </CardTitle>
-            {talent?.cvUrl && (
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] font-black uppercase">
-                Verified
-              </Badge>
-            )}
-          </CardHeader>
-          <CardContent className="p-8">
-            {talent?.cvUrl ? (
-              <div className="flex items-center justify-between p-5 border-2 border-dashed rounded-2xl bg-background/50 group hover:border-primary/40 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center text-primary font-black text-[10px] border shadow-inner">
-                    PDF
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-sm font-black uppercase tracking-tight italic">Active_Resume_Node.pdf</span>
-                    <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
-                      Signed & Secure
-                    </p>
-                  </div>
-                </div>
-                <Label
-                  htmlFor="cv-up"
-                  className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
-                >
-                  Replace
-                </Label>
-                <input id="cv-up" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleCVUpload} />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center p-12 border-2 border-dashed rounded-[24px] bg-muted/10 group hover:bg-primary/[0.02] transition-all">
-                {isUploadingCV ? (
-                  <Loader2 className="animate-spin text-primary mb-4 h-8 w-8" />
-                ) : (
-                  <UploadCloud className="text-muted-foreground/30 mb-5 w-12 h-12 transition-transform group-hover:scale-110" />
-                )}
-                <h3 className="text-sm font-black uppercase tracking-widest mb-2">Upload CV Artifact</h3>
-                <p className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] mb-6 italic">
-                  Secure Upload • 5MB Limit
-                </p>
-                <Label
-                  htmlFor="cv-new"
-                  className="cursor-pointer bg-primary text-primary-foreground h-12 px-10 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Zap className="mr-2 h-4 w-4" /> Select File
-                </Label>
-                <input id="cv-new" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleCVUpload} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Narrative Engine (Cover Letter) */}
-        <Card className="rounded-[32px] border-border/40 overflow-hidden shadow-lg">
-          <CardHeader className="bg-muted/20 px-8 py-5 border-b flex flex-row items-center justify-between">
-            <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3">
-              <Sparkles className="w-4 h-4 text-primary" /> Narrative Synthesis
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateCoverLetter}
-              disabled={isGeneratingCoverLetter || !talent?.cvUrl}
-              className="h-9 px-4 rounded-xl border-2 font-black text-[9px] uppercase tracking-widest gap-2 bg-background hover:bg-primary/5"
-            >
-              {isGeneratingCoverLetter ? (
-                <Loader2 className="animate-spin h-3.5 w-3.5" />
-              ) : (
-                <Zap className="h-3.5 w-3.5 text-primary" />
-              )}
-              Generate with AI
-            </Button>
-          </CardHeader>
-          <CardContent className="p-8">
-            <Textarea
-              placeholder="Tell the hiring team about your background and motivation..."
-              value={coverLetter}
-              onChange={(e) => setCoverLetter(e.target.value)}
-              className="min-h-[240px] resize-none rounded-2xl bg-muted/10 border-border/40 focus-visible:ring-primary/10 p-6 leading-relaxed italic text-sm font-medium"
-            />
-          </CardContent>
-        </Card>
+          <div className="space-y-1 block">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Registry Key Error</p>
+            <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
+              The targeting position operational parameters could not be gathered from tracking metadata blocks.
+            </p>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      {/* Global Control Terminal */}
-      <div className="fixed bottom-0 left-0 right-0 p-8 bg-background/80 backdrop-blur-2xl border-t-2 border-border/10 z-20 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-700 delay-300">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex justify-between items-end px-2">
-            <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
-                Estimated Cost
-              </p>
-              <p className="text-sm font-black uppercase tracking-tighter italic">{applicationCost} Neural Credits</p>
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 text-left antialiased block transform-gpu w-full pb-48">
+      {/* HUD LEVEL 1: OVERVIEW COMPLIANCE INTERFACE NAVIGATION BAR */}
+      <header className="flex items-center justify-between select-none leading-none w-full shrink-0">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="rounded-lg h-9 w-9 hover:bg-muted cursor-pointer shrink-0 border border-border/5"
+            onClick={handleReturnHistoryTrigger}
+          >
+            <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
+          </Button>
+          <div className="min-w-0 leading-none space-y-0.5">
+            <h1 className="font-bold text-sm sm:text-base uppercase tracking-wide text-foreground truncate block pt-0.5">
+              Transmission Submission Protocol
+            </h1>
+            <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wider block leading-none">
+              DEPLOYMENT: STANDARD EMPLOYMENT APPLICATION CONTAINER
+            </p>
+          </div>
+        </div>
+
+        <Badge
+          variant="outline"
+          className="font-mono text-[9px] font-extrabold uppercase px-2 h-5 tracking-wide rounded bg-primary/5 text-primary border-primary/20 shrink-0 pointer-events-none leading-none pt-0.5"
+        >
+          ACTIVE PROFILE CONNECTION NODE
+        </Badge>
+      </header>
+
+      {/* HUD LEVEL 2: DETAILED ASSIGNMENT PLACEMENT DATA SNAPSHOT */}
+      <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full select-none pointer-events-none">
+        <CardContent className="p-4 flex items-center gap-3.5 leading-none w-full block">
+          <div className="w-12 h-12 rounded-lg bg-background border border-border/40 shadow-inner flex items-center justify-center shrink-0 overflow-hidden">
+            {jobRecordState.company_logo_url ? (
+              <img src={jobRecordState.company_logo_url} className="object-cover w-full h-full block" alt="" />
+            ) : (
+              <Building2 className="text-primary/60 w-5 h-5 stroke-[2.2]" />
+            )}
+          </div>
+          <div className="space-y-1 block leading-none flex-1 min-w-0">
+            <h2 className="font-bold text-sm sm:text-base uppercase tracking-wide text-foreground truncate block pt-0.5 select-text">
+              {jobRecordState.title}
+            </h2>
+            <p className="font-mono text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tight block truncate select-text">
+              ORGANIZATION BLOCK INDEX: {jobRecordState.company_name}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* HUD LEVEL 3: CLOUD CV RECORD UPLOAD PIPELINE TRACK */}
+      <Card
+        id="cv-upload-anchor-node"
+        className={cn(
+          "rounded-xl border shadow-none overflow-hidden block w-full transition-colors duration-200",
+          !talentProfileRecord?.cvUrl ? "border-primary/40 bg-primary/[0.01]" : "border-border/60 bg-card/10",
+        )}
+      >
+        <CardHeader className="border-b border-border/5 bg-muted/20 px-4 py-3 flex flex-row items-center justify-between w-full select-none shrink-0 leading-none">
+          <CardTitle className="text-[10px] font-mono font-black uppercase tracking-wide flex items-center gap-2 text-foreground/80 leading-none m-0">
+            <ShieldCheck className="w-4 h-4 text-primary stroke-[2.2]" />
+            <span>Verified Candidate Resume Spec File (CV)</span>
+          </CardTitle>
+          {talentProfileRecord?.cvUrl && (
+            <Badge
+              variant="outline"
+              className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[8px] font-mono font-black uppercase tracking-wide px-1.5 h-4.5 rounded pt-0.5 leading-none shrink-0 pointer-events-none select-none"
+            >
+              VERIFIED Footprint LOGGED
+            </Badge>
+          )}
+        </CardHeader>
+        <CardContent className="p-4 block w-full leading-none">
+          {talentProfileRecord?.cvUrl ? (
+            <div className="flex items-center justify-between p-3.5 border border-dashed rounded-lg bg-background/50 border-border/60 hover:border-border-foreground/10 transition-colors w-full block shrink-0 leading-none">
+              <div className="flex items-center gap-3 min-w-0 block leading-none">
+                <div className="w-9 h-9 bg-primary/5 rounded border border-primary/10 flex items-center justify-center text-primary font-mono font-black text-[9px] select-none pointer-events-none shrink-0 pt-0.5 shadow-inner">
+                  PDF
+                </div>
+                <div className="space-y-0.5 block leading-none min-w-0">
+                  <span className="text-xs font-bold uppercase tracking-tight text-foreground truncate block select-text pt-0.5">
+                    Active_Resume_Dossier_Specs.pdf
+                  </span>
+                  <p className="font-mono text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest leading-none block select-none pointer-events-none">
+                    Cryptographically Signed Allocation Node
+                  </p>
+                </div>
+              </div>
+
+              <Label
+                htmlFor="cv-replace-upload-trigger"
+                className="cursor-pointer font-mono text-[10px] font-black uppercase tracking-wider text-primary hover:underline select-none shrink-0 pl-4 block leading-none pt-0.5"
+              >
+                Replace
+              </Label>
+              <input
+                id="cv-replace-upload-trigger"
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx"
+                onChange={handleSecureCVStorageUploadSequence}
+                disabled={isCVStorageUploading}
+              />
             </div>
-            <div className="text-right space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
-                Active Balance
+          ) : (
+            <div className="flex flex-col items-center p-8 border border-dashed border-border/80 rounded-lg bg-muted/5 group hover:bg-primary/[0.01] transition-all text-center block w-full leading-none space-y-4">
+              {isCVStorageUploading ? (
+                <Loader2 className="animate-spin text-primary h-6 w-6 stroke-[2.5] shrink-0" />
+              ) : (
+                <UploadCloud className="text-muted-foreground/20 w-10 h-10 stroke-[1.8] shrink-0 select-none pointer-events-none transition-transform group-hover:scale-105" />
+              )}
+              <div className="space-y-0.5 block select-none pointer-events-none leading-none">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide block">
+                  Upload CV Target Artifact
+                </h3>
+                <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wider block">
+                  Isolated Sandbox Payload Endpoint • Upper Constraint Threshold Boundary Limit: 5.0 MB
+                </p>
+              </div>
+
+              <Label
+                htmlFor="cv-fresh-upload-trigger"
+                className="cursor-pointer bg-primary text-primary-foreground h-9 px-5 rounded-lg text-[10px] font-bold uppercase tracking-wider inline-flex items-center shadow-2xs hover:bg-primary/90 transition-transform transform-gpu active:scale-95 shrink-0"
+              >
+                <Zap className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" /> <span>Select Specification File</span>
+              </Label>
+              <input
+                id="cv-fresh-upload-trigger"
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx"
+                onChange={handleSecureCVStorageUploadSequence}
+                disabled={isCVStorageUploading}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* HUD LEVEL 4: NARRATIVE PROMPT COMPOSER COVER LETTER SYSTEM */}
+      <Card className="rounded-xl border border-border/60 bg-card/10 shadow-none overflow-hidden block w-full">
+        <CardHeader className="bg-muted/20 px-4 py-3 border-b border-border/5 flex flex-row items-center justify-between w-full select-none shrink-0 leading-none">
+          <CardTitle className="text-[10px] font-mono font-black uppercase tracking-wide flex items-center gap-2 text-foreground/80 leading-none m-0">
+            <Sparkles className="w-4 h-4 text-primary stroke-[2.2]" />
+            <span>Candidate Cover Letter Narrative Synthesis</span>
+          </CardTitle>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAICoverLetterSynthesisSequence}
+            disabled={isAIComposerProcessing || !talentProfileRecord?.cvUrl}
+            className="h-8 rounded-lg border border-border/60 font-mono text-[9px] font-extrabold uppercase tracking-wide gap-1.5 bg-background hover:bg-primary/5 cursor-pointer shadow-2xs pt-0.5 flex items-center shrink-0 disabled:opacity-50"
+          >
+            {isAIComposerProcessing ? (
+              <Loader2 className="animate-spin h-3 w-3 stroke-[2.5]" />
+            ) : (
+              <Zap className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
+            )}
+            <span>Generate via Neural Prompt AI</span>
+          </Button>
+        </CardHeader>
+        <CardContent className="p-4 block w-full leading-none">
+          <Textarea
+            placeholder="Introduce your background skills history framework, motivation strings, and system alignment properties directly to the reviewing recruiter panel..."
+            value={coverLetterInputStr}
+            onChange={(e) => setCoverLetterInputStr(e.target.value)}
+            disabled={isAIComposerProcessing}
+            className="min-h-[200px] font-sans text-xs sm:text-sm font-medium leading-relaxed bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none p-3 resize-none"
+          />
+        </CardContent>
+      </Card>
+
+      {/* HUD LEVEL 5: STICKY ACCOUNTING VALIDATION BAR FOOTER INGRESS */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 bg-background/95 backdrop-blur-md border-t border-border/40 z-20 shadow-[0_-12px_40px_rgba(0,0,0,0.05)] select-none pb-[max(env(safe-area-inset-bottom),0.75rem)] animate-in fade-in duration-300">
+        <div className="max-w-3xl mx-auto space-y-4 block w-full leading-none">
+          <div className="flex justify-between items-end px-1 leading-none w-full block shrink-0 select-none pointer-events-none font-mono tracking-tight">
+            <div className="leading-none space-y-1 block">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
+                Estimated Transaction Fee Charge
+              </p>
+              <p className="text-xs sm:text-sm font-black uppercase text-foreground tabular-nums">
+                {computedApplicationCost.toLocaleString()} Network Credits
+              </p>
+            </div>
+            <div className="text-right leading-none space-y-1 block">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
+                Active Profile Liquid Balance
               </p>
               <p
                 className={cn(
-                  "text-sm font-black uppercase tracking-tighter italic",
-                  !hasEnoughCredits ? "text-destructive animate-pulse" : "text-primary",
+                  "text-xs sm:text-sm font-black uppercase tabular-nums",
+                  !isCandidateBalanceSufficient ? "text-destructive animate-pulse" : "text-primary",
                 )}
               >
-                {balance} Credits Available
+                {balance.toLocaleString()} Credits Available
               </p>
             </div>
           </div>
 
-          {submitting ? (
-            <div className="space-y-4 p-6 bg-primary/5 rounded-[24px] border border-primary/20 shadow-inner">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">
-                  <Brain className="h-4 w-4 animate-pulse" /> {submissionMessage}
+          {isSubmissionInFlight ? (
+            <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 shadow-inner space-y-2 block w-full leading-none shrink-0 select-none pointer-events-none">
+              <div className="flex items-center justify-between gap-4 leading-none w-full block font-mono text-[10px] font-black uppercase tracking-wide text-primary">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Brain className="h-4 w-4 animate-pulse stroke-[2.2] text-primary" />
+                  <span className="truncate block pt-0.5">{submissionProgressMessage}</span>
                 </div>
-                <span className="text-[10px] font-mono font-black text-primary">{submissionProgress}%</span>
+                <span className="tabular-nums">{submissionProgressValue}%</span>
               </div>
-              <Progress value={submissionProgress} className="h-1.5 rounded-full" />
+              <Progress value={submissionProgressValue} className="h-1.5 rounded-full w-full block shadow-none" />
             </div>
           ) : (
             <Button
-              className="w-full h-16 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden"
-              onClick={handleSubmit}
-              disabled={isUploadingCV}
+              type="button"
+              disabled={isCVStorageUploading}
+              onClick={handleCommitJobApplicationSequence}
+              className="w-full h-12 rounded-lg font-bold uppercase tracking-widest text-xs gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.99] overflow-hidden relative group"
             >
-              <span className="relative z-10 flex items-center">
-                {hasEnoughCredits ? "Confirm" : "Top-up Credits"}
-                <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-2" />
+              <span className="relative z-10 flex items-center justify-center gap-1.5">
+                <span>
+                  {isCandidateBalanceSufficient ? "Confirm Transaction & Transmit" : "Acquire Additional Core Balance"}
+                </span>
+                <ArrowRight className="h-4 w-4 stroke-[2.5] transition-transform group-hover:translate-x-1 shrink-0" />
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-r from-primary via-blue-600 to-primary opacity-60 group-hover:opacity-100 transition-opacity" />
             </Button>
           )}
         </div>
       </div>
 
       <CreditPurchaseSheet
-        isOpen={showPurchaseSheet}
-        onClose={() => setShowPurchaseSheet(false)}
+        isOpen={isPurchaseSheetOpen}
+        onClose={() => setIsPurchaseSheetOpen(false)}
         currentBalance={balance}
       />
     </div>
