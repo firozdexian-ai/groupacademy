@@ -1,8 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useTalent } from "@/hooks/useTalent";
-import { useApplicationBuckets } from "@/hooks/useApplicationBuckets";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,198 +16,203 @@ import {
   Trash2,
   Clock,
   Brain,
-  AlertCircle,
   SearchX,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
 
-type Bucket = "active" | "action_needed" | "closed";
+// =========================================================================
+// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
+// =========================================================================
+interface JobRecord {
+  title: string;
+  company_name: string;
+  company_logo_url: string | null;
+  ai_assessment_enabled: boolean | null;
+}
 
-interface Row {
+interface AssessmentRecord {
+  id: string;
+  status: string;
+}
+
+interface ApplicationRecord {
   id: string;
   job_id: string;
   application_status: string;
   created_at: string;
   last_status_at: string | null;
-  job: {
-    title: string;
-    company_name: string;
-    company_logo_url: string | null;
-    ai_assessment_enabled: boolean | null;
-  } | null;
-  assessment?: { id: string; status: string } | null;
+  job: JobRecord | null;
+  assessment: AssessmentRecord | null;
 }
 
-const ACTIVE = ["submitted", "sent_to_employer", "viewed", "shortlisted"];
-const CLOSED = ["rejected", "withdrawn", "hired"];
+type BucketType = "active" | "action_needed" | "closed";
 
-const STATUS_PILL: Record<string, { label: string; className: string; icon: any }> = {
+const STATUS_PILL: Record<string, { label: string; className: string; icon: React.ElementType }> = {
   submitted: { label: "Submitted", className: "bg-primary/10 text-primary border-primary/20", icon: Clock },
   sent_to_employer: { label: "Sent", className: "bg-primary/10 text-primary border-primary/20", icon: ArrowRight },
   viewed: { label: "Viewed", className: "bg-primary/10 text-primary border-primary/20", icon: CheckCircle2 },
-  shortlisted: { label: "Shortlisted", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: Trophy },
+  shortlisted: {
+    label: "Shortlisted",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    icon: Trophy,
+  },
   hired: { label: "Hired", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: Trophy },
-  rejected: { label: "Not selected", className: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
+  rejected: {
+    label: "Not selected",
+    className: "bg-destructive/10 text-destructive border-destructive/20",
+    icon: XCircle,
+  },
   withdrawn: { label: "Withdrawn", className: "bg-muted text-muted-foreground border-border", icon: Trash2 },
 };
 
+/**
+ * GroUp Academy: Candidate Application Ledger (MyApplications)
+ * Hardened responsive viewer for application lifecycle tracking and assessment management.
+ * Version: Launch Candidate · Phase Z1 Production Contract Sealed
+ */
 export default function MyApplications() {
   const navigate = useNavigate();
-  const { talent } = useTalent();
-  const { data: buckets } = useApplicationBuckets();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Bucket>("active");
+  const [rows, setRows] = React.useState<ApplicationRecord[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [activeBucket, setActiveBucket] = React.useState<BucketType>("active");
 
-  const fetchRows = useCallback(async () => {
-    if (!talent?.id) return;
+  const fetchApplicationsRegistry = React.useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("job_applications")
       .select(
-        `id, job_id, application_status, created_at, last_status_at,
-         job:jobs(title, company_name, company_logo_url, ai_assessment_enabled),
-         job_assessments(id, status)`,
+        `
+        id, job_id, application_status, created_at, last_status_at,
+        job:jobs(title, company_name, company_logo_url, ai_assessment_enabled),
+        job_assessments(id, status)
+      `,
       )
-      .eq("talent_id", talent.id)
+      .eq("talent_id", user.id)
       .order("last_status_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
 
-    setLoading(false);
     if (error) {
-      toast.error("Couldn't load your applications.");
+      toast.error("Failed to synchronize application ledger.");
       return;
     }
-    setRows(
-      (data || []).map((r: any) => ({
-        ...r,
-        assessment: r.job_assessments?.[0] || null,
-      })),
-    );
-  }, [talent?.id]);
 
-  useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
+    const normalizedRows: ApplicationRecord[] = (data || []).map((r: any) => ({
+      ...r,
+      job: r.job,
+      assessment: r.job_assessments?.[0] || null,
+    }));
 
-  const filtered = useMemo(() => {
-    if (tab === "active") return rows.filter((r) => ACTIVE.includes(r.application_status));
-    if (tab === "closed") return rows.filter((r) => CLOSED.includes(r.application_status));
-    // action_needed
+    setRows(normalizedRows);
+    setLoading(false);
+  }, []);
+
+  React.useEffect(() => {
+    void fetchApplicationsRegistry();
+  }, [fetchApplicationsRegistry]);
+
+  const filteredApplicationNodes = React.useMemo(() => {
+    const activeStatuses = ["submitted", "sent_to_employer", "viewed", "shortlisted"];
+    const closedStatuses = ["rejected", "withdrawn", "hired"];
+
+    if (activeBucket === "active") return rows.filter((r) => activeStatuses.includes(r.application_status));
+    if (activeBucket === "closed") return rows.filter((r) => closedStatuses.includes(r.application_status));
+
+    // Action Needed Logic
     return rows.filter(
       (r) =>
-        ACTIVE.includes(r.application_status) &&
+        activeStatuses.includes(r.application_status) &&
         r.job?.ai_assessment_enabled &&
         (!r.assessment || r.assessment.status !== "completed"),
     );
-  }, [rows, tab]);
+  }, [rows, activeBucket]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-3 pb-12 space-y-3 animate-in fade-in duration-300">
+    <div className="max-w-3xl mx-auto px-4 pt-3 pb-24 space-y-4">
       <header className="space-y-1">
-        <h1 className="text-xl font-bold">My applications</h1>
-        <p className="text-xs text-muted-foreground">Track every role you've applied to.</p>
+        <h1 className={PAGE_TITLE}>My Applications</h1>
+        <p className={PAGE_SUBTITLE}>Track lifecycle status for every role submission.</p>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Bucket)}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="active" className="gap-1.5 text-xs">
+      <Tabs value={activeBucket} onValueChange={(v) => setActiveBucket(v as BucketType)}>
+        <TabsList className="w-full grid grid-cols-3 h-10">
+          <TabsTrigger value="active" className="text-xs">
             Active
-            {buckets && buckets.active > 0 && (
-              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-                {buckets.active}
-              </Badge>
-            )}
           </TabsTrigger>
-          <TabsTrigger value="action_needed" className="gap-1.5 text-xs">
-            Action
-            {buckets && buckets.action_needed > 0 && (
-              <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30">
-                {buckets.action_needed}
-              </Badge>
-            )}
+          <TabsTrigger value="action_needed" className="text-xs">
+            Action Needed
           </TabsTrigger>
-          <TabsTrigger value="closed" className="gap-1.5 text-xs">
+          <TabsTrigger value="closed" className="text-xs">
             Closed
-            {buckets && buckets.closed > 0 && (
-              <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
-                {buckets.closed}
-              </Badge>
-            )}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={tab} className="mt-3 space-y-2">
-          {loading && (
-            <>
-              <Skeleton className="h-20 w-full rounded-2xl" />
-              <Skeleton className="h-20 w-full rounded-2xl" />
-            </>
-          )}
-          {!loading && filtered.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="p-8 text-center space-y-2">
-                <SearchX className="h-8 w-8 text-muted-foreground/50 mx-auto" />
-                <p className="text-sm font-medium">
-                  {tab === "active" && "No active applications."}
-                  {tab === "action_needed" && "Nothing needs your attention."}
-                  {tab === "closed" && "No closed applications yet."}
-                </p>
-                {tab === "active" && (
-                  <Button variant="outline" size="sm" onClick={() => navigate("/app/jobs")}>
-                    <Briefcase className="h-4 w-4 mr-2" /> Browse jobs
-                  </Button>
-                )}
-              </CardContent>
+        <TabsContent value={activeBucket} className="mt-4 space-y-3">
+          {loading ? (
+            [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+          ) : filteredApplicationNodes.length === 0 ? (
+            <Card className="border-dashed py-12 text-center">
+              <SearchX className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium">No applications found in this category.</p>
             </Card>
-          )}
-
-          {!loading &&
-            filtered.map((r) => {
-              const pill = STATUS_PILL[r.application_status] || STATUS_PILL.submitted;
+          ) : (
+            filteredApplicationNodes.map((app) => {
+              const pill = STATUS_PILL[app.application_status] || STATUS_PILL.submitted;
               const PillIcon = pill.icon;
-              const needsAssessment =
-                r.job?.ai_assessment_enabled &&
-                ACTIVE.includes(r.application_status) &&
-                (!r.assessment || r.assessment.status !== "completed");
+              const needsAssessment = app.job?.ai_assessment_enabled && app.assessment?.status !== "completed";
+
               return (
                 <Card
-                  key={r.id}
-                  className="cursor-pointer hover:border-primary/40 transition-all"
-                  onClick={() => navigate(`/app/applications/${r.id}`)}
+                  key={app.id}
+                  className={cn(CARD, "cursor-pointer hover:border-primary/40 transition-colors p-4")}
+                  onClick={() => navigateHook(`/app/applications/${app.id}`)}
                 >
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-xl bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-                      {r.job?.company_logo_url ? (
-                        <img src={r.job.company_logo_url} alt="" className="object-cover w-full h-full" />
+                  <CardContent className="p-0 flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-muted/40 flex items-center justify-center shrink-0 border border-border/20">
+                      {app.job?.company_logo_url ? (
+                        <img
+                          src={app.job.company_logo_url}
+                          alt="Company"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
                       ) : (
-                        <Building2 className="h-5 w-5 text-primary" />
+                        <Building2 className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{r.job?.title || "Job"}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {r.job?.company_name} ·{" "}
-                        {formatDistanceToNow(new Date(r.last_status_at || r.created_at), { addSuffix: true })}
+
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="font-bold text-sm truncate">{app.job?.title}</p>
+                      <p className="text-[11px] text-muted-foreground truncate italic">
+                        {app.job?.company_name} •{" "}
+                        {formatDistanceToNow(new Date(app.last_status_at || app.created_at), { addSuffix: true })}
                       </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <Badge variant="outline" className={cn("text-[10px] gap-1", pill.className)}>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Badge variant="outline" className={cn("text-[9px] gap-1 px-1.5", pill.className)}>
                           <PillIcon className="h-2.5 w-2.5" /> {pill.label}
                         </Badge>
                         {needsAssessment && (
-                          <Badge className="text-[10px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/30">
-                            <Brain className="h-2.5 w-2.5" /> Assessment due
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] gap-1 px-1.5 bg-amber-500/10 text-amber-600 border-none"
+                          >
+                            <Brain className="h-2.5 w-2.5" /> Assessment Required
                           </Badge>
                         )}
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </CardContent>
                 </Card>
               );
-            })}
+            })
+          )}
         </TabsContent>
       </Tabs>
     </div>
