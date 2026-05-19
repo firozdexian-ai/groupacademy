@@ -1,77 +1,79 @@
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Sparkles, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookOpen, Sparkles } from "lucide-react";
 import { CoursesTab } from "@/components/learning/CoursesTab";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Knowledge Indexing Node
- * High-fidelity directory for self-paced certification and technical workshops.
- * 2026 Standard: Executive Logic typography with spatial luxury offsets.
+ * GroUp Academy: Knowledge Indexing Directory Node (AppCourses)
+ * Hardened course catalog platform wrapper delivering fluid scannability and absolute geometric alignment parity.
+ * Version: Launch Candidate · Phase Z1 Production Tokens Locked
  */
 export default function AppCourses() {
-  const navigate = useNavigate();
+  const executeNavigationHook = useNavigate();
+
+  const handleReturnToHubSequence = React.useCallback(() => {
+    executeNavigationHook("/app/learning");
+  }, [executeNavigationHook]);
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 pb-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Navigation Connection & Contextual Metadata */}
-      <header className="flex flex-col gap-10 mb-12">
-        <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-32 text-left antialiased block transform-gpu w-full animate-in fade-in duration-300">
+      {/* HUD LEVEL 1: ARCHITECTURAL CATALOG SUMMARY RUNWAY HEADER */}
+      <header className="flex flex-col gap-6 mb-8 select-none w-full shrink-0">
+        <div className="flex items-center justify-between gap-4 leading-none w-full block">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/app/learning")}
-            className={cn(
-              "group rounded-xl h-11 pl-3 pr-5 transition-all duration-300",
-              "font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 -ml-3",
-            )}
+            onClick={handleReturnToHubSequence}
+            className="group rounded-lg h-9 pl-2.5 pr-4 border border-border/5 text-xs font-bold uppercase tracking-wide cursor-pointer transition-transform hover:bg-muted active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4 mr-3 transition-transform group-hover:-translate-x-1" />
-            Back to List
+            <ArrowLeft className="w-4 h-4 mr-1.5 stroke-[2.5] transition-transform group-hover:-translate-x-0.5 shrink-0" />
+            <span>Return to Learning Hub</span>
           </Button>
 
-          <Badge className="bg-primary/5 text-primary border-primary/20 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 mr-2 animate-pulse" />
-            Premium Catalog Active
+          <Badge
+            variant="outline"
+            className="bg-primary/5 text-primary border-primary/20 px-3 h-6 rounded font-mono text-[9px] font-black uppercase tracking-wide shrink-0 pointer-events-none leading-none pt-0.5"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-pulse stroke-[2] shrink-0" />
+            <span>Premium Catalog Active</span>
           </Badge>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20">
-              <BookOpen className="h-6 w-6 text-primary" />
+        <div className="block w-full border-b border-border/10 pb-4">
+          <div className="flex items-center gap-3.5 leading-none w-full block">
+            <div className="h-11 w-11 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 shadow-2xs pointer-events-none">
+              <BookOpen className="h-5 w-5 text-primary stroke-[2.2]" />
             </div>
-            <div>
-              <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">Academy Courses</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] italic">
-                  Self-Paced Neural Certification
-                </p>
-                <span className="h-1 w-1 rounded-full bg-primary/30" />
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] italic">
-                  Logic Version 2026
-                </p>
+            <div className="leading-none space-y-1 block flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-foreground pt-0.5 block truncate">
+                Academy Certification Courses
+              </h1>
+              <div className="flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
+                <p className="italic">Self-Paced Core Syllabus Blocks</p>
+                <span className="h-1 w-1 rounded-full bg-border/80 select-none pointer-events-none" />
+                <p className="text-primary font-black">Edition Index: 2026</p>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Hardened Courses Grid: Logic Viewport */}
-      <main className="min-h-[70vh] animate-in fade-in zoom-in-95 duration-700 delay-200">
+      {/* HUD LEVEL 2: COMPREHENSIVE CURRICULUM DIRECTORY LIST VIEWPORT */}
+      <main className="min-h-[60vh] block w-full">
         <CoursesTab />
       </main>
 
-      {/* Visual Terminal Footer */}
-      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30 group hover:opacity-100 transition-opacity duration-500">
-        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-          List Data: Encrypted Connection Active
-        </p>
-        <div className="flex gap-4">
-          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-          <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
-          <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
+      {/* HUD LEVEL 3: COMPLIANCE TELEMETRY TERMINAL FOOTER */}
+      <footer className="mt-16 pt-6 border-t border-border/40 flex items-center justify-between opacity-25 select-none pointer-events-none leading-none w-full shrink-0 uppercase tracking-widest font-mono text-[9px] font-bold text-muted-foreground/50">
+        <p className="italic">Catalog Encryption Handshake Protocol Active</p>
+        <div className="flex gap-2 shrink-0 items-center">
+          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
+          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
         </div>
       </footer>
     </div>
