@@ -450,7 +450,7 @@ function SubtaskRow({ subtask, isOwner, isLocked, expanded, onToggle, onUpdated 
       const { error: updateHandshakeError } = await supabase
         .from("course_project_subtasks")
         .update({
-          submitted_files: uploadedFilesCollection,
+          submitted_files: uploadedFilesCollection as any,
           submitted_notes: textReviewerNotesInput.trim() || null,
           submitted_at: uploadedFilesCollection.length ? new Date().toISOString() : null,
           status: uploadedFilesCollection.length ? "in_review" : "pending",
