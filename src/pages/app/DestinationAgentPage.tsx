@@ -160,7 +160,7 @@ export default function DestinationAgentPage() {
     setConsoleTextInputStr("");
 
     setChatMessagesList((prevList) => [...prevList, { role: "user", content: sanitizedUserInputText }]);
-    setIsAIInferenceProcessing(true);
+    setIsAIEngineProcessing(true);
 
     try {
       const { data: edgeFunctionResponsePayload, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
@@ -182,7 +182,7 @@ export default function DestinationAgentPage() {
     } catch (fatalInferenceException: any) {
       toast.error(fatalInferenceException.message || "Asynchronous interaction framework connection timeout.");
     } finally {
-      setIsAIInferenceProcessing(false);
+      setIsAIEngineProcessing(false);
     }
   }, [consoleTextInputStr, isAIEngineProcessing, validatedCountryCodeStr]);
 
@@ -311,9 +311,9 @@ export default function DestinationAgentPage() {
                       : "bg-muted border border-border/20 text-foreground/90 rounded-bl-none",
                   )}
                 >
-                  <ReactMarkdown className="prose prose-sm max-w-none dark:prose-invert text-inherit leading-relaxed font-sans block">
-                    {messageNodeItem.content}
-                  </ReactMarkdown>
+                  <div className="prose prose-sm max-w-none dark:prose-invert text-inherit leading-relaxed font-sans block">
+                    <ReactMarkdown>{messageNodeItem.content}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             );
@@ -343,7 +343,7 @@ export default function DestinationAgentPage() {
         <Button
           type="button"
           onClick={handleDispatchConsoleQuerySequence}
-          disabled={isAIInferenceProcessing || !consoleTextInputStr.trim()}
+          disabled={isAIEngineProcessing || !consoleTextInputStr.trim()}
           size="icon"
           className="h-10 w-10 rounded-lg bg-primary text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-transform transform-gpu active:scale-95 shrink-0 block"
           title="Dispatch context parameter block query to target agent container"
