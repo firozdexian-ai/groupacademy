@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { BookOpen, Target, Library, Globe, Bell } from "lucide-react";
 import { useReviewQueue } from "@/hooks/useReviewQueue";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // Sub-views imported as modules
