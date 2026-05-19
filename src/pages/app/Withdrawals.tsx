@@ -1,31 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wallet, Coins, Loader2, Info, CheckCircle2, Clock, XCircle, ShieldAlert, Star } from "lucide-react";
-import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, Wallet, Coins, Loader2, Clock, CheckCircle2, XCircle, ShieldAlert, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
 import { cn } from "@/lib/utils";
-import { InboxUnlockCard } from "@/components/talents/InboxUnlockCard";
-import { HypeEarningsCard } from "@/components/feed/HypeEarningsCard";
-import { ReferralCard } from "@/components/wallet/ReferralCard";
+import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
 
-interface WithdrawalRow {
+// Production Data Contracts[cite: 8]
+interface WithdrawalRequest {
   id: string;
   amount_credits: number;
   method: string;
   status: "pending" | "approved" | "paid" | "rejected";
   admin_notes: string | null;
   created_at: string;
-  processed_at: string | null;
 }
 
 interface PayoutAccount {
@@ -37,118 +36,125 @@ interface PayoutAccount {
   is_primary: boolean;
 }
 
-const METHOD_LABEL: Record<string, string> = {
-  bkash: "bKash", bank: "Bank transfer", paypal: "PayPal", wise: "Wise",
-};
+const METHOD_LABEL: Record<string, string> = { bkash: "bKash", bank: "Bank transfer", paypal: "PayPal", wise: "Wise" };
 
-const STATUS_META: Record<WithdrawalRow["status"], { label: string; icon: any; cls: string }> = {
-  pending:  { label: "Pending review", icon: Clock,        cls: "bg-amber-100 text-amber-700 border-amber-200" },
-  approved: { label: "Approved",       icon: CheckCircle2, cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  paid:     { label: "Paid",           icon: CheckCircle2, cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  rejected: { label: "Rejected",       icon: XCircle,      cls: "bg-rose-100 text-rose-700 border-rose-200" },
+const STATUS_META: Record<WithdrawalRequest["status"], { label: string; icon: any; cls: string }> = {
+  pending: { label: "Pending review", icon: Clock, cls: "bg-amber-100 text-amber-700 border-amber-200" },
+  approved: { label: "Approved", icon: CheckCircle2, cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  paid: { label: "Paid", icon: CheckCircle2, cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  rejected: { label: "Rejected", icon: XCircle, cls: "bg-rose-100 text-rose-700 border-rose-200" },
 };
 
 export default function Withdrawals() {
   const navigate = useNavigate();
   const { talent } = useTalent();
-  const { earnedBalance, balance } = useCredits() as any;
-  const earned = Number(earnedBalance ?? 0);
-
-  const [requests, setRequests] = useState<WithdrawalRow[]>([]);
-  const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
-  const [verified, setVerified] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
+  const { balance, earnedBalance } = useCredits();
   const [amount, setAmount] = useState<string>("");
   const [accountId, setAccountId] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!talent?.id) return;
-    (async () => {
-      setLoading(true);
-      const [{ data: w }, { data: a }, { data: t }] = await Promise.all([
-        supabase.from("withdrawal_requests" as any).select("*").eq("talent_id", talent.id).order("created_at", { ascending: false }),
-        supabase.from("talent_payout_accounts" as any).select("*").eq("talent_id", talent.id).order("is_primary", { ascending: false }),
-        supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle(),
-      ]);
-      setRequests(((w as any) || []) as WithdrawalRow[]);
-      const accs = ((a as any) || []) as PayoutAccount[];
-      setAccounts(accs);
-      const primary = accs.find((x) => x.is_primary) || accs[0];
-      if (primary) setAccountId(primary.id);
-      setVerified(((t as any)?.verification_status) === "verified");
-      setLoading(false);
-    })();
-  }, [talent?.id]);
+  // Digital Workforce Anomaly Protocol[cite: 6]
+  const reportAnomaly = async (event: string, context: any) => {
+    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    await supabase.functions.invoke("admin-support-assistant", {
+      body: { type: "payout_error", event, context },
+    });
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
+  const {
+    data: requests = [],
+    isLoading: txLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["withdrawal-requests", talent?.id],
+    enabled: !!talent?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("withdrawal_requests")
+        .select("*")
+        .eq("talent_id", talent!.id)
+        .order("created_at", { ascending: false });
+      if (error) {
+        await reportAnomaly("LedgerFetchFailure", { error });
+        throw error;
+      }
+      return (data as unknown as WithdrawalRequest[]) || [];
+    },
+  });
+
+  const { data: accounts = [], isLoading: accLoading } = useQuery({
+    queryKey: ["payout-accounts", talent?.id],
+    enabled: !!talent?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("talent_payout_accounts").select("*").eq("talent_id", talent!.id);
+      if (error) throw error;
+      return (data as unknown as PayoutAccount[]) || [];
+    },
+  });
+
+  const { data: talentMeta } = useQuery({
+    queryKey: ["talent-verify-status", talent?.id],
+    enabled: !!talent?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("talents").select("verification_status").eq("id", talent!.id).maybeSingle();
+      return data;
+    },
+  });
+
+  const earned = Number(earnedBalance || 0);
+  const verified = talentMeta?.verification_status === "verified";
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!talent?.id) return;
-    if (!verified) return toast.error("Verify your profile to enable withdrawals.");
+    if (!talent?.id || !verified) return;
     const amt = Number(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount.");
-    if (amt > earned) return toast.error(`You only have ${earned} earned credits available.`);
-    if (amt < 100) return toast.error("Minimum withdrawal is 100 credits.");
-    const acct = accounts.find((a) => a.id === accountId);
-    if (!acct) return toast.error("Select a disbursement account.");
+    if (!amt || amt < 100 || amt > earned) return toast.error("Invalid amount or insufficient funds.");
 
     setSubmitting(true);
-    const { error, data } = await supabase
-      .from("withdrawal_requests" as any)
-      .insert({
+    try {
+      const acct = accounts.find((a) => a.id === accountId);
+      if (!acct) throw new Error("Account mismatch.");
+
+      const { error } = await supabase.from("withdrawal_requests").insert({
         talent_id: talent.id,
         amount_credits: amt,
         method: acct.method,
-        payout_details: {
-          account_id: acct.id,
-          account_name: acct.account_name,
-          account_number: acct.account_number,
-          bank_name: acct.bank_name,
-        },
-      })
-      .select()
-      .single();
-    setSubmitting(false);
-
-    if (error) return toast.error(error.message || "Could not submit your request.");
-    toast.success("Withdrawal request submitted.");
-    setAmount("");
-    setRequests((prev) => [data as any, ...prev]);
-  }
+        payout_details: { account_id: acct.id, account_name: acct.account_name, account_number: acct.account_number },
+      });
+      if (error) throw error;
+      toast.success("Request synchronized.");
+      setAmount("");
+      refetch();
+    } catch (e) {
+      await reportAnomaly("PayoutSubmissionFailure", { error: e });
+      toast.error("Protocol error. Workforce notified.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 pb-28 space-y-6">
-      <header className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
-          <ArrowLeft className="h-5 w-5" />
+    <div className={PAGE_SHELL_WIDE}>
+      <header className="flex items-center gap-5">
+        <Button variant="ghost" size="icon" className="rounded-xl h-11 w-11" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Withdraw earnings</h1>
-          <p className="text-sm text-muted-foreground">Cash out the credits you've earned.</p>
+          <h1 className={PAGE_TITLE}>Withdraw Earnings</h1>
+          <p className={PAGE_SUBTITLE}>Cash out credits to your linked node.</p>
         </div>
       </header>
 
-      <HypeEarningsCard />
-      <InboxUnlockCard />
-      <ReferralCard />
-
-      <Card>
-
+      <Card className={CARD}>
         <CardContent className="p-5 flex items-center gap-4">
           <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Wallet className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">
             <p className="text-xs text-muted-foreground">Withdrawable balance</p>
-            <p className="text-2xl font-bold flex items-center gap-1.5">
+            <p className="text-2xl font-bold flex items-center gap-2">
               <Coins className="h-5 w-5 text-amber-500" /> {earned.toFixed(1)}
-              <span className="text-sm font-normal text-muted-foreground ml-2">earned credits</span>
             </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Total balance</p>
-            <p className="text-base font-semibold">{Number(balance ?? 0).toFixed(1)}</p>
           </div>
         </CardContent>
       </Card>
@@ -157,101 +163,54 @@ export default function Withdrawals() {
         <Card className="border-amber-300 bg-amber-50/50">
           <CardContent className="p-4 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Verify your profile to withdraw</p>
-              <p className="text-xs text-muted-foreground">Add your photo, phone, country, an ID document, and a primary disbursement account.</p>
+            <div className="flex-1 text-sm">
+              <p className="font-semibold">Verify identity to withdraw</p>
+              <p className="text-muted-foreground">Complete profile verification in settings.</p>
             </div>
-            <Button size="sm" onClick={() => navigate("/app/profile/verify")}>Verify now</Button>
+            <Button size="sm" onClick={() => navigate("/app/profile/verify")}>
+              Verify
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      <div className="flex gap-3 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-        <Info className="h-4 w-4 mt-0.5 shrink-0" />
-        <div className="space-y-1">
-          <p>Only <b>earned credits</b> can be withdrawn. Minimum: <b>100 credits</b>. Processed within 3 business days.</p>
-        </div>
-      </div>
-
-      <Card>
+      <Card className={CARD}>
         <CardHeader>
-          <CardTitle className="text-lg">Request a payout</CardTitle>
-          <CardDescription>Choose an account and amount.</CardDescription>
+          <CardTitle>Request payout</CardTitle>
         </CardHeader>
         <CardContent>
-          {accounts.length === 0 ? (
-            <div className="text-center py-6 space-y-3">
-              <p className="text-sm text-muted-foreground">No disbursement account on file yet.</p>
-              <Button onClick={() => navigate("/app/profile/verify")}>Add a disbursement account</Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Disbursement account</Label>
+              <Select value={accountId} onValueChange={setAccountId} disabled={submitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {METHOD_LABEL[a.method]} · {a.account_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>Disbursement account</Label>
-                <Select value={accountId} onValueChange={setAccountId} disabled={submitting}>
-                  <SelectTrigger><SelectValue placeholder="Choose account" /></SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        <div className="flex items-center gap-2">
-                          {a.is_primary && <Star className="h-3 w-3 text-emerald-600" />}
-                          <span>{METHOD_LABEL[a.method]} · {a.account_name} · {a.account_number}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="link" className="px-0 h-auto text-xs" onClick={() => navigate("/app/profile/verify")}>
-                  Manage accounts
-                </Button>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="amount">Amount (credits)</Label>
-                <Input
-                  id="amount" type="number" min={100} step={1} placeholder="100"
-                  value={amount} onChange={(e) => setAmount(e.target.value)}
-                  disabled={submitting || earned < 100 || !verified}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={submitting || earned < 100 || !verified}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                {!verified ? "Verify profile to withdraw" : earned < 100 ? "Earn at least 100 credits" : "Submit request"}
-              </Button>
-            </form>
-          )}
+            <div className="space-y-1.5">
+              <Label>Amount (100+ credits)</Label>
+              <Input
+                type="number"
+                min={100}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={submitting}
+              />
+            </div>
+            <Button className="w-full" disabled={submitting || !verified || earned < 100}>
+              {submitting ? <Loader2 className="animate-spin mr-2" /> : null} Submit
+            </Button>
+          </form>
         </CardContent>
       </Card>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">Your requests</h2>
-        {loading ? (
-          <Skeleton className="h-20 w-full rounded-lg" />
-        ) : requests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No withdrawal requests yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {requests.map((r) => {
-              const meta = STATUS_META[r.status];
-              const Icon = meta.icon;
-              return (
-                <Card key={r.id} className="p-4 flex items-center gap-3">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">
-                      {Number(r.amount_credits).toFixed(1)} credits · {METHOD_LABEL[r.method] || r.method}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                      {r.admin_notes && <> · {r.admin_notes}</>}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className={cn("border", meta.cls)}>{meta.label}</Badge>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
