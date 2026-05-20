@@ -1,63 +1,60 @@
-## Phase 5.3 — `gigs` domain vertical slice — DONE ✅
+## Phase 5.4 — `abroad` domain vertical slice
 
-Moved: 2 hooks → `src/domains/gigs/hooks/`; 15 talent components → `components/talent/`; 11 admin components + `useGigGraph` → `components/admin/[hooks/]`; `Gro10xOpenGigs` → `components/gro10x/`. Barrel re-exports at all 29 legacy paths.
-
-Edge: `src/edge/contracts/gigs.ts` (4 response types) + `src/domains/gigs/api/manifest.ts` (`gigsApi.{aiBidCoach, generateOutreachMessage, parseJobPost, generateJobShareCaption}`). Swept all 4 direct invokes in talent UI to `gigsApi.*`, and `CVUploadGigForm` parse-cv → `profileApi.parseCv`.
-
-Progress: ~40%. Next: Phase 5.4 — abroad (40K).
-
----
-
-## Original Phase 5.3 plan
-
-Replicate the Phase 5.1/5.2 recipe across the largest remaining surface (189K talent UI + 91K admin UI + 1 gro10x file). All legacy import paths stay live via barrel re-exports.
+Small, clean phase: 3 talent components + 8 admin tabs + 1 admin hook + 2 edge contracts. No talent-side hooks live in `src/hooks/` for this domain.
 
 ### Scope
 
-**Hooks → `src/domains/gigs/hooks/` (+ barrels at `src/hooks/*`)**
-- `useGigsHubDashboard`
-- `useRankedGigs`
+**Talent UI → `src/domains/abroad/components/talent/` (+ barrels at `src/components/abroad/*`)** — 3 files
+- `RoadmapBuilderSheet`
+- `RoadmapIntakeForm`
+- `RoadmapTimeline`
 
-**Talent UI → `src/domains/gigs/components/talent/` (+ barrels at `src/components/gigs/*`)** — 15 files
-AvailabilityWidget, BidCoachDialog, CVUploadGigForm, CourseSharingGigForm, GigCard, GigForYouTab, GigSubmissionForm, GigUploader, InfiniteGigsList, JobPostingGigForm, JobSharingGigForm, MySubmissions, OpenDisputeButton, RecommendedBiddersPanel, VerificationVerdictCard
+**Admin UI → `src/domains/abroad/components/admin/` (+ barrels at `src/components/dashboard/abroad/*`)** — 8 files + 1 hook
+- `AbroadApplicationsTab`, `AbroadDestinationsTab`, `AbroadIELTSPromptsTab`, `AbroadIELTSResourcesTab`, `AbroadLanguageLabTab`, `AbroadOverviewTab`, `AbroadProgramsTab`, `AbroadRoadmapLeadsTab`
+- `hooks/useAbroadGraph.ts`
 
-**Admin UI → `src/domains/gigs/components/admin/` (+ barrels at `src/components/dashboard/gigs/*`)** — 11 files + 1 hook
-ClientProjectsTab, GigMatchmakerTab, GigOverviewTab, GigVerificationQueueTab, GigWorkersWalletTab, GigsCourseProjectsTab, GigsMarketplaceTab, GigsQuickActionsTab, GigsSubmissionsTab, ManagedProjectsTab, ReviewerProgramTab, `hooks/useGigGraph.ts`
+**Typed edge contracts → `src/edge/contracts/abroad.ts`**
+- `ai-destination-agent`
+- `generate-study-roadmap`
 
-**Gro10x UI → `src/domains/gigs/components/gro10x/`**
-- `Gro10xOpenGigs.tsx` (re-export at original path)
+**API manifest → `src/domains/abroad/api/manifest.ts`**
+- `abroadApi.{aiDestinationAgent, generateStudyRoadmap}`
 
-**Typed edge contracts → `src/edge/contracts/gigs.ts`**
-- `ai-bid-coach`
-- `generate-outreach-message`
-- `parse-job-post`
-- `generate-job-share-caption`
-- (`parse-cv` already lives in `profile.ts` — `CVUploadGigForm` will import from `profileApi`)
-
-**API manifest → `src/domains/gigs/api/manifest.ts`**
-Typed `gigsApi.{aiBidCoach, generateOutreachMessage, parseJobPost, generateJobShareCaption}`.
-
-**Domain index → `src/domains/gigs/index.ts`**
-Re-export hooks, `gigsApi`, and key talent UI.
+**Domain index → `src/domains/abroad/index.ts`**
+Re-export the 3 talent components + `abroadApi`.
 
 **F3 sweep**
-Replace 4 direct `supabase.functions.invoke` calls inside gigs talent UI with `gigsApi.*` / `profileApi.parseCv`.
+Replace 2 direct `supabase.functions.invoke` calls in `RoadmapBuilderSheet` and `RoadmapIntakeForm` with `abroadApi.*`.
 
 ### Verification
-- Type-check passes (already validated automatically each step).
-- `/app/gigs`, `/app/marketplace`, `/gro10x/work`, `/dashboard/gigs` tabs still mount.
-- No circular imports (intra-folder paths rewritten to relative).
+- Type-check passes.
+- `/app/study-abroad`, `/app/study-abroad/roadmap`, `/dashboard/abroad` tabs still mount.
 
-### Out of scope (deferred)
-- 5.4+ remaining domains.
-- Lifting `escrow`, `disputes`, `reviewer`, `projects` page-level logic into `src/domains/gigs/` (page files stay where they are; only components/hooks/api move).
-- Retiring barrel re-exports → Phase 8.
-- Platform extraction → Phase 6.
-- React.lazy shell splitting → Phase 7.
+### Out of scope
+- IELTS/coach page logic stays in `src/pages/app/`; only components/api move.
+- `admin-support-assistant` cross-cutting anomaly invokes from page files (not abroad-specific) stay as-is.
+- Hooks: none currently live under `src/hooks/` for abroad.
+- Phases 6–9 still deferred.
 
 ### Risk
-- 27 component moves + barrels = wide blast radius for imports. Mitigation: barrels preserve every legacy path; intra-domain imports rewritten in the same pass.
-- `useGigGraph.ts` lives under `dashboard/gigs/hooks/` and may be imported via deep relative paths from admin tabs. Mitigation: keep barrel at original location.
+- Low. 12 files, 2 edge fns, no `useTalent`-style shared hook entanglement.
 
-### Progress after 5.3
-~40%. Remaining: abroad (5.4), messaging, companies, marketing, ir, finance, institutions, workforce, ugc, dashboard residuals; then Phases 6–9.
+### Progress after 5.4
+~43%. Next: 5.5 messaging.
+
+### Roadmap remainder
+```text
+5.5  messaging
+5.6  companies
+5.7  marketing
+5.8  ir
+5.9  finance
+5.10 institutions
+5.11 workforce
+5.12 ugc
+5.13 dashboard residuals (jobs admin, agents admin, etc.)
+Phase 6  platform/ extraction
+Phase 7  shells/*/routes.tsx + React.lazy
+Phase 8  retire barrel re-exports
+Phase 9  edge/contracts/ for every domain
+```
