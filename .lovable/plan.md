@@ -1,58 +1,88 @@
-## Phase 5.13a — Admin shell residuals (chat / messaging / gtm / overview / performance)
+## Phase 5.13b — Jobs admin extraction (final dashboard residual)
 
-11 dashboard folders remain. Splitting into sub-phases to stay safe. **5.13a** covers the 5 smallest, lowest-coupling admin shells (22 files, 1 `functions.invoke` site).
+Survey discovery: **abroad, agents, gigs, learning, and marketing are already migrated** (every `dashboard/<folder>/*` file is a 1–3-line barrel pointing at its domain). Only **`dashboard/jobs/`** still contains source — 25 admin files totaling ~5,300 LOC, with 7 `functions.invoke` sites and 5 relative `../` imports.
 
-### Inventory & target domains
+### Inventory
 
-| Source | Files | Invokes | Target domain |
+| Source path | Files | LOC | Invokes |
 |---|---|---|---|
-| `dashboard/chat/` | 4 (`AgentRail`, `AgentRedirectStub`, `ChatThread`, hooks `useAdminAgents`, `useAgentRuntimeThread`) | 0 | `domains/agents/components/admin/chat/` |
-| `dashboard/messaging/MessagingChannelsTab.tsx` | 1 | 0 | `domains/messaging/components/admin/` |
-| `dashboard/gtm/` | 4 (`ConfirmPurge`, `GtmKnowledgeTab`, `GtmOverviewTab`, `GtmTabs`, hook `useGtmGraph`) | 0 | **new** `domains/gtm/components/admin/` |
-| `dashboard/overview/` | 6 (`AgentAnomalyFeed`, `AnalystChatTab`, `LifetimeOverviewTab`, `OverviewSkeleton`, `PeriodOverviewTab`, `ReportsBuilderTab`, util `period.ts`) | 0 | **new** `domains/analytics/components/admin/overview/` |
-| `dashboard/performance/` | 5 (`EnrollmentFunnel`, `KPIStrip`, `ModuleDropoffTable`, `PoolHealthCard`, `RecentActivityList`) | 0 | `domains/analytics/components/admin/performance/` |
+| `dashboard/jobs/*.tsx` | 11 | ~3,100 | 1 |
+| `dashboard/jobs/hub/*.tsx` | 10 | ~3,100 | 5 |
+| `dashboard/jobs/codes/*.tsx` | 3 | ~670 | 0 |
+| `dashboard/jobs/hooks/useJobsGraph.ts` | 1 | 100 | 0 |
+
+**Edge functions invoked**: `enhance-job-description` ×2, `score-job-match` ×2, `parse-cv`, `generate-job-share-caption`, `parse-job-post`.
+
+**Relative `../` imports to rewrite**:
+- `hub/JobsManageTab` → `../../DashboardSkeleton` → `@/components/dashboard/DashboardSkeleton`
+- `hub/JobsApplicationsTab` → `../../DashboardSkeleton` → `@/components/dashboard/DashboardSkeleton`
+- `JobsAssessmentLeadsTab` → `../DashboardSkeleton`, `../talent/TalentDetailDialog` → `@/components/...` + `@/domains/talent/components/admin/TalentDetailDialog` (verify path)
+- `JobsManagerLegacyTab` → `../DashboardSkeleton` → `@/components/dashboard/DashboardSkeleton`
+
+### Target layout
+
+```
+src/domains/jobs/components/admin/
+  hooks/useJobsGraph.ts
+  JobsApplicationsTab.tsx
+  JobsAssessmentLeadsTab.tsx
+  JobsAssessmentsTab.tsx
+  JobsKanbanPipelineTab.tsx
+  JobsKpiTab.tsx
+  JobsLinkedInBatchUpload.tsx
+  JobsManagerLegacyTab.tsx
+  JobsOverviewTab.tsx
+  JobsSourcingTab.tsx
+  JobsTalentCrmTab.tsx
+  JobsUploadApprovalTab.tsx
+  codes/
+    AssessmentCodeGenerator.tsx
+    JobApplicationCodeGenerator.tsx
+    StandaloneAssessmentCodeGenerator.tsx
+  hub/
+    AIRelevanceScore.tsx
+    AddExternalApplicationDialog.tsx
+    ChannelPromotionCard.tsx
+    JobFormDialog.tsx
+    JobsApplicationsTab.tsx
+    JobsHub.tsx
+    JobsManageTab.tsx
+    JobsOutreachTab.tsx
+    JobsUploadTab.tsx
+    PendingJobSubmissions.tsx
+```
 
 ### Scope
 
-**Move + barrel pattern** (same as 5.10–5.12):
-- Copy each file to its new domain path; replace the original with a barrel `export { default, NamedExport } from "@/domains/.../..."`.
-- Hooks become `export * from "@/domains/.../hooks/..."`.
+1. **Copy** each source file to the new admin path; leave existing `domains/jobs/components/*` talent files untouched.
+2. **Replace originals** with barrels (`export { default, NamedX } from "@/domains/jobs/components/admin/..."` or `export * from "..."` for hooks).
+3. **Rewrite the 5 relative imports** noted above to `@/`-aliased paths in their new domain locations.
+4. **Create `src/edge/contracts/jobs.ts`** with typed request/response shells for the 5 distinct functions (`enhance-job-description`, `score-job-match`, `parse-cv`, `parse-job-post`, `generate-job-share-caption`). Use `Record<string, unknown>` for response bodies that aren't yet documented — matches the marketing-contract pattern.
+5. **Extend `src/domains/jobs/index.ts`** to re-export the new admin tabs (default + named) and the hook. Leave existing talent exports alone.
+6. **Keep `pages/Dashboard.tsx` imports unchanged** — barrels preserve every consumer path.
 
-**New domain skeletons** (`gtm`, `analytics`):
-- `src/domains/{gtm,analytics}/index.ts` — barrel re-exports.
-- `src/domains/{gtm,analytics}/api/manifest.ts` — `{} as const` stub.
-- `src/edge/contracts/{gtm,analytics}.ts` — `Record<string, never>` reserved.
-
-**Import rewrites** (relative `../` → `@/`):
-- Audit each file with `rg "from ['\"]\\.\\." src/domains/{gtm,analytics,agents,messaging}/components/admin/` after the copy and rewrite each hit to its `@/components/...` or `@/domains/...` equivalent. From the survey, the only known hits are inside `dashboard/chat` and `dashboard/overview` siblings; will resolve once copied.
-- `gtm/ConfirmPurge.tsx` looks like a domain-local copy — keep it inside the gtm domain rather than pointing it at the shared `dashboard/common/ConfirmPurge`.
-
-**Cross-domain consumer kept stable**:
-- `src/domains/learning/components/admin/content-widgets/CoursePerformanceDashboard.tsx` keeps its current `@/components/dashboard/performance/*` imports — they resolve through the new barrel files.
-
-**`DashboardChat.tsx`**:
-- Continues importing `@/components/dashboard/chat/*` unchanged (barrel re-exports).
-
-### F3 sweep
-- **Zero** `functions.invoke` calls across the five folders — no edge contract enrichment needed in 5.13a.
+### Out of scope
+- Refactoring the duplicated `JobsApplicationsTab` (one in `jobs/`, one in `jobs/hub/`) — keep both, just move them.
+- Migrating any of the 7 `functions.invoke` call sites to a typed `jobsApi.*` wrapper (Phase 9 work — contract file is the prep).
+- Renaming `domains/agents/components/dashboard` → `admin` for consistency (cosmetic, deferred).
+- Phases 6–9 (platform extraction, route shells + lazy, barrel retirement, full edge wrapper rollout).
 
 ### Verification
 - `tsc` clean.
-- `/dashboard` Overview / Period / Reports / Analyst Chat tabs mount.
-- `/dashboard/chat` thread + AgentRail render.
-- GTM Knowledge / Overview tabs mount.
-- Performance widgets (incl. embedded `CoursePerformanceDashboard`) render.
-- `rg "functions.invoke" src/domains/{gtm,analytics,agents/components/admin/chat,messaging/components/admin}` → 0.
-
-### Out of scope (deferred to 5.13b/c/d)
-- `dashboard/abroad/` (9 files) → `domains/abroad` — 5.13b
-- `dashboard/agents/` (15 files) → `domains/agents` — 5.13b
-- `dashboard/gigs/` (12) + `dashboard/learning/` (21) → 5.13c
-- `dashboard/jobs/` (14, **7 invokes**) + `dashboard/marketing/` (15) → 5.13d (heavier, contract enrichment needed)
-- Phases 6–9 (platform extraction, route shells + lazy, barrel retirement, full edge contracts).
+- `/dashboard` Jobs group: Overview / KPI / Sourcing / Applications / Kanban / Assessments / Assessment Leads / Talent CRM / Upload Approval / LinkedIn Batch Upload / Manager Legacy all mount.
+- `/dashboard` Jobs Hub subtabs: Manage / Applications / Upload / Outreach / Pending Submissions render; `JobFormDialog` opens; `AIRelevanceScore` fetches; `AddExternalApplicationDialog` parses CV.
+- Code-generator dialogs in `codes/` open and produce output.
+- `rg "from ['\"]\\.\\." src/domains/jobs/components/admin/` → 0.
+- `rg "functions.invoke" src/domains/jobs/components/admin/ | wc -l` → 7 (unchanged; wrapper migration is Phase 9).
 
 ### Risk
-- Low. No edge calls, single primary consumer (`pages/Dashboard.tsx` + `pages/DashboardChat.tsx`), barrels preserve every existing import path.
+- Medium. Largest residual (25 files, ~5,300 LOC) and the only one with real edge calls. Talent-side `domains/jobs` already exists, so we must be careful not to collide with existing file names (none of the admin filenames overlap — confirmed).
 
-### Progress after 5.13a
-~75%. Remaining residuals: ~86 files across 5 folders (abroad, agents, gigs, learning, jobs, marketing).
+### Progress after 5.13b
+**~85%.** All admin shells live under `src/domains/<X>/components/admin/`. Remaining phases:
+```text
+Phase 6  platform/ extraction (shared notifications, layout chrome, RBAC primitives)
+Phase 7  shells/*/routes.tsx + React.lazy code-splitting
+Phase 8  retire src/components/dashboard/* barrels (consumers import from @/domains/*)
+Phase 9  typed jobsApi/etc. wrappers around remaining functions.invoke sites
+```
