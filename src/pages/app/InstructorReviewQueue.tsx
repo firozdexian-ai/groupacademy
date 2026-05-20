@@ -105,9 +105,14 @@ export default function InstructorReviewQueue() {
 
   const handleWeeklyDispatch = async () => {
     toast.loading("Initiating global weekly digest distribution…", { id: "wd" });
-    const { error } = await supabase.functions.invoke("authoring-review-digest", { body: { mode: "weekly", days: 7 } });
-    toast.dismiss("wd");
-    if (error) toast.error("Dispatch failure."); else toast.success("Digests transmitted.");
+    try {
+      await authoringReviewDigest({ mode: "weekly", days: 7 });
+      toast.dismiss("wd");
+      toast.success("Digests transmitted.");
+    } catch (err) {
+      toast.dismiss("wd");
+      toast.error(err instanceof EdgeFunctionError ? "Dispatch failure." : "Dispatch failure.");
+    }
   };
 
   return (
