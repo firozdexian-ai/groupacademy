@@ -1,4 +1,14 @@
-## Phase 5.3 — `gigs` domain vertical slice
+## Phase 5.3 — `gigs` domain vertical slice — DONE ✅
+
+Moved: 2 hooks → `src/domains/gigs/hooks/`; 15 talent components → `components/talent/`; 11 admin components + `useGigGraph` → `components/admin/[hooks/]`; `Gro10xOpenGigs` → `components/gro10x/`. Barrel re-exports at all 29 legacy paths.
+
+Edge: `src/edge/contracts/gigs.ts` (4 response types) + `src/domains/gigs/api/manifest.ts` (`gigsApi.{aiBidCoach, generateOutreachMessage, parseJobPost, generateJobShareCaption}`). Swept all 4 direct invokes in talent UI to `gigsApi.*`, and `CVUploadGigForm` parse-cv → `profileApi.parseCv`.
+
+Progress: ~40%. Next: Phase 5.4 — abroad (40K).
+
+---
+
+## Original Phase 5.3 plan
 
 Replicate the Phase 5.1/5.2 recipe across the largest remaining surface (189K talent UI + 91K admin UI + 1 gro10x file). All legacy import paths stay live via barrel re-exports.
 
