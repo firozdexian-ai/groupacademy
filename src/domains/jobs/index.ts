@@ -13,7 +13,7 @@ export * from "./hooks/useJobsHubDashboard";
 export * from "./hooks/useJobsInField";
 export * from "./hooks/useRankedJobs";
 export * from "./hooks/useTrendingJobs";
-export { jobsApi } from "./api/manifest";
+export * from "./api/manifest";
 
 // Components
 export * from "./components/AIJobInsights";
