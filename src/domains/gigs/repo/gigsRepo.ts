@@ -1,0 +1,192 @@
+/**
+ * Gigs domain repository.
+ *
+ * Phase 10b: typed wrappers around `supabase.from(...)` for gigs-owned
+ * tables (gigs, marketplace_gigs, gig_projects, gig_project_milestones,
+ * gig_project_messages, gig_escrow_accounts, gig_submissions,
+ * gig_verifications, gig_matches, gig_match_digests, gig_review_assignments,
+ * gig_disputes, reviewer_profiles, course_projects, withdrawal_requests).
+ *
+ * Rules:
+ * - Named-export functions only; no React, no hooks here.
+ * - Throws on error; callers use try/catch like edge wrappers.
+ * - This is the ONLY place outside repos that may call `supabase.from`
+ *   on gigs-owned tables (the ESLint guard enforces this in Phase 10j).
+ */
+import { supabase } from "@/integrations/supabase/client";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Project Room (talent)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getProjectRoomBundle(projectId: string) {
+  const [pRes, mRes, eRes, msgRes] = await Promise.all([
+    supabase.from("gig_projects").select("*").eq("id", projectId).maybeSingle(),
+    supabase.from("gig_project_milestones").select("*").eq("project_id", projectId).order("seq"),
+    supabase.from("gig_escrow_accounts").select("*").eq("project_id", projectId).maybeSingle(),
+    supabase
+      .from("gig_project_messages")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at"),
+  ]);
+  if (pRes.error) throw pRes.error;
+  if (mRes.error) throw mRes.error;
+  return {
+    project: pRes.data,
+    milestones: mRes.data ?? [],
+    escrow: eRes.data,
+    messages: msgRes.data ?? [],
+  };
+}
+
+export async function insertProjectMessage(input: {
+  projectId: string;
+  senderId: string;
+  body: string;
+}): Promise<void> {
+  const { error } = await supabase.from("gig_project_messages").insert({
+    project_id: input.projectId,
+    sender_id: input.senderId,
+    body: input.body,
+  });
+  if (error) throw error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reviewer Cockpit (talent)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getReviewerCockpit(talentId: string) {
+  const [p, a] = await Promise.all([
+    supabase.from("reviewer_profiles").select("*").eq("talent_id", talentId).maybeSingle(),
+    supabase
+      .from("gig_review_assignments")
+      .select("*")
+      .eq("reviewer_id", talentId)
+      .order("offered_at", { ascending: false }),
+  ]);
+  return { profile: p.data, assignments: a.data ?? [] };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reviewer Program (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getReviewerProgramBundle() {
+  const [r, d, l] = await Promise.all([
+    supabase
+      .from("reviewer_profiles")
+      .select("*")
+      .order("accuracy", { ascending: false })
+      .limit(100),
+    supabase.from("gig_disputes").select("*").order("created_at", { ascending: false }).limit(100),
+    supabase.from("gig_review_assignments").select("status,kind"),
+  ]);
+  return {
+    reviewers: r.data ?? [],
+    disputes: d.data ?? [],
+    assignments: l.data ?? [],
+  };
+}
+
+export async function updateReviewerStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase.from("reviewer_profiles").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gig Matchmaker (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getGigMatchFunnel() {
+  const { data, error } = await supabase.from("gig_matches").select("status, gig_kind, score");
+  if (error) throw error;
+  return (data ?? []) as Array<{ status: string; gig_kind: string; score: number }>;
+}
+
+export async function countGigMatchDigests(): Promise<number> {
+  const { count } = await supabase
+    .from("gig_match_digests")
+    .select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gig Graph (admin) — multi-table master fetch + generic mutators
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getGigGraphSlice() {
+  const [gigsRes, marketRes, courseRes, subRes, verifRes, walletRes] = await Promise.all([
+    supabase
+      .from("gigs")
+      .select("id, title, status:is_active, reward_amount:credit_reward, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("marketplace_gigs")
+      .select("id, title, status, budget:budget_amount, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("course_projects")
+      .select("id, status, created_at, course:course_id(title)")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("gig_submissions")
+      .select("id, gig_id, talent_id, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("gig_verifications")
+      .select("id, talent_id, status:verdict, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("withdrawal_requests")
+      .select("id, talent_id, amount:amount_credits, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
+  if (gigsRes.error) throw gigsRes.error;
+  if (marketRes.error) throw marketRes.error;
+  if (courseRes.error) throw courseRes.error;
+  if (subRes.error) throw subRes.error;
+  if (verifRes.error) throw verifRes.error;
+  if (walletRes.error) throw walletRes.error;
+  return {
+    gigs: gigsRes.data ?? [],
+    marketplaceGigs: marketRes.data ?? [],
+    courseProjects: courseRes.data ?? [],
+    submissions: subRes.data ?? [],
+    verifications: verifRes.data ?? [],
+    withdrawals: walletRes.data ?? [],
+  };
+}
+
+export type GigGraphTable =
+  | "gigs"
+  | "marketplace_gigs"
+  | "course_projects"
+  | "gig_submissions"
+  | "gig_verifications"
+  | "withdrawal_requests";
+
+export async function upsertGigGraphRow(
+  table: GigGraphTable,
+  payload: Record<string, unknown> & { id?: string },
+): Promise<void> {
+  if (payload.id) {
+    const { error } = await supabase.from(table as any).update(payload).eq("id", payload.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from(table as any).insert(payload);
+    if (error) throw error;
+  }
+}
+
+export async function deleteGigGraphRow(table: GigGraphTable, id: string): Promise<void> {
+  const { error } = await supabase.from(table as any).delete().eq("id", id);
+  if (error) throw error;
+}
