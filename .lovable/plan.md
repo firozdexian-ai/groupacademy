@@ -1,4 +1,13 @@
-# Phase 9g — Small-domains edge function hardening sweep
+# Phase 9g — Small-domains edge function hardening sweep ✅ COMPLETE
+
+**Outcome:** 6 small domains (gigs, profile, finance, messaging, marketing, analytics) migrated to the canonical pattern. New contracts for all 6 (Zod schemas + `.passthrough()`), 1 new function added (`admin-report-builder`). Legacy `<domain>Api` consts removed from every manifest + index barrel. Cross-owner duplication removed from `gigs.ts` and `profile.ts` — gig CV/job/share forms now import `parseCv` / `parseJobPost` / `generateJobShareCaption` from jobs and `generateOutreachMessage` from talent; `CVUploadSection` imports `parseCv` from jobs. Finance/marketing callers updated from `{ data, error }` shape to try/catch. `MessagingChannelsTab` (×4), `ReportsBuilderTab`, and `usePublicProfileSettings` raw invokes replaced with named wrappers. `rg "supabase.functions.invoke" src/domains` clean outside `*Api.ts`; `rg "(gigsApi|profileApi|financeApi|messagingApi|marketingApi|analyticsApi)\\."` returns 0 hits.
+
+**Next:** Phase 9h — bulk migrate ~45 cross-domain raw invokes (pages, hooks, gro10x, lib) to owner-domain wrappers, then add ESLint rule banning `supabase.functions.invoke` outside `src/domains/*/api/*.ts` (with the one documented SSE streaming exception in `AIChatPanel`).
+
+---
+
+## Phase 9g — original plan (kept for reference)
+
 
 Apply the hardened pattern (talent/agents/jobs/abroad/learning) to the remaining six small domains in one combined sweep, since each is tiny on its own. After this, every owner-domain has a typed wrapper layer and we can confidently add a tooling guard in Phase 9h.
 
