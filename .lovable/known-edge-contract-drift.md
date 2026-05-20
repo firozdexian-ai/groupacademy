@@ -58,6 +58,37 @@ exact runtime behavior. Fix in a dedicated follow-up.
   with an index signature; consumers should standardize on camelCase.
 - **No user-visible effect** — both forms work.
 
+## 6. `notify-hiring-event` — cross-domain raw callers
+
+- **Call sites:** `src/hooks/useOffers.ts`, `src/hooks/useInterviews.ts`
+  still call `supabase.functions.invoke("notify-hiring-event", ...)`
+  directly instead of using `notifyHiringEvent` from the jobs domain.
+- **No bug** — bodies match the contract. Convention violation only.
+- **Fix:** swap to `import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi"`
+  when next touching those hooks, or fold into a "shared hooks" pass.
+
+## 7. `parse-cv` — cross-domain raw callers
+
+- **Call sites:** `src/pages/app/ProfileEdit.tsx`,
+  `src/components/job-application/InlineCVUpload.tsx`,
+  `src/components/onboarding/CVUploadStep.tsx`,
+  `src/gro10x/hooks/useGro10xAuthChat.ts` still call
+  `supabase.functions.invoke("parse-cv", ...)` directly.
+- **No bug** — bodies vary (`fileUrl` / `cvText` / etc.) but all are
+  accepted by the edge function. Convention violation only.
+- **Fix:** swap to `import { parseCv } from "@/domains/jobs/api/jobsApi"`
+  during the respective talent-profile, onboarding, and gro10x passes.
+
+## 8. `agent-runtime`, `agent-blueprint`, `ai-general-chat` — cross-domain raw callers
+
+- **Call sites:** `src/components/onboarding/OnboardingWizard.tsx`
+  (`agent-runtime`), `src/components/agents/CreatorOnboardingDialog.tsx`
+  (`agent-blueprint`), and one additional `ai-general-chat` consumer
+  outside the agents domain.
+- **No bug** — convention violation only.
+- **Fix:** swap to named imports from `@/domains/agents/api/agentsApi`
+  when the onboarding / creator-onboarding flows are next refactored.
+
 ---
 
 When fixing, also remove the entry here.

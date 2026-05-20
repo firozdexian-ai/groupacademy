@@ -1,32 +1,35 @@
-# Phase 9d — Harden the jobs domain edge surface (COMPLETE)
+# Phase 9 — Status
 
-Applied the Phase 9b pattern (zod contracts + `parseEdgeResponse` + `EdgeFunctionError` + named async wrappers, no `*Api` const object) to the jobs domain.
+## Completed (signed off)
 
-## Shipped
+- **Phase 9a** — infra: `EdgeFunctionError`, `parseEdgeResponse`, contracts directory, README, drift log.
+- **Phase 9b — talent** ✅ COMPLETE. 2 owned fns (`batch-parse-cvs`, `generate-outreach-message`). Zero in-domain raw invokes.
+- **Phase 9c — agents** ✅ COMPLETE. 7 owned fns. Cross-domain ownership of `admin-support-assistant` / `ai-support-assistant` resolved via Option A. Zero in-domain raw invokes.
+- **Phase 9d — jobs** ✅ COMPLETE. 10 owned fns. Zero in-domain raw invokes.
 
-- **`src/edge/contracts/jobs.ts`** — rewritten with 10 typed Request interfaces + Zod response schemas (`.passthrough()`): `score-job-match`, `suggest-jobs-for-talent`, `cron-rebuild-job-recs`, `analyze-job-market`, `enhance-job-description`, `parse-cv`, `parse-job-post`, `generate-job-share-caption`, `notify-application-status`, `notify-hiring-event`.
-- **`src/domains/jobs/api/jobsApi.ts`** — new file, 10 named async wrappers using `supabase.functions.invoke` → `EdgeFunctionError` → `parseEdgeResponse`.
-- **`src/domains/jobs/api/manifest.ts`** — reduced to a re-export barrel; removed legacy `jobsApi` const + local `invoke` helper.
-- **`src/domains/jobs/index.ts`** — barrel re-exports named functions instead of the deleted const.
-- **10 call sites migrated** to named imports:
-  - `hooks/useEmployerPipeline.ts` (`notifyApplicationStatus`)
-  - `hooks/useJobInvitations.ts` (`notifyHiringEvent`)
-  - `components/AIJobInsights.tsx` (`scoreJobMatch`, `analyzeJobMarket`)
-  - `components/admin/JobsManagerLegacyTab.tsx` (`enhanceJobDescription`)
-  - `components/admin/hub/{AddExternalApplicationDialog (parseCv), AIRelevanceScore (scoreJobMatch), ChannelPromotionCard (generateJobShareCaption), JobFormDialog (enhanceJobDescription), JobsApplicationsTab (scoreJobMatch), JobsUploadTab (parseJobPost)}.tsx`
-- **`src/edge/README.md`** — added jobs row to the ownership table.
-- **`.lovable/known-edge-contract-drift.md`** — added entry #5 noting `score-job-match` camelCase/snake_case duality.
+All three pass the Phase 9b convention checklist:
+contracts present, named-async wrappers, barrel-only manifest, no
+`*Api` const, every wrapper uses `EdgeFunctionError` + `parseEdgeResponse`,
+README ownership table updated, drift entries logged.
 
-## Verification
+## Outstanding (cross-domain leaks, deferred by design)
 
-- `rg "supabase.functions.invoke" src/domains/jobs` → only `jobsApi.ts` (10 hits, all wrappers).
-- `rg "jobsApi\." src` → 0 hits (the const is gone, only named imports remain).
-- TypeScript build clean.
+Tracked in `.lovable/known-edge-contract-drift.md` entries #3, #6, #7, #8.
+These are pages/components in other domains that still call owned fns via
+raw `supabase.functions.invoke`. They will be migrated when the consuming
+domain comes up in its own phase (no functional bug — convention only).
 
-## Domains on the hardened pattern
+## Next: Phase 9e — abroad domain
 
-talent (9b), agents (9c), jobs (9d).
+Same shape as 9d. ~12 page-level call sites under
+`src/pages/app/{StudyAbroad*, SchoolDetail, DestinationAgentPage,
+LanguagePracticePage, LanguageInstructorsPage, IELTSMockRunner}.tsx`.
 
-## Next: Phase 9e
+This phase will incidentally clear several drift-#3 entries
+(`admin-support-assistant` calls on StudyAbroad* / SchoolDetail).
 
-Recommend **abroad** domain next — tight cluster of ~12 page-level call sites (StudyAbroad*, Destination, IELTS, Language*, School), most still using raw `supabase.functions.invoke`.
+## Optional follow-up (not blocking)
+
+**Tooling guard** — add an ESLint rule that flags
+`supabase.functions.invoke` outside `src/**/api/*Api.ts`. Would catch
+regressions automatically and remove the manual `rg` audit each phase.
