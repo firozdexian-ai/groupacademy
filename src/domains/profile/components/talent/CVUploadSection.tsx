@@ -21,6 +21,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { profileApi } from "@/domains/profile/api/manifest";
 
 interface ParsedCVData {
   fullName?: string;
