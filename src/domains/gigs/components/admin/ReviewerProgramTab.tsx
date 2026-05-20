@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import {
+  getReviewerProgramBundle,
+  updateReviewerStatus,
+} from "@/domains/gigs/repo/gigsRepo";
 
 export function ReviewerProgramTab() {
   const [reviewers, setReviewers] = useState<any[]>([]);
@@ -14,23 +18,29 @@ export function ReviewerProgramTab() {
 
   const load = async () => {
     setLoading(true);
-    const [r, d, l] = await Promise.all([
-      supabase.from("reviewer_profiles").select("*").order("accuracy", { ascending: false }).limit(100),
-      supabase.from("gig_disputes").select("*").order("created_at", { ascending: false }).limit(100),
-      supabase.from("gig_review_assignments").select("status,kind"),
-    ]);
-    setReviewers(r.data || []);
-    setDisputes(d.data || []);
-    const s: any = { offered: 0, claimed: 0, submitted: 0, expired: 0 };
-    (l.data || []).forEach((x: any) => { s[x.status] = (s[x.status] || 0) + 1; });
-    setInsights(s);
-    setLoading(false);
+    try {
+      const { reviewers: r, disputes: d, assignments: l } = await getReviewerProgramBundle();
+      setReviewers(r);
+      setDisputes(d);
+      const s: any = { offered: 0, claimed: 0, submitted: 0, expired: 0 };
+      l.forEach((x: any) => { s[x.status] = (s[x.status] || 0) + 1; });
+      setInsights(s);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to load reviewer program.");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
   const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("reviewer_profiles").update({ status }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Updated"); load(); }
+    try {
+      await updateReviewerStatus(id, status);
+      toast.success("Updated");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Update failed");
+    }
   };
 
   const resolveDispute = async (id: string, verdict: string) => {
