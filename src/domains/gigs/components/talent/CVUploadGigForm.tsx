@@ -93,26 +93,31 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       setCvUrl(publicUrl);
 
       // PHASE 2: AI Synapse Parsing Analysis
-      const { data: parseRes, error: parseErr } = await supabase.functions.invoke("parse-cv", {
-        body: { cvUrl: publicUrl, serviceType: "cv_outreach" },
-      });
-
-      if (parseErr || !parseRes?.success) {
+      let parseRes: any;
+      try {
+        parseRes = await profileApi.parseCv({ cvUrl: publicUrl, serviceType: "cv_outreach" } as any);
+      } catch (parseErr: any) {
         throw new Error(parseErr?.message || "Ecosystem document parsing extraction failed.");
+      }
+      if (!parseRes?.success) {
+        throw new Error("Ecosystem document parsing extraction failed.");
       }
 
       setParsedData(parseRes.parsed);
 
       // PHASE 3: Outreach Strategy Synthesis
-      const { data: msgRes, error: msgErr } = await supabase.functions.invoke("generate-outreach-message", {
-        body: {
+      let msgRes: any;
+      try {
+        msgRes = await gigsApi.generateOutreachMessage({
           parsedCV: parseRes.parsed,
           product: "digital-portfolio",
           professionCategory: parseRes.parsed?.profession_category || "Executive",
           senderName: "Academy_Systems",
           language: "auto",
-        },
-      });
+        } as any);
+      } catch (msgErr: any) {
+        throw new Error(msgErr?.message || "Ecosystem copywriting message generation failed.");
+      }
 
       if (msgErr || !msgRes?.success) {
         throw new Error(msgErr?.message || "Ecosystem copywriting message generation failed.");

@@ -157,12 +157,8 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     trackEvent("job_sharing_caption_synthesis_started", { jobId, channel });
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-job-share-caption", {
-        body: { ...job, apply_link: shareUrl, channel },
-      });
-
-      if (error) throw error;
-      setCaptions((prev) => ({ ...prev, [channel]: data?.caption || "" }));
+      const data = await gigsApi.generateJobShareCaption({ ...job, apply_link: shareUrl, channel } as any);
+      setCaptions((prev) => ({ ...prev, [channel]: (data as any)?.caption || "" }));
       trackEvent("job_sharing_caption_synthesis_success", { jobId, channel });
     } catch (err: any) {
       trackError(err, {

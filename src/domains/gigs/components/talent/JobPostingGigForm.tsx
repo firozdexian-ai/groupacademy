@@ -119,8 +119,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       }
 
       // INGRESS: Invoke edge engine function for automated entity extraction parameters
-      const { data, error: edgeError } = await supabase.functions.invoke("parse-job-post", { body: payload });
-      if (edgeError) throw edgeError;
+      const data: any = await gigsApi.parseJobPost(payload as any);
 
       const parsed = data.parsed || data;
       if (!parsed) throw new Error("AI engine generated empty payload parsing tokens.");
