@@ -52,7 +52,7 @@ export interface GenerateStudyRoadmapRequest {
   fullName?: string;
   email?: string;
   currentProfession?: string;
-  currentSkills?: string[];
+  currentSkills?: unknown[];
   originCountry?: string;
   yearsExperience?: number;
   [k: string]: unknown;
