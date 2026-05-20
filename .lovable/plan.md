@@ -1,57 +1,58 @@
-## Phase 5.12 — `ugc` domain vertical slice
+## Phase 5.13a — Admin shell residuals (chat / messaging / gtm / overview / performance)
 
-Clean small phase. Zero edge functions. Only consumer is `src/pages/Dashboard.tsx`. 4 of 5 tabs import the shared `ConfirmPurge` via relative paths.
+11 dashboard folders remain. Splitting into sub-phases to stay safe. **5.13a** covers the 5 smallest, lowest-coupling admin shells (22 files, 1 `functions.invoke` site).
+
+### Inventory & target domains
+
+| Source | Files | Invokes | Target domain |
+|---|---|---|---|
+| `dashboard/chat/` | 4 (`AgentRail`, `AgentRedirectStub`, `ChatThread`, hooks `useAdminAgents`, `useAgentRuntimeThread`) | 0 | `domains/agents/components/admin/chat/` |
+| `dashboard/messaging/MessagingChannelsTab.tsx` | 1 | 0 | `domains/messaging/components/admin/` |
+| `dashboard/gtm/` | 4 (`ConfirmPurge`, `GtmKnowledgeTab`, `GtmOverviewTab`, `GtmTabs`, hook `useGtmGraph`) | 0 | **new** `domains/gtm/components/admin/` |
+| `dashboard/overview/` | 6 (`AgentAnomalyFeed`, `AnalystChatTab`, `LifetimeOverviewTab`, `OverviewSkeleton`, `PeriodOverviewTab`, `ReportsBuilderTab`, util `period.ts`) | 0 | **new** `domains/analytics/components/admin/overview/` |
+| `dashboard/performance/` | 5 (`EnrollmentFunnel`, `KPIStrip`, `ModuleDropoffTable`, `PoolHealthCard`, `RecentActivityList`) | 0 | `domains/analytics/components/admin/performance/` |
 
 ### Scope
 
-**5 admin UI → `src/domains/ugc/components/admin/` (+ barrels at `src/components/dashboard/ugc/*`)**
-- `UgcOverviewTab` (default + named)
-- `UgcFeedTab` (default + named)
-- `UgcVideosTab` (default + named)
-- `UgcCompetitionsTab` (default + named)
-- `UgcBlogTab` (default + named)
+**Move + barrel pattern** (same as 5.10–5.12):
+- Copy each file to its new domain path; replace the original with a barrel `export { default, NamedExport } from "@/domains/.../..."`.
+- Hooks become `export * from "@/domains/.../hooks/..."`.
 
-**1 hook → `src/domains/ugc/components/admin/hooks/` (+ barrel at `src/components/dashboard/ugc/hooks/useUgcGraph.ts`)**
-- `useUgcGraph`
+**New domain skeletons** (`gtm`, `analytics`):
+- `src/domains/{gtm,analytics}/index.ts` — barrel re-exports.
+- `src/domains/{gtm,analytics}/api/manifest.ts` — `{} as const` stub.
+- `src/edge/contracts/{gtm,analytics}.ts` — `Record<string, never>` reserved.
 
-**Import rewrite** (4 files)
-- `UgcFeedTab`, `UgcVideosTab`, `UgcCompetitionsTab`, `UgcBlogTab`: `"../common/ConfirmPurge"` → `"@/components/dashboard/common/ConfirmPurge"`.
+**Import rewrites** (relative `../` → `@/`):
+- Audit each file with `rg "from ['\"]\\.\\." src/domains/{gtm,analytics,agents,messaging}/components/admin/` after the copy and rewrite each hit to its `@/components/...` or `@/domains/...` equivalent. From the survey, the only known hits are inside `dashboard/chat` and `dashboard/overview` siblings; will resolve once copied.
+- `gtm/ConfirmPurge.tsx` looks like a domain-local copy — keep it inside the gtm domain rather than pointing it at the shared `dashboard/common/ConfirmPurge`.
 
-**Edge contract → `src/edge/contracts/ugc.ts`**
-- `UgcEdgeContracts = Record<string, never>` (no edge functions today).
+**Cross-domain consumer kept stable**:
+- `src/domains/learning/components/admin/content-widgets/CoursePerformanceDashboard.tsx` keeps its current `@/components/dashboard/performance/*` imports — they resolve through the new barrel files.
 
-**API manifest → `src/domains/ugc/api/manifest.ts`**
-- `ugcApi = {} as const` stub.
+**`DashboardChat.tsx`**:
+- Continues importing `@/components/dashboard/chat/*` unchanged (barrel re-exports).
 
-**Domain index → `src/domains/ugc/index.ts`**
-- Re-export the 5 tabs + hook + `ugcApi`.
-
-**F3 sweep** — none (0 `functions.invoke` in the source tree).
-
-### Importers kept stable via barrels
-- `src/pages/Dashboard.tsx` continues importing `@/components/dashboard/ugc/*` unchanged.
+### F3 sweep
+- **Zero** `functions.invoke` calls across the five folders — no edge contract enrichment needed in 5.13a.
 
 ### Verification
-- Type-check passes.
-- `/dashboard` UGC & Contents tabs (Overview / Feed / Videos / Competitions / Blog) mount and `ConfirmPurge` opens.
-- `rg "functions.invoke" src/domains/ugc/` → 0.
+- `tsc` clean.
+- `/dashboard` Overview / Period / Reports / Analyst Chat tabs mount.
+- `/dashboard/chat` thread + AgentRail render.
+- GTM Knowledge / Overview tabs mount.
+- Performance widgets (incl. embedded `CoursePerformanceDashboard`) render.
+- `rg "functions.invoke" src/domains/{gtm,analytics,agents/components/admin/chat,messaging/components/admin}` → 0.
 
-### Out of scope
-- UGC chat agents (live in `dashboard/chat`, handled later).
-- Public talent-feed surface (already in `domains/feed`).
-- Phases 6–9.
+### Out of scope (deferred to 5.13b/c/d)
+- `dashboard/abroad/` (9 files) → `domains/abroad` — 5.13b
+- `dashboard/agents/` (15 files) → `domains/agents` — 5.13b
+- `dashboard/gigs/` (12) + `dashboard/learning/` (21) → 5.13c
+- `dashboard/jobs/` (14, **7 invokes**) + `dashboard/marketing/` (15) → 5.13d (heavier, contract enrichment needed)
+- Phases 6–9 (platform extraction, route shells + lazy, barrel retirement, full edge contracts).
 
 ### Risk
-- Low. 6 files, no edge calls, single consumer, 4 trivial path rewrites.
+- Low. No edge calls, single primary consumer (`pages/Dashboard.tsx` + `pages/DashboardChat.tsx`), barrels preserve every existing import path.
 
-### Progress after 5.12
-~71%. Next: 5.13 dashboard residuals (jobs/agents/learning/abroad/gigs/messaging/performance/overview/gtm/chat admin slices still under `src/components/dashboard/*`).
-
-### Roadmap remainder
-```text
-5.13 dashboard residuals
-Phase 6  platform/ extraction (notifications, etc.)
-Phase 7  shells/*/routes.tsx + React.lazy
-Phase 8  retire barrel re-exports
-Phase 9  edge/contracts/ for every domain
-```
+### Progress after 5.13a
+~75%. Remaining residuals: ~86 files across 5 folders (abroad, agents, gigs, learning, jobs, marketing).
