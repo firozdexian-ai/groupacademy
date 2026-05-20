@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useEmployerPipeline, type PipelineApplication, type PipelineStatus } from "@/hooks/useEmployerPipeline";
+import { useEmployerPipeline, type PipelineApplication, type PipelineStatus } from "@/domains/jobs";
 import { ApplicationKanbanCard } from "./ApplicationKanbanCard";
 import { ApplicationDetailSheet } from "./ApplicationDetailSheet";
 import { useIsMobile } from "@/hooks/use-mobile";

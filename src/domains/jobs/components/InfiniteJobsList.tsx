@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { JobCard } from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRankedJobs } from "@/hooks/useRankedJobs";
+import { useRankedJobs } from "@/domains/jobs";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";

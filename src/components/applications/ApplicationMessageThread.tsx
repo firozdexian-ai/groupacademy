@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useApplicationMessages } from "@/hooks/useApplicationMessages";
+import { useApplicationMessages } from "@/domains/jobs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
-import { useJobsHubDashboard } from "@/hooks/useJobsHubDashboard";
+import { useJobsHubDashboard } from "@/domains/jobs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Layers, Building2, Globe, Zap } from "lucide-react";
 import { JobsHubHeader } from "@/components/jobs/JobsHubHeader";

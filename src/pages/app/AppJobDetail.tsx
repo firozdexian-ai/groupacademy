@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { useCredits } from "@/hooks/useCredits";
-import { useJobMatchCached } from "@/hooks/useJobMatchCached";
+import { useJobMatchCached } from "@/domains/jobs";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { PipelineApplication } from "@/hooks/useEmployerPipeline";
+import type { PipelineApplication } from "@/domains/jobs";
 import { cn } from "@/lib/utils";
 import { Briefcase, Sparkles, UserCheck } from "lucide-react";
 

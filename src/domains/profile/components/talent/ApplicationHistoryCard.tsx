@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useApplicationHistory } from "@/hooks/useApplicationHistory";
+import { useApplicationHistory } from "@/domains/jobs";
 import { formatDistanceToNow } from "date-fns";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
