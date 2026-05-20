@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { financeApi } from "@/domains/finance/api/manifest";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ export function PaymentInfraTab() {
     queryKey: ["stripe-secret-status"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("update-stripe-secret", { body: { action: "check" } });
+        const { data, error } = await financeApi.updateStripeSecret({ action: "check" });
         if (error) return { hasSecretKey: false, hasWebhookSecret: false };
         return data as { hasSecretKey: boolean; hasWebhookSecret: boolean };
       } catch {
@@ -116,9 +117,7 @@ export function PaymentInfraTab() {
     if (!secretKey.startsWith("sk_")) return toast.error("Key must start with sk_test_ or sk_live_");
     setSavingSecret(true);
     try {
-      const { data, error } = await supabase.functions.invoke("update-stripe-secret", {
-        body: { action: "save-key", stripeSecretKey: secretKey },
-      });
+      const { data, error } = await financeApi.updateStripeSecret({ action: "save-key", stripeSecretKey: secretKey });
       if (error || !data?.saved) toast.error(data?.error || "Failed to save Stripe key");
       else {
         toast.success("Stripe Secret Key Validated & Saved!");
@@ -136,9 +135,7 @@ export function PaymentInfraTab() {
     if (!webhookSecret.startsWith("whsec_")) return toast.error("Webhook secret must start with whsec_");
     setSavingWebhook(true);
     try {
-      const { data, error } = await supabase.functions.invoke("update-stripe-secret", {
-        body: { action: "save-webhook", stripeWebhookSecret: webhookSecret },
-      });
+      const { data, error } = await financeApi.updateStripeSecret({ action: "save-webhook", stripeWebhookSecret: webhookSecret });
       if (error || !data?.saved) toast.error(data?.error || "Failed to save webhook secret");
       else {
         toast.success("Webhook Secret Registered!");
