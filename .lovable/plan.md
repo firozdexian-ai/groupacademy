@@ -1,60 +1,70 @@
-# Phase 9h — Cross-domain edge function migration + ESLint guard
+# Phase 9h — Finish the edge-wrapper migration
 
-## Status: 🟡 IN PROGRESS — infrastructure complete, call-site migration pending
+Infrastructure for Phase 9h (contracts + typed wrappers) is already in place. This phase executes the call-site migrations, locks the convention with an ESLint guard, and closes out documentation.
 
-### ✅ Done this turn (additive, no behavior change)
+## Goal
 
-**Contracts** (Zod schemas + Request interfaces, all `.passthrough()`):
-- `src/edge/contracts/agents.ts` — added `companyAgentTools`, `triggerAgentPitch`
-- `src/edge/contracts/jobs.ts` — added `sendJobApplication`, `generateInterviewQuestions`, `analyzeMockInterview`, `analyzeJobAssessment`, `generateJobAssessment`, `generateApplicationAnswers`, `enhanceCoverLetter`
-- `src/edge/contracts/gigs.ts` — added `adminGigOps`, `aiReviewerBrief`, `aiProjectScoper`, `aiGigVerifier`, `aiGigScoper`, `aiGigPublicSummary`, `ogImageRender`
-- `src/edge/contracts/talent.ts` — added `unlockTalentContact`, `analyzeSalary`, `analyzeCareerAssessment`
-- `src/edge/contracts/messaging.ts` — added `messagingSend`, `messagingGroupManager`, `sendTransactionalEmail`, `telegramDiagnostic`, `handleEmailUnsubscribe`
-- `src/edge/contracts/finance.ts` — added `requestInstructorPayout`
-- `src/edge/contracts/companies.ts` — new: `signupCompany`, `checkCompanyAccount`
-- `src/edge/contracts/ugc.ts` — new: `adminContentAi`
+Reach **zero raw `supabase.functions.invoke` calls** outside `src/domains/*/api/*Api.ts` (with one explicit exception: `src/components/ai-instructor/AIChatPanel.tsx`, which uses SSE streaming and cannot go through the standard wrapper).
 
-**Wrappers** (canonical pattern: invoke → throw `EdgeFunctionError` → `parseEdgeResponse`):
-- `src/domains/agents/api/agentsApi.ts` — `+companyAgentTools`, `+triggerAgentPitch`
-- `src/domains/jobs/api/jobsApi.ts` — `+sendJobApplication`, `+generateInterviewQuestions`, `+analyzeMockInterview`, `+analyzeJobAssessment`, `+generateJobAssessment`, `+generateApplicationAnswers` (accepts `{accessToken}` option for ApplicationHelper), `+enhanceCoverLetter`
-- `src/domains/gigs/api/gigsApi.ts` — `+adminGigOps`, `+aiReviewerBrief`, `+aiProjectScoper`, `+aiGigVerifier`, `+aiGigScoper`, `+aiGigPublicSummary`, `+ogImageRender`
-- `src/domains/talent/api/talentApi.ts` — `+unlockTalentContact`, `+analyzeSalary`, `+analyzeCareerAssessment`
-- `src/domains/messaging/api/messagingApi.ts` — `+messagingSend`, `+messagingGroupManager`, `+sendTransactionalEmail`, `+telegramDiagnostic`, `+handleEmailUnsubscribe`
-- `src/domains/finance/api/financeApi.ts` — `+requestInstructorPayout`
-- `src/domains/companies/api/companiesApi.ts` — new file: `signupCompany`, `checkCompanyAccount`
-- `src/domains/ugc/api/ugcApi.ts` — new file: `adminContentAi`
+## Scope
 
-**Barrels**:
-- `src/domains/companies/api/manifest.ts` + `index.ts` — converted from `companiesApi` const to named re-exports
-- `src/domains/ugc/api/manifest.ts` + `index.ts` — converted from `ugcApi` const to named re-exports
+~57 call sites across ~50 files, grouped by owner-domain into 7 batches. Each batch is one focused pass: swap `supabase.functions.invoke("fn", { body })` for the named wrapper import, convert `{ data, error }` checks to `try/catch`, and remove now-unused supabase imports where applicable.
 
-`tsc` is clean.
+### Batches
 
-### ⏳ Remaining (next turn)
+| Batch | Owner | Functions | ~Sites |
+|---|---|---|---|
+| A | agents | `admin-support-assistant`, `agent-runtime`, `trigger-agent-pitch`, `company-agent-tools` | 15 |
+| B | jobs | `notify-hiring-event`, `parse-cv`, `send-job-application`, `generate-interview-questions`, `analyze-mock-interview`, `analyze-job-assessment`, `generate-job-assessment`, `generate-application-answers`, `enhance-cover-letter` | 18 |
+| C | gigs | `admin-gig-ops`, `ai-reviewer-brief`, `ai-project-scoper`, `ai-gig-verifier`, `ai-gig-scoper`, `ai-gig-public-summary`, `og-image-render` | 8 |
+| D | talent | `unlock-talent-contact`, `analyze-salary`, `analyze-career-assessment` | 3 |
+| E | messaging | `messaging-send`, `messaging-group-manager`, `send-transactional-email`, `telegram-diagnostic`, `handle-email-unsubscribe` | 6 |
+| F | finance | `request-instructor-payout` | 2 |
+| G | companies + ugc | `signup-company`, `check-company-account`, `admin-content-ai` | 5 |
 
-**Call-site migration** — ~57 raw invokes across ~50 files. All wrappers ready, mechanical replace by owner-domain batch:
+### Per-site migration recipe
 
-- **Batch A — agents (15):** `AdminMessagingInbox`, `useGro10xAuthChat`, `Gro10xSourcing`, `Gro10xShortlist`, `Gro10xFeed` (×4), `Gro10xJobsList`, `OnboardingWizard`, `CreatorOnboardingDialog`, `Withdrawals`, `Unsubscribe`, `Transactions`, `TalentPublicProfile`, `TalentMirror`, `TalentHome`, `TalentDirectory`, `ServicesHub`, `SavedItems`
-- **Batch B — jobs (18):** `useOffers` (×3), `useInterviews` (×2), `CVUploadStep`, `InlineCVUpload`, `ProfileEdit`, `useGro10xAuthChat` (parse-cv), `MockInterviewSetup`, `MockInterviewQuestions`, `MockInterviewCapture`, `AppMockInterviewSetup`, `AppJobApplication` (×3: enhance-cover-letter, send-job-application, generate-job-assessment), `JobAssessment`, `JobAssessmentResults`, `ApplicationHelper`, `Profile` (enhance-cover-letter), `AppJobDetail` (score-job-match)
-- **Batch C — gigs (8):** `NewGigWizard`, `ProjectRoom`, `ReviewerCockpit` (×2), `Gro10xProjects`, `ProjectPublicToggle` (×2 — og-image-render + ai-gig-public-summary), `gigAutoReview.ts`
-- **Batch D — talent (4):** `useTalentUnlocks`, `SalaryAnalysisProcessing`, `AssessmentResults`, `AppCareerAssessment`
-- **Batch E — messaging (6):** `AdminMessagingInbox` (messaging-send), `CompanyWhatsAppGroupCard`, `emailNotifications.ts`, `WorkforceCommandCenter` (telegram-diagnostic), `Unsubscribe` (×2 handle-email-unsubscribe)
-- **Batch F — companies + ugc (3):** `Gro10xSignIn` (check-company-account), `useGro10xAuthChat` (×2: check-company-account + signup-company), `contentAI.ts`
-- **Batch G — finance (1):** `InstructorEarnings` (request-instructor-payout)
+```text
+- import { supabase } from "@/integrations/supabase/client"
++ import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi"
 
-**ESLint guard** — `no-restricted-syntax` banning `supabase.functions.invoke` outside `src/domains/*/api/*Api.ts` (and one documented SSE exception `AIChatPanel.tsx`).
+- const { data, error } = await supabase.functions.invoke("notify-hiring-event", { body });
+- if (error) throw error;
++ const data = await notifyHiringEvent(body);   // throws EdgeFunctionError on failure
+```
 
-**Docs**:
-- `src/edge/README.md` — add Phase 9h ownership rows
-- `.lovable/known-edge-contract-drift.md` — note any wire-shape adaptations from `{data,error}` → throw
+When a file uses `supabase` only for the invoke, drop the import. When it still uses `supabase.from(...)`, keep it.
 
-**Verification**:
-- `tsc` clean
-- `bunx eslint src` clean
-- `rg "supabase\.functions\.invoke" src` returns only domain wrapper files + `AIChatPanel.tsx`
+## ESLint guard
 
-### Notes for next turn
+Extend `eslint.config.js` with `no-restricted-syntax` banning `CallExpression[callee.object.property.name='functions'][callee.property.name='invoke']`, then add a scoped override that re-permits it in:
 
-- Two functions surfaced during inspection that weren't in the original plan: `generate-job-assessment` (jobs) and `check-company-account` (companies). Contracts + wrappers shipped this turn.
-- `request-instructor-payout` placed in **finance** (not learning) to keep payouts/withdrawals colocated.
-- All wrappers throw on failure. Migration must wrap legacy `{data,error}` destructuring patterns in `try/catch` where the caller previously branched on `error`.
+- `src/domains/*/api/*Api.ts`
+- `src/components/ai-instructor/AIChatPanel.tsx`
+
+This makes regressions impossible without an explicit override.
+
+## Documentation
+
+- `src/edge/README.md` — refresh the ownership table with any functions added in 9h infrastructure (already mostly done; verify).
+- `.lovable/known-edge-contract-drift.md` — append the Phase 9h entry listing batches and the SSE exception.
+- `.lovable/plan.md` — mark Phase 9h ✅ COMPLETE.
+
+## Verification
+
+1. `bunx tsc --noEmit` clean.
+2. `bunx eslint src` clean (the guard will catch any missed site).
+3. `rg "supabase\.functions\.invoke" src` returns only:
+   - `src/domains/*/api/*Api.ts`
+   - `src/components/ai-instructor/AIChatPanel.tsx`
+4. Spot-check three migrated flows in preview: (a) admin support assistant chat, (b) job application submission, (c) gig bid coach.
+
+## Out of scope
+
+- Behavior changes beyond the `{ data, error }` → throw adaptation.
+- New edge functions, schema changes, or SSE wrapper refactor.
+- Touching the `AIChatPanel` streaming logic.
+
+## Execution order
+
+Suggest landing batches A → B → C → D → E → F → G sequentially in a single turn (they are independent files), then ESLint guard, then docs, then verification. If any batch surfaces an unexpected polymorphic body, stop and extend the contract before continuing.
