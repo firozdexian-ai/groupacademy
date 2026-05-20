@@ -1,4 +1,13 @@
-## Phase 9f — Learning domain edge function hardening
+## Phase 9f — Learning domain edge function hardening ✅ COMPLETE
+
+**Outcome:** 17 learning edge functions hardened. `src/edge/contracts/learning.ts` + `src/domains/learning/api/learningApi.ts` shipped; `manifest.ts`/`index.ts` are now barrels (legacy `learningApi` const removed). All in-domain hooks (9) and components (3) migrated to named imports. Cross-domain callers `useTalentMirror`, `AIScenarioPlayer`, `InstructorReviewQueue`, and `AssessStage` migrated. `AIChatPanel` (SSE streaming) and 3 Postgres RPCs documented in drift doc as intentional exclusions. `tsc` clean; `rg "supabase.functions.invoke" src/domains/learning` returns 0 hits outside `learningApi.ts`; `rg "learningApi\."` returns 0 hits.
+
+**Next:** Phase 9g — combine the remaining small domains (gigs, profile, finance, messaging, marketing) into a single sweep, then introduce the ESLint guard banning raw `supabase.functions.invoke` outside `src/domains/*/api/*.ts`.
+
+---
+
+## Phase 9f — original plan (kept for reference)
+
 
 Apply the pilot pattern (talent/agents/jobs/abroad) to the **learning** domain. This is the largest remaining domain and the next-best ROI step.
 
