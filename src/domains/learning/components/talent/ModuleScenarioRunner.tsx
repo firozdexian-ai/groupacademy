@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, MessageSquare, Send, Award, Zap, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerScenarioEvaluate, learnerScenarioPool } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -52,12 +53,10 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
     const allocateActiveScenarioNode = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("learner-scenario-pool", {
-          body: { mode: "draw", module_id: moduleId },
-        });
+        const data = await learnerScenarioPool({ mode: "draw", module_id: moduleId });
 
-        if (error || (data as any)?.error) {
-          throw new Error((data as any)?.error || error?.message || "Scenario allocation rejected.");
+        if (data?.error) {
+          throw new Error(data.error);
         }
 
         if (isMounted) {
@@ -212,26 +211,28 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
     try {
       // 1. Persist the run safely to acquire an analytical transaction run_id
-      const { data: created, error: createErr } = await supabase.functions.invoke("learner-scenario-pool", {
-        body: { mode: "create_run", module_id: moduleId, scenario_id: scenario.id, conversation: conv },
+      const created = await learnerScenarioPool({
+        mode: "create_run",
+        module_id: moduleId,
+        scenario_id: scenario.id,
+        conversation: conv,
       });
 
-      if (createErr || (created as any)?.error || !(created as any)?.run_id) {
-        throw new Error((created as any)?.error || createErr?.message || "Failed to commit historical state log.");
+      if (created?.error || !created?.run_id) {
+        throw new Error(created?.error || "Failed to commit historical state log.");
       }
 
-      const activeRunIdToken = (created as any).run_id;
+      const activeRunIdToken = created.run_id;
 
       // 2. Score performance via the serverless evaluation synapse node
-      const { data: evalData, error: evalError } = await supabase.functions.invoke("learner-scenario-evaluate", {
-        body: { run_id: activeRunIdToken },
-      });
+      const evalData = await learnerScenarioEvaluate({ run_id: activeRunIdToken });
 
-      if (evalError || (evalData as any)?.error) {
-        throw new Error((evalData as any)?.error || evalError?.message || "Psychometric calibration runtime error.");
+      if (evalData?.error) {
+        throw new Error(evalData.error);
       }
 
       setEvalResult((evalData as any).evaluation);
+
 
       // Automated Efficiency: Synchronize cache layers globally to cascade retention mastery scales
       queryClient.invalidateQueries({ queryKey: ["module-analytics", moduleId] });

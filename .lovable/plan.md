@@ -1,46 +1,61 @@
-## Phase 9e — Abroad domain edge function hardening ✅ COMPLETE
+## Phase 9f — Learning domain edge function hardening
 
-Apply the pilot pattern (talent/agents/jobs) to the abroad domain.
+Apply the pilot pattern (talent/agents/jobs/abroad) to the **learning** domain. This is the largest remaining domain and the next-best ROI step.
 
-### Scope
+### Why learning next
 
-**Edge functions to harden (6 total):**
-1. `ai-destination-agent` (already in contracts; expand types)
-2. `generate-study-roadmap` (already in contracts; expand types)
-3. `book-language-session` (new)
-4. `ai-language-partner` (new)
-5. `ai-ielts-evaluate` (new)
-6. `admin-support-assistant` — already owned by agents domain; abroad pages will switch to `agentsApi.adminSupportAssistant` (5 page call sites)
+Remaining unmigrated domains by call-site density:
+
+| Domain | Files w/ raw `invoke` | Distinct edge fns | Notes |
+|---|---|---|---|
+| **learning** | 12 (manifest + 3 components + 8 hooks) | **15** | Largest blast radius; some functions missing from manifest |
+| gigs | 1 (manifest only) | 4 | Already partially typed |
+| profile | 3 (manifest + 2 hooks) | 4 | Small |
+| finance | 1 (manifest only) | 3 | Small |
+| messaging | 2 (manifest + 1 component) | ~5 | Small |
+| marketing | 1 (manifest only) | 1 | Trivial |
+
+Learning has the most callers, the most contract drift risk, and several functions invoked from hooks/components that aren't in the existing manifest at all.
+
+### Scope — 15 edge functions to harden
+
+Already in `src/edge/contracts/learning.ts` + manifest (need pattern refresh):
+- `ai-instructor-chat`, `ai-item-apply`, `ai-item-rewrite`, `ai-item-translate`, `authoring-review-digest`, `instructor-item-analytics`, `learner-adaptive-sample`, `learner-next-actions`, `learner-quiz-pool`, `learner-scenario-evaluate`, `learner-scenario-pool`, `learner-talent-mirror`, `get-track-progress`, `get-tutor-mastery-context`
+
+New (currently called raw from hooks/components — add to contracts):
+- `learner-review-queue` (`useReviewQueue.ts`)
+- `learner-mastery-summary` (`useMasterySummary.ts`)
+- `issue-skill-credentials` (`useSkillCredentials.ts`)
+- `create-instructor-job-from-brief` (`useCourseBriefs.ts`)
+- `ai-item-translate-apply` (`useItemTranslate.ts`)
 
 ### Steps
 
-1. **Expand `src/edge/contracts/abroad.ts`** — replace the loose `Record<string, unknown>` types with proper Zod schemas + request/response interfaces for all 5 abroad-owned functions, matching the actual payloads each call site sends.
+1. **Audit + expand `src/edge/contracts/learning.ts`** — verify the existing 12 contracts still match real call sites; add Zod schemas + Request interfaces for the 5 functions above. Use `.passthrough()` everywhere.
 
-2. **Create `src/domains/abroad/api/abroadApi.ts`** — 5 named async wrappers following the hardened pattern: `supabase.functions.invoke` → `EdgeFunctionError` → `parseEdgeResponse`. One wrapper per function:
-   - `aiDestinationAgent`
-   - `generateStudyRoadmap`
-   - `bookLanguageSession`
-   - `aiLanguagePartner`
-   - `aiIeltsEvaluate`
+2. **Create `src/domains/learning/api/learningApi.ts`** — one named async wrapper per edge function (~17 total) using the hardened pattern: `supabase.functions.invoke` → `EdgeFunctionError` → `parseEdgeResponse`. No local `invoke` helper, no `learningApi` const.
 
-3. **Convert `src/domains/abroad/api/manifest.ts` and `index.ts` to barrels** — re-export from `abroadApi.ts`, delete the legacy `abroadApi` const object.
+3. **Convert `src/domains/learning/api/manifest.ts` and `index.ts` to barrels** — re-export from `learningApi.ts`; delete the legacy `learningApi` const.
 
-4. **Migrate call sites (9 files):**
-   - `LanguageInstructorsPage.tsx` → `bookLanguageSession`
-   - `LanguagePracticePage.tsx` → `aiLanguagePartner`
-   - `DestinationAgentPage.tsx` → `aiDestinationAgent`
-   - `IELTSMockRunner.tsx` → `aiIeltsEvaluate`
-   - `SchoolDetail.tsx`, `StudyAbroad.tsx`, `StudyAbroadRoadmap.tsx`, `StudyAbroadRoadmapResults.tsx`, `StudyAbroadDetail.tsx` → `agentsApi.adminSupportAssistant` (fire-and-forget telemetry)
-   - Existing in-domain components (`RoadmapBuilderSheet.tsx`, `RoadmapIntakeForm.tsx`) — re-point to named imports.
+4. **Migrate in-domain call sites (12 files):**
+   - **Hooks (8):** `useCourseBriefs`, `useItemAnalytics`, `useItemRewrite`, `useItemTranslate`, `useMasterySummary`, `useModuleReviewBadge`, `useNextActions`, `useReviewQueue`, `useSkillCredentials`
+   - **Components (3):** `ModuleQuizRunner`, `ModuleScenarioRunner`, `ReviewQueueRunner`
+   - Each switches from `learningApi.foo(...)` (or raw `supabase.functions.invoke`) to named imports from `@/domains/learning/api/learningApi`.
 
-5. **Update `src/edge/README.md`** — add abroad ownership rows for the 5 functions.
+5. **Migrate cross-domain learning callers** (out-of-domain pages calling learning fns directly) — quick `rg` sweep to confirm none exist outside `src/domains/learning`, otherwise extend the file list. Initial scan suggests `InstructorReviewQueue.tsx`, `JobAssessment.tsx`, `JobAssessmentResults.tsx`, `AssessmentResults.tsx` may also hit learning fns — confirm during execution and migrate.
 
-6. **Update `.lovable/known-edge-contract-drift.md`** — clear/close the `admin-support-assistant` cross-domain entry (#1 portion covering abroad pages) and note any payload shape quirks found while migrating.
+6. **Update `src/edge/README.md`** — add learning ownership row with all 17 function names.
 
-7. **Verify** — `tsc` clean; `rg "supabase.functions.invoke" src/domains/abroad src/pages/app/{StudyAbroad*,SchoolDetail,DestinationAgentPage,LanguagePractice*,LanguageInstructors*,IELTSMockRunner}.tsx` returns 0 hits; `rg "abroadApi\."` returns 0 hits (all named imports).
+7. **Update `.lovable/known-edge-contract-drift.md`** — log any drift found while expanding contracts (e.g. camelCase vs snake_case, missing-on-disk functions).
 
-8. **Mark Phase 9e ✅ in `.lovable/plan.md`** and queue the next domain.
+8. **Verify** —
+   - `tsc` clean
+   - `rg "supabase.functions.invoke" src/domains/learning` returns 0 hits outside `learningApi.ts`
+   - `rg "learningApi\."` returns 0 hits repo-wide (named imports only)
+
+9. **Mark Phase 9f ✅ in `.lovable/plan.md`** and queue Phase 9g (gigs + profile combo — both small).
 
 ### Out of scope
-- ESLint tooling guard (deferred).
-- Other cross-domain leaks (parse-cv, notify-hiring-event, agent-runtime, etc.) tracked in drift doc for their own domain phases.
+- Other domains (gigs/profile/finance/messaging/marketing) — separate phases.
+- ESLint tooling guard (deferred until all domains migrated).
+- Fixing the drift entries listed in `.lovable/known-edge-contract-drift.md` — Phase 9 preserves runtime behavior only.

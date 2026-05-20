@@ -27,8 +27,7 @@ export * from "./hooks/useSkillCredentials";
 export * from "./hooks/useStageProgress";
 export * from "./hooks/useTutorMasteryContext";
 
-export { learningApi } from "./api/manifest";
-export type { LearningApi } from "./api/manifest";
+export * from "./api/manifest";
 
 // Talent-shell UI surface
 export * from "./components/talent/ActiveCourseHero";

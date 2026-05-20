@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerMasterySummary } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Learner Cognitive Mastery Sensor (V5.6.0)
@@ -47,29 +48,17 @@ export function useMasterySummary(opts?: { moduleId?: string; contentId?: string
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<MasterySummary> => {
       // HUD: INVOKING_COGNITIVE_ANALYTICS_ENGINE
-      const { data: res, error: err } = await supabase.functions.invoke("learner-mastery-summary", {
-        body: {
-          module_id: opts?.moduleId,
-          content_id: opts?.contentId,
-          days: opts?.days ?? 7,
-        },
+      const res = await learnerMasterySummary({
+        module_id: opts?.moduleId,
+        content_id: opts?.contentId,
+        days: opts?.days ?? 7,
       });
 
-      if (err) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies failures in the learner retention calculation pipeline.
-        console.error("[Digital Workforce] ANOMALY: learner-mastery-summary edge failure.", {
-          moduleId: opts?.moduleId,
-          error: err.message,
-        });
-        throw err;
+      if (res?.error) {
+        throw new Error(res.error);
       }
 
-      if ((res as any)?.error) {
-        throw new Error((res as any).error);
-      }
-
-      return res as MasterySummary;
+      return res as unknown as MasterySummary;
     },
   });
 }

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerNextActions } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Learner Engagement & Next-Action Engine (V5.6.0)
@@ -40,21 +41,8 @@ export function useNextActions() {
     staleTime: 60 * 1000,
     queryFn: async (): Promise<NextActionsResponse> => {
       // HUD: INVOKING_LEARNER_NEXT_ACTIONS_EDGE_ENGINE
-      const { data, error } = await supabase.functions.invoke("learner-next-actions", {
-        body: {},
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies recommendation engine latency or semantic processing faults.
-        console.error("[Digital Workforce] ANOMALY: learner-next-actions edge failure.", {
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        throw error;
-      }
-
-      return data as NextActionsResponse;
+      const data = await learnerNextActions({});
+      return data as unknown as NextActionsResponse;
     },
   });
 }

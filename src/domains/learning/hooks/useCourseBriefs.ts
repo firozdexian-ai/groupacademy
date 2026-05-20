@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createInstructorJobFromBrief } from "@/domains/learning/api/learningApi";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -112,13 +113,7 @@ export function usePublishBrief() {
   return useMutation({
     mutationFn: async (briefId: string) => {
       // HUD: CORE_SWARM_PROVISIONING_TRIGGER
-      const { data, error } = await supabase.functions.invoke("create-instructor-job-from-brief", {
-        body: { brief_id: briefId },
-      });
-
-      if (error) {
-        throw error;
-      }
+      const data = await createInstructorJobFromBrief({ brief_id: briefId });
       return data;
     },
     onSuccess: () => {

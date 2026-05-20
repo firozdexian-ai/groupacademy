@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, Brain, CheckCircle2, XCircle, RefreshCw, Zap, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerAdaptiveSample, learnerQuizPool } from "@/domains/learning/api/learningApi";
+import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -116,12 +118,10 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
     trackEvent("psychometric_quiz_submission_dispatched", { moduleId, payloadSize: item_ids.length });
 
     try {
-      const { data, error } = await supabase.functions.invoke("learner-quiz-pool", {
-        body: { mode: "submit", module_id: moduleId, item_ids, answers: ans },
-      });
+      const data = await learnerQuizPool({ mode: "submit", module_id: moduleId, item_ids, answers: ans });
 
-      if (error || (data as any)?.error) {
-        throw new Error((data as any)?.error || error?.message || "Server validation response rejected.");
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       setResults({ score: (data as any).score, results: (data as any).results });

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { instructorItemAnalytics } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Pedagogical Psychometric Sensor (V5.6.0)
@@ -68,22 +69,8 @@ export function useItemAnalytics(moduleId: string | null, days = 30) {
     staleTime: 5 * 60 * 1000, // 5-minute psychometric stability baseline
     queryFn: async (): Promise<ItemAnalytics> => {
       // HUD: INVOKING_EDGE_ANALYTICS_ENGINE
-      const { data, error } = await supabase.functions.invoke("instructor-item-analytics", {
-        body: { module_id: moduleId, days },
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies data pipeline bottlenecks in our instructor feedback loop.
-        console.error("[Digital Workforce] ANOMALY: instructor-item-analytics edge failure.", {
-          moduleId,
-          days,
-          error: error.message,
-        });
-        throw error;
-      }
-
-      return data as ItemAnalytics;
+      const data = await instructorItemAnalytics({ module_id: moduleId, days });
+      return data as unknown as ItemAnalytics;
     },
   });
 }

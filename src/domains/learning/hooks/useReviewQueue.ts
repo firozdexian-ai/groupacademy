@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerReviewQueue } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Spaced Repetition Core Engine (V5.6.0)
@@ -64,24 +65,12 @@ export function useReviewQueue(opts?: UseReviewQueueOptions) {
     staleTime: 30 * 1000,
     queryFn: async (): Promise<ReviewQueueResponse> => {
       // HUD: INVOKING_LEARNER_REVIEW_QUEUE_EDGE_ORCHESTRATOR
-      const { data, error } = await supabase.functions.invoke("learner-review-queue", {
-        body: {
-          limit,
-          items_per_topic: itemsPerTopic,
-          module_id: moduleId,
-          include_upcoming: includeUpcoming,
-        },
+      const data = await learnerReviewQueue({
+        limit,
+        items_per_topic: itemsPerTopic,
+        module_id: moduleId,
+        include_upcoming: includeUpcoming,
       });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Essential for monitoring background engine latency
-        console.error("[Digital Workforce] ANOMALY: learner-review-queue execution dropped.", {
-          limit,
-          moduleId,
-          message: error.message,
-        });
-        throw error;
-      }
 
       interface EdgeResponseWrapper {
         error?: string;

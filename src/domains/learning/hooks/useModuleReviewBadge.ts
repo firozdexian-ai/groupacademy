@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { authoringReviewDigest } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Instructor Triage Badge Sensor (V5.6.0)
@@ -33,19 +34,7 @@ export function useModuleReviewBadge(moduleId: string | null | undefined): Modul
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<Omit<ModuleReviewBadge, "loading">> => {
       // HUD: INVOKING_AUTHORING_REVIEW_DIGEST_EDGE
-      const { data, error } = await supabase.functions.invoke("authoring-review-digest", {
-        body: { mode: "single", module_id: moduleId, days: 30 },
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Emits system failure logs to background admin diagnostic agents
-        console.error("[Digital Workforce] ANOMALY: authoring-review-digest edge invocation failed.", {
-          moduleId,
-          message: error.message,
-        });
-        throw error;
-      }
+      const data = await authoringReviewDigest({ mode: "single", module_id: moduleId, days: 30 });
 
       const summary = ((data as any)?.summary as DigestSummary) ?? null;
       const flagged = summary ? (summary.flagged_quiz ?? 0) + (summary.flagged_scenarios ?? 0) : 0;
