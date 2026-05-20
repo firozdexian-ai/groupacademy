@@ -1,19 +1,25 @@
 /**
- * Typed wrappers around talent-domain edge functions (Phase 9a pilot).
+ * Typed wrappers around talent-domain edge functions.
  *
- * Wrappers are intentionally thin — same wire bytes as a raw
- * `supabase.functions.invoke`, just with request/response types and a
- * uniform `EdgeFunctionError` on failure.
+ * Convention (locked in Phase 9b):
+ *   - One async function per edge function — import by name.
+ *   - No `*Api` const, no `<DOMAIN>_EDGE_FUNCTIONS` array.
+ *   - Responses validated at runtime via `parseEdgeResponse`.
+ *   - Failures throw `EdgeFunctionError`.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
-import type {
-  AiSupportAssistantRequest,
-  AiSupportAssistantResponse,
-  BatchParseCvsRequest,
-  BatchParseCvsResponse,
-  GenerateOutreachMessageRequest,
-  GenerateOutreachMessageResponse,
+import { parseEdgeResponse } from "@/edge/parseEdgeResponse";
+import {
+  AiSupportAssistantResponseSchema,
+  BatchParseCvsResponseSchema,
+  GenerateOutreachMessageResponseSchema,
+  type AiSupportAssistantRequest,
+  type AiSupportAssistantResponse,
+  type BatchParseCvsRequest,
+  type BatchParseCvsResponse,
+  type GenerateOutreachMessageRequest,
+  type GenerateOutreachMessageResponse,
 } from "@/edge/contracts/talent";
 
 export async function batchParseCvs(
@@ -23,7 +29,7 @@ export async function batchParseCvs(
     body: req,
   });
   if (error) throw new EdgeFunctionError("batch-parse-cvs", error);
-  return (data ?? {}) as BatchParseCvsResponse;
+  return parseEdgeResponse("batch-parse-cvs", BatchParseCvsResponseSchema, data ?? {});
 }
 
 export async function aiSupportAssistant(
@@ -33,7 +39,11 @@ export async function aiSupportAssistant(
     body: req,
   });
   if (error) throw new EdgeFunctionError("ai-support-assistant", error);
-  return (data ?? { reply: "" }) as AiSupportAssistantResponse;
+  return parseEdgeResponse(
+    "ai-support-assistant",
+    AiSupportAssistantResponseSchema,
+    data ?? { reply: "" },
+  );
 }
 
 export async function generateOutreachMessage(
@@ -44,13 +54,9 @@ export async function generateOutreachMessage(
     { body: req },
   );
   if (error) throw new EdgeFunctionError("generate-outreach-message", error);
-  return (data ?? {}) as GenerateOutreachMessageResponse;
+  return parseEdgeResponse(
+    "generate-outreach-message",
+    GenerateOutreachMessageResponseSchema,
+    data ?? {},
+  );
 }
-
-export const talentApi = {
-  batchParseCvs,
-  aiSupportAssistant,
-  generateOutreachMessage,
-} as const;
-
-export type TalentApi = typeof talentApi;
