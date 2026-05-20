@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, MessageSquare, Send, Award, Zap, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerScenarioEvaluate, learnerScenarioPool } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -52,12 +53,10 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
     const allocateActiveScenarioNode = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("learner-scenario-pool", {
-          body: { mode: "draw", module_id: moduleId },
-        });
+        const data = await learnerScenarioPool({ mode: "draw", module_id: moduleId });
 
-        if (error || (data as any)?.error) {
-          throw new Error((data as any)?.error || error?.message || "Scenario allocation rejected.");
+        if (data?.error) {
+          throw new Error(data.error);
         }
 
         if (isMounted) {

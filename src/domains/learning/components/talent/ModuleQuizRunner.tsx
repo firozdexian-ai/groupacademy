@@ -118,12 +118,10 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
     trackEvent("psychometric_quiz_submission_dispatched", { moduleId, payloadSize: item_ids.length });
 
     try {
-      const { data, error } = await supabase.functions.invoke("learner-quiz-pool", {
-        body: { mode: "submit", module_id: moduleId, item_ids, answers: ans },
-      });
+      const data = await learnerQuizPool({ mode: "submit", module_id: moduleId, item_ids, answers: ans });
 
-      if (error || (data as any)?.error) {
-        throw new Error((data as any)?.error || error?.message || "Server validation response rejected.");
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       setResults({ score: (data as any).score, results: (data as any).results });
