@@ -26,5 +26,4 @@ export * from "./components/admin/leads/SalaryAnalysisLeadsManager";
 export * from "./components/admin/hooks/useMarketingGraph";
 
 // API
-export { marketingApi } from "./api/manifest";
-export type { MarketingApi } from "./api/manifest";
+export * from "./api/manifest";

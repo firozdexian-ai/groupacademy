@@ -14,4 +14,4 @@ export { default as ModuleDropoffTable } from "./components/admin/performance/Mo
 export { default as PoolHealthCard } from "./components/admin/performance/PoolHealthCard";
 export { default as RecentActivityList } from "./components/admin/performance/RecentActivityList";
 
-export { analyticsApi } from "./api/manifest";
+export * from "./api/manifest";

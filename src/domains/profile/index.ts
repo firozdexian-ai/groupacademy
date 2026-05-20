@@ -12,7 +12,7 @@ export * from "./hooks/useTalentRelationships";
 export * from "./hooks/useTalentSearch";
 
 // API
-export { profileApi, type ProfileApi } from "./api/manifest";
+export * from "./api/manifest";
 
 // Talent UI
 export * from "./components/talent/ProfileCompletionMeter";

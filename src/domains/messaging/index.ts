@@ -7,4 +7,4 @@ export * from "./hooks/useDirectMessages";
 export * from "./components/talent/ChatBubble";
 export * from "./components/talent/ThreadListItem";
 export * from "./components/admin/MessagingChannelsTab";
-export { messagingApi } from "./api/manifest";
+export * from "./api/manifest";

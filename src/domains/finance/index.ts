@@ -1,4 +1,4 @@
-export { financeApi } from "./api/manifest";
+export * from "./api/manifest";
 
 // Admin tabs (mix of default & named)
 export { default as CompanyCreditsTab } from "./components/admin/CompanyCreditsTab";

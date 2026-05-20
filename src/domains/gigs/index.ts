@@ -7,7 +7,7 @@ export * from "./hooks/useGigsHubDashboard";
 export * from "./hooks/useRankedGigs";
 
 // API
-export { gigsApi, type GigsApi } from "./api/manifest";
+export * from "./api/manifest";
 
 // Talent UI (selected)
 export * from "./components/talent/GigCard";
