@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,14 +104,12 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
         setCvUrl(publicUrl);
       }
 
-      const body: any = cvFile
+      const body: Record<string, unknown> = cvFile
         ? { cvUrl: publicUrl, serviceType: "external_application" }
         : { cvText, serviceType: "external_application" };
-      const { data, error } = await supabase.functions.invoke("parse-cv", { body });
+      const parseData: any = await parseCv(body);
 
-      if (error) throw error;
-
-      const parsed = data?.parsed || data?.cv_data || data;
+      const parsed = parseData?.parsed || parseData?.cv_data || parseData;
       setName(parsed?.name || parsed?.full_name || "");
       setEmail(parsed?.email || "");
       setPhone(parsed?.phone || "");
