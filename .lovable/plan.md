@@ -1,4 +1,4 @@
-# Phase 10b — Gigs Domain: Hooks + Repo Consolidation
+# Phase 10b — Gigs Domain: Hooks + Repo Consolidation ✅ COMPLETE
 
 Continues the Phase 10 rollout. After 10a (jobs), this batch domainizes the **gigs** surface: route every `supabase.from("gig_*"|"reviewer_*"|"revision_*"|"talent_availability"|"talent_trust*")` call through a single `gigsRepo.ts`, delete the `src/hooks/` shims for gigs, and standardize imports on `@/domains/gigs`.
 
