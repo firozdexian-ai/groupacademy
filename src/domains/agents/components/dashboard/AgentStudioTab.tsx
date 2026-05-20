@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentBrainPanel } from "@/domains/agents/components/dashboard/AgentBrainPanel";
+import { ingestAgentKnowledge } from "@/domains/agents/api/agentsApi";
 
 /**
  * Agent Studio: No-code builder for the unified Agent OS.
@@ -700,13 +701,10 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
     try {
       const payload =
         mode === "text"
-          ? { agent_id: agentId, source_type: "text", title, content }
-          : { agent_id: agentId, source_type: "url", title: title || url, url: url }; // CTO FIX: Passed url key as per standard standard parsers
+          ? { agent_id: agentId, source_type: "text" as const, title, content }
+          : { agent_id: agentId, source_type: "url" as const, title: title || url, url };
 
-      const { data, error } = await supabase.functions.invoke("ingest-agent-knowledge", {
-        body: payload,
-      });
-      if (error) throw error;
+      const data = await ingestAgentKnowledge(payload);
       toast.success(`Pipeline Synchronized: Ingested ${data?.chunks ?? 0} vectors`);
       setTitle("");
       setContent("");

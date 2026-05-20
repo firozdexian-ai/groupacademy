@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { agentEventDispatcher } from "@/domains/agents/api/agentsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,8 +202,7 @@ export function AgentTriggers() {
   async function runDispatcher() {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("agent-event-dispatcher", { body: {} });
-      if (error) throw error;
+      const data = await agentEventDispatcher({});
       toast({
         title: "Swarm Dispatched",
         description: `Processed ${data?.events ?? 0} events, dispatched ${data?.dispatched ?? 0}.`,
