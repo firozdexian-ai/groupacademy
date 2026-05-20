@@ -54,3 +54,8 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
+
+## Phase 5.10 institutions - DONE
+- 4 admin tabs + 1 hook migrated to src/domains/institutions/
+- Stub manifest + contracts (no edge functions)
+- Progress ~65%. Next: 5.11 workforce.
