@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerAdaptiveSample } from "@/domains/learning/api/learningApi";
 import { cn } from "@/lib/utils";
 
 export interface QuizQuestion {
