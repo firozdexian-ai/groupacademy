@@ -23,25 +23,6 @@ export const BatchParseCvsResponseSchema = z.object({
 });
 export type BatchParseCvsResponse = z.infer<typeof BatchParseCvsResponseSchema>;
 
-// ai-support-assistant -------------------------------------------------------
-export interface AiSupportAssistantRequest {
-  /** Data URL of the chat screenshot to analyze. */
-  image: string;
-  /** Optional natural-language context for grounding. */
-  context?: string;
-}
-
-export const AiSupportAssistantResponseSchema = z.object({
-  reply: z.string(),
-  tone: z.string().optional(),
-  suggestions: z.array(z.string()).optional(),
-  actions: z.array(z.string()).optional(),
-  error: z.string().optional(),
-});
-export type AiSupportAssistantResponse = z.infer<
-  typeof AiSupportAssistantResponseSchema
->;
-
 // generate-outreach-message --------------------------------------------------
 export interface GenerateOutreachMessageRequest {
   /** Talent id (call site uses snake_case). */

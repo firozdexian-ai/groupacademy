@@ -7,7 +7,7 @@ import { Send, Loader2, Zap, ShieldCheck, ChevronLeft, ShieldAlert } from "lucid
 import { cn } from "@/lib/utils";
 import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
 import { AgentMessage } from "@/hooks/useAgentChat";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 /**
  * GroUp Academy: Neural Chat Interface (V5.6.1)
@@ -46,14 +46,17 @@ export function AgentChatDialog({
   // Digital Workforce Anomaly Reporter
   const reportAnomaly = async (error: string, context: string) => {
     console.error(`[Digital Workforce] Anomaly: ${context}`, error);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: {
+    try {
+      await adminSupportAssistant({
         type: "TECHNICAL_ANOMALY",
         severity: "HIGH",
         error,
         context: `Agent: ${agent.id} | ${context}`,
-      },
-    });
+      });
+    } catch (e) {
+      // Fire-and-forget — telemetry failures must not block the chat UI.
+      console.warn("[Digital Workforce] anomaly report dropped", e);
+    }
   };
 
   useEffect(() => {

@@ -7,4 +7,4 @@ import { lazy } from "react";
 export const AdminAgentChat = lazy(() => import("@/pages/app/AgentChat"));
 export const AdminAgentsDashboard = lazy(() => import("@/pages/DashboardChat"));
 
-export { AGENT_REGISTRY, agentsApi } from "@/domains/agents";
+export { AGENT_REGISTRY } from "@/domains/agents";

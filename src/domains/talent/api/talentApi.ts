@@ -11,11 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { parseEdgeResponse } from "@/edge/parseEdgeResponse";
 import {
-  AiSupportAssistantResponseSchema,
   BatchParseCvsResponseSchema,
   GenerateOutreachMessageResponseSchema,
-  type AiSupportAssistantRequest,
-  type AiSupportAssistantResponse,
   type BatchParseCvsRequest,
   type BatchParseCvsResponse,
   type GenerateOutreachMessageRequest,
@@ -30,20 +27,6 @@ export async function batchParseCvs(
   });
   if (error) throw new EdgeFunctionError("batch-parse-cvs", error);
   return parseEdgeResponse("batch-parse-cvs", BatchParseCvsResponseSchema, data ?? {});
-}
-
-export async function aiSupportAssistant(
-  req: AiSupportAssistantRequest,
-): Promise<AiSupportAssistantResponse> {
-  const { data, error } = await supabase.functions.invoke("ai-support-assistant", {
-    body: req,
-  });
-  if (error) throw new EdgeFunctionError("ai-support-assistant", error);
-  return parseEdgeResponse(
-    "ai-support-assistant",
-    AiSupportAssistantResponseSchema,
-    data ?? { reply: "" },
-  );
 }
 
 export async function generateOutreachMessage(

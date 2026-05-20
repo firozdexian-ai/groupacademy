@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { agentBlueprint } from "@/domains/agents/api/agentsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,10 +87,7 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
     setGenerating(true);
     setProposal(null);
     try {
-      const { data, error } = await supabase.functions.invoke("agent-blueprint", {
-        body: { brief, audience: agent.audience },
-      });
-      if (error) throw error;
+      const data = await agentBlueprint({ brief, audience: agent.audience });
       if (!data?.proposal) throw new Error("No proposal returned");
       setProposal(data.proposal as Proposal);
     } catch (e: any) {

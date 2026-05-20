@@ -8,4 +8,4 @@ import { lazy } from "react";
 export const TalentAgentChat = lazy(() => import("@/pages/app/AgentChat"));
 export const TalentMyAgents = lazy(() => import("@/pages/app/MyAgents"));
 
-export { AGENT_REGISTRY, agentsApi, getAgent } from "@/domains/agents";
+export { AGENT_REGISTRY, getAgent } from "@/domains/agents";
