@@ -1,49 +1,37 @@
 /**
- * Typed request/response contracts for gigs-domain edge functions.
+ * Typed response contracts for gigs-domain edge functions.
+ * Request bodies kept permissive — call sites use snake_case payloads.
  */
 
-// ai-bid-coach
-export interface AiBidCoachRequest {
-  gigId: string;
-  draft?: string;
-  context?: Record<string, unknown>;
-}
+export type AiBidCoachRequest = Record<string, unknown>;
 export interface AiBidCoachResponse {
   suggestions?: string[];
   improved?: string;
   rationale?: string;
   error?: string;
+  [k: string]: unknown;
 }
 
-// generate-outreach-message
-export interface GenerateOutreachMessageRequest {
-  context: Record<string, unknown>;
-  channel?: "email" | "linkedin" | "whatsapp";
-}
+export type GenerateOutreachMessageRequest = Record<string, unknown>;
 export interface GenerateOutreachMessageResponse {
   message?: string;
   subject?: string;
   error?: string;
+  [k: string]: unknown;
 }
 
-// parse-job-post
-export interface ParseJobPostRequest {
-  rawText?: string;
-  url?: string;
-}
+export type ParseJobPostRequest = Record<string, unknown>;
 export interface ParseJobPostResponse {
   success?: boolean;
   parsed?: Record<string, unknown>;
   error?: string;
+  [k: string]: unknown;
 }
 
-// generate-job-share-caption
-export interface GenerateJobShareCaptionRequest {
-  jobId: string;
-  tone?: string;
-}
+export type GenerateJobShareCaptionRequest = Record<string, unknown>;
 export interface GenerateJobShareCaptionResponse {
   caption?: string;
   hashtags?: string[];
   error?: string;
+  [k: string]: unknown;
 }
