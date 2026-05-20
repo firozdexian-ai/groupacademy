@@ -1,70 +1,78 @@
-## Phase 9f — Learning domain edge function hardening ✅ COMPLETE
+# Phase 9g — Small-domains edge function hardening sweep
 
-**Outcome:** 17 learning edge functions hardened. `src/edge/contracts/learning.ts` + `src/domains/learning/api/learningApi.ts` shipped; `manifest.ts`/`index.ts` are now barrels (legacy `learningApi` const removed). All in-domain hooks (9) and components (3) migrated to named imports. Cross-domain callers `useTalentMirror`, `AIScenarioPlayer`, `InstructorReviewQueue`, and `AssessStage` migrated. `AIChatPanel` (SSE streaming) and 3 Postgres RPCs documented in drift doc as intentional exclusions. `tsc` clean; `rg "supabase.functions.invoke" src/domains/learning` returns 0 hits outside `learningApi.ts`; `rg "learningApi\."` returns 0 hits.
+Apply the hardened pattern (talent/agents/jobs/abroad/learning) to the remaining six small domains in one combined sweep, since each is tiny on its own. After this, every owner-domain has a typed wrapper layer and we can confidently add a tooling guard in Phase 9h.
 
-**Next:** Phase 9g — combine the remaining small domains (gigs, profile, finance, messaging, marketing) into a single sweep, then introduce the ESLint guard banning raw `supabase.functions.invoke` outside `src/domains/*/api/*.ts`.
+## Scope — 6 domains, 13 edge functions
 
----
-
-## Phase 9f — original plan (kept for reference)
-
-
-Apply the pilot pattern (talent/agents/jobs/abroad) to the **learning** domain. This is the largest remaining domain and the next-best ROI step.
-
-### Why learning next
-
-Remaining unmigrated domains by call-site density:
-
-| Domain | Files w/ raw `invoke` | Distinct edge fns | Notes |
+| Domain | Functions | In-domain callers | New (currently raw) |
 |---|---|---|---|
-| **learning** | 12 (manifest + 3 components + 8 hooks) | **15** | Largest blast radius; some functions missing from manifest |
-| gigs | 1 (manifest only) | 4 | Already partially typed |
-| profile | 3 (manifest + 2 hooks) | 4 | Small |
-| finance | 1 (manifest only) | 3 | Small |
-| messaging | 2 (manifest + 1 component) | ~5 | Small |
-| marketing | 1 (manifest only) | 1 | Trivial |
+| gigs | `ai-bid-coach`, `generate-outreach-message`, `parse-job-post`, `generate-job-share-caption` | 4 components | — |
+| profile | `claim-public-handle`, `parse-cv` | 2 components + 1 hook | hook still raw |
+| finance | `update-stripe-secret`, `process-withdrawal`, `create-checkout` | 3 admin components + 1 talent component | — |
+| messaging | `unipile-connect` | 0 (manifest only) | `MessagingChannelsTab` (×4 raw calls) |
+| marketing | `lead-hunt-match` | 1 admin component | — |
+| analytics | (none today) | — | `admin-report-builder` in `ReportsBuilderTab` |
 
-Learning has the most callers, the most contract drift risk, and several functions invoked from hooks/components that aren't in the existing manifest at all.
+Notes:
+- `generate-outreach-message`, `parse-job-post`, `generate-job-share-caption`, `parse-cv` are owned by **talent / jobs / profile** respectively. The current gigs manifest re-wraps them, which is exactly the duplication the README forbids. Phase 9g will collapse those callers onto the owner-domain wrappers and drop the duplicates.
 
-### Scope — 15 edge functions to harden
+## Steps
 
-Already in `src/edge/contracts/learning.ts` + manifest (need pattern refresh):
-- `ai-instructor-chat`, `ai-item-apply`, `ai-item-rewrite`, `ai-item-translate`, `authoring-review-digest`, `instructor-item-analytics`, `learner-adaptive-sample`, `learner-next-actions`, `learner-quiz-pool`, `learner-scenario-evaluate`, `learner-scenario-pool`, `learner-talent-mirror`, `get-track-progress`, `get-tutor-mastery-context`
+### 1. Contracts pass
+- Audit `src/edge/contracts/{gigs,profile,finance,messaging,marketing}.ts` against real call-site bodies; tighten with `.passthrough()` where needed.
+- Create `src/edge/contracts/analytics.ts` with `AdminReportBuilderRequest` + response schema (read `ReportsBuilderTab.tsx` body shape verbatim — Phase 9 preserves runtime behavior).
+- Remove cross-owner duplicates from `gigs.ts` (`GenerateOutreachMessageRequest`, `ParseJobPostRequest`, `GenerateJobShareCaptionRequest`) — re-export from the owner domain instead.
 
-New (currently called raw from hooks/components — add to contracts):
-- `learner-review-queue` (`useReviewQueue.ts`)
-- `learner-mastery-summary` (`useMasterySummary.ts`)
-- `issue-skill-credentials` (`useSkillCredentials.ts`)
-- `create-instructor-job-from-brief` (`useCourseBriefs.ts`)
-- `ai-item-translate-apply` (`useItemTranslate.ts`)
+### 2. Wrapper files (one per domain)
+For each domain, create `src/domains/<domain>/api/<domain>Api.ts` with **named async wrappers** using the canonical pattern:
 
-### Steps
+```ts
+const { data, error } = await supabase.functions.invoke("<fn>", { body });
+if (error) throw new EdgeFunctionError("<fn>", error);
+return parseEdgeResponse("<fn>", <fn>ResponseSchema, data);
+```
 
-1. **Audit + expand `src/edge/contracts/learning.ts`** — verify the existing 12 contracts still match real call sites; add Zod schemas + Request interfaces for the 5 functions above. Use `.passthrough()` everywhere.
+Wrappers to ship:
+- `gigs/api/gigsApi.ts` → `aiBidCoach` only (the other three are cross-domain re-exports of owner wrappers).
+- `profile/api/profileApi.ts` → `claimPublicHandle`, `parseCv` (the `parse-cv` owner is profile per the existing manifest — confirm vs jobs README row before finalizing; if jobs already owns it, drop the duplicate and keep the import path single-source).
+- `finance/api/financeApi.ts` → `updateStripeSecret`, `processWithdrawal`, `createCheckout` (note: today's manifest leaks the raw `{ data, error }` shape — wrappers will return parsed data and throw on failure; callers updated accordingly).
+- `messaging/api/messagingApi.ts` → `unipileConnect`.
+- `marketing/api/marketingApi.ts` → `leadHuntMatch` (today's manifest also leaks `{ data, error }`; same fix).
+- `analytics/api/analyticsApi.ts` → `adminReportBuilder`.
 
-2. **Create `src/domains/learning/api/learningApi.ts`** — one named async wrapper per edge function (~17 total) using the hardened pattern: `supabase.functions.invoke` → `EdgeFunctionError` → `parseEdgeResponse`. No local `invoke` helper, no `learningApi` const.
+### 3. Convert manifests + index.ts to barrels
+Each `<domain>/api/manifest.ts` and `<domain>/index.ts` becomes pure re-export. Delete the `<domain>Api` const + `<Domain>Api` type.
 
-3. **Convert `src/domains/learning/api/manifest.ts` and `index.ts` to barrels** — re-export from `learningApi.ts`; delete the legacy `learningApi` const.
+### 4. Migrate call sites (~14 files)
+- **gigs (4):** `JobSharingGigForm`, `JobPostingGigForm`, `CVUploadGigForm`, `BidCoachDialog`.
+- **profile (3):** `CVUploadSection` (in-domain), `usePublicProfileSettings` (raw → `claimPublicHandle`), plus the `profileApi.parseCv` caller already in `gigs/CVUploadGigForm`.
+- **finance (4):** `CreditPurchaseSheet`, `WithdrawalsTab`, `PaymentSettingsTab` (×2 invocations).
+- **messaging (1):** `MessagingChannelsTab` — replace all 4 raw `unipile-connect` invokes with `unipileConnect`.
+- **marketing (1):** `LeadHunterManager` — adapt from `{ data, error }` to try/catch.
+- **analytics (1):** `ReportsBuilderTab` — replace raw `admin-report-builder` invoke with `adminReportBuilder`.
 
-4. **Migrate in-domain call sites (12 files):**
-   - **Hooks (8):** `useCourseBriefs`, `useItemAnalytics`, `useItemRewrite`, `useItemTranslate`, `useMasterySummary`, `useModuleReviewBadge`, `useNextActions`, `useReviewQueue`, `useSkillCredentials`
-   - **Components (3):** `ModuleQuizRunner`, `ModuleScenarioRunner`, `ReviewQueueRunner`
-   - Each switches from `learningApi.foo(...)` (or raw `supabase.functions.invoke`) to named imports from `@/domains/learning/api/learningApi`.
+### 5. Update `src/edge/README.md`
+Add ownership rows for all 6 new domains so every shipped wrapper is accounted for.
 
-5. **Migrate cross-domain learning callers** (out-of-domain pages calling learning fns directly) — quick `rg` sweep to confirm none exist outside `src/domains/learning`, otherwise extend the file list. Initial scan suggests `InstructorReviewQueue.tsx`, `JobAssessment.tsx`, `JobAssessmentResults.tsx`, `AssessmentResults.tsx` may also hit learning fns — confirm during execution and migrate.
+### 6. Update `.lovable/known-edge-contract-drift.md`
+- Log any drift discovered while writing contracts.
+- Note that returning-shape change (raw `{data,error}` → throw + parsed payload) is intentional behavior alignment, not regression.
+- If `parse-cv` ownership is genuinely shared between jobs (README) and profile (manifest), document the resolution there.
 
-6. **Update `src/edge/README.md`** — add learning ownership row with all 17 function names.
+### 7. Verify
+- `tsc` clean.
+- `rg "supabase.functions.invoke" src/domains` returns 0 hits outside `<domain>Api.ts` files.
+- `rg "(gigsApi|profileApi|financeApi|messagingApi|marketingApi|analyticsApi)\."` returns 0 hits repo-wide (named imports only).
 
-7. **Update `.lovable/known-edge-contract-drift.md`** — log any drift found while expanding contracts (e.g. camelCase vs snake_case, missing-on-disk functions).
+### 8. Mark Phase 9g ✅ and queue Phase 9h
+Phase 9h scope (preview, **not** part of 9g):
+- ~45 cross-domain raw invokes outside `src/domains/*` (pages, hooks, gro10x, lib helpers) — bulk migrate to owner-domain wrappers.
+- Add an ESLint rule banning `supabase.functions.invoke` outside `src/domains/*/api/*.ts` and `src/components/ai-instructor/AIChatPanel.tsx` (the one documented SSE streaming exception).
 
-8. **Verify** —
-   - `tsc` clean
-   - `rg "supabase.functions.invoke" src/domains/learning` returns 0 hits outside `learningApi.ts`
-   - `rg "learningApi\."` returns 0 hits repo-wide (named imports only)
+## Out of scope for Phase 9g
+- Out-of-domain raw invokes (Phase 9h).
+- Fixing the existing drift entries (call-site body bugs) in `known-edge-contract-drift.md`.
+- Any behavior change beyond returning parsed data + throwing on failure (which a few finance/marketing callers already expect via destructuring — these are the only callers needing a small `try/catch` adaptation).
 
-9. **Mark Phase 9f ✅ in `.lovable/plan.md`** and queue Phase 9g (gigs + profile combo — both small).
-
-### Out of scope
-- Other domains (gigs/profile/finance/messaging/marketing) — separate phases.
-- ESLint tooling guard (deferred until all domains migrated).
-- Fixing the drift entries listed in `.lovable/known-edge-contract-drift.md` — Phase 9 preserves runtime behavior only.
+## Risk
+Low. Pattern is identical to five completed phases; total touched files ≈ 20; every change is mechanical and verified by `tsc` plus the two `rg` invariants.
