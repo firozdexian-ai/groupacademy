@@ -1,7 +1,21 @@
 /**
- * Talent domain edge-function manifest.
- * Phase 9 will wrap these with typed `talentApi.*` helpers.
+ * Public surface of the talent domain's edge-function layer.
  */
+export { talentApi, type TalentApi } from "./talentApi";
+export {
+  batchParseCvs,
+  aiSupportAssistant,
+  generateOutreachMessage,
+} from "./talentApi";
+export type {
+  BatchParseCvsRequest,
+  BatchParseCvsResponse,
+  AiSupportAssistantRequest,
+  AiSupportAssistantResponse,
+  GenerateOutreachMessageRequest,
+  GenerateOutreachMessageResponse,
+} from "@/edge/contracts/talent";
+
 export const TALENT_EDGE_FUNCTIONS = [
   "batch-parse-cvs",
   "ai-support-assistant",
