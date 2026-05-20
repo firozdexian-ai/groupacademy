@@ -80,10 +80,9 @@ export function MessagingChannelsTab({
     if (!label.trim()) return toast.error("Label is required");
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("unipile-connect", {
-        body: { action: "start_hosted_auth", agent_key: agentKey, label, region, provider: "whatsapp" },
+      const data = await messagingApi.unipileConnect({
+        action: "start_hosted_auth", agent_key: agentKey, label, region, provider: "whatsapp",
       });
-      if (error) throw error;
       if (data?.url) {
         window.open(data.url, "_blank", "noopener");
         setHasStarted(true);
