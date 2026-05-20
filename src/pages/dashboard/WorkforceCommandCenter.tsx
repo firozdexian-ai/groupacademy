@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAdminScope } from "@/hooks/useAdminScope";
+import { telegramDiagnostic } from "@/domains/messaging/api/messagingApi";
 
 // =====================================================
 // TYPES & CONSTANTS
@@ -897,8 +898,7 @@ function TelegramScannerDialog({ onClose }: { onClose: () => void }) {
   const scanQ = useQuery({
     queryKey: ["wcc-telegram-scan"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("telegram-diagnostic", { body: {} });
-      if (error) throw error;
+      const data = await telegramDiagnostic({});
       if (!data?.ok) throw new Error(data?.error ?? "Scan failed");
       return data as { ok: true; count: number; total_updates: number; chats: any[] };
     },

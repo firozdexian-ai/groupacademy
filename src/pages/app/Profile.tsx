@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { cn } from "@/lib/utils";
+import { enhanceCoverLetter } from "@/domains/jobs/api/jobsApi";
 
 // Production Interfaces mapped to DB Schema[cite: 8]
 interface Experience {
@@ -100,15 +101,11 @@ export default function Profile() {
 
     setIsEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-cover-letter", {
-        body: {
-          type: "experience",
-          experience: talent.experience,
-          profession: talent.customProfession || "professional",
-        },
-      });
-
-      if (error) throw error;
+      const data: any = await enhanceCoverLetter({
+        type: "experience",
+        experience: talent.experience,
+        profession: talent.customProfession || "professional",
+      } as any);
 
       if (data?.enhancedExperience) {
         await updateTalent({ experience: data.enhancedExperience });

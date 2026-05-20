@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../../lib/tokens";
 import { Loader2, Bookmark, MapPin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { companyAgentTools } from "@/domains/agents/api/agentsApi";
 
 interface ShortlistItem {
   id: string;
@@ -24,14 +25,17 @@ export default function Gro10xShortlist() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-      body: { tool_key: "list_shortlist" },
-    });
-    if (error || !data?.ok) {
-      toast.error(data?.error ?? error?.message ?? "Could not load shortlist");
+    try {
+      const data = await companyAgentTools({ tool_key: "list_shortlist" });
+      if (!data?.ok) {
+        toast.error(data?.error ?? "Could not load shortlist");
+        setItems([]);
+      } else {
+        setItems(((data.result as any)?.shortlist ?? []) as ShortlistItem[]);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not load shortlist");
       setItems([]);
-    } else {
-      setItems((data.result?.shortlist ?? []) as ShortlistItem[]);
     }
     setLoading(false);
   }, []);

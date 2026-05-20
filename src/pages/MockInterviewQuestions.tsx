@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { analyzeMockInterview } from "@/domains/jobs/api/jobsApi";
 
 const INTERVIEW_ANALYSIS_STAGES = [
   { progress: 10, message: "Synthesizing vocal patterns..." },
@@ -165,8 +166,7 @@ export default function MockInterviewQuestions() {
       if (interview.talent_id) {
         setIsAnalyzing(true);
         try {
-          const { error } = await supabase.functions.invoke("analyze-mock-interview", { body: { interviewId: id } });
-          if (error) throw error;
+          await analyzeMockInterview({ interviewId: id });
           navigate(`/mock-interview/results/${id}`);
         } catch (err: any) {
           setAnalysisError("AI linkage failure. Retrying session...");

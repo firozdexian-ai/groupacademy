@@ -37,6 +37,7 @@ import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/lib/constants/jobTypes";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -293,14 +294,7 @@ export default function AppJobDetail() {
       );
       if (!isPaymentSettled) throw new Error("Credit mapping handshaking failure.");
 
-      const { data: edgeFunctionResponseData, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
-        "score-job-match",
-        {
-          body: { jobId: unverifiedJobIdentifierStr, talentId: talentProfileRecord.id },
-        },
-      );
-
-      if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
+      const edgeFunctionResponseData: any = await scoreJobMatch({ jobId: unverifiedJobIdentifierStr, talentId: talentProfileRecord.id });
 
       setLiveEvaluationScoreState({
         score: edgeFunctionResponseData?.match_score ?? 0,

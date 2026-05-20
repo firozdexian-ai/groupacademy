@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { analyzeJobAssessment } from "@/domains/jobs/api/jobsApi";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -218,9 +219,7 @@ export default function JobAssessment() {
         })
         .eq("id", assessmentRecordState.current.id);
 
-      await supabase.functions.invoke("analyze-job-assessment", {
-        body: { assessmentId: assessmentRecordState.current.id },
-      });
+      await analyzeJobAssessment({ assessmentId: assessmentRecordState.current.id });
       navigateHook(`/app/job-assessment/${assessmentRecordState.current.id}/results`);
     } catch (e) {
       toast.error("Submission transmission handshake failed.");

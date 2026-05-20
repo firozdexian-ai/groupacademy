@@ -32,6 +32,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
+import { generateInterviewQuestions } from "@/domains/jobs/api/jobsApi";
 
 interface ProfessionCategory {
   id: string;
@@ -154,18 +155,14 @@ function MockInterviewSetupContent() {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke("generate-interview-questions", {
-        body: {
-          jobDescription,
-          questionCount: config.questionCount,
-          difficulty: config.difficulty,
-          professionCategoryId: config.professionCategoryId,
-          additionalNotes: config.additionalNotes,
-          candidateProfile,
-        },
+      const data: any = await generateInterviewQuestions({
+        jobDescription,
+        questionCount: config.questionCount,
+        difficulty: config.difficulty,
+        professionCategoryId: config.professionCategoryId,
+        additionalNotes: config.additionalNotes,
+        candidateProfile,
       });
-
-      if (error) throw error;
       const interviewId = crypto.randomUUID();
 
       const { error: insertError } = await supabase.from("mock_interviews").insert({

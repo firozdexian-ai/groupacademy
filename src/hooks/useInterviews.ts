@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
 
 /**
  * GroUp Academy: Hiring Workflow & Interview Orchestrator (V5.6.0)
@@ -114,11 +115,9 @@ export function useCreateInterview() {
       }
 
       // Step 3: Trigger Hiring Event Notification
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "interview_proposed", ref: { interview_id: iv.id } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({ kind: "interview_proposed", ref: { interview_id: iv.id } });
+      } catch (funcError) {
         console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for interview_proposed.", funcError);
       }
 
@@ -156,11 +155,9 @@ export function useConfirmInterviewSlot() {
 
       if (rpcError) throw rpcError;
 
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "interview_confirmed", ref: { interview_id: interviewId } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({ kind: "interview_confirmed", ref: { interview_id: interviewId } });
+      } catch (funcError) {
         console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for interview_confirmed.", funcError);
       }
     },

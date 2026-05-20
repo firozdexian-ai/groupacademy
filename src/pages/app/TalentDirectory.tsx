@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useTalent } from "@/hooks/useTalent";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 interface TalentRow {
   id: string;
@@ -43,9 +44,7 @@ export default function TalentDirectory() {
   // Digital Workforce Anomaly Protocol
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "talent_directory_error", event, context },
-    });
+    await adminSupportAssistant({ type: "talent_directory_error", event, context });
   };
 
   const { data: rows = [], isLoading } = useQuery({

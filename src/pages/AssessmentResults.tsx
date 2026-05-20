@@ -27,6 +27,7 @@ import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTempla
 import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
 import { RetryErrorCard } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
+import { analyzeCareerAssessment } from "@/domains/talent/api/talentApi";
 
 interface AIAnalysis {
   strengths: string[];
@@ -139,11 +140,8 @@ export default function AssessmentResults() {
   // 3. AI Analysis Mutation
   const analyzeMutation = useMutation({
     mutationFn: async (assessmentId: string) => {
-      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
-        body: { assessmentId },
-      });
-      if (error) throw error;
-      return data?.analysis as AIAnalysis;
+      const data = await analyzeCareerAssessment({ assessmentId });
+      return (data as any)?.analysis as AIAnalysis;
     },
     onSuccess: (newAnalysis) => {
       if (newAnalysis) {

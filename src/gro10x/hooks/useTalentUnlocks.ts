@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unlockTalentContact } from "@/domains/talent/api/talentApi";
 
 export function useUnlockCost() {
   return useQuery({
@@ -37,11 +38,7 @@ export function useUnlockTalent(companyId: string | null) {
   return useMutation({
     mutationFn: async (talentId: string) => {
       if (!companyId) throw new Error("No active company");
-      const { data, error } = await supabase.functions.invoke("unlock-talent-contact", {
-        body: { company_id: companyId, talent_id: talentId },
-      });
-      if (error) throw error;
-      const payload = data as { ok: boolean; error?: string; contact?: UnlockedContact; credits_spent?: number; reused?: boolean };
+      const payload = await unlockTalentContact({ company_id: companyId, talent_id: talentId }) as { ok: boolean; error?: string; contact?: UnlockedContact; credits_spent?: number; reused?: boolean };
       if (!payload?.ok) throw new Error(payload?.error || "Unlock failed");
       return payload;
     },

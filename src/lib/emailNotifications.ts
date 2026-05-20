@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail as invokeTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 /**
  * GroUp Academy: Institutional Notification Dispatcher
@@ -34,17 +35,16 @@ export async function sendTransactionalEmail({
   data,
 }: SendEmailParams): Promise<boolean> {
   try {
-    const { data: result, error } = await supabase.functions.invoke("send-transactional-email", {
-      body: {
+    let result: any = null;
+    try {
+      result = await invokeTransactionalEmail({
         templateName: template,
         recipientEmail,
         idempotencyKey,
         templateData: data,
-      },
-    });
-
-    if (error) {
-      console.warn(`[Sentinel] Queue fault for ${template}:`, error.message);
+      });
+    } catch (error: any) {
+      console.warn(`[Sentinel] Queue fault for ${template}:`, error?.message);
       return false;
     }
 

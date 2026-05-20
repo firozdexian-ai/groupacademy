@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { adminGigOps } from "@/domains/gigs/api/gigsApi";
 
 // Production Type Definitions[cite: 8]
 interface Project {
@@ -45,9 +46,7 @@ export default function ProjectRoom() {
   // Digital Workforce Anomaly Reporting
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-gig-ops", {
-      body: { type: "project_room_error", event, context },
-    });
+    try { await adminGigOps({ type: "project_room_error", event, context } as any); } catch {}
   };
 
   const load = async () => {

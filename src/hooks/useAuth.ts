@@ -5,6 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
+import { sendTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 /**
  * Identity & session orchestrator.
@@ -182,16 +183,12 @@ export const useAuth = (): AuthState => {
       // Fire welcome email once (idempotent via idempotencyKey).
       const welcomeKey = `ga_welcome_sent_${authData.user.id}`;
       if (typeof localStorage !== "undefined" && !localStorage.getItem(welcomeKey)) {
-        void supabase.functions
-          .invoke("send-transactional-email", {
-            body: {
-              templateName: "welcome",
-              recipientEmail: email.trim(),
-              idempotencyKey: `welcome-${authData.user.id}`,
-              templateData: { name: (fullName || "Learner").split(" ")[0] || "Learner" },
-            },
-          })
-          .catch(() => {});
+        void sendTransactionalEmail({
+          templateName: "welcome",
+          recipientEmail: email.trim(),
+          idempotencyKey: `welcome-${authData.user.id}`,
+          templateData: { name: (fullName || "Learner").split(" ")[0] || "Learner" },
+        }).catch(() => {});
         localStorage.setItem(welcomeKey, "1");
       }
       toast.success("Welcome — let's set up your profile.");

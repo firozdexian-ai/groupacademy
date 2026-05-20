@@ -9,6 +9,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Eye, ExternalLink, Share2, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ogImageRender, aiGigPublicSummary } from "@/domains/gigs/api/gigsApi";
 
 interface ProjectPublicToggleProps {
   projectId: string;
@@ -89,8 +90,8 @@ export function ProjectPublicToggle({ projectId }: ProjectPublicToggleProps) {
       if (nextVisibilityStateBool) {
         try {
           await Promise.allSettled([
-            supabase.functions.invoke("og-image-render", { body: { project_id: projectId } }),
-            supabase.functions.invoke("ai-gig-public-summary", { body: { project_id: projectId } }),
+            ogImageRender({ project_id: projectId }),
+            aiGigPublicSummary({ project_id: projectId }),
           ]);
           trackEvent("project_public_edge_workers_notified", { projectId });
         } catch (edgeWorkerException) {

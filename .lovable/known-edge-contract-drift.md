@@ -113,3 +113,15 @@ exact runtime behavior. Fix in a dedicated follow-up.
 
 When fixing, also remove the entry here.
 
+
+## 11. Phase 9h — Migration complete
+
+- All ~60 raw `supabase.functions.invoke` call sites across batches A–G
+  (agents, jobs, gigs, talent, messaging, finance, companies, ugc) have
+  been migrated to typed wrappers in `src/domains/<owner>/api/<owner>Api.ts`.
+- ESLint guard `no-restricted-syntax` in `eslint.config.js` bans raw
+  invokes outside `src/domains/*/api/*Api.ts` and the documented SSE
+  exception `src/components/ai-instructor/AIChatPanel.tsx`.
+- Verification: `tsc --noEmit` clean, `eslint src` reports zero
+  `no-restricted-syntax` violations, `rg "supabase.functions.invoke"`
+  returns only the permitted wrapper files plus `AIChatPanel.tsx`.

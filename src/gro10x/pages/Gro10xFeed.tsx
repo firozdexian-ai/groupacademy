@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { CheckCircle2, X, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { companyAgentTools } from "@/domains/agents/api/agentsApi";
 
 interface FeedPost {
   id: string;
@@ -125,11 +126,14 @@ export default function Gro10xFeed() {
   const handlePublish = async (draftId: string) => {
     setWorking(draftId);
     try {
-      const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: "publish_company_post", args: { draft_id: draftId } },
-      });
-      if (error || !data?.ok) {
-        toast.error(data?.error ?? error?.message ?? "Could not publish");
+      try {
+        const data = await companyAgentTools({ tool_key: "publish_company_post", args: { draft_id: draftId } });
+        if (!data?.ok) {
+          toast.error(data?.error ?? "Could not publish");
+          return;
+        }
+      } catch (e: any) {
+        toast.error(e?.message ?? "Could not publish");
         return;
       }
       toast.success("Published to your company feed");
@@ -142,11 +146,14 @@ export default function Gro10xFeed() {
   const handleDiscard = async (draftId: string) => {
     setWorking(draftId);
     try {
-      const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: "discard_company_draft", args: { draft_id: draftId } },
-      });
-      if (error || !data?.ok) {
-        toast.error(data?.error ?? error?.message ?? "Could not discard");
+      try {
+        const data = await companyAgentTools({ tool_key: "discard_company_draft", args: { draft_id: draftId } });
+        if (!data?.ok) {
+          toast.error(data?.error ?? "Could not discard");
+          return;
+        }
+      } catch (e: any) {
+        toast.error(e?.message ?? "Could not discard");
         return;
       }
       toast.success("Draft discarded");
@@ -170,17 +177,19 @@ export default function Gro10xFeed() {
     try {
       if (postAsCompany && isOwner) {
         // Owner posting as the company — publish directly via the agent tool path.
-        const { data: draftRes, error: draftErr } = await supabase.functions.invoke("company-agent-tools", {
-          body: { tool_key: "draft_company_post", args: { text_content: text, agent_key: null } },
-        });
+        let draftRes: any = null;
+        let draftErr: any = null;
+        try {
+          draftRes = await companyAgentTools({ tool_key: "draft_company_post", args: { text_content: text, agent_key: null } });
+        } catch (e: any) { draftErr = e; }
         if (draftErr || !draftRes?.ok) {
           toast.error(draftRes?.error ?? draftErr?.message ?? "Could not save");
           return;
         }
         if (draftRes.draft_id) {
-          await supabase.functions.invoke("company-agent-tools", {
-            body: { tool_key: "publish_company_post", args: { draft_id: draftRes.draft_id, audience } },
-          });
+          try {
+            await companyAgentTools({ tool_key: "publish_company_post", args: { draft_id: draftRes.draft_id, audience } });
+          } catch {}
         }
         setComposer("");
         toast.success(`Posted as ${companyName ?? "company"}`);

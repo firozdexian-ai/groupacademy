@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Loader2, Users, Plus, Trash2 } from "lucide-react";
+import { messagingGroupManager } from "@/domains/messaging/api/messagingApi";
 
 interface Channel {
   id: string;
@@ -104,17 +105,13 @@ export function CompanyWhatsAppGroupCard({ companyId, companyName }: Props) {
         throw new Error(`${selectedKey} line status is currently ${selectedChannel.status}.`);
 
       // HUD: INVOKING_GROUP_MANAGER_EDGE_ENGINE
-      const { data, error } = await supabase.functions.invoke("messaging-group-manager", {
-        body: {
-          action: "create_group",
-          company_id: companyId,
-          group_kind: "client_account",
-          agent_key: selectedKey,
-          name: `${companyName || "Client"} · GroUp`,
-        },
+      const data: any = await messagingGroupManager({
+        action: "create_group",
+        company_id: companyId,
+        group_kind: "client_account",
+        agent_key: selectedKey,
+        name: `${companyName || "Client"} · GroUp`,
       });
-
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {

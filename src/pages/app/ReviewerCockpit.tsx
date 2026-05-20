@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { adminGigOps, aiReviewerBrief } from "@/domains/gigs/api/gigsApi";
 
 // Production Data Contracts[cite: 8]
 interface ReviewerProfile {
@@ -44,9 +45,7 @@ export default function ReviewerCockpit() {
   // Digital Workforce Anomaly Protocol[cite: 5, 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-gig-ops", {
-      body: { type: "reviewer_cockpit_error", event, context },
-    });
+    try { await adminGigOps({ type: "reviewer_cockpit_error", event, context } as any); } catch {}
   };
 
   const load = async () => {
@@ -105,7 +104,7 @@ export default function ReviewerCockpit() {
     setActive(a);
     setBrief("Loading brief…");
     try {
-      const { data } = await supabase.functions.invoke("ai-reviewer-brief", { body: { assignment_id: id } });
+      const data = await aiReviewerBrief({ assignment_id: id });
       setBrief((data as any)?.brief || "No brief available.");
     } catch {
       setBrief("Brief synthesis unavailable.");

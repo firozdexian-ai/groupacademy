@@ -14,6 +14,7 @@ import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { ArrowRight, User, Loader2, ShieldCheck, MessageSquare, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { analyzeMockInterview } from "@/domains/jobs/api/jobsApi";
 
 const INTERVIEW_ANALYSIS_STAGES = [
   { progress: 0, message: "Aggregating performance nodes..." },
@@ -83,11 +84,7 @@ export default function MockInterviewCapture() {
         })
         .eq("id", id);
 
-      const { error } = await supabase.functions.invoke("analyze-mock-interview", {
-        body: { interviewId: id },
-      });
-
-      if (error) throw error;
+      await analyzeMockInterview({ interviewId: id });
 
       if (talent) {
         await deductCredits("MOCK_INTERVIEW", id, "Premium AI Mock Interview Analysis");

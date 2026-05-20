@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Bot, Send, Loader2, ShieldCheck, Coins, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { agentBlueprint } from "@/domains/agents/api/agentsApi";
 
 interface CreatorOnboardingDialogProps {
   open: boolean;
@@ -72,11 +73,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
       }
 
       // HUD: INVOKING_AGENT_BLUEPRINT_EDGE_ENGINE
-      const { data, error } = await supabase.functions.invoke("agent-blueprint", {
-        body: { brief: brief.trim(), name: name.trim() || "New Agent Entity" },
-      });
-
-      if (error) throw error;
+      const data: any = await agentBlueprint({ brief: brief.trim(), name: name.trim() || "New Agent Entity" });
       return (data?.blueprint ?? data ?? null) as BlueprintPayload;
     },
     onSuccess: (generatedBlueprint) => {

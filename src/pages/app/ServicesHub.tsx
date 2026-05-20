@@ -12,6 +12,7 @@ import { useCredits } from "@/hooks/useCredits";
 import { ServiceType } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 interface ServiceCardData {
@@ -80,9 +81,7 @@ export default function ServicesHub() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomalyToAdmin = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "services_hub_error", event, context },
-    });
+    await adminSupportAssistant({ type: "services_hub_error", event, context });
   };
 
   useEffect(() => {

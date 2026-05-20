@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
 
 /**
  * GroUp Academy: Legal & Offer Finality Suite (V5.6.0)
@@ -91,14 +92,12 @@ export function useSendOffer() {
       if (error) throw error;
 
       // HUD: EDGE_NOTIFY_DISPATCH_HANDSHAKE
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "offer_sent", ref: { offer_id: offerId } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({ kind: "offer_sent", ref: { offer_id: offerId } });
+      } catch (funcError: any) {
         console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for offer_sent.", {
           offerId,
-          message: funcError.message,
+          message: funcError?.message,
         });
       }
     },
@@ -138,14 +137,12 @@ export function useAcceptOffer() {
         throw error;
       }
 
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "offer_accepted", ref: { offer_id: offerId } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({ kind: "offer_accepted", ref: { offer_id: offerId } });
+      } catch (funcError: any) {
         console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for offer_accepted.", {
           offerId,
-          message: funcError.message,
+          message: funcError?.message,
         });
       }
     },
@@ -177,14 +174,12 @@ export function useDeclineOffer() {
         throw error;
       }
 
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "offer_declined", ref: { offer_id: offerId } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({ kind: "offer_declined", ref: { offer_id: offerId } });
+      } catch (funcError: any) {
         console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for offer_declined.", {
           offerId,
-          message: funcError.message,
+          message: funcError?.message,
         });
       }
     },

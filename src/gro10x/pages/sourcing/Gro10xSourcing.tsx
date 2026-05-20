@@ -16,6 +16,7 @@ import { TelegramTopUpModal } from "@/gro10x/components/TelegramTopUpModal";
 import { SaveToListSheet } from "@/components/sourcing/SaveToListSheet";
 import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { toast } from "sonner";
+import { triggerAgentPitch } from "@/domains/agents/api/agentsApi";
 
 export default function Gro10xSourcing() {
   const { companyId } = useActiveCompany();
@@ -38,11 +39,7 @@ export default function Gro10xSourcing() {
     if (!companyId) return toast.error("No active company");
     setPitchingId(talentId);
     try {
-      const { data, error } = await supabase.functions.invoke("trigger-agent-pitch", {
-        body: { company_id: companyId, talent_id: talentId },
-      });
-      if (error) throw error;
-      const payload = data as { ok?: boolean; dispatched?: boolean; dispatch_error?: string };
+      const payload = await triggerAgentPitch({ company_id: companyId, talent_id: talentId }) as { ok?: boolean; dispatched?: boolean; dispatch_error?: string };
       if (payload?.dispatched) toast.success("AI pitch sent on WhatsApp");
       else toast.error(`Pitch generated but not sent: ${payload?.dispatch_error ?? "unknown"}`);
     } catch (e) {

@@ -11,6 +11,7 @@ import { recordToolRun } from "@/hooks/useToolRuns";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateApplicationAnswers } from "@/domains/jobs/api/jobsApi";
 
 /**
  * Application Answer Sheet — paste application questions, get tailored answers
@@ -35,12 +36,7 @@ export default function ApplicationHelper() {
 
     setRunning(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke("generate-application-answers", {
-        body: { questions: trimmed, jobContext: jobContext.trim() || null },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
-      });
-      if (error) throw error;
+      const data = await generateApplicationAnswers({ questions: trimmed, jobContext: jobContext.trim() || null });
       const result = (data?.answers || []) as { question: string; answer: string }[];
       if (!result.length) throw new Error("No answers returned");
       await deductCredits("APPLICATION_ANSWERS", undefined, "Application answer sheet");

@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { cn } from "@/lib/utils";
+import { enhanceCoverLetter, sendJobApplication, generateJobAssessment } from "@/domains/jobs/api/jobsApi";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -201,20 +202,19 @@ export default function AppJobApplication() {
 
     setIsAIComposerProcessing(true);
     try {
-      const { data: rpcResponsePayload, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
-        "enhance-cover-letter",
-        {
-          body: {
-            coverLetter:
-              coverLetterInputStr ||
-              `I am writing to express my structural interest in the ${jobRecordState.title} position at ${jobRecordState.company_name}.`,
-            jobTitle: jobRecordState.title,
-            companyName: jobRecordState.company_name,
-            candidateName: talentProfileRecord.fullName,
-            skills: talentProfileRecord.skills,
-          },
-        },
-      );
+      let rpcResponsePayload: any = null;
+      let edgeFunctionInvokeError: any = null;
+      try {
+        rpcResponsePayload = await enhanceCoverLetter({
+          coverLetter:
+            coverLetterInputStr ||
+            `I am writing to express my structural interest in the ${jobRecordState.title} position at ${jobRecordState.company_name}.`,
+          jobTitle: jobRecordState.title,
+          companyName: jobRecordState.company_name,
+          candidateName: talentProfileRecord.fullName,
+          skills: talentProfileRecord.skills,
+        });
+      } catch (e) { edgeFunctionInvokeError = e; }
 
       if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
 
@@ -275,24 +275,21 @@ export default function AppJobApplication() {
       setSubmissionProgressValue(40);
       setSubmissionProgressMessage("Broadcasting Dossier Parameters to Employer...");
 
-      await supabase.functions.invoke("send-job-application", {
-        body: { applicationId: applicationInsertPayload.id },
-      });
+      try { await sendJobApplication({ applicationId: applicationInsertPayload.id }); } catch {}
 
       if (jobRecordState.ai_assessment_enabled) {
         setSubmissionProgressValue(65);
         setSubmissionProgressMessage("Synthesizing Dynamic AI Evaluation Interview Matrix...");
 
-        const { data: assessmentResponsePayload, error: assessmentGenerationError } = await supabase.functions.invoke(
-          "generate-job-assessment",
-          {
-            body: {
-              jobId: jobRecordState.id,
-              talentId: talentProfileRecord.id,
-              jobApplicationId: applicationInsertPayload.id,
-            },
-          },
-        );
+        let assessmentResponsePayload: any = null;
+        let assessmentGenerationError: any = null;
+        try {
+          assessmentResponsePayload = await generateJobAssessment({
+            jobId: jobRecordState.id,
+            talentId: talentProfileRecord.id,
+            jobApplicationId: applicationInsertPayload.id,
+          });
+        } catch (e) { assessmentGenerationError = e; }
 
         if (!assessmentGenerationError && assessmentResponsePayload?.assessmentId) {
           setGeneratedAssessmentId(assessmentResponsePayload.assessmentId);

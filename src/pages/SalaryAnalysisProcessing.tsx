@@ -11,6 +11,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { Loader2, AlertCircle, RefreshCw, ShieldCheck, Database, Cpu, Globe, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { analyzeSalary } from "@/domains/talent/api/talentApi";
 
 const SalaryAnalysisProcessing = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,9 +44,9 @@ const SalaryAnalysisProcessing = () => {
       );
 
       // Step 2: Neural Processing Call
-      const analysisPromise = supabase.functions.invoke("analyze-salary", {
-        body: { analysisId: id },
-      });
+      const analysisPromise = analyzeSalary({ analysisId: id })
+        .then((data) => ({ data, error: null }))
+        .catch((error) => ({ data: null, error }));
 
       setProgress(50);
       setStatus("Synthesizing Neural Logic Analysis...");

@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import { requestInstructorPayout } from "@/domains/finance/api/financeApi";
 
 // =========================================================================
 // DETERMINISTIC CONTRACT INTERFACES
@@ -410,16 +411,17 @@ function RequestPayoutSheet({ available, onDone }: RequestPayoutSheetProps) {
 
     setIsMutationProcessing(true);
     try {
-      const { data: edgeFunctionResponseData, error: functionInvokeError } = await supabase.functions.invoke(
-        "request-instructor-payout",
-        {
-          body: {
-            amount: Number(amountInputStr),
-            method: methodSelectionStr,
-            details: { account: accountDetailsStr },
-          },
-        },
-      );
+      let edgeFunctionResponseData: any = null;
+      let functionInvokeError: any = null;
+      try {
+        edgeFunctionResponseData = await requestInstructorPayout({
+          amount: Number(amountInputStr),
+          method: methodSelectionStr,
+          details: { account: accountDetailsStr },
+        });
+      } catch (e) {
+        functionInvokeError = e;
+      }
 
       if (functionInvokeError || (edgeFunctionResponseData as any)?.error) {
         toast({

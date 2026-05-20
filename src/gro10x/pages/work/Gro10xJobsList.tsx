@@ -12,6 +12,7 @@ import { GRO10X_PANEL, GRO10X_MUTED } from "../../lib/tokens";
 import { Briefcase, Loader2, Pause, Play, X, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Gro10xJobPostWizard from "../../components/Gro10xJobPostWizard";
+import { companyAgentTools } from "@/domains/agents/api/agentsApi";
 
 export default function Gro10xJobsList() {
   const { data: companyId, isLoading: cidLoading } = useGro10xCompanyId();
@@ -23,11 +24,9 @@ export default function Gro10xJobsList() {
 
   const mutate = useMutation({
     mutationFn: async ({ tool, job_id }: { tool: string; job_id: string }) => {
-      const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: tool, args: { job_id } },
-      });
-      if (error || !data?.ok) {
-        throw new Error(data?.error ?? error?.message ?? "Failed");
+      const data = await companyAgentTools({ tool_key: tool, args: { job_id } });
+      if (!data?.ok) {
+        throw new Error(data?.error ?? "Failed");
       }
       return data;
     },

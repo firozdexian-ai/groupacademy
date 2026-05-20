@@ -31,6 +31,7 @@ import { EducationEditor, EducationEntry } from "@/components/profile/EducationE
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
 
 // Production Data Contracts[cite: 8]
 interface LanguageEntry {
@@ -106,11 +107,7 @@ export default function ProfileEdit() {
       setCvUrl(publicUrl);
       setParsingCV(true);
 
-      const { data: parseResult, error: parseError } = await supabase.functions.invoke("parse-cv", {
-        body: { cvUrl: publicUrl },
-      });
-
-      if (parseError) throw parseError;
+      const parseResult: any = await parseCv({ cvUrl: publicUrl });
 
       if (parseResult?.success) {
         const parsed = parseResult.parsed;

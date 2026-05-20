@@ -6,6 +6,7 @@ import { SkillCredentialsPanel } from "@/components/learning/SkillCredentialsPan
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 /**
  * Platform Logic: Global Talent Mirror Result Viewport
@@ -19,9 +20,7 @@ export default function TalentMirror() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "talent_mirror_error", event, context },
-    });
+    await adminSupportAssistant({ type: "talent_mirror_error", event, context });
   };
 
   const handleError = (error: Error) => {

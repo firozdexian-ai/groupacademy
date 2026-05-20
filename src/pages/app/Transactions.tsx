@@ -27,6 +27,7 @@ import { MyInvoicesList } from "@/components/credits/MyInvoicesList";
 import { CreditBalance } from "@/components/credits/CreditBalance";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 interface Transaction {
@@ -52,9 +53,7 @@ export default function Transactions() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "ledger_sync_error", event, context },
-    });
+    await adminSupportAssistant({ type: "ledger_sync_error", event, context });
   };
 
   const { data: historyTxns = [], isLoading: historyLoading } = useQuery({

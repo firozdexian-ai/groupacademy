@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Send, Loader2, Bot, User, MessageSquare, Briefcase, Users, Phone, List, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { messagingSend } from "@/domains/messaging/api/messagingApi";
 
 interface Conversation {
   id: string;
@@ -109,10 +110,7 @@ export default function AdminMessagingInbox() {
     if (!composer.trim() || !activeId) return;
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("messaging-send", {
-        body: { conversation_id: activeId, text: composer.trim() },
-      });
-      if (error) throw error;
+      await messagingSend({ conversation_id: activeId, text: composer.trim() });
       setComposer("");
       await loadMessages(activeId);
     } catch (e: any) {

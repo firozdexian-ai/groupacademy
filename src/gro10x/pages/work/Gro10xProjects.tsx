@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useGro10xCompanyId } from "@/gro10x/hooks/useGro10xCompanyId";
+import { aiProjectScoper } from "@/domains/gigs/api/gigsApi";
 
 export default function Gro10xProjects() {
   const { data: companyId } = useGro10xCompanyId();
@@ -26,12 +27,14 @@ export default function Gro10xProjects() {
 
   const proposeMilestones = async () => {
     setProposing(true);
-    const { data, error } = await supabase.functions.invoke("ai-project-scoper", {
-      body: { brief: form.brief, budget_credits: form.budget_credits },
-    });
-    setProposing(false);
-    if (error) { toast.error(error.message); return; }
-    setProposed((data as any)?.milestones || []);
+    try {
+      const data = await aiProjectScoper({ brief: form.brief, budget_credits: form.budget_credits });
+      setProposed((data as any)?.milestones || []);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Scoping failed");
+    } finally {
+      setProposing(false);
+    }
   };
 
   const createProject = async () => {

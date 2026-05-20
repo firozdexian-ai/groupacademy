@@ -16,6 +16,7 @@ import { useCredits } from "@/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { analyzeCareerAssessment } from "@/domains/talent/api/talentApi";
 
 export type AssessmentStep = "intro" | "profession" | "questions" | "lead-capture" | "processing";
 
@@ -142,19 +143,12 @@ export default function AppCareerAssessment() {
       );
       if (!isCreditHandshakeSettled) throw new Error("Credit transaction verification loop timeout.");
 
-      const { data: edgeFunctionResponseData, error: edgeFunctionInvokeError } = await supabase.functions.invoke(
-        "analyze-career-assessment",
-        {
-          body: {
-            answers: accumulatedAnswersState,
-            professionCategoryId: selectedCategoryRecord.id,
-            email: candidateEmailState,
-            talentId: talentProfileRecord?.id,
-          },
-        },
-      );
-
-      if (edgeFunctionInvokeError) throw edgeFunctionInvokeError;
+      const edgeFunctionResponseData: any = await analyzeCareerAssessment({
+        answers: accumulatedAnswersState,
+        professionCategoryId: selectedCategoryRecord.id,
+        email: candidateEmailState,
+        talentId: talentProfileRecord?.id,
+      });
 
       if (talentProfileRecord?.id) {
         await addServiceUsed("CAREER_ASSESSMENT");

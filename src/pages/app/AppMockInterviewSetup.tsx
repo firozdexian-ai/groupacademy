@@ -18,6 +18,7 @@ import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionP
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL, PAGE_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
+import { generateInterviewQuestions } from "@/domains/jobs/api/jobsApi";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -254,16 +255,14 @@ export default function AppMockInterviewSetup() {
 
       // Race the Edge function payload against our hard timeout limit to prevent UI freezes
       const edgeFunctionInvokeResponse = await Promise.race([
-        supabase.functions.invoke("generate-interview-questions", {
-          body: {
-            jobDescription: jobDescriptionInputStr.trim(),
-            questionCount: interviewConfigState.questionCount,
-            difficulty: interviewConfigState.difficulty,
-            professionCategoryId: interviewConfigState.professionCategoryId,
-            additionalNotes: interviewConfigState.additionalNotes,
-            candidateProfile: calculatedCandidateProfile,
-          },
-        }),
+        generateInterviewQuestions({
+          jobDescription: jobDescriptionInputStr.trim(),
+          questionCount: interviewConfigState.questionCount,
+          difficulty: interviewConfigState.difficulty,
+          professionCategoryId: interviewConfigState.professionCategoryId,
+          additionalNotes: interviewConfigState.additionalNotes,
+          candidateProfile: calculatedCandidateProfile as unknown as Record<string, unknown>,
+        }).then((data) => ({ data, error: null })).catch((error) => ({ data: null, error })),
         aiInferenceTimeoutPromise,
       ]);
 

@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { agentRuntime } from "@/domains/agents/api/agentsApi";
 
 type Country = { id: string; iso2: string; name: string };
 type Stage = { id: string; name: string; slug: string; academy_id: string | null };
@@ -334,18 +335,16 @@ export function OnboardingWizard({
       if (provisioned?.instance_id) {
         setSubmittingPhase("Almost ready…");
         try {
-          await supabase.functions.invoke("agent-runtime", {
-            body: {
-              instance_id: provisioned.instance_id,
-              subject_kind: "talent",
-              subject_id: userId,
-              silent_seed: true,
-              seed_context: {
-                funnelParams: funnelParamsRef.current,
-                institution: institution.name,
-                school: school.slug,
-                stage: stage.slug,
-              },
+          await agentRuntime({
+            instance_id: provisioned.instance_id,
+            subject_kind: "talent",
+            subject_id: userId,
+            silent_seed: true,
+            seed_context: {
+              funnelParams: funnelParamsRef.current,
+              institution: institution.name,
+              school: school.slug,
+              stage: stage.slug,
             },
           });
         } catch (e) {

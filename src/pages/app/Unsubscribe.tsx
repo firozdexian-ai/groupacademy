@@ -7,6 +7,8 @@ import { Loader2, MailX, ShieldCheck, Settings2, CheckCircle, XCircle } from "lu
 import { toast } from "sonner";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
 import { cn } from "@/lib/utils";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
+import { handleEmailUnsubscribe } from "@/domains/messaging/api/messagingApi";
 
 // Production Data Contracts[cite: 8]
 type Status = "loading" | "valid" | "already_unsubscribed" | "invalid" | "success" | "error";
@@ -21,9 +23,7 @@ export default function Unsubscribe() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "unsubscribe_error", event, context },
-    });
+    await adminSupportAssistant({ type: "unsubscribe_error", event, context });
   };
 
   useEffect(() => {
@@ -34,11 +34,7 @@ export default function Unsubscribe() {
 
     const validateProtocol = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("handle-email-unsubscribe", {
-          body: { token, action: "validate" },
-        });
-
-        if (error) throw error;
+        const data = await handleEmailUnsubscribe({ token, action: "validate" });
         if (data?.valid) setStatus("valid");
         else if (data?.reason === "already_unsubscribed") setStatus("already_unsubscribed");
         else setStatus("invalid");
@@ -55,11 +51,7 @@ export default function Unsubscribe() {
     if (!token) return;
     setProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("handle-email-unsubscribe", {
-        body: { token, action: "confirm" },
-      });
-
-      if (error) throw error;
+      const data = await handleEmailUnsubscribe({ token, action: "confirm" });
       if (data?.success) setStatus("success");
       else throw new Error("Sync failure");
     } catch (e) {

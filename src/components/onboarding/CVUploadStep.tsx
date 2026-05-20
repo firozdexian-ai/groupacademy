@@ -9,6 +9,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, CheckCircle2, Sparkles, User, AlertCircle, ShieldCheck, FileText, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
 
 interface CVUploadStepProps {
   onContinue: () => void;
@@ -137,9 +138,11 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       startProgressSimulation();
 
       // Invoke remote Cognitive Extraction Edge Endpoint Node
-      const { data: parseInvokeResult, error: invokeEdgeError } = await supabase.functions.invoke("parse-cv", {
-        body: { cvUrl: absolutePublicFileUrlStr },
-      });
+      let parseInvokeResult: any = null;
+      let invokeEdgeError: any = null;
+      try {
+        parseInvokeResult = await parseCv({ cvUrl: absolutePublicFileUrlStr });
+      } catch (e: any) { invokeEdgeError = e; }
 
       clearActiveProgressInterval();
 

@@ -7,6 +7,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Upload, CheckCircle2, Loader2, AlertCircle, RefreshCw, Sparkles, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
 
 /**
  * GroUp Academy: Intelligent CV Ingress Node (InlineCVUpload)
@@ -125,9 +126,11 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
       } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
 
       // Invoke centralized serverless cognitive computing synapse node for document extraction
-      const { data: parseResult, error: parseError } = await supabase.functions.invoke("parse-cv", {
-        body: { cvUrl: publicUrl },
-      });
+      let parseResult: any = null;
+      let parseError: any = null;
+      try {
+        parseResult = await parseCv({ cvUrl: publicUrl });
+      } catch (e) { parseError = e; }
 
       if (telemetryIntervalRef.current) clearInterval(telemetryIntervalRef.current);
 

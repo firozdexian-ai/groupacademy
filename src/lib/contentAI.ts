@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { adminContentAi } from "@/domains/ugc/api/ugcApi";
 
 export type AIMode = "description" | "slug" | "image_prompt" | "outline" | "cover_image";
 
@@ -12,10 +13,7 @@ export interface AIContext {
 }
 
 export async function callContentAI<T = any>(mode: AIMode, context: AIContext): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("admin-content-ai", {
-    body: { mode, context },
-  });
-  if (error) throw new Error(error.message);
-  if ((data as any)?.error) throw new Error((data as any).error);
-  return (data as any).result as T;
+  const data: any = await adminContentAi({ mode, context: context as unknown as Record<string, unknown> });
+  if (data?.error) throw new Error(data.error);
+  return data.result as T;
 }

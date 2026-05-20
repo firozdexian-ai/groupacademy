@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { analyzeJobAssessment } from "@/domains/jobs/api/jobsApi";
 
 /**
  * Platform Logic: AI Synthesis Report
@@ -123,7 +124,7 @@ export default function JobAssessmentResults() {
       if (result?.status === "completed" && result?.ai_score === null) {
         triggerAttempted.current = true;
         try {
-          await supabase.functions.invoke("analyze-job-assessment", { body: { assessmentId } });
+          await analyzeJobAssessment({ assessmentId });
         } catch (err) {
           console.error("Synthesis Trigger Failed:", err);
         }

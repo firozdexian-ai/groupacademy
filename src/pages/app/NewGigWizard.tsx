@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, RefreshCw, Send, ArrowLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { aiGigScoper } from "@/domains/gigs/api/gigsApi";
 
 // Production interfaces aligned with DB schema[cite: 4, 8]
 interface GigBrief {
@@ -44,12 +45,9 @@ export default function NewGigWizard() {
 
   const scope = useMutation({
     mutationFn: async (payload: { brief_id?: string; raw_ask?: string }) => {
-      const { data, error } = await supabase.functions.invoke("ai-gig-scoper", {
-        body: payload,
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { brief: GigBrief; draft: GigDraft };
+      const data = await aiGigScoper(payload);
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as unknown as { brief: GigBrief; draft: GigDraft };
     },
     onSuccess: (data) => {
       setBrief(data.brief);

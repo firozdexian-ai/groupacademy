@@ -6,6 +6,7 @@ import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
+import { sendTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 const WELCOME_KEY_PREFIX = "ga_welcome_sent_";
 
@@ -34,16 +35,12 @@ const AuthCallback = () => {
     const welcomeKey = `${WELCOME_KEY_PREFIX}${user.id}`;
     if (!localStorage.getItem(welcomeKey)) {
       const fullName = (user.user_metadata as any)?.full_name || "Learner";
-      void supabase.functions
-        .invoke("send-transactional-email", {
-          body: {
-            templateName: "welcome",
-            recipientEmail: user.email,
-            idempotencyKey: `welcome-${user.id}`,
-            templateData: { name: fullName.split(" ")[0] || "Learner" },
-          },
-        })
-        .catch(() => {});
+      void sendTransactionalEmail({
+        templateName: "welcome",
+        recipientEmail: user.email,
+        idempotencyKey: `welcome-${user.id}`,
+        templateData: { name: fullName.split(" ")[0] || "Learner" },
+      }).catch(() => {});
       localStorage.setItem(welcomeKey, "1");
       // Clear stale referral once it's been consumed by the trigger.
       localStorage.removeItem("pending_ref");

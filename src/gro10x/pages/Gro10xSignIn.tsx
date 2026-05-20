@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GRO10X_BG, GRO10X_TEXT } from "../lib/tokens";
 import { cn } from "@/lib/utils";
+import { checkCompanyAccount } from "@/domains/companies/api/companiesApi";
 
 /**
  * Dedicated Gro10x sign-in page. Always lands company members in
@@ -45,10 +46,11 @@ export default function Gro10xSignIn() {
 
       // Verify membership via service-role edge function (RLS-immune),
       // mirroring the same lookup Riya uses in the auth chat.
-      const { data: lookup, error: lookupErr } = await supabase.functions.invoke(
-        "check-company-account",
-        { body: { email: userEmail } },
-      );
+      let lookup: any = null;
+      let lookupErr: any = null;
+      try {
+        lookup = await checkCompanyAccount({ email: userEmail });
+      } catch (e) { lookupErr = e; }
 
       if (lookupErr) {
         // Don't lie about "talent account" when we genuinely couldn't verify.

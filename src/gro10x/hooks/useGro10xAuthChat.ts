@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 import { PRO_GOALS, type ProGoalKey } from "../lib/tokens";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
+import { signupCompany, checkCompanyAccount } from "@/domains/companies/api/companiesApi";
 
 /**
  * Gro10x — Riya conversational auth controller.
@@ -147,9 +149,7 @@ export function useGro10xAuthChat() {
         // Best-effort: parse to extract role + company suggestions
         let suggestion: CVSuggestion = {};
         try {
-          const { data: parsed } = await supabase.functions.invoke("parse-cv", {
-            body: { cvUrl, mode: "lite" },
-          });
+          const parsed: any = await parseCv({ cvUrl, mode: "lite" } as any);
           if (parsed) {
             suggestion = {
               role: parsed.current_role || parsed.headline || parsed.role || null,
@@ -229,10 +229,7 @@ export function useGro10xAuthChat() {
             // Check if this email already has an account so we can offer
             // sign-in instead of running the full signup flow.
             try {
-              const { data: lookup } = await supabase.functions.invoke(
-                "check-company-account",
-                { body: { email } },
-              );
+              const lookup: any = await checkCompanyAccount({ email });
               if (lookup?.exists) {
                 setData((d) => ({ ...d, email }));
                 setExistingAccount({ email, isCompany: !!lookup.isCompany });
@@ -380,8 +377,10 @@ export function useGro10xAuthChat() {
       addMessage("user", "••••••••");
       try {
         const finalPhone = `${data.countryCode}${data.phone}`;
-        const { data: result, error } = await supabase.functions.invoke("signup-company", {
-          body: {
+        let result: any = null;
+        let error: any = null;
+        try {
+          result = await signupCompany({
             email: data.email,
             password,
             full_name: data.name,
@@ -391,8 +390,8 @@ export function useGro10xAuthChat() {
             industry: null,
             company_size: null,
             website: null,
-          },
-        });
+          });
+        } catch (e) { error = e; }
         if (error) throw error;
         if ((result as any)?.error) throw new Error((result as any).error);
 
