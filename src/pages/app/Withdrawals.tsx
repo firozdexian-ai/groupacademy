@@ -16,6 +16,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 interface WithdrawalRequest {
@@ -56,9 +57,7 @@ export default function Withdrawals() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "payout_error", event, context },
-    });
+    await adminSupportAssistant({ type: "payout_error", event, context });
   };
 
   const {

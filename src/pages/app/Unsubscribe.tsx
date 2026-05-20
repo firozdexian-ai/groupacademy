@@ -7,6 +7,7 @@ import { Loader2, MailX, ShieldCheck, Settings2, CheckCircle, XCircle } from "lu
 import { toast } from "sonner";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
 import { cn } from "@/lib/utils";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 type Status = "loading" | "valid" | "already_unsubscribed" | "invalid" | "success" | "error";
@@ -21,9 +22,7 @@ export default function Unsubscribe() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "unsubscribe_error", event, context },
-    });
+    await adminSupportAssistant({ type: "unsubscribe_error", event, context });
   };
 
   useEffect(() => {

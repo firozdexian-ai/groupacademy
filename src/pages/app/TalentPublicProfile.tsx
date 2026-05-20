@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useTalent } from "@/hooks/useTalent";
 import { ConnectionRequestDialog } from "@/components/talents/ConnectionRequestDialog";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT, SECTION_TITLE } from "@/lib/uiTokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 interface TalentDetail {
@@ -47,9 +48,7 @@ export default function TalentPublicProfile() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "talent_profile_error", event, context },
-    });
+    await adminSupportAssistant({ type: "talent_profile_error", event, context });
   };
 
   const {

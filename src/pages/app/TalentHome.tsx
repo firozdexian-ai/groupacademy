@@ -21,6 +21,7 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib/tokens";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 // Production Data Contracts[cite: 8]
 interface Pitch {
@@ -43,9 +44,7 @@ export default function TalentHome() {
   // Digital Workforce Anomaly Reporting[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "talent_home_error", event, context },
-    });
+    await adminSupportAssistant({ type: "talent_home_error", event, context });
   };
 
   useEffect(() => {
