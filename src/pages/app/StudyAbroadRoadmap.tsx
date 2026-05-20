@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RoadmapIntakeForm } from "@/components/abroad/RoadmapIntakeForm";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { toast } from "sonner";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
 
@@ -20,9 +21,11 @@ export default function StudyAbroadRoadmap() {
   // Digital Workforce Anomaly Reporting[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "roadmap_intake_error", event, context },
-    });
+    try {
+      await adminSupportAssistant({ type: "roadmap_intake_error", event, context });
+    } catch {
+      // fire-and-forget telemetry
+    }
   };
 
   const handleError = (error: Error) => {

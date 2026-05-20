@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
   Bot,
@@ -56,9 +57,11 @@ export default function StudyAbroadDetail() {
   // Digital Workforce Anomaly Protocol
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "abroad_detail_error", event, context },
-    });
+    try {
+      await adminSupportAssistant({ type: "abroad_detail_error", event, context });
+    } catch {
+      // fire-and-forget telemetry
+    }
   };
 
   const {

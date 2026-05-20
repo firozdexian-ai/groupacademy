@@ -1,22 +1,24 @@
-import { supabase } from "@/integrations/supabase/client";
-import type {
+/**
+ * Barrel — re-exports abroad edge wrappers + contract types.
+ * Phase 9e: legacy `abroadApi` const removed.
+ */
+export {
+  aiDestinationAgent,
+  aiIeltsEvaluate,
+  aiLanguagePartner,
+  bookLanguageSession,
+  generateStudyRoadmap,
+} from "./abroadApi";
+
+export type {
   AiDestinationAgentRequest,
   AiDestinationAgentResponse,
+  AiIeltsEvaluateRequest,
+  AiIeltsEvaluateResponse,
+  AiLanguagePartnerRequest,
+  AiLanguagePartnerResponse,
+  BookLanguageSessionRequest,
+  BookLanguageSessionResponse,
   GenerateStudyRoadmapRequest,
   GenerateStudyRoadmapResponse,
 } from "@/edge/contracts/abroad";
-
-export const abroadApi = {
-  async aiDestinationAgent(body: AiDestinationAgentRequest) {
-    return supabase.functions.invoke<AiDestinationAgentResponse>(
-      "ai-destination-agent",
-      { body }
-    );
-  },
-  async generateStudyRoadmap(body: GenerateStudyRoadmapRequest) {
-    return supabase.functions.invoke<GenerateStudyRoadmapResponse>(
-      "generate-study-roadmap",
-      { body }
-    );
-  },
-};

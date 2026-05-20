@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
   Map,
@@ -65,9 +66,11 @@ export default function StudyAbroadRoadmapResults() {
   // Digital Workforce Anomaly Protocol[cite: 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "roadmap_result_error", event, context },
-    });
+    try {
+      await adminSupportAssistant({ type: "roadmap_result_error", event, context });
+    } catch {
+      // fire-and-forget telemetry
+    }
   };
 
   useEffect(() => {

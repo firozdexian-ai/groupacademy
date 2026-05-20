@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { aiIeltsEvaluate } from "@/domains/abroad/api/abroadApi";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,21 +101,17 @@ export default function IELTSMockRunner() {
         remoteAudioStoragePath = generatedPath;
       }
 
-      const { data: evaluationResponsePayload, error: rpcHandshakeError } =
-        await supabase.functions.invoke<EvaluationResponse>("ai-ielts-evaluate", {
-          body: {
-            section: unverifiedSectionStr,
-            prompt_id: promptId,
-            response_text: responseTextInputStr,
-            audio_path: remoteAudioStoragePath,
-          },
-        });
+      const evaluationResponsePayload = await aiIeltsEvaluate({
+        section: unverifiedSectionStr ?? "",
+        prompt_id: promptId,
+        response_text: responseTextInputStr,
+        audio_path: remoteAudioStoragePath,
+      });
 
-      if (rpcHandshakeError) throw rpcHandshakeError;
       if (evaluationResponsePayload?.error) throw new Error(evaluationResponsePayload.error);
 
       toast.success(
-        `Analysis Finalized: Band ${evaluationResponsePayload.band.toString()} (${evaluationResponsePayload.was_free ? "Free Entry" : evaluationResponsePayload.credits_spent.toString() + " Credits Deducted"})`,
+        `Analysis Finalized: Band ${evaluationResponsePayload.band?.toString()} (${evaluationResponsePayload.was_free ? "Free Entry" : (evaluationResponsePayload.credits_spent ?? 0).toString() + " Credits Deducted"})`,
       );
       navigateHook(`/app/abroad/ielts/results/${evaluationResponsePayload.attempt_id}`);
     } catch (mutationException: any) {

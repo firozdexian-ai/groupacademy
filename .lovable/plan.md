@@ -1,35 +1,46 @@
-# Phase 9 — Status
+## Phase 9e — Abroad domain edge function hardening ✅ COMPLETE
 
-## Completed (signed off)
+Apply the pilot pattern (talent/agents/jobs) to the abroad domain.
 
-- **Phase 9a** — infra: `EdgeFunctionError`, `parseEdgeResponse`, contracts directory, README, drift log.
-- **Phase 9b — talent** ✅ COMPLETE. 2 owned fns (`batch-parse-cvs`, `generate-outreach-message`). Zero in-domain raw invokes.
-- **Phase 9c — agents** ✅ COMPLETE. 7 owned fns. Cross-domain ownership of `admin-support-assistant` / `ai-support-assistant` resolved via Option A. Zero in-domain raw invokes.
-- **Phase 9d — jobs** ✅ COMPLETE. 10 owned fns. Zero in-domain raw invokes.
+### Scope
 
-All three pass the Phase 9b convention checklist:
-contracts present, named-async wrappers, barrel-only manifest, no
-`*Api` const, every wrapper uses `EdgeFunctionError` + `parseEdgeResponse`,
-README ownership table updated, drift entries logged.
+**Edge functions to harden (6 total):**
+1. `ai-destination-agent` (already in contracts; expand types)
+2. `generate-study-roadmap` (already in contracts; expand types)
+3. `book-language-session` (new)
+4. `ai-language-partner` (new)
+5. `ai-ielts-evaluate` (new)
+6. `admin-support-assistant` — already owned by agents domain; abroad pages will switch to `agentsApi.adminSupportAssistant` (5 page call sites)
 
-## Outstanding (cross-domain leaks, deferred by design)
+### Steps
 
-Tracked in `.lovable/known-edge-contract-drift.md` entries #3, #6, #7, #8.
-These are pages/components in other domains that still call owned fns via
-raw `supabase.functions.invoke`. They will be migrated when the consuming
-domain comes up in its own phase (no functional bug — convention only).
+1. **Expand `src/edge/contracts/abroad.ts`** — replace the loose `Record<string, unknown>` types with proper Zod schemas + request/response interfaces for all 5 abroad-owned functions, matching the actual payloads each call site sends.
 
-## Next: Phase 9e — abroad domain
+2. **Create `src/domains/abroad/api/abroadApi.ts`** — 5 named async wrappers following the hardened pattern: `supabase.functions.invoke` → `EdgeFunctionError` → `parseEdgeResponse`. One wrapper per function:
+   - `aiDestinationAgent`
+   - `generateStudyRoadmap`
+   - `bookLanguageSession`
+   - `aiLanguagePartner`
+   - `aiIeltsEvaluate`
 
-Same shape as 9d. ~12 page-level call sites under
-`src/pages/app/{StudyAbroad*, SchoolDetail, DestinationAgentPage,
-LanguagePracticePage, LanguageInstructorsPage, IELTSMockRunner}.tsx`.
+3. **Convert `src/domains/abroad/api/manifest.ts` and `index.ts` to barrels** — re-export from `abroadApi.ts`, delete the legacy `abroadApi` const object.
 
-This phase will incidentally clear several drift-#3 entries
-(`admin-support-assistant` calls on StudyAbroad* / SchoolDetail).
+4. **Migrate call sites (9 files):**
+   - `LanguageInstructorsPage.tsx` → `bookLanguageSession`
+   - `LanguagePracticePage.tsx` → `aiLanguagePartner`
+   - `DestinationAgentPage.tsx` → `aiDestinationAgent`
+   - `IELTSMockRunner.tsx` → `aiIeltsEvaluate`
+   - `SchoolDetail.tsx`, `StudyAbroad.tsx`, `StudyAbroadRoadmap.tsx`, `StudyAbroadRoadmapResults.tsx`, `StudyAbroadDetail.tsx` → `agentsApi.adminSupportAssistant` (fire-and-forget telemetry)
+   - Existing in-domain components (`RoadmapBuilderSheet.tsx`, `RoadmapIntakeForm.tsx`) — re-point to named imports.
 
-## Optional follow-up (not blocking)
+5. **Update `src/edge/README.md`** — add abroad ownership rows for the 5 functions.
 
-**Tooling guard** — add an ESLint rule that flags
-`supabase.functions.invoke` outside `src/**/api/*Api.ts`. Would catch
-regressions automatically and remove the manual `rg` audit each phase.
+6. **Update `.lovable/known-edge-contract-drift.md`** — clear/close the `admin-support-assistant` cross-domain entry (#1 portion covering abroad pages) and note any payload shape quirks found while migrating.
+
+7. **Verify** — `tsc` clean; `rg "supabase.functions.invoke" src/domains/abroad src/pages/app/{StudyAbroad*,SchoolDetail,DestinationAgentPage,LanguagePractice*,LanguageInstructors*,IELTSMockRunner}.tsx` returns 0 hits; `rg "abroadApi\."` returns 0 hits (all named imports).
+
+8. **Mark Phase 9e ✅ in `.lovable/plan.md`** and queue the next domain.
+
+### Out of scope
+- ESLint tooling guard (deferred).
+- Other cross-domain leaks (parse-cv, notify-hiring-event, agent-runtime, etc.) tracked in drift doc for their own domain phases.

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { aiLanguagePartner } from "@/domains/abroad/api/abroadApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,16 +71,13 @@ export default function LanguagePracticePage() {
     setIsInferenceProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke<AIResponsePayload>("ai-language-partner", {
-        body: {
-          language_code: languageCode.toUpperCase(),
-          cefr_level: activeCefrLevel,
-          message: sanitizedText,
-          session_id: activeSessionId,
-        },
+      const data = await aiLanguagePartner({
+        language_code: languageCode.toUpperCase(),
+        cefr_level: activeCefrLevel,
+        message: sanitizedText,
+        session_id: activeSessionId,
       });
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       if (data.session_id && !activeSessionId) setActiveSessionId(data.session_id);
@@ -88,13 +86,13 @@ export default function LanguagePracticePage() {
         ...prev,
         {
           role: "assistant",
-          content: data.reply,
-          translation_en: data.translation_en,
+          content: data.reply as string,
+          translation_en: data.translation_en as string | undefined,
         },
       ]);
 
-      if (data.corrections?.length) {
-        setActiveCorrections((prev) => [...prev, ...data.corrections]);
+      if (Array.isArray(data.corrections) && data.corrections.length) {
+        setActiveCorrections((prev) => [...prev, ...(data.corrections as Correction[])]);
       }
     } catch (e: any) {
       toast.error(e.message || "Failed to finalize communication channel.");

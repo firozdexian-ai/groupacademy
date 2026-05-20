@@ -21,6 +21,7 @@ owner's `api/<owner>Api.ts` — never re-wrap the same function elsewhere.
 | `batch-parse-cvs`, `generate-outreach-message` | talent |
 | `agent-runtime`, `ai-general-chat`, `agent-blueprint`, `ingest-agent-knowledge`, `agent-event-dispatcher`, `admin-support-assistant`, `ai-support-assistant` | agents |
 | `score-job-match`, `suggest-jobs-for-talent`, `cron-rebuild-job-recs`, `analyze-job-market`, `enhance-job-description`, `parse-cv`, `parse-job-post`, `generate-job-share-caption`, `notify-application-status`, `notify-hiring-event` | jobs |
+| `ai-destination-agent`, `generate-study-roadmap`, `book-language-session`, `ai-language-partner`, `ai-ielts-evaluate` | abroad |
 
 ## Convention
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bot, Briefcase, GraduationCap, UserPlus, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,9 +47,11 @@ export default function SchoolDetail() {
   // Digital Workforce Anomaly Protocol[cite: 5, 6]
   const reportAnomaly = async (event: string, context: any) => {
     console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("admin-support-assistant", {
-      body: { type: "school_detail_error", event, context },
-    });
+    try {
+      await adminSupportAssistant({ type: "school_detail_error", event, context });
+    } catch {
+      // fire-and-forget telemetry
+    }
   };
 
   const {
