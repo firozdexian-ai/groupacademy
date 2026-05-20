@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { abroadApi } from "@/domains/abroad/api/manifest";
 import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Globe } from "lucide-react";
@@ -75,20 +75,18 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
       }
 
       // HUD: CORE_SWARM_INVOCATION_EDGE_ROUTING
-      const { data, error } = await supabase.functions.invoke("ai-destination-agent", {
-        body: {
-          country_code: countryCode,
-          intent: "roadmap",
-          roadmap_payload: {
-            full_name: form.full_name.trim(),
-            field_of_study: form.field_of_study.trim(),
-            degree_level: form.degree_level,
-            target_intake: form.target_intake.trim(),
-            budget_level: form.budget_level,
-            ielts_score: form.ielts_score ? Number(form.ielts_score) : null,
-            gpa: form.gpa ? String(form.gpa).trim() : null,
-            years_experience: Math.max(0, Number(form.years_experience) || 0),
-          },
+      const { data, error } = await abroadApi.aiDestinationAgent({
+        country_code: countryCode,
+        intent: "roadmap",
+        roadmap_payload: {
+          full_name: form.full_name.trim(),
+          field_of_study: form.field_of_study.trim(),
+          degree_level: form.degree_level,
+          target_intake: form.target_intake.trim(),
+          budget_level: form.budget_level,
+          ielts_score: form.ielts_score ? Number(form.ielts_score) : null,
+          gpa: form.gpa ? String(form.gpa).trim() : null,
+          years_experience: Math.max(0, Number(form.years_experience) || 0),
         },
       });
 
