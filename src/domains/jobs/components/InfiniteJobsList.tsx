@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Sparkles, AlertCircle } from "lucide-react";
-import { JobCard } from "@/components/jobs/JobCard";
+import { JobCard } from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRankedJobs } from "@/hooks/useRankedJobs";
 import { useSavedItems } from "@/hooks/useSavedItems";

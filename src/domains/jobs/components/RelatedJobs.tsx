@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
+import { JobCard, type JobCardData } from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Zap, Compass } from "lucide-react";

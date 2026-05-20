@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2, MapPin, Clock, Bookmark, Star, Banknote, Brain, Zap, ShieldCheck } from "lucide-react";
-import { VerifiedMatchBadge } from "@/components/jobs/VerifiedMatchBadge";
+import { VerifiedMatchBadge } from "./VerifiedMatchBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

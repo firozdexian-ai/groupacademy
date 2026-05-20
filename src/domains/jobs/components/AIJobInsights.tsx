@@ -26,7 +26,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { recordToolRun } from "@/hooks/useToolRuns";
-import { WhyYouMatchPanel } from "@/components/jobs/WhyYouMatchPanel";
+import { WhyYouMatchPanel } from "./WhyYouMatchPanel";
 
 /**
  * GroUp Academy: Career Intelligence Hub

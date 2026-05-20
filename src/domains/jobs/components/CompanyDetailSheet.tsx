@@ -10,7 +10,7 @@ import { Heart, MapPin, Briefcase, TrendingUp } from "lucide-react";
 import { useCompanyDetail } from "@/hooks/useCompanyDetail";
 import { useFollowedCompanies } from "@/hooks/useFollowedCompanies";
 import { useSavedItems } from "@/hooks/useSavedItems";
-import { JobCard } from "@/components/jobs/JobCard";
+import { JobCard } from "./JobCard";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
