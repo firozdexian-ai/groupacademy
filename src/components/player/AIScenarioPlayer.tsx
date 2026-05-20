@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { aiInstructorChat } from "@/domains/learning/api/learningApi";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb, RefreshCw, Zap, Target, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,14 +82,11 @@ export function AIScenarioPlayer({ scenario, professionLineId, onComplete, class
 
     try {
       // INGRESS: Structured prompt matrix dispatch to cloud serverless execution node
-      const { data: remotePayloadResponse, error: invokeFunctionError } = await supabase.functions.invoke(
-        "ai-instructor-chat",
-        {
-          body: {
-            messages: [
-              {
-                role: "user",
-                content: `Evaluate this scenario response and provide structured feedback in JSON format.
+      const remotePayloadResponse = await aiInstructorChat({
+        messages: [
+          {
+            role: "user",
+            content: `Evaluate this scenario response and provide structured feedback in JSON format.
 
 SCENARIO:
 Situation: ${scenario.situation}
@@ -106,17 +104,13 @@ Response Protocol: ONLY JSON object matching this schema. Do not prefix or appen
   "improvements": ["<improvement 1>", "<improvement 2>"],
   "modelAnswer": "<ideal answer example>"
 }`,
-              },
-            ],
-            professionLineId,
-            contextType: "scenario_evaluation",
           },
-        },
-      );
+        ],
+        professionLineId,
+        contextType: "scenario_evaluation",
+      } as any);
 
       clearTimeout(timeoutFallbackId);
-
-      if (invokeFunctionError) throw invokeFunctionError;
 
       // Extract and safely map string objects into schema nodes
       const unparsedRawResponseText =

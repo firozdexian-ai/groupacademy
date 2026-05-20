@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerTalentMirror } from "@/domains/learning/api/learningApi";
 
 /**
  * GroUp Academy: Psychometric Analytics & Talent Mirror Hub (V5.6.0)
@@ -47,18 +48,7 @@ export function useTalentMirror() {
     staleTime: 2 * 60 * 1000,
     queryFn: async (): Promise<TalentMirror> => {
       // HUD: INVOKING_LEARNER_TALENT_MIRROR_EDGE_ENGINE
-      const { data, error } = await supabase.functions.invoke("learner-talent-mirror", {
-        body: {},
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Essential for monitoring background processing health
-        console.error("[Digital Workforce] ANOMALY: learner-talent-mirror edge execution failed.", {
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        throw error;
-      }
+      const data = await learnerTalentMirror({});
 
       const raw = (data as any) || {};
 
