@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { abroadApi } from "@/domains/abroad/api/manifest";
+import { generateStudyRoadmap } from "@/domains/abroad/api/abroadApi";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { toast } from "sonner";
@@ -127,7 +127,7 @@ export function RoadmapIntakeForm() {
       if (insertError) throw insertError;
 
       // HUD: STEP_4_SERVERLESS_EDGE_ORCHESTRATOR_SWARM_INVOCATION
-      const { error: edgeError } = await abroadApi.generateStudyRoadmap({
+      await generateStudyRoadmap({
         roadmapId: roadmap.id,
         targetCountries: formData.targetCountries,
         degreeLevel: formData.degreeLevel,
@@ -142,8 +142,6 @@ export function RoadmapIntakeForm() {
         originCountry: talent.country || "International",
         yearsExperience: talent.experience_years || 0,
       });
-
-      if (edgeError) throw edgeError;
 
       return roadmap.id;
     },

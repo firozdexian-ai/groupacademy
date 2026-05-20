@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { abroadApi } from "@/domains/abroad/api/manifest";
+import { aiDestinationAgent } from "@/domains/abroad/api/abroadApi";
 import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Globe } from "lucide-react";
@@ -75,7 +75,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
       }
 
       // HUD: CORE_SWARM_INVOCATION_EDGE_ROUTING
-      const { data, error } = await abroadApi.aiDestinationAgent({
+      const data = await aiDestinationAgent({
         country_code: countryCode,
         intent: "roadmap",
         roadmap_payload: {
@@ -90,12 +90,8 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data && (data as { error?: unknown }).error) {
-        throw new Error(String((data as { error?: unknown }).error));
+      if (data.error) {
+        throw new Error(String(data.error));
       }
 
       return data as { roadmap_id: string };
