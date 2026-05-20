@@ -82,18 +82,15 @@ export function useItemTranslate() {
       source?: "ai" | "human";
     }) => {
       // HUD: EXECUTING_LOCALIZATION_PERSISTENCE_handshake
-      const { data, error } = await supabase.functions.invoke("ai-item-translate-apply", {
-        body: {
-          item_id: input.item_id,
-          item_type: input.item_type,
-          language_code: input.language_code,
-          payload: input.payload,
-          source: input.source ?? "ai",
-        },
+      const data = await aiItemTranslateApply({
+        item_id: input.item_id,
+        item_type: input.item_type,
+        language_code: input.language_code,
+        payload: input.payload,
+        source: input.source ?? "ai",
       });
 
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (data?.error) throw new Error(data.error);
 
       return data;
     },
