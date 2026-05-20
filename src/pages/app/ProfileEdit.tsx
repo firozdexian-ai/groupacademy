@@ -76,12 +76,11 @@ export default function ProfileEdit() {
   const [languages, setLanguages] = useState<LanguageEntry[]>([]);
   const [achievements, setAchievements] = useState<AchievementEntry[]>([]);
 
-  // Digital Workforce Anomaly Reporting[cite: 6]
+  // Digital Workforce Anomaly Reporting — telemetry no-op.
+  // The legacy `ai-support-assistant` invoke here always failed server-side
+  // (body shape mismatch). Replace with a real telemetry sink later.
   const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await supabase.functions.invoke("ai-support-assistant", {
-      body: { type: "profile_edit_error", event, context },
-    });
+    console.warn(`[Digital Workforce Anomaly] ${event}`, context);
   };
 
   const handleChange = useCallback((field: string, value: string) => {

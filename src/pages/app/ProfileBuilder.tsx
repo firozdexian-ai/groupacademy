@@ -38,13 +38,11 @@ export default function ProfileBuilder() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Digital Workforce Anomaly Protocol[cite: 6]
+  // Digital Workforce Anomaly Protocol — telemetry no-op.
+  // The legacy `ai-support-assistant` invoke here always failed server-side
+  // (body shape mismatch). Replace with a real telemetry sink later.
   const reportAnomalyToAdmin = async (error: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${error}`, context);
-    // Future-proofing: Invokes admin-support-assistant edge function[cite: 5, 6]
-    await supabase.functions.invoke("ai-support-assistant", {
-      body: { type: "onboarding_failure", error, context },
-    });
+    console.warn(`[Digital Workforce Anomaly] ${error}`, context);
   };
 
   useEffect(() => {

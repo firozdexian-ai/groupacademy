@@ -30,12 +30,13 @@ export default function ProfileVerify() {
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Digital Workforce Anomaly Protocol[cite: 6]
+  // Digital Workforce Anomaly Protocol — telemetry no-op.
+  // The legacy `ai-support-assistant` invoke here always failed server-side
+  // because the body shape doesn't match the edge function (`{ image, context }`).
+  // Logged in `.lovable/known-edge-contract-drift.md`. Replace with real
+  // telemetry sink when one is wired up.
   const reportAnomalyToAdmin = async (error: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${error}`, context);
-    await supabase.functions.invoke("ai-support-assistant", {
-      body: { type: "verification_sync_error", error, context },
-    });
+    console.warn(`[Digital Workforce Anomaly] ${error}`, context);
   };
 
   useEffect(() => {
