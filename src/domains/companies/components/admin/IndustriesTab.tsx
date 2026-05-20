@@ -40,7 +40,7 @@ import {
   Database,
   Zap,
 } from "lucide-react";
-import { DashboardTableSkeleton } from "../DashboardSkeleton";
+import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 15;
