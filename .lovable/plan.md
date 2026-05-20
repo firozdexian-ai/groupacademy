@@ -1,102 +1,94 @@
-# Phase 5.13c — Talent admin extraction (final dashboard residual)
+# Phase 7 — Admin route shells + per-domain code-splitting
 
-Last residual under `src/components/dashboard/`: the **talent** folder. 14 files, ~4,476 LOC of real source code with 4 `functions.invoke` calls and 3 relative `../` imports. No `src/domains/talent/` directory exists yet — Phase 5.13c creates it from scratch.
+`src/pages/Dashboard.tsx` is 585 LOC and contains a 296-line `TAB_COMPONENTS` registry of **146 `React.lazy()` calls** plus a 205-line `TAB_TITLES` label map, both pointing at the legacy `@/components/dashboard/*` barrels. Phase 7 splits this monolith into per-domain route modules under `src/shells/admin/routes/`, retargets the lazy imports at the new `@/domains/<X>` paths, and shrinks `Dashboard.tsx` to a thin shell.
 
-## Inventory
+## Why now
 
-| File | LOC | Invokes | Notes |
-|---|---|---|---|
-| `BatchTalentUpload.tsx` | 653 | 2 (`batch-parse-cvs`) | Largest file |
-| `PortfolioRequestsTab.tsx` | 538 | 0 | 1 relative import |
-| `LinkedInJsonUpload.tsx` | 354 | 0 | Used by IR domain |
-| `TalentDetailDialog.tsx` | 351 | 0 | Used by 3 marketing leads + jobs assessments |
-| `SupportAITab.tsx` | 349 | 1 (`ai-support-assistant`) | |
-| `TalentPoolTab.tsx` | 344 | 0 | 1 relative import |
-| `ProfessionsTab.tsx` | 383 | 0 | 1 relative import |
-| `ProfessionalRolesPanel.tsx` | 308 | 0 | Used by ProfessionsTab |
-| `TalentOverviewTab.tsx` | 286 | 0 | |
-| `CreatorEconomyTab.tsx` | 281 | 0 | |
-| `NotificationsTab.tsx` | 275 | 0 | |
-| `TalentOutreachConsoleTab.tsx` | 239 | 1 (`generate-outreach-message`) | |
-| `TalentUploadTab.tsx` | 98 | 0 | Wraps BatchTalentUpload |
-| `TalentMessagingChannelTab.tsx` | 17 | 0 | Tiny stub |
+- Every domain has a clean `src/domains/<X>/components/admin/` home (Phases 5.13a–c). The lazy targets can finally point at canonical paths instead of barrels.
+- Bundling currently emits one large chunk per `import()` call inside one giant file; webpack/vite handles per-domain prefetching better when the lazy map is split.
+- `Dashboard.tsx` mixes route registry, title map, and render shell — hard to scan, edit, and review.
 
-**Edge functions invoked**: `batch-parse-cvs` (×2), `ai-support-assistant`, `generate-outreach-message` → 3 distinct functions.
+## Lazy import inventory (146 routes)
 
-**Relative `../` imports to rewrite**:
-- `ProfessionsTab` → `../DashboardSkeleton` → `@/platform/admin` (Phase 6 path)
-- `TalentPoolTab` → `../DashboardSkeleton` → `@/platform/admin`
-- `PortfolioRequestsTab` → `../DashboardSkeleton` → `@/platform/admin`
-
-**Cross-domain consumers** (must keep working via barrels):
-- `pages/Dashboard.tsx` — 10 `React.lazy()` imports into talent files
-- `domains/jobs/components/admin/JobsAssessmentLeadsTab.tsx` → `TalentDetailDialog`
-- `domains/marketing/components/admin/leads/{SalaryAnalysis,MockInterview,LeadHunter}Manager.tsx` → `TalentDetailDialog`
-- `domains/ir/components/admin/InvestorsManager.tsx` → `LinkedInJsonUpload`
+| Domain | Lazy imports | Notes |
+|---|---|---|
+| learning | 18 | Largest group (academies, courses, cohorts, payouts, etc.) |
+| marketing | 12 | Channels, leads, banners, outreach variants |
+| gigs | 12 | Marketplace, projects, verification, reviewer, matchmaker |
+| talent / crm | 10 | All Phase 5.13c targets |
+| jobs | 9 | Hub + admin tabs |
+| finance / finops | 8 | Credits ledgers, invoices, withdrawals |
+| abroad | 8 | Destinations, applications, programs, IELTS, language lab |
+| overview | 6 | Lifetime/period/analyst/reports (parametric) |
+| ugc | 4 | Blog, feed, competitions, videos |
+| companies | 7 | Companies, contacts, agents, industries, overview, unlocks |
+| agents | 14 | Overview, channels, studio, b2c, b2b, marketplace, etc. |
+| institutions, ir, hr, workforce, gtm, chat, messaging, etc. | remaining | One-offs |
 
 ## Target layout
 
 ```text
-src/domains/talent/
-  api/manifest.ts
-  components/admin/
-    BatchTalentUpload.tsx
-    CreatorEconomyTab.tsx
-    LinkedInJsonUpload.tsx
-    NotificationsTab.tsx
-    PortfolioRequestsTab.tsx
-    ProfessionalRolesPanel.tsx
-    ProfessionsTab.tsx
-    SupportAITab.tsx
-    TalentDetailDialog.tsx
-    TalentMessagingChannelTab.tsx
-    TalentOutreachConsoleTab.tsx
-    TalentOverviewTab.tsx
-    TalentPoolTab.tsx
-    TalentUploadTab.tsx
-  index.ts
-
-src/edge/contracts/talent.ts   // shells for batch-parse-cvs, ai-support-assistant, generate-outreach-message
+src/shells/admin/
+  agents.ts              (existing)
+  routes/
+    index.ts             // mergeRouteMaps(...) → Record<string, LazyExoticComponent<any>>
+    titles.ts            // Record<string, string> — full label map
+    overview.ts
+    talent.ts            // 10 crm-* routes
+    companies.ts
+    jobs.ts              // 9 jobs-* + Hub routes
+    learning.ts          // 18 routes
+    marketing.ts         // 12 routes
+    finance.ts           // 8 finops-* routes
+    gigs.ts              // 12 gigs-* routes
+    abroad.ts            // 8 abroad-* routes
+    institutions.ts
+    ir.ts
+    hr.ts
+    ugc.ts
+    agents.ts            // 14 agents-* routes (extends shells/admin/agents.ts)
+    misc.ts              // leftovers (chat, messaging, workforce, gtm, etc.)
+  Shell.tsx              // optional: extracted render shell (Sidebar + Suspense + TabComponent)
 ```
+
+Each domain module exports `ROUTES: Record<string, LazyExoticComponent<any>>` and optionally `TITLES: Record<string, string>`. `routes/index.ts` spreads them; `Dashboard.tsx` imports the merged maps.
 
 ## Scope
 
-1. **Create** `src/domains/talent/` skeleton (`api/manifest.ts`, `index.ts`).
-2. **Copy** each of the 14 files to `src/domains/talent/components/admin/`.
-3. **Rewrite the 3 relative imports** to `@/platform/admin` (DashboardSkeleton helpers now live there per Phase 6).
-4. **Rewrite intra-folder absolute imports** to point at the new domain (`ProfessionsTab` → `ProfessionalRolesPanel`, `TalentUploadTab` → `BatchTalentUpload`).
-5. **Replace each `src/components/dashboard/talent/*.tsx`** with a one-line barrel re-exporting from the new domain path. Preserve every existing named export (`TalentOverviewTab`, `TalentPoolTab`/`TalentPoolManager`, `ProfessionsTab`/`ProfessionsManager`, `NotificationsTab`/`NotificationsManager`, `SupportAITab`/`SupportAssistant`, `PortfolioRequestsTab`/`PortfolioRequestsManager`, etc. — `Dashboard.tsx` falls back to multiple alias names).
-6. **Create** `src/edge/contracts/talent.ts` with typed request/response shells for the 3 distinct functions (request bodies typed, response bodies `Record<string, unknown>` matching the established marketing/jobs pattern).
-7. **Extend** `src/domains/talent/index.ts` to re-export every admin tab (default + all named variants) and the dialog.
-8. **Leave consumer imports untouched** — every existing `@/components/dashboard/talent/...` path keeps working via the new barrel layer. Phase 8 will retire those barrels.
+1. **Create `src/shells/admin/routes/`** with one file per domain group above. Each file:
+   - Re-points `React.lazy(() => import("@/components/dashboard/<domain>/X"))` to `import("@/domains/<domain>/components/admin/X")` (the canonical path). Keeps the existing `m.X ?? m.Manager ?? m.default` fallback resolver so every legacy alias still binds.
+   - Preserves parametric routes (overview `month`/`quarter`/`year`) verbatim.
+2. **Extract `TAB_TITLES`** to `src/shells/admin/routes/titles.ts`. Re-export from each domain file (titles colocated with routes) or keep one flat map — pick colocated to mirror routes layout.
+3. **Create `src/shells/admin/routes/index.ts`** that imports each domain module, merges `ROUTES` via spread into one `TAB_COMPONENTS` map, and merges `TITLES` similarly. Exports both.
+4. **Slim `src/pages/Dashboard.tsx`** to import the merged maps + render the sidebar/suspense shell. Preserve every existing behavior (RBAC scope, search-params, impersonation banner, toast on tab-not-found, etc.).
+5. **Optional**: extract the render body (lines ~523–585) to `src/shells/admin/Shell.tsx` and have `Dashboard.tsx` just render `<AdminShell />`. Only do this if `Dashboard.tsx` would still exceed ~120 LOC after step 4.
+6. **No behavior changes**. No new lazy boundaries, no removed routes, no chunk-naming customizations beyond what vite already does per-`import()`.
 
 ## Out of scope
 
-- Migrating any of the 4 `functions.invoke` call sites to a typed `talentApi.*` wrapper (Phase 9 — the contract file is the prep).
-- Splitting `BatchTalentUpload.tsx` (653 LOC, the largest residual) into smaller components.
-- Moving `pages/Dashboard.tsx` lazy imports to the new `@/domains/talent` path (cosmetic — done in Phase 8 alongside the other barrel retirements).
-- Phases 7–9.
+- Retiring the `src/components/dashboard/*` barrel files (Phase 8). They remain as the legacy import surface for any non-Dashboard consumer.
+- Typed `*Api` wrappers around `functions.invoke` (Phase 9).
+- Mobile-only render path changes, RBAC redesign, or visual chrome edits.
+- Splitting `AdminSidebar.tsx` (563 LOC) into per-group config — separate refactor.
 
 ## Verification
 
 - `tsc` clean.
-- `/dashboard` CRM group: Overview / Talent Pool / Professions / Upload / Outreach / WA Channel / Creator Economy / Notifications / Support AI / Portfolios all mount.
-- `TalentDetailDialog` opens from Jobs Assessment Leads, Salary Analysis Leads, Mock Interview Leads, Lead Hunter, and IR.
-- `LinkedInJsonUpload` opens from IR Investors Manager.
-- `BatchTalentUpload` (within `TalentUploadTab`) parses CVs.
-- `rg "from ['\"]\\.\\." src/domains/talent/components/admin/` → 0.
-- `rg "functions.invoke" src/domains/talent/components/admin/ | wc -l` → 4 (unchanged; wrapper migration is Phase 9).
-- `find src/components/dashboard -maxdepth 2 -name '*.tsx' | xargs wc -l | awk '$1>10 && $2!="total"'` → empty (all residual source moved out of `components/dashboard/`).
+- All 146 routes render at `/dashboard?tab=<key>`. Spot-check one from each domain group: `overview`, `crm-overview`, `jobs-overview`, `learning-academies`, `marketing-channels`, `gigs-overview`, `finops-overview`, `abroad-overview`, `agents-overview`, `inst-overview`, `ir-dashboard`, `hr-workforce`, `ugc-feed`.
+- `wc -l src/pages/Dashboard.tsx` → ≤120 LOC (down from 585).
+- `find src/shells/admin/routes -name '*.ts' | xargs wc -l | tail -1` → ~600 LOC distributed across ~16 files (avg ~40 LOC each).
+- `rg "@/components/dashboard/" src/shells/admin/routes/` → 0 (all lazy targets point at `@/domains/<X>` directly).
+- Dev tools Network tab: navigating between groups produces distinct JS chunks named after the domain (vite default behavior, but worth eyeballing once).
+- No console errors on initial mount; tab-switch shows correct title in browser tab + sidebar selected state.
 
 ## Risk
 
-Medium-low. Largest single-folder migration (14 files, ~4,476 LOC) and crosses 5 other domains via `TalentDetailDialog` + `LinkedInJsonUpload`, but every consumer keeps its current import string via barrels — zero call-site edits. Multiple named-export aliases per file (`TalentPoolTab` vs `TalentPoolManager`) need to be preserved exactly so `Dashboard.tsx`'s `m.X ?? m.Y ?? m.default` fallbacks keep resolving.
+Low. Pure registry refactor — no new behavior, no API surface changes. The one trap is the parametric overview routes (`overview-month`, `overview-quarter`, `overview-year`) which wrap `<PeriodOverviewTab mode="…" />` inside the `.then()` — copy those verbatim and they keep working. Multi-alias resolvers (`m.X ?? m.Manager ?? m.default`) must be preserved per-route.
 
-## Progress after Phase 5.13c
+## Progress after Phase 7
 
-**~95%.** All admin source lives under `src/domains/<X>/components/admin/` or `src/platform/admin/`. Remaining phases:
+**~97%.** `Dashboard.tsx` thin; admin route map is per-domain and points at canonical domain paths. Remaining:
 ```text
-Phase 7  shells/admin/routes.tsx + React.lazy code-splitting consolidation
-Phase 8  retire src/components/dashboard/* barrels — consumers import from @/domains/* and @/platform/admin
-Phase 9  typed *Api wrappers (talentApi, jobsApi, marketingApi, …) around remaining functions.invoke call sites
+Phase 8  retire src/components/dashboard/* barrels — migrate the few non-Dashboard consumers (TalentDetailDialog, LinkedInJsonUpload, SimpleAdminRegistry, etc.) to @/domains/* / @/platform/admin, then delete the barrel files
+Phase 9  typed *Api wrappers around remaining ~30 functions.invoke call sites across admin surfaces
 ```
