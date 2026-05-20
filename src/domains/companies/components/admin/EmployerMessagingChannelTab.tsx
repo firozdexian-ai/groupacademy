@@ -1,4 +1,4 @@
-import { MessagingChannelsTab } from "@/components/dashboard/messaging/MessagingChannelsTab";
+import { MessagingChannelsTab } from "@/domains/messaging/components/admin/MessagingChannelsTab";
 
 export function EmployerMessagingChannelTab() {
   return (
