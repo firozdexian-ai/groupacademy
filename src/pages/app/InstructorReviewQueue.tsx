@@ -75,14 +75,17 @@ export default function InstructorReviewQueue() {
       // Optimize: Parallelize digest calls (capped at 10 for edge function safety)
       const batch = moduleIds.slice(0, 10);
       const results = await Promise.all(
-        batch.map((mid) => supabase.functions.invoke<ModuleDigest>("authoring-review-digest", {
-          body: { mode: "single", module_id: mid, days: 30 }
-        }))
+        batch.map(async (mid) => {
+          try {
+            return (await authoringReviewDigest({ mode: "single", module_id: mid, days: 30 })) as ModuleDigest;
+          } catch {
+            return null;
+          }
+        })
       );
 
       const parsedDigests = results
-        .filter((r) => r.data)
-        .map((r) => r.data as ModuleDigest)
+        .filter((d): d is ModuleDigest => d !== null)
         .filter((d) => (d.summary.flagged_quiz + d.summary.flagged_scenarios) > 0)
         .sort((a, b) => {
           const totalB = b.summary.flagged_quiz + b.summary.flagged_scenarios;
