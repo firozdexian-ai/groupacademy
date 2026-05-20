@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerAdaptiveSample } from "@/domains/learning/api/learningApi";
 import { cn } from "@/lib/utils";
 
 export interface QuizQuestion {
@@ -85,11 +86,9 @@ export function AssessStage({
     refetchOnWindowFocus: false,
     queryFn: async () => {
       try {
-        const { data: adaptive, error: adaptiveErr } = await supabase.functions.invoke("learner-adaptive-sample", {
-          body: { module_id: moduleId, count: 10 },
-        });
+        const adaptive = await learnerAdaptiveSample({ module_id: moduleId, count: 10 });
 
-        if (!adaptiveErr && (adaptive as any)?.items?.length) {
+        if ((adaptive as any)?.items?.length) {
           const alphabetLetters = ["A", "B", "C", "D"] as const;
           trackEvent("assessment_adaptive_sampler_success", { count: (adaptive as any).items.length });
 
@@ -123,6 +122,7 @@ export function AssessStage({
       } catch (e) {
         trackError(e, { component: "AssessStage", action: "adaptive_sampler_invoke_fallback" });
       }
+
 
       // Fallback Strategy: Extract static matching records directly from default repositories
       let { data, error } = await supabase

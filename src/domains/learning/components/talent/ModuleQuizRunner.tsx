@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, Brain, CheckCircle2, XCircle, RefreshCw, Zap, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { learnerAdaptiveSample, learnerQuizPool } from "@/domains/learning/api/learningApi";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
@@ -48,39 +48,40 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
 
     try {
       // 1) Try adaptive sampler first (skill-aware cognitive engine profile)
-      const adaptiveResponse = await supabase.functions.invoke("learner-adaptive-sample", {
-        body: { module_id: moduleId, count: 10 },
-      });
-
-      if (!adaptiveResponse.error && (adaptiveResponse.data as any)?.items?.length) {
-        const payloadData = adaptiveResponse.data as any;
-        
-        if (isRequestAlive) {
-          setItems(
-            payloadData.items.map((it: any) => ({
-              id: it.id,
-              question: it.question,
-              options: normalizeOptions(it.options),
-              difficulty: it.difficulty ?? undefined,
-            }))
-          );
-          setAdaptiveMix({ avg_mastery: payloadData.avg_mastery, mix: payloadData.mix });
-          setLoading(false);
-          trackEvent("psychometric_quiz_adaptive_sampled_success", { moduleId });
+      try {
+        const payloadData = await learnerAdaptiveSample({ module_id: moduleId, count: 10 });
+        if ((payloadData as any)?.items?.length) {
+          if (isRequestAlive) {
+            setItems(
+              (payloadData as any).items.map((it: any) => ({
+                id: it.id,
+                question: it.question,
+                options: normalizeOptions(it.options),
+                difficulty: it.difficulty ?? undefined,
+              }))
+            );
+            setAdaptiveMix({ avg_mastery: (payloadData as any).avg_mastery, mix: (payloadData as any).mix });
+            setLoading(false);
+            trackEvent("psychometric_quiz_adaptive_sampled_success", { moduleId });
+          }
+          return;
         }
-        return;
+      } catch (adaptiveErr) {
+        // fall through to pool draw
+        trackEvent("psychometric_quiz_adaptive_sample_failed", {
+          moduleId,
+          error: adaptiveErr instanceof EdgeFunctionError ? adaptiveErr.message : String(adaptiveErr),
+        });
       }
 
       // 2) Fallback to legacy random pool draw when cognitive tracking tables cold-start
       trackEvent("psychometric_quiz_fallback_pool_triggered", { moduleId });
-      const { data: poolData, error: poolError } = await supabase.functions.invoke("learner-quiz-pool", {
-        body: { mode: "draw", module_id: moduleId },
-      });
+      const poolData = await learnerQuizPool({ mode: "draw", module_id: moduleId });
 
       if (isRequestAlive) {
         setLoading(false);
-        if (poolError || (poolData as any)?.error) {
-          throw new Error((poolData as any)?.error || poolError?.message || "Synapse evaluation generation failed.");
+        if ((poolData as any)?.error) {
+          throw new Error((poolData as any).error);
         }
         setItems((poolData as any).items);
       }
