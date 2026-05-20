@@ -1,59 +1,60 @@
-## Phase 5.5 — `messaging` domain vertical slice
+## Phase 5.6 — `companies` domain vertical slice
 
-Compact phase covering peer DM threads, agent inbox, and the Unipile WhatsApp/SMS channel admin tab. Application-thread messaging already lives in `domains/jobs` (Phase J pipeline) and stays there.
+Compact admin-heavy phase. Companies are surfaced to talents through the jobs hub (Phase 3.2 — `CompanyCard`, `CompanyDetailSheet` already live in `domains/jobs`), so the talent-facing UI stays in `domains/jobs`. This phase extracts the admin/CRM surface plus the 3 read hooks that power both.
 
 ### Scope
 
-**Talent UI → `src/domains/messaging/components/talent/` (+ barrels at `src/components/messages/*`)** — 2 files
-- `ChatBubble`
-- `ThreadListItem`
+**Hooks → `src/domains/companies/hooks/` (+ barrels at `src/hooks/*`)** — 3 files
+- `useCompaniesWithSignal`
+- `useCompanyDetail`
+- `useFollowedCompanies`
+- Note: `useEmployerPipeline` already lives in `domains/jobs/hooks/`; leave it there.
 
-**Admin UI → `src/domains/messaging/components/admin/` (+ barrels at `src/components/dashboard/messaging/*`)** — 1 file
-- `MessagingChannelsTab` (already consumed by Talent/Employer/Community channel tabs via re-export — those wrappers keep their current paths and simply re-import from the new domain location)
+**Admin UI → `src/domains/companies/components/admin/` (+ barrels at `src/components/dashboard/companies/*`)** — 8 files
+- `CompaniesOverviewTab`, `CompaniesTab`, `BatchCompanyUpload`
+- `ContactsTab`, `ContactUnlocksTab`
+- `IndustriesTab`
+- `CompanyAgentsTab`
+- `EmployerMessagingChannelTab` (wrapper around `MessagingChannelsTab` from `domains/messaging` — pure re-mount, no logic change)
 
-**Hooks → `src/domains/messaging/hooks/` (+ barrels at `src/hooks/*`)** — 2 files
-- `useMessageThreads`
-- `useDirectMessages` (incl. `ensureDirectThread` helper)
-- Note: `useApplicationMessages` already lives in `domains/jobs/hooks/`; leave it there.
+**Edge contract → `src/edge/contracts/companies.ts`**
+- Namespace reserved with documentation only — no `supabase.functions.invoke` calls exist in companies admin or hooks today. All server interaction is direct table reads + Postgres RPCs (`get_companies_with_signal`, `get_company_detail`).
 
-**Typed edge contract → `src/edge/contracts/messaging.ts`**
-- `unipile-connect` — request `{ agent_key, region, label }`, response `{ url, channel_id }` (permissive `Record<string, unknown>`)
+**API manifest → `src/domains/companies/api/manifest.ts`**
+- Empty `companiesApi = {}` stub for future edge functions, matching the pattern in `domains/feed`.
 
-**API manifest → `src/domains/messaging/api/manifest.ts`**
-- `messagingApi.{ unipileConnect }`
-
-**Domain index → `src/domains/messaging/index.ts`**
-Re-export the 2 talent components, the admin tab, both hooks, and `messagingApi`.
+**Domain index → `src/domains/companies/index.ts`**
+Re-export the 3 hooks, 8 admin components, and `companiesApi`.
 
 **F3 sweep**
-Replace the 1 direct `supabase.functions.invoke('unipile-connect', …)` call inside `MessagingChannelsTab` with `messagingApi.unipileConnect`.
+- No edge invokes to replace.
+- Cross-domain `jobs` components that consume these hooks (`CompanyCard`, `CompanyDetailSheet`, `useJobsHubDashboard`, `Dashboard.tsx`) keep working via `@/hooks/*` barrels; no edits needed.
 
 ### Importers that keep working via barrels
-- `src/pages/app/Messages.tsx`, `MessageThread.tsx` → `useMessageThreads`, `useDirectMessages`, `ThreadListItem`, `ChatBubble`
-- `src/pages/AdminLiveInbox.tsx` → `useMessageThreads`
-- `TalentMessagingChannelTab`, `EmployerMessagingChannelTab`, `CommunityMessagingChannelTab` → `MessagingChannelsTab` (their import path `@/components/dashboard/messaging/MessagingChannelsTab` resolves to the barrel)
+- `src/pages/Dashboard.tsx` → admin tabs (re-exports resolve unchanged)
+- `src/domains/jobs/hooks/useJobsHubDashboard.ts` → `useCompaniesWithSignal`/`useFollowedCompanies`
+- `src/domains/jobs/components/CompanyCard.tsx` + `CompanyDetailSheet.tsx` → `useCompanyDetail`, `useFollowedCompanies`
 
 ### Verification
 - Type-check passes.
-- `/app/messages`, `/app/messages/:agentKey`, `/dashboard` Talent/Employer/Community channel tabs still mount.
-- No remaining `functions.invoke('unipile-connect'` outside the manifest.
-- Realtime subscriptions in `useDirectMessages` and `useMessageThreads` still bind (no path-sensitive logic).
+- `/dashboard` Companies group tabs (Overview / Companies / Contacts / Contact Unlocks / Industries / Agents / Messaging) all mount.
+- `/app/jobs` Companies tab + Company sheet still load.
+- No remaining `functions.invoke(` calls in companies admin or hooks.
 
 ### Out of scope
-- `useApplicationMessages` (already in `domains/jobs`).
-- Agent chat hooks (`useAgentChat`, `useAIGeneralChat`) — they belong to the `agents` domain and are already extracted.
-- Notification ledger (`useNotifications`) — separate domain (`platform/notifications` in Phase 6).
+- Talent-facing company UI in `domains/jobs` (CompanyCard, CompanyDetailSheet) — already extracted in Phase 3.2/J.
+- Employer pipeline (`useEmployerPipeline`, kanban) — already in `domains/jobs`.
+- Company offerings / credits / contact unlocks hooks under `src/gro10x/hooks/` — those belong to the gro10x shell, not this domain.
 - Phases 6–9 still deferred.
 
 ### Risk
-- Low. 6 files, 1 edge fn, no shared-hook entanglement. Realtime channels untouched.
+- Low. 11 files, 0 edge fns, only barrel re-exports. Cross-domain imports already use `@/hooks/*` paths.
 
-### Progress after 5.5
-~46%. Next: 5.6 companies.
+### Progress after 5.6
+~49%. Next: 5.7 marketing.
 
 ### Roadmap remainder
 ```text
-5.6  companies
 5.7  marketing
 5.8  ir
 5.9  finance
@@ -66,16 +67,3 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
-
----
-
-## Phase 5.5 — COMPLETE
-
-- 2 talent components → `src/domains/messaging/components/talent/` (+ barrels)
-- 1 admin tab → `src/domains/messaging/components/admin/` (+ barrel)
-- 2 hooks (`useMessageThreads`, `useDirectMessages`) → `src/domains/messaging/hooks/` (+ barrels)
-- `src/edge/contracts/messaging.ts` + `src/domains/messaging/api/manifest.ts` (`messagingApi.unipileConnect`)
-- F3 sweep: 4 `unipile-connect` invokes replaced; none remain outside manifest
-- Intra-domain `MessageThread` type import rewritten
-
-Progress ~46%. Next: 5.6 companies.
