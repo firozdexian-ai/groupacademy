@@ -30,9 +30,9 @@ import {
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
-import { ModuleResourceFileUpload } from "@/components/dashboard/learning/modules/ModuleResourceFileUpload";
-import { BulkResourceUpload } from "@/components/dashboard/learning/BulkResourceUpload";
-import { DraggableList } from "@/components/dashboard/common/DraggableList";
+import { ModuleResourceFileUpload } from "@/domains/learning/components/admin/modules/ModuleResourceFileUpload";
+import { BulkResourceUpload } from "@/domains/learning/components/admin/BulkResourceUpload";
+import { DraggableList } from "@/platform/admin/ui/DraggableList";
 import { GripVertical } from "lucide-react";
 
 type ResourceType = Database["public"]["Enums"]["resource_type"];

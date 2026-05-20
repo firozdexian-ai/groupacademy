@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "@/components/dashboard/DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { SalaryAnalysisCodeGenerator } from "./SalaryAnalysisCodeGenerator";
-import { TalentDetailDialog } from "@/components/dashboard/talent/TalentDetailDialog";
+import { TalentDetailDialog } from "@/domains/talent/components/admin/TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 

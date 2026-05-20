@@ -11,7 +11,7 @@ import { Plus, Pencil, Trash2, MessageSquare, ShieldCheck, User, Search } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmPurge } from "@/components/dashboard/common/ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 
 export function UgcFeedTab() {
   const { ugcGraphQuery, mutations: { upsertFeedPost, deleteFeedPost } } = useUgcGraph();

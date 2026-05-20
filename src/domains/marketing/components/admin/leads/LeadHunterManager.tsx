@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { marketingApi } from "@/domains/marketing/api/manifest";
-import { DashboardTableSkeleton, DashboardErrorState } from "@/components/dashboard/DashboardSkeleton";
-import { TalentDetailDialog } from "@/components/dashboard/talent/TalentDetailDialog";
+import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
+import { TalentDetailDialog } from "@/domains/talent/components/admin/TalentDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

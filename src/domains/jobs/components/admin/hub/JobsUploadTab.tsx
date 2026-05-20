@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { JobFormDialog, type JobFormState } from "./JobFormDialog";
 import { PendingJobSubmissions } from "./PendingJobSubmissions";
-import { JobsLinkedInBatchUpload } from "@/components/dashboard/jobs/JobsLinkedInBatchUpload";
+import { JobsLinkedInBatchUpload } from "@/domains/jobs/components/admin/JobsLinkedInBatchUpload";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 

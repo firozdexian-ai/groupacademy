@@ -22,7 +22,7 @@ import {
   TrendingUp,
   ArrowUpRight,
 } from "lucide-react";
-import StatsCard from "@/components/dashboard/StatsCard";
+import StatsCard from "@/platform/admin/ui/StatsCard";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { OverviewSkeleton } from "./OverviewSkeleton";

@@ -1,6 +1,6 @@
 /**
  * Talent domain — admin surface.
- * Legacy `@/components/dashboard/talent/*` paths re-export from here.
+ * Legacy `@/domains/talent/components/admin/*` paths re-export from here.
  */
 export { BatchTalentUpload } from "./components/admin/BatchTalentUpload";
 export { CreatorEconomyTab } from "./components/admin/CreatorEconomyTab";

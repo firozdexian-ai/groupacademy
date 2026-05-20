@@ -1,4 +1,4 @@
-import { SimpleAdminRegistry } from "@/components/dashboard/common/SimpleAdminRegistry";
+import { SimpleAdminRegistry } from "@/platform/admin/ui/SimpleAdminRegistry";
 
 export const ChannelsTab = () => (
   <SimpleAdminRegistry

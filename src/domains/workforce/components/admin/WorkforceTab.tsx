@@ -38,7 +38,7 @@ import {
   Briefcase,
   GraduationCap,
 } from "lucide-react";
-import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { cn } from "@/lib/utils";
 import { useHrGraph } from "./hooks/useHrGraph";
 

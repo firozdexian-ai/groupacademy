@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, FileText, ShieldCheck, Search } from "lucide-reac
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmPurge } from "@/components/dashboard/common/ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 

@@ -37,7 +37,7 @@ import {
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgentBrainPanel } from "@/components/dashboard/agents/AgentBrainPanel";
+import { AgentBrainPanel } from "@/domains/agents/components/dashboard/AgentBrainPanel";
 
 /**
  * Agent Studio: No-code builder for the unified Agent OS.

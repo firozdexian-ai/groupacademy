@@ -11,7 +11,7 @@ import { Plus, Pencil, Trash2, Trophy, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmPurge } from "@/components/dashboard/common/ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 import { cn } from "@/lib/utils";
 
 export function UgcCompetitionsTab() {

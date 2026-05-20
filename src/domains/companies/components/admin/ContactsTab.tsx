@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { getDexianWhatsAppLink } from "@/lib/companyOutreachTemplates";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/components/ProtectedRoute";

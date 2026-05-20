@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AgentRail } from "@/components/dashboard/chat/AgentRail";
-import { ChatThread } from "@/components/dashboard/chat/ChatThread";
-import { useAdminAgentThreads } from "@/components/dashboard/chat/hooks/useAgentRuntimeThread";
+import { AgentRail } from "@/domains/agents/components/admin/chat/AgentRail";
+import { ChatThread } from "@/domains/agents/components/admin/chat/ChatThread";
+import { useAdminAgentThreads } from "@/domains/agents/components/admin/chat/hooks/useAgentRuntimeThread";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { ADMIN_AGENTS, ADMIN_AGENTS_BY_KEY } from "@/lib/adminAgents";
 

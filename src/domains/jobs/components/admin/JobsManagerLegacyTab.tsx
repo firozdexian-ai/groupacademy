@@ -27,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { JobsLinkedInBatchUpload } from "./JobsLinkedInBatchUpload";
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;

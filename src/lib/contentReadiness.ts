@@ -2,7 +2,7 @@
  * Pure readiness computation for a content/course in admin.
  * Mirrors (but doesn't replace) the DB trigger — used for live UI feedback.
  */
-import type { ModuleStats } from "@/components/dashboard/learning/content-widgets/ContentReadinessBadge";
+import type { ModuleStats } from "@/domains/learning/components/admin/content-widgets/ContentReadinessBadge";
 
 export type CheckSeverity = "pass" | "warn" | "fail";
 

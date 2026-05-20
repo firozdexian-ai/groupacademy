@@ -20,7 +20,7 @@ import {
   Zap,
   TrendingUp,
 } from "lucide-react";
-import StatsCard from "@/components/dashboard/StatsCard";
+import StatsCard from "@/platform/admin/ui/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";

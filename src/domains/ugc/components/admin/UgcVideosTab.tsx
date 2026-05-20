@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Trash2, Video, ShieldCheck, PlayCircle, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmPurge } from "@/components/dashboard/common/ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 import { cn } from "@/lib/utils";
 
 export function UgcVideosTab() {
