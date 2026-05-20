@@ -1,136 +1,65 @@
+# Phase 10b — Gigs Domain: Hooks + Repo Consolidation ✅ COMPLETE
 
-# Phase 10 — Domain hook consolidation + DB query repositories
+Continues the Phase 10 rollout. After 10a (jobs), this batch domainizes the **gigs** surface: route every `supabase.from("gig_*"|"reviewer_*"|"revision_*"|"talent_availability"|"talent_trust*")` call through a single `gigsRepo.ts`, delete the `src/hooks/` shims for gigs, and standardize imports on `@/domains/gigs`.
 
-Phase 9 closed the **edge-function** surface (zero raw `supabase.functions.invoke` outside `*Api.ts`). Phase 10 does the equivalent for **direct database access**: pull cross-cutting hooks into their domains, and put `supabase.from(...)` behind typed domain repositories so call sites stop reaching into the DB.
+## Scope
 
-## Why this next
+In: gigs marketplace, bids, matches, projects/milestones/escrow, project messages, verifications, reviewer program, disputes, revision requests.
+Out: new features, schema or RLS changes, edge-function changes, AIChatPanel SSE, anything outside the gigs domain.
 
-Today `src/hooks/` holds ~90 hooks that mix domains (jobs, learning, finance, messaging, agents…) and ~74 files across `src/hooks/`, `src/pages/`, `src/components/`, and `src/gro10x/` still call `supabase.from(...)` directly. That makes:
+## Inventory (verified)
 
-- domain boundaries blurry (shells can reach into any table),
-- RLS/shape changes risky (no single grep target per table),
-- testing painful (hooks aren't colocated with their domain).
+Shims to delete:
+- `src/hooks/useRankedGigs.ts` → re-export of `@/domains/gigs/hooks/useRankedGigs`
+- `src/hooks/useGigsHubDashboard.ts` → re-export of `@/domains/gigs/hooks/useGigsHubDashboard`
 
-This phase makes domains self-contained the same way Phase 9 made edge calls typed.
+Domain hooks already in place (RPC-only, no `from()`):
+- `src/domains/gigs/hooks/useRankedGigs.ts` (RPC `get_ranked_gigs_for_talent`)
+- `src/domains/gigs/hooks/useGigsHubDashboard.ts` (RPC `get_gigs_hub_dashboard`)
 
-## Goals
+Raw `supabase.from(...)` call sites to migrate into `gigsRepo.ts`:
 
-1. **Move hooks** from `src/hooks/` into `src/domains/<owner>/hooks/`, re-exported through each domain's `index.ts`.
-2. **Introduce repositories** `src/domains/<owner>/repo/<owner>Repo.ts` wrapping all `supabase.from(...)` reads/writes that the domain owns. Call sites import named repo functions instead of building queries inline.
-3. **Lock it down** with an ESLint guard banning `supabase.from(` outside `src/domains/*/repo/*Repo.ts`, `src/hooks/useSupabaseQuery.ts`, `src/hooks/useDataFetch.ts`, and (temporary allowlist) any file we deliberately defer.
-4. **Keep behavior identical** — pure refactor. No schema, RLS, or UX changes.
+| File | Tables |
+|---|---|
+| `src/pages/app/ProjectRoom.tsx` | `gig_projects`, `gig_project_milestones`, `gig_escrow_accounts`, `gig_project_messages` (read + insert) |
+| `src/pages/app/ReviewerCockpit.tsx` | `reviewer_profiles` |
+| `src/domains/gigs/components/admin/hooks/useGigGraph.ts` | `gigs`, `gig_submissions`, `gig_verifications` |
+| `src/domains/gigs/components/admin/ReviewerProgramTab.tsx` | `reviewer_profiles` (read + update), `gig_disputes`, `gig_review_assignments` |
+| `src/domains/gigs/components/admin/GigMatchmakerTab.tsx` | `gig_matches`, `gig_match_digests` |
 
-## Scope (batched by owner-domain)
+## Plan
 
-For each batch: classify the hook → move file → update imports → extract any `supabase.from` into the repo → wire through domain barrel.
+1. **Create `src/domains/gigs/repo/gigsRepo.ts`** with named async functions, one per query. Examples:
+   - `getProjectRoomBundle(projectId)` — parallel reads of the 4 ProjectRoom tables, returns typed shape
+   - `insertProjectMessage(input)`
+   - `getReviewerProfile(talentId)`
+   - `listReviewerProfilesTop(limit=100)` / `updateReviewerStatus(id, status)`
+   - `listGigDisputes(limit=100)` / `listReviewAssignmentSummary()`
+   - `listGigGraphSlice()` — three parallel reads used by `useGigGraph`
+   - `getGigMatchmakerStats()` — `gig_matches` aggregate + `gig_match_digests` count
+   Each helper returns plain data and throws on error (matches `jobsRepo.ts` convention).
 
-| Batch | Owner | Representative hooks | Repo seed (tables) |
-|---|---|---|---|
-| 10a | jobs | useRankedJobs, useJobsHubDashboard, useJobInvitations, useJobMatchCached, useJobTypeCounts, useTrendingJobs, useJobsInField, useEmployerPipeline, useApplicationBuckets, useApplicationHistory, useApplicationMessages | jobs, job_applications, job_invitations, application_messages |
-| 10b | gigs | useGigsHubDashboard, useRankedGigs | gigs, gig_bids, gig_matches |
-| 10c | learning | useCohorts, useCourseProgress, useEnrollment, useLearningHubDashboard, useLearningStats, useLearningTracks, useStageProgress, useResourceProgress, useProgress, useModuleResources, useModuleReviewBadge, useReviewQueue, useItemAnalytics, useItemRewrite, useItemTranslate, useMasterySummary, useNextActions, useSkillCredentials, useTutorMasteryContext, useAuthoringTrends, useCertificate, useCourseBriefs, useInstructorWorkspace | courses, modules, enrollments, cohorts, certificates, … |
-| 10d | talent | useTalent, useTalentLists, useTalentMirror, useTalentOutcomeSignal, useTalentPitches, useTalentRelationships, useTalentSearch, useCareerLevel, usePublicProfileSettings (profile) | talents, talent_lists, talent_relationships |
-| 10e | finance | useCredits, useCreditPurchase, usePaymentConfig, useUnitEconomics | credit_ledger, transactions, payment_configs |
-| 10f | messaging | useDirectMessages, useMessageThreads, useNotifications | message_threads, direct_messages, notifications |
-| 10g | agents | useAgentChat, useAgentRuntime, useAIGeneralChat, useAuthChat | agent_sessions, agent_messages |
-| 10h | feed | useFeedEngagement, useFeedRecommendations, useHype, useContentHype, usePollVoting, usePostReactions | feed_posts, post_comments, post_reactions |
-| 10i | companies | useActiveCompany (gro10x), useCompaniesWithSignal, useCompanyDetail, useCompanyCredits (gro10x), useFollowedCompanies, useCompanyOfferings | companies, company_credits, company_follows |
-| 10j | platform | useAuth, useAccountType, useAdminScope, useOnboarding, useMediaQuery, use-mobile, useToast, useQueryWithTimeout, useSupabaseQuery, useDataFetch, useProgressiveLoadingMessage, usePWADetect, usePlayerHotkeys | stays in `src/platform/` (no repo — these are cross-cutting) |
+2. **Refactor call sites** to import from `@/domains/gigs/repo/gigsRepo`. No behavior changes; preserve existing realtime subscriptions inline (they're not queries).
 
-Anything ambiguous (e.g. `useSavedItems`, `useToolRuns`, `useServiceHistory`) gets classified during the batch — default to the domain that owns the underlying table.
+3. **Re-export repo barrel** from `src/domains/gigs/index.ts` (only what shells need).
 
-## Per-hook migration recipe
+4. **Delete shims**:
+   - `src/hooks/useRankedGigs.ts`
+   - `src/hooks/useGigsHubDashboard.ts`
+   Update the single remaining external importer (`src/pages/app/Gigs.tsx`) to `@/domains/gigs`.
 
-```text
-- src/hooks/useRankedJobs.ts                       (old location)
-+ src/domains/jobs/hooks/useRankedJobs.ts          (new location, same name)
-
-  Inside the hook:
-- const { data } = await supabase.from("jobs").select(...).eq(...);
-+ const data = await jobsRepo.listRankedJobs({ ... });
-
-  In src/domains/jobs/index.ts:
-+ export { useRankedJobs } from "./hooks/useRankedJobs";
-
-  All call sites switch:
-- import { useRankedJobs } from "@/hooks/useRankedJobs";
-+ import { useRankedJobs } from "@/domains/jobs";
-```
-
-A shim file at the old path can re-export for one batch to keep diffs small, then be deleted at the end of the batch.
-
-## Repository shape
-
-```ts
-// src/domains/jobs/repo/jobsRepo.ts
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-
-type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
-
-export async function listRankedJobs(params: {
-  talentId: string; limit?: number; cursor?: string | null;
-}): Promise<{ rows: JobRow[]; nextCursor: string | null }> {
-  const { data, error } = await supabase
-    .from("jobs")
-    .select("*")
-    .order("rank_score", { ascending: false })
-    .limit(params.limit ?? 20);
-  if (error) throw error;
-  return { rows: data ?? [], nextCursor: null };
-}
-```
-
-Rules:
-- One repo per domain (`<owner>Repo.ts`), named-export functions only.
-- Repos throw on error; callers use `try/catch` like the edge wrappers.
-- No React, no hooks inside repos — pure data access.
-- Repos may compose other repos but must not import from `src/shells/*` or `src/pages/*`.
-
-## ESLint guard
-
-Add to `eslint.config.js` alongside the existing `NO_RAW_INVOKE` rule:
-
-```js
-const NO_RAW_FROM = {
-  selector: "CallExpression[callee.property.name='from'][callee.object.name='supabase']",
-  message: "Do not call supabase.from directly. Use a typed repository from src/domains/<owner>/repo/<owner>Repo.ts.",
-};
-```
-
-Scoped overrides re-permit it in:
-- `src/domains/*/repo/*Repo.ts`
-- `src/hooks/useSupabaseQuery.ts`, `src/hooks/useDataFetch.ts` (generic helpers)
-- a short, named allowlist for files we intentionally defer (tracked in `.lovable/plan.md`).
-
-## Verification
-
-1. `bunx tsc --noEmit` clean.
-2. `bunx eslint src` clean (guard catches missed sites).
-3. `rg "supabase\.from\(" src` returns only repo files + the allowlist.
-4. `rg "from \"@/hooks/" src` returns only platform hooks; everything else imports from `@/domains/*`.
-5. Spot-check in preview: jobs hub, gigs hub, learning dashboard, talent search, messaging inbox.
+5. **Verification**
+   - `rg "@/hooks/useRankedGigs|@/hooks/useGigsHubDashboard"` → empty
+   - `rg "supabase\\.from\\(\"(gigs|gig_[a-z_]+|reviewer_[a-z_]+|revision_requests)\"" src/` → only `gigsRepo.ts`
+   - `tsc --noEmit` clean, `eslint` clean
+   - Smoke routes: `/app/gigs`, `/app/projects/:id`, `/app/reviewer`, admin Matchmaker + Reviewer Program tabs
 
 ## Out of scope
 
-- New features, schema migrations, RLS changes, edge-function changes.
-- Splitting any domain or renaming tables.
-- Touching `AIChatPanel` SSE logic.
-- Repointing the SSE invoke exception added in Phase 9.
+- Adding `NO_RAW_FROM` ESLint rule (deferred until 10j, once all batches land)
+- Splitting gigs admin components or changing their UI
+- Touching edge-function contracts in `src/edge/contracts/gigs.ts`
 
-## Execution order
+## Next batch after this
 
-Land one batch per turn (10a → 10j). Each batch:
-1. Move hooks into the domain folder, add barrel exports, update imports.
-2. Extract `supabase.from` calls into `<owner>Repo.ts`.
-3. Delete the old `src/hooks/*` files (no long-lived shims).
-4. Run tsc + eslint; fix fallout before moving to the next batch.
-
-After 10j, enable the `NO_RAW_FROM` ESLint rule globally and update `.lovable/plan.md` + `.lovable/known-edge-contract-drift.md` with the final allowlist.
-
-## Deliverable when complete
-
-- `src/hooks/` contains only platform/cross-cutting hooks (~15 files instead of ~90).
-- Every domain owns its hooks + repo; shells and pages import from `@/domains/<owner>` only.
-- Zero raw `supabase.from(...)` outside repos + named allowlist.
-- ESLint guards Phase 9 (invoke) and Phase 10 (from) are both active.
+10c — learning (largest batch, ~20+ hooks under `src/hooks/use*` covering courses/modules/enrollments/cohorts/certificates/instructor workspace).

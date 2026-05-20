@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, TrendingUp } from "lucide-react";
+import { getGigMatchFunnel, countGigMatchDigests } from "@/domains/gigs/repo/gigsRepo";
 
 export function GigMatchmakerTab() {
   const { data: funnel, isLoading } = useQuery({
     queryKey: ["admin-matchmaker-funnel"],
     queryFn: async () => {
-      const { data } = await supabase.from("gig_matches").select("status, gig_kind, score");
-      const rows = (data || []) as any[];
+      const rows = await getGigMatchFunnel();
       const totals: Record<string, number> = {};
       const avgScore: Record<string, { sum: number; n: number }> = {};
       rows.forEach(r => {
@@ -26,10 +25,7 @@ export function GigMatchmakerTab() {
 
   const { data: digests } = useQuery({
     queryKey: ["admin-matchmaker-digests"],
-    queryFn: async () => {
-      const { count } = await supabase.from("gig_match_digests").select("*", { count: "exact", head: true });
-      return count || 0;
-    },
+    queryFn: () => countGigMatchDigests(),
   });
 
   if (isLoading) return <Skeleton className="h-48 w-full" />;

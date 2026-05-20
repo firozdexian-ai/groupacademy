@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { adminGigOps } from "@/domains/gigs/api/gigsApi";
+import { getProjectRoomBundle, insertProjectMessage } from "@/domains/gigs/repo/gigsRepo";
 
 // Production Type Definitions[cite: 8]
 interface Project {
@@ -52,15 +53,7 @@ export default function ProjectRoom() {
   const load = async () => {
     if (!projectId) return;
     try {
-      const [{ data: p, error: pErr }, { data: m, error: mErr }, { data: e }, { data: msg }] = await Promise.all([
-        supabase.from("gig_projects").select("*").eq("id", projectId).maybeSingle(),
-        supabase.from("gig_project_milestones").select("*").eq("project_id", projectId).order("seq"),
-        supabase.from("gig_escrow_accounts").select("*").eq("project_id", projectId).maybeSingle(),
-        supabase.from("gig_project_messages").select("*").eq("project_id", projectId).order("created_at"),
-      ]);
-
-      if (pErr || mErr) throw new Error("Fetch failed");
-
+      const { project: p, milestones: m, escrow: e, messages: msg } = await getProjectRoomBundle(projectId);
       setProject(p as Project);
       setMilestones((m as Milestone[]) || []);
       setEscrow(e);
@@ -80,17 +73,17 @@ export default function ProjectRoom() {
   const sendMessage = async () => {
     if (!body.trim()) return;
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("gig_project_messages").insert({
-      project_id: projectId,
-      sender_id: u.user!.id,
-      body,
-    });
-    if (error) {
-      await reportAnomaly("MessageDeliveryError", { error });
-      toast.error("Delivery failed.");
-    } else {
+    try {
+      await insertProjectMessage({
+        projectId: projectId!,
+        senderId: u.user!.id,
+        body,
+      });
       setBody("");
       load();
+    } catch (error) {
+      await reportAnomaly("MessageDeliveryError", { error });
+      toast.error("Delivery failed.");
     }
   };
 

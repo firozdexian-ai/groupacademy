@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { adminGigOps, aiReviewerBrief } from "@/domains/gigs/api/gigsApi";
+import { getReviewerCockpit } from "@/domains/gigs/repo/gigsRepo";
 
 // Production Data Contracts[cite: 8]
 interface ReviewerProfile {
@@ -51,16 +52,9 @@ export default function ReviewerCockpit() {
   const load = async () => {
     if (!talent?.id) return;
     try {
-      const [p, a] = await Promise.all([
-        supabase.from("reviewer_profiles").select("*").eq("talent_id", talent.id).maybeSingle(),
-        supabase
-          .from("gig_review_assignments")
-          .select("*")
-          .eq("reviewer_id", talent.id)
-          .order("offered_at", { ascending: false }),
-      ]);
-      setProfile(p.data as ReviewerProfile);
-      setAssignments((a.data as Assignment[]) || []);
+      const { profile: p, assignments: a } = await getReviewerCockpit(talent.id);
+      setProfile(p as ReviewerProfile);
+      setAssignments((a as Assignment[]) || []);
     } catch (e) {
       await reportAnomaly("LoadSyncError", { error: e });
       toast.error("Failed to sync reviewer ledger.");
