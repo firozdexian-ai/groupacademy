@@ -1,69 +1,77 @@
-## Phase 9 — Typed edge function API wrappers (pilot + rollout)
+## Phase 9b — Harden the wrapper pattern (mini-phase)
 
-The refactor is otherwise complete (Phases 1–8). What remains: 128 raw `supabase.functions.invoke(...)` call sites scattered across 100 files, invoking 63 distinct edge functions. Each call site re-writes its own body shape, ad-hoc error handling, and untyped response casting. Phase 9 replaces these with thin, typed `<domain>Api.<fn>()` wrappers so every consumer goes through a single contract per edge function.
+Lock in pattern decisions on the talent pilot before they get copied across 11 domains and 60 functions. Small surface, no behavior changes.
 
-We'll do this in two passes: a **pilot** (one domain, fully migrated end-to-end) and then a **per-domain rollout**.
+### 1. Pick one import convention
 
-### Pre-flight: cleanup
+Drop the `talentApi` const + `TALENT_EDGE_FUNCTIONS` array. Consumers import named functions only:
 
-- Delete the stray `src/pages/app/sedRFGX9Q` file (leftover from a sed misfire during Phase 8 — it's not imported anywhere).
+```ts
+import { batchParseCvs } from "@/domains/talent/api/talentApi";
+```
 
-### Phase 9a — Pilot: `talent` domain
+- Remove `export const talentApi` and `export type TalentApi` from `talentApi.ts`.
+- Remove `TALENT_EDGE_FUNCTIONS` and `TalentEdgeFunction` from `manifest.ts` (redundant with the named exports).
+- Trim `manifest.ts` to a single barrel that re-exports the wrappers and the contract types.
 
-Talent has 4 invoke call sites covering 3 functions (`batch-parse-cvs`, `ai-support-assistant`, `generate-outreach-message`) and already has skeleton contracts in `src/edge/contracts/talent.ts`. Ideal pilot — small, contained, contracts already exist.
+### 2. Add runtime response validation (zod)
 
-1. **Flesh out `src/edge/contracts/talent.ts`** — fully type each function's request and response (inputs derived from current call sites; outputs from the edge function source under `supabase/functions/<name>/index.ts`).
-2. **Build `src/domains/talent/api/talentApi.ts`** — one async function per edge function:
-   ```ts
-   export async function batchParseCvs(req: BatchParseCvsRequest): Promise<BatchParseCvsResponse> {
-     const { data, error } = await supabase.functions.invoke("batch-parse-cvs", { body: req });
-     if (error) throw new EdgeFunctionError("batch-parse-cvs", error);
-     return data as BatchParseCvsResponse;
-   }
-   ```
-3. **Add `src/edge/EdgeFunctionError.ts`** — shared error class so consumers get a consistent throwable (name + function id + cause).
-4. **Migrate the 4 talent call sites** to `talentApi.*`.
-5. **Update `src/domains/talent/api/manifest.ts`** to re-export `talentApi` and the contract types, plus surface them from `src/domains/talent/index.ts`.
+`zod` is already in the project. Add a tiny helper so contract drift fails loud instead of silently casting:
 
-Pilot deliverable doubles as the template for the rollout.
+```ts
+// src/edge/parseEdgeResponse.ts
+export function parseEdgeResponse<T>(fnName: string, schema: ZodSchema<T>, data: unknown): T {
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) throw new EdgeFunctionError(fnName, parsed.error);
+  return parsed.data;
+}
+```
 
-### Phase 9b — Rollout (subsequent phases, one per domain)
+Rewrite `src/edge/contracts/talent.ts` so each response is a zod schema with an inferred type. Update the 3 talent wrappers to call `parseEdgeResponse`. Cost: ~30 LOC across 4 files. Benefit: every wire change throws a typed error at the call site, not deep inside a render.
 
-Each domain gets its own follow-up phase using the talent pattern. Ordered by call-site density to compound learnings:
+### 3. Codify the cross-domain ownership rule
 
-| Phase | Domain | Sites | Fns | Notable |
-|-------|--------|------:|----:|---------|
-| 9c | agents | ~25 | `admin-support-assistant` (16), `agent-runtime`, `agent-blueprint`, `company-agent-tools` | Largest; AI Concierge backbone |
-| 9d | jobs | ~20 | `notify-hiring-event`, `score-job-match`, `enhance-job-description`, `analyze-job-assessment` | Hiring loop |
-| 9e | learning | ~15 | `learner-quiz-pool`, `learner-scenario-pool`, `learner-adaptive-sample`, `authoring-review-digest` | Item bank + adaptive |
-| 9f | gigs | ~10 | `admin-gig-ops`, `ai-project-scoper`, etc. | Managed projects |
-| 9g | marketing | ~10 | mock interview, salary, outreach analytics | Lead funnels |
-| 9h | messaging | 5 | `unipile-connect` | Single function |
-| 9i | remaining (ugc, finance, ir, abroad, workforce, companies, analytics, institutions, gtm, feed, profile) | ~30 | mixed | Mostly 1–4 sites each; can be combined into a single sweep |
+Add a 10-line `src/edge/README.md` documenting:
+- Contracts live in `src/edge/contracts/<owner-domain>.ts`. "Owner" = the domain whose admin surface conceptually owns the function. Tie-breaker: where most call sites live.
+- Wrappers live in `src/domains/<owner>/api/<owner>Api.ts`.
+- Cross-domain callers import from the owner's `api/<owner>Api.ts` — never re-wrap.
+- One wrapper per edge function, even if multiple body shapes exist in the wild. Use a discriminated union in the request type if the shapes are genuinely polymorphic.
 
-Each rollout phase follows the same five steps as the pilot (contracts → api file → wire error class → migrate sites → re-export).
+This makes the `admin-support-assistant` decision (Phase 9c) routine instead of a debate.
 
-### Out of scope for Phase 9a (pilot)
+### 4. Log the two pre-existing edge contract bugs
 
-- Anything beyond talent.
-- Adding retries, rate-limit handling, or telemetry — wrappers are deliberately thin so behavior is byte-for-byte identical.
-- Renaming edge functions or changing their request/response shapes server-side.
-- React Query hooks. The wrappers are pure async functions; existing `useQuery`/`useMutation` callers swap their `invoke` for `talentApi.x` with no other change.
+Create `.lovable/known-edge-contract-drift.md` listing:
+- `generate-outreach-message` — call site sends `{ talent_id, product_context }`; edge function expects `{ parsedCV, product }`. Always 400s.
+- `ai-support-assistant` — `ProfileVerify`/`ProfileEdit`/`ProfileBuilder` send `{ type, error/event, context }` with no `image`; edge function requires `image`. Always throws.
 
-### Technical notes
+Phase 9 does not fix these — it surfaces them. A follow-up bug-fix ticket can address them once the wrappers make ownership clear.
 
-- `EdgeFunctionError` lives in `src/edge/EdgeFunctionError.ts` and is reusable by every domain. Constructor takes `(fnName, cause)`; `.message` formats as `"edge function <fnName> failed: <cause.message>"`.
-- Contracts in `src/edge/contracts/<domain>.ts` are the single source of truth for request/response shapes. The api file imports them.
-- When a current call site sends fields the contract doesn't yet model, prefer making the contract field optional/`unknown` over dropping the field — preserve runtime behavior exactly.
-- Where a single edge function is called from multiple domains (e.g. `score-job-match` from jobs and talent), it lives in the **owning domain's** contract/api; other domains import from there.
+### 5. Lock the pilot down in code
 
-### Verification (per phase)
+After steps 1–2 are applied to the talent wrappers, re-migrate the 4 talent call sites to confirm the new convention compiles. (Should be a no-op except for removing the now-deleted `talentApi.` prefix in any place I used it — currently 0 places, so this is just `tsc` confirmation.)
+
+### Out of scope
+
+- Touching agents/jobs/learning/etc. — that's Phase 9c onward.
+- Fixing the two pre-existing contract bugs.
+- Adding retries, telemetry, or rate-limit handling around `invoke`.
+- Adding request validation (server-side already does it; the client doesn't need a second copy).
+
+### Files touched
+
+- Modify: `src/edge/contracts/talent.ts` (zod-ify), `src/domains/talent/api/talentApi.ts` (use `parseEdgeResponse`, drop `talentApi` const), `src/domains/talent/api/manifest.ts` (slim down)
+- Create: `src/edge/parseEdgeResponse.ts`, `src/edge/README.md`, `.lovable/known-edge-contract-drift.md`
+
+Estimated diff: ~80 LOC net change, ~6 files.
+
+### Verification
 
 - `tsc` clean.
-- `rg "supabase\.functions\.invoke" src/domains/<domain>` → 0 after that domain's phase.
-- Smoke-test each migrated screen in the preview (call still fires, response renders).
-- Global `rg "supabase\.functions\.invoke" src | wc -l` drops monotonically toward 0 across phases.
+- `rg "talentApi\." src` → 0 (no consumers were using the const, confirms removal is safe).
+- `rg "supabase\.functions\.invoke" src/domains/talent` → still only inside `talentApi.ts`.
+- Smoke: open `/dashboard?tab=talent-batch-upload`, `tab=talent-outreach`, `tab=talent-support-ai` — all three render and fire as before.
 
-### Progress after Phase 9a
+### Progress after Phase 9b
 
-~98%. Remaining: the 9b–9i rollout, which we'll plan/execute one phase at a time so each stays small and reviewable.
+~98%. Phase 9c (agents, ~25 sites) begins with a sturdy template.

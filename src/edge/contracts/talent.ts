@@ -1,10 +1,11 @@
 /**
- * Edge-function contracts for the talent domain (Phase 9a).
+ * Edge-function contracts for the talent domain (Phase 9a/9b).
  *
- * Shapes derive from the live call sites under
- * `src/domains/talent/components/admin/*` and the edge function
- * sources at `supabase/functions/<name>/index.ts`.
+ * Shapes derive from live call sites and the edge function sources
+ * at `supabase/functions/<name>/index.ts`. Responses are zod schemas
+ * so contract drift fails loud via `parseEdgeResponse`.
  */
+import { z } from "zod";
 
 // batch-parse-cvs ------------------------------------------------------------
 export interface BatchParseCvsRequest {
@@ -14,12 +15,13 @@ export interface BatchParseCvsRequest {
   batchId: string;
 }
 
-export interface BatchParseCvsResponse {
-  success: boolean;
-  message?: string;
-  batchId?: string;
-  error?: string;
-}
+export const BatchParseCvsResponseSchema = z.object({
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+  batchId: z.string().optional(),
+  error: z.string().optional(),
+});
+export type BatchParseCvsResponse = z.infer<typeof BatchParseCvsResponseSchema>;
 
 // ai-support-assistant -------------------------------------------------------
 export interface AiSupportAssistantRequest {
@@ -29,13 +31,16 @@ export interface AiSupportAssistantRequest {
   context?: string;
 }
 
-export interface AiSupportAssistantResponse {
-  reply: string;
-  tone?: string;
-  suggestions?: string[];
-  actions?: string[];
-  error?: string;
-}
+export const AiSupportAssistantResponseSchema = z.object({
+  reply: z.string(),
+  tone: z.string().optional(),
+  suggestions: z.array(z.string()).optional(),
+  actions: z.array(z.string()).optional(),
+  error: z.string().optional(),
+});
+export type AiSupportAssistantResponse = z.infer<
+  typeof AiSupportAssistantResponseSchema
+>;
 
 // generate-outreach-message --------------------------------------------------
 export interface GenerateOutreachMessageRequest {
@@ -45,15 +50,18 @@ export interface GenerateOutreachMessageRequest {
   product_context?: string;
 }
 
-export interface GenerateOutreachMessageResponse {
-  success?: boolean;
-  message?: string;
-  name?: string;
-  phone?: string;
-  phoneNumbers?: string[];
-  gender?: string;
-  whatsappLink?: string;
-  professionCategory?: string;
-  productLink?: string;
-  error?: string;
-}
+export const GenerateOutreachMessageResponseSchema = z.object({
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  phoneNumbers: z.array(z.string()).optional(),
+  gender: z.string().optional(),
+  whatsappLink: z.string().optional(),
+  professionCategory: z.string().optional(),
+  productLink: z.string().optional(),
+  error: z.string().optional(),
+});
+export type GenerateOutreachMessageResponse = z.infer<
+  typeof GenerateOutreachMessageResponseSchema
+>;
