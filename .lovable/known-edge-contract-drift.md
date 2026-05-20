@@ -88,6 +88,28 @@ exact runtime behavior. Fix in a dedicated follow-up.
 - **Fix:** swap to named imports from `@/domains/agents/api/agentsApi`
   when the onboarding / creator-onboarding flows are next refactored.
 
+## 9. `ai-instructor-chat` — SSE streaming caller (Phase 9f)
+
+- **Call site:** `src/components/ai-instructor/AIChatPanel.tsx` uses raw
+  `fetch(${VITE_SUPABASE_URL}/functions/v1/ai-instructor-chat, …)` to
+  consume a server-sent-event stream.
+- **No bug** — `supabase.functions.invoke` cannot expose the streaming
+  body; raw fetch is intentional. The typed `aiInstructorChat` wrapper
+  is fine for non-streaming callers but does not apply here.
+- **Action:** leave as-is. If a streaming wrapper is introduced later
+  (e.g. `aiInstructorChatStream` returning a `ReadableStream`), migrate
+  this call site to it.
+
+## 10. Learning RPCs vs edge functions (Phase 9f)
+
+- `get_tutor_mastery_context`, `get_track_progress`, and
+  `org_learning_health` are Postgres RPCs (called via `supabase.rpc`),
+  not edge functions. They are intentionally absent from
+  `src/edge/contracts/learning.ts` and `src/domains/learning/api/learningApi.ts`.
+- **No bug** — listed here so the next audit doesn't re-add them as
+  edge wrappers.
+
 ---
 
 When fixing, also remove the entry here.
+
