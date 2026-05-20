@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError } from "@/lib/aiErrorHandler";
-import type { AgentMessage } from "@/hooks/useAgentChat";
+import type { AgentMessage } from "./useAgentChat";
 
 /**
  * GroUp Academy: Agent OS Runtime Hook (V3.1.0 - May 2026)
