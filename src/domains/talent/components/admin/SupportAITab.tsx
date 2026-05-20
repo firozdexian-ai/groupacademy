@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { aiSupportAssistant } from "@/domains/talent/api/talentApi";
+import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +76,7 @@ export function SupportAITab() {
     if (!imagePreview) return;
     setLoading(true);
     try {
-      const data = await aiSupportAssistant({
+      const data = await adminSupportAssistant({
         image: imagePreview,
         context: context || undefined,
       });
