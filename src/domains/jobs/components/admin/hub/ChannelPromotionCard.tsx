@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { generateJobShareCaption } from "@/domains/jobs/api/jobsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,17 +72,14 @@ export function ChannelPromotionCard({ job }: Props) {
     const toastId = toast.loading(`Initializing neural drafting for ${channel.toUpperCase()}...`);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-job-share-caption", {
-        body: {
-          title: job.title,
-          company: job.company_name,
-          location: job.location,
-          job_type: job.job_type,
-          apply_link: applyLink,
-          channel,
-        },
+      const data = await generateJobShareCaption({
+        title: job.title,
+        company: job.company_name,
+        location: job.location,
+        job_type: job.job_type,
+        apply_link: applyLink,
+        channel,
       });
-      if (error) throw error;
 
       setCaptions((c) => ({ ...c, [channel]: data?.caption || "" }));
       toast.success("Intelligence Extracted: Caption optimized.", { id: toastId });
