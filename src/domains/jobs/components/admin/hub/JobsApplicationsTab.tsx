@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,10 +160,10 @@ export function JobsApplicationsTab() {
     const tid = toast.loading(`Scoring Nodes: 0/${unscored.length}...`);
     for (const a of unscored) {
       try {
-        const { data, error } = await supabase.functions.invoke("score-job-match", {
-          body: { jobId: a.job_id, talentId: a.talent_id },
+        const data = await scoreJobMatch({
+          jobId: a.job_id,
+          talentId: a.talent_id,
         });
-        if (error) throw error;
         const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
         const reco = data?.recommendation || "";
         await supabase
