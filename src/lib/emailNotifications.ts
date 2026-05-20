@@ -37,7 +37,7 @@ export async function sendTransactionalEmail({
   try {
     let result: any = null;
     try {
-      result = await sendTransactionalEmail({
+      result = await invokeTransactionalEmail({
         templateName: template,
         recipientEmail,
         idempotencyKey,
