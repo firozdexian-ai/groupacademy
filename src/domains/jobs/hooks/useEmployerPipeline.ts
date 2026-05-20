@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyApplicationStatus } from "@/domains/jobs/api/jobsApi";
+import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 
 /**
@@ -94,17 +96,19 @@ export function useEmployerPipeline(opts: { companyId?: string | null; jobId?: s
 
       // HUD: EDGE_INVOCATION_NOTIFICATION_DISPATCH
       // Hardened tracking logic replaces baseline ignoring of failed email pipelines
-      const { error: functionError } = await supabase.functions.invoke("notify-application-status", {
-        body: { application_id: applicationId, status: to },
-      });
-
-      if (functionError) {
-        console.error("[Digital Workforce] ANOMALY: notify-application-status secondary edge call timed out.", {
-          applicationId,
+      try {
+        await notifyApplicationStatus({
+          application_id: applicationId,
           status: to,
-          message: functionError.message,
         });
-        // We do not throw functionError here to protect transactional database state execution loops
+      } catch (err) {
+        const message =
+          err instanceof EdgeFunctionError ? err.message : String(err);
+        console.error(
+          "[Digital Workforce] ANOMALY: notify-application-status secondary edge call timed out.",
+          { applicationId, status: to, message },
+        );
+        // We do not rethrow here to protect transactional database state execution loops
       }
     },
     onSuccess: () => {
