@@ -13,9 +13,9 @@ import { Plus, Pencil, Building2, GraduationCap, Briefcase, Bot, DatabaseZap, Gl
 import { getIcon } from "@/lib/iconMap";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardCardSkeleton } from "../DashboardSkeleton";
+import { DashboardCardSkeleton } from "@/platform/admin";
 import { cn } from "@/lib/utils";
-import { ProfessionalRolesPanel } from "@/components/dashboard/talent/ProfessionalRolesPanel";
+import { ProfessionalRolesPanel } from "@/domains/talent/components/admin/ProfessionalRolesPanel";
 
 // Types aligned with Master Spec & Technical Reference
 interface Academy {

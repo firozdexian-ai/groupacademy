@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // N1 Hotfix: Resolves ReferenceError
 import { Upload as UploadIcon, ExternalLink, Briefcase } from "lucide-react";
-import { BatchTalentUpload } from "@/components/dashboard/talent/BatchTalentUpload";
+import { BatchTalentUpload } from "@/domains/talent/components/admin/BatchTalentUpload";
 
 export function TalentUploadTab() {
   const navigate = useNavigate();
