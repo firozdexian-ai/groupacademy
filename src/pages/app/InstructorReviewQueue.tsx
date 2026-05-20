@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, BarChart3, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { authoringReviewDigest } from "@/domains/learning/api/learningApi";
+import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
