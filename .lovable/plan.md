@@ -1,5 +1,15 @@
 # Phase 5 — Replicate the vertical-slice pattern across remaining domains
 
+## Phase 5.1 — feed: DONE ✅
+- 6 hooks → `src/domains/feed/hooks/` with barrel re-exports at `src/hooks/*`
+- 28 components → `src/domains/feed/components/talent/` with barrel re-exports at `src/components/feed/*`
+- `src/edge/contracts/feed.ts` typed RPC contracts (no edge fns yet — RPC-only domain)
+- `src/domains/feed/api/manifest.ts` with `feedApi` wrapping `get_feed_engagement`, `hype_content`, `tip_comment`
+- `src/domains/feed/index.ts` exposes hooks + api; components remain accessible via legacy barrels
+
+Next: Phase 5.2 — profile (231K).
+
+
 Phase 4 finished `learning/` end-to-end (hooks + talent UI + admin UI + gro10x UI + typed edge contracts). The next phase begins applying that exact same recipe to the remaining 13 domains, starting with the most heavily-used talent surface: **`feed`**.
 
 ## Progress so far (~30%)
