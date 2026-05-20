@@ -67,3 +67,16 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
+
+---
+
+## Phase 5.6 — completed
+
+- 3 hooks moved to `src/domains/companies/hooks/` with barrels at `src/hooks/*`.
+- 8 admin tabs moved to `src/domains/companies/components/admin/` with barrels at `src/components/dashboard/companies/*`.
+- `EmployerMessagingChannelTab` updated to import `MessagingChannelsTab` from `@/domains/messaging/...`.
+- 3 admin tabs (`CompaniesTab`, `ContactsTab`, `IndustriesTab`) had `../DashboardSkeleton` rewritten to absolute import.
+- `src/edge/contracts/companies.ts` reserved (no edge fns today).
+- `src/domains/companies/api/manifest.ts` stub created.
+- `src/domains/companies/index.ts` re-exports hooks, admin components, and `companiesApi`.
+- Verified zero `functions.invoke` in companies domain.
