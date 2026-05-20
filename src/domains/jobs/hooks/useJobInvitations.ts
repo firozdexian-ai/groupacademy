@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
+import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 
 /**
@@ -47,17 +49,20 @@ export function useInviteToApply() {
       }
 
       // HUD: EDGE_INVOCATION_NOTIFICATION_HANDSHAKE
-      const { error: funcError } = await supabase.functions.invoke("notify-hiring-event", {
-        body: { kind: "job_invitation", ref: { invitation_id: data.id } },
-      });
-
-      if (funcError) {
+      try {
+        await notifyHiringEvent({
+          kind: "job_invitation",
+          ref: { invitation_id: data.id },
+        });
+      } catch (err) {
         // Digital Workforce Anomaly Trigger:
         // We log this but don't fail the mutation, as the record was saved.
-        console.error("[Digital Workforce] ANOMALY: notify-hiring-event failed for job_invitation.", {
-          invitation_id: data.id,
-          message: funcError.message,
-        });
+        const message =
+          err instanceof EdgeFunctionError ? err.message : String(err);
+        console.error(
+          "[Digital Workforce] ANOMALY: notify-hiring-event failed for job_invitation.",
+          { invitation_id: data.id, message },
+        );
       }
 
       return data.id;
