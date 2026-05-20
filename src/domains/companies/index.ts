@@ -15,6 +15,5 @@ export * from "./components/admin/ContactsTab";
 export * from "./components/admin/EmployerMessagingChannelTab";
 export * from "./components/admin/IndustriesTab";
 
-// API
-export { companiesApi } from "./api/manifest";
-export type { CompaniesApi } from "./api/manifest";
+// API (Phase 9h — barrel re-exports)
+export { signupCompany, checkCompanyAccount } from "./api/manifest";

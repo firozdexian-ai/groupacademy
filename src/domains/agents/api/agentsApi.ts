@@ -1,11 +1,5 @@
 /**
- * Typed wrappers around agents-domain edge functions (Phase 9c).
- *
- * Convention (locked in Phase 9b):
- *   - One async function per edge function — import by name.
- *   - No `*Api` const, no `<DOMAIN>_EDGE_FUNCTIONS` array.
- *   - Responses validated at runtime via `parseEdgeResponse`.
- *   - Failures throw `EdgeFunctionError`.
+ * Typed wrappers around agents-domain edge functions (Phase 9c + 9h).
  */
 import { supabase } from "@/integrations/supabase/client";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
@@ -17,7 +11,9 @@ import {
   AgentRuntimeResponseSchema,
   AiGeneralChatResponseSchema,
   AiSupportAssistantResponseSchema,
+  CompanyAgentToolsResponseSchema,
   IngestAgentKnowledgeResponseSchema,
+  TriggerAgentPitchResponseSchema,
   type AdminSupportAssistantRequest,
   type AdminSupportAssistantResponse,
   type AgentBlueprintRequest,
@@ -30,8 +26,12 @@ import {
   type AiGeneralChatResponse,
   type AiSupportAssistantRequest,
   type AiSupportAssistantResponse,
+  type CompanyAgentToolsRequest,
+  type CompanyAgentToolsResponse,
   type IngestAgentKnowledgeRequest,
   type IngestAgentKnowledgeResponse,
+  type TriggerAgentPitchRequest,
+  type TriggerAgentPitchResponse,
 } from "@/edge/contracts/agents";
 
 export async function agentRuntime(
@@ -120,6 +120,37 @@ export async function agentEventDispatcher(
   return parseEdgeResponse(
     "agent-event-dispatcher",
     AgentEventDispatcherResponseSchema,
+    data ?? {},
+  );
+}
+
+// Phase 9h additions --------------------------------------------------------
+export async function companyAgentTools(
+  req: CompanyAgentToolsRequest,
+): Promise<CompanyAgentToolsResponse> {
+  const { data, error } = await supabase.functions.invoke(
+    "company-agent-tools",
+    { body: req },
+  );
+  if (error) throw new EdgeFunctionError("company-agent-tools", error);
+  return parseEdgeResponse(
+    "company-agent-tools",
+    CompanyAgentToolsResponseSchema,
+    data ?? {},
+  );
+}
+
+export async function triggerAgentPitch(
+  req: TriggerAgentPitchRequest,
+): Promise<TriggerAgentPitchResponse> {
+  const { data, error } = await supabase.functions.invoke(
+    "trigger-agent-pitch",
+    { body: req },
+  );
+  if (error) throw new EdgeFunctionError("trigger-agent-pitch", error);
+  return parseEdgeResponse(
+    "trigger-agent-pitch",
+    TriggerAgentPitchResponseSchema,
     data ?? {},
   );
 }

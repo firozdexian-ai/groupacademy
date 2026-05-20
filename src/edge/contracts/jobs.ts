@@ -185,3 +185,140 @@ export const NotifyHiringEventResponseSchema = z
 export type NotifyHiringEventResponse = z.infer<
   typeof NotifyHiringEventResponseSchema
 >;
+
+// send-job-application (Phase 9h) -------------------------------------------
+export interface SendJobApplicationRequest {
+  applicationId: string;
+  [k: string]: unknown;
+}
+
+export const SendJobApplicationResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    success: z.boolean().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type SendJobApplicationResponse = z.infer<
+  typeof SendJobApplicationResponseSchema
+>;
+
+// generate-interview-questions (Phase 9h) ----------------------------------
+export interface GenerateInterviewQuestionsRequest {
+  jobDescription: string;
+  questionCount?: number;
+  difficulty?: string;
+  professionCategoryId?: string | null;
+  additionalNotes?: string;
+  candidateProfile?: Record<string, unknown> | null;
+  [k: string]: unknown;
+}
+
+export const GenerateInterviewQuestionsResponseSchema = z
+  .object({
+    questions: z.array(z.unknown()).optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type GenerateInterviewQuestionsResponse = z.infer<
+  typeof GenerateInterviewQuestionsResponseSchema
+>;
+
+// analyze-mock-interview (Phase 9h) -----------------------------------------
+export interface AnalyzeMockInterviewRequest {
+  interviewId: string;
+  [k: string]: unknown;
+}
+
+export const AnalyzeMockInterviewResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    analysis: z.unknown().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type AnalyzeMockInterviewResponse = z.infer<
+  typeof AnalyzeMockInterviewResponseSchema
+>;
+
+// analyze-job-assessment (Phase 9h) -----------------------------------------
+export interface AnalyzeJobAssessmentRequest {
+  assessmentId: string;
+  [k: string]: unknown;
+}
+
+export const AnalyzeJobAssessmentResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    ai_score: z.number().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type AnalyzeJobAssessmentResponse = z.infer<
+  typeof AnalyzeJobAssessmentResponseSchema
+>;
+
+// generate-job-assessment (Phase 9h) ----------------------------------------
+export interface GenerateJobAssessmentRequest {
+  jobId: string;
+  talentId: string;
+  jobApplicationId: string;
+  [k: string]: unknown;
+}
+
+export const GenerateJobAssessmentResponseSchema = z
+  .object({
+    assessmentId: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type GenerateJobAssessmentResponse = z.infer<
+  typeof GenerateJobAssessmentResponseSchema
+>;
+
+// generate-application-answers (Phase 9h) -----------------------------------
+export interface GenerateApplicationAnswersRequest {
+  questions: string | string[];
+  jobContext?: string | null;
+  [k: string]: unknown;
+}
+
+export const GenerateApplicationAnswersResponseSchema = z
+  .object({
+    answers: z
+      .array(z.object({ question: z.string(), answer: z.string() }).passthrough())
+      .optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type GenerateApplicationAnswersResponse = z.infer<
+  typeof GenerateApplicationAnswersResponseSchema
+>;
+
+// enhance-cover-letter (Phase 9h) -------------------------------------------
+/**
+ * Multi-mode helper used both for cover-letter rewrites and for
+ * `type: "experience"` profile-bio enhancements (call site preserved).
+ */
+export interface EnhanceCoverLetterRequest {
+  type?: "experience" | "cover_letter" | string;
+  coverLetter?: string;
+  jobTitle?: string;
+  companyName?: string;
+  candidateName?: string;
+  skills?: unknown;
+  experience?: string;
+  profession?: string;
+  [k: string]: unknown;
+}
+
+export const EnhanceCoverLetterResponseSchema = z
+  .object({
+    coverLetter: z.string().optional(),
+    enhancedExperience: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type EnhanceCoverLetterResponse = z.infer<
+  typeof EnhanceCoverLetterResponseSchema
+>;

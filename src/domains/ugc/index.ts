@@ -4,4 +4,4 @@ export { default as UgcVideosTab, UgcVideosTab as UgcVideosTabNamed } from "./co
 export { default as UgcCompetitionsTab, UgcCompetitionsTab as UgcCompetitionsTabNamed } from "./components/admin/UgcCompetitionsTab";
 export { default as UgcBlogTab, UgcBlogTab as UgcBlogTabNamed } from "./components/admin/UgcBlogTab";
 export * from "./components/admin/hooks/useUgcGraph";
-export { ugcApi } from "./api/manifest";
+export { adminContentAi } from "./api/manifest";

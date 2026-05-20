@@ -1,17 +1,11 @@
 /**
- * Edge-function contracts for the talent domain (Phase 9a/9b).
- *
- * Shapes derive from live call sites and the edge function sources
- * at `supabase/functions/<name>/index.ts`. Responses are zod schemas
- * so contract drift fails loud via `parseEdgeResponse`.
+ * Edge-function contracts for the talent domain (Phase 9a/9b + 9h).
  */
 import { z } from "zod";
 
 // batch-parse-cvs ------------------------------------------------------------
 export interface BatchParseCvsRequest {
-  /** Signed URLs of CV PDFs to enrich. */
   cvUrls: string[];
-  /** `batch_uploads.id` to bind progress to. */
   batchId: string;
 }
 
@@ -25,9 +19,7 @@ export type BatchParseCvsResponse = z.infer<typeof BatchParseCvsResponseSchema>;
 
 // generate-outreach-message --------------------------------------------------
 export interface GenerateOutreachMessageRequest {
-  /** Talent id (call site uses snake_case). */
   talent_id: string;
-  /** Product context label passed through to the AI prompt. */
   product_context?: string;
 }
 
@@ -45,4 +37,60 @@ export const GenerateOutreachMessageResponseSchema = z.object({
 });
 export type GenerateOutreachMessageResponse = z.infer<
   typeof GenerateOutreachMessageResponseSchema
+>;
+
+// unlock-talent-contact (Phase 9h) ------------------------------------------
+export interface UnlockTalentContactRequest {
+  company_id: string;
+  talent_id: string;
+  [k: string]: unknown;
+}
+
+export const UnlockTalentContactResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    contact: z.unknown().optional(),
+    credits_spent: z.number().optional(),
+    reused: z.boolean().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type UnlockTalentContactResponse = z.infer<
+  typeof UnlockTalentContactResponseSchema
+>;
+
+// analyze-salary (Phase 9h) -------------------------------------------------
+export interface AnalyzeSalaryRequest {
+  analysisId: string;
+  [k: string]: unknown;
+}
+
+export const AnalyzeSalaryResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    analysis: z.unknown().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type AnalyzeSalaryResponse = z.infer<typeof AnalyzeSalaryResponseSchema>;
+
+// analyze-career-assessment (Phase 9h) --------------------------------------
+export interface AnalyzeCareerAssessmentRequest {
+  assessmentId?: string;
+  answers?: unknown;
+  professionCategoryId?: string;
+  email?: string;
+  talentId?: string;
+  [k: string]: unknown;
+}
+
+export const AnalyzeCareerAssessmentResponseSchema = z
+  .object({
+    analysis: z.unknown().optional(),
+    assessmentId: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type AnalyzeCareerAssessmentResponse = z.infer<
+  typeof AnalyzeCareerAssessmentResponseSchema
 >;

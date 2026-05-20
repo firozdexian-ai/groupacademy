@@ -1,2 +1,4 @@
-export const ugcApi = {} as const;
-export type UgcApi = typeof ugcApi;
+/**
+ * UGC domain API manifest (Phase 9h).
+ */
+export { adminContentAi } from "./ugcApi";

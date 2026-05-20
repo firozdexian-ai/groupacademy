@@ -1,87 +1,60 @@
-# Phase 9g — Small-domains edge function hardening sweep ✅ COMPLETE
+# Phase 9h — Cross-domain edge function migration + ESLint guard
 
-**Outcome:** 6 small domains (gigs, profile, finance, messaging, marketing, analytics) migrated to the canonical pattern. New contracts for all 6 (Zod schemas + `.passthrough()`), 1 new function added (`admin-report-builder`). Legacy `<domain>Api` consts removed from every manifest + index barrel. Cross-owner duplication removed from `gigs.ts` and `profile.ts` — gig CV/job/share forms now import `parseCv` / `parseJobPost` / `generateJobShareCaption` from jobs and `generateOutreachMessage` from talent; `CVUploadSection` imports `parseCv` from jobs. Finance/marketing callers updated from `{ data, error }` shape to try/catch. `MessagingChannelsTab` (×4), `ReportsBuilderTab`, and `usePublicProfileSettings` raw invokes replaced with named wrappers. `rg "supabase.functions.invoke" src/domains` clean outside `*Api.ts`; `rg "(gigsApi|profileApi|financeApi|messagingApi|marketingApi|analyticsApi)\\."` returns 0 hits.
+## Status: 🟡 IN PROGRESS — infrastructure complete, call-site migration pending
 
-**Next:** Phase 9h — bulk migrate ~45 cross-domain raw invokes (pages, hooks, gro10x, lib) to owner-domain wrappers, then add ESLint rule banning `supabase.functions.invoke` outside `src/domains/*/api/*.ts` (with the one documented SSE streaming exception in `AIChatPanel`).
+### ✅ Done this turn (additive, no behavior change)
 
----
+**Contracts** (Zod schemas + Request interfaces, all `.passthrough()`):
+- `src/edge/contracts/agents.ts` — added `companyAgentTools`, `triggerAgentPitch`
+- `src/edge/contracts/jobs.ts` — added `sendJobApplication`, `generateInterviewQuestions`, `analyzeMockInterview`, `analyzeJobAssessment`, `generateJobAssessment`, `generateApplicationAnswers`, `enhanceCoverLetter`
+- `src/edge/contracts/gigs.ts` — added `adminGigOps`, `aiReviewerBrief`, `aiProjectScoper`, `aiGigVerifier`, `aiGigScoper`, `aiGigPublicSummary`, `ogImageRender`
+- `src/edge/contracts/talent.ts` — added `unlockTalentContact`, `analyzeSalary`, `analyzeCareerAssessment`
+- `src/edge/contracts/messaging.ts` — added `messagingSend`, `messagingGroupManager`, `sendTransactionalEmail`, `telegramDiagnostic`, `handleEmailUnsubscribe`
+- `src/edge/contracts/finance.ts` — added `requestInstructorPayout`
+- `src/edge/contracts/companies.ts` — new: `signupCompany`, `checkCompanyAccount`
+- `src/edge/contracts/ugc.ts` — new: `adminContentAi`
 
-## Phase 9g — original plan (kept for reference)
+**Wrappers** (canonical pattern: invoke → throw `EdgeFunctionError` → `parseEdgeResponse`):
+- `src/domains/agents/api/agentsApi.ts` — `+companyAgentTools`, `+triggerAgentPitch`
+- `src/domains/jobs/api/jobsApi.ts` — `+sendJobApplication`, `+generateInterviewQuestions`, `+analyzeMockInterview`, `+analyzeJobAssessment`, `+generateJobAssessment`, `+generateApplicationAnswers` (accepts `{accessToken}` option for ApplicationHelper), `+enhanceCoverLetter`
+- `src/domains/gigs/api/gigsApi.ts` — `+adminGigOps`, `+aiReviewerBrief`, `+aiProjectScoper`, `+aiGigVerifier`, `+aiGigScoper`, `+aiGigPublicSummary`, `+ogImageRender`
+- `src/domains/talent/api/talentApi.ts` — `+unlockTalentContact`, `+analyzeSalary`, `+analyzeCareerAssessment`
+- `src/domains/messaging/api/messagingApi.ts` — `+messagingSend`, `+messagingGroupManager`, `+sendTransactionalEmail`, `+telegramDiagnostic`, `+handleEmailUnsubscribe`
+- `src/domains/finance/api/financeApi.ts` — `+requestInstructorPayout`
+- `src/domains/companies/api/companiesApi.ts` — new file: `signupCompany`, `checkCompanyAccount`
+- `src/domains/ugc/api/ugcApi.ts` — new file: `adminContentAi`
 
+**Barrels**:
+- `src/domains/companies/api/manifest.ts` + `index.ts` — converted from `companiesApi` const to named re-exports
+- `src/domains/ugc/api/manifest.ts` + `index.ts` — converted from `ugcApi` const to named re-exports
 
-Apply the hardened pattern (talent/agents/jobs/abroad/learning) to the remaining six small domains in one combined sweep, since each is tiny on its own. After this, every owner-domain has a typed wrapper layer and we can confidently add a tooling guard in Phase 9h.
+`tsc` is clean.
 
-## Scope — 6 domains, 13 edge functions
+### ⏳ Remaining (next turn)
 
-| Domain | Functions | In-domain callers | New (currently raw) |
-|---|---|---|---|
-| gigs | `ai-bid-coach`, `generate-outreach-message`, `parse-job-post`, `generate-job-share-caption` | 4 components | — |
-| profile | `claim-public-handle`, `parse-cv` | 2 components + 1 hook | hook still raw |
-| finance | `update-stripe-secret`, `process-withdrawal`, `create-checkout` | 3 admin components + 1 talent component | — |
-| messaging | `unipile-connect` | 0 (manifest only) | `MessagingChannelsTab` (×4 raw calls) |
-| marketing | `lead-hunt-match` | 1 admin component | — |
-| analytics | (none today) | — | `admin-report-builder` in `ReportsBuilderTab` |
+**Call-site migration** — ~57 raw invokes across ~50 files. All wrappers ready, mechanical replace by owner-domain batch:
 
-Notes:
-- `generate-outreach-message`, `parse-job-post`, `generate-job-share-caption`, `parse-cv` are owned by **talent / jobs / profile** respectively. The current gigs manifest re-wraps them, which is exactly the duplication the README forbids. Phase 9g will collapse those callers onto the owner-domain wrappers and drop the duplicates.
+- **Batch A — agents (15):** `AdminMessagingInbox`, `useGro10xAuthChat`, `Gro10xSourcing`, `Gro10xShortlist`, `Gro10xFeed` (×4), `Gro10xJobsList`, `OnboardingWizard`, `CreatorOnboardingDialog`, `Withdrawals`, `Unsubscribe`, `Transactions`, `TalentPublicProfile`, `TalentMirror`, `TalentHome`, `TalentDirectory`, `ServicesHub`, `SavedItems`
+- **Batch B — jobs (18):** `useOffers` (×3), `useInterviews` (×2), `CVUploadStep`, `InlineCVUpload`, `ProfileEdit`, `useGro10xAuthChat` (parse-cv), `MockInterviewSetup`, `MockInterviewQuestions`, `MockInterviewCapture`, `AppMockInterviewSetup`, `AppJobApplication` (×3: enhance-cover-letter, send-job-application, generate-job-assessment), `JobAssessment`, `JobAssessmentResults`, `ApplicationHelper`, `Profile` (enhance-cover-letter), `AppJobDetail` (score-job-match)
+- **Batch C — gigs (8):** `NewGigWizard`, `ProjectRoom`, `ReviewerCockpit` (×2), `Gro10xProjects`, `ProjectPublicToggle` (×2 — og-image-render + ai-gig-public-summary), `gigAutoReview.ts`
+- **Batch D — talent (4):** `useTalentUnlocks`, `SalaryAnalysisProcessing`, `AssessmentResults`, `AppCareerAssessment`
+- **Batch E — messaging (6):** `AdminMessagingInbox` (messaging-send), `CompanyWhatsAppGroupCard`, `emailNotifications.ts`, `WorkforceCommandCenter` (telegram-diagnostic), `Unsubscribe` (×2 handle-email-unsubscribe)
+- **Batch F — companies + ugc (3):** `Gro10xSignIn` (check-company-account), `useGro10xAuthChat` (×2: check-company-account + signup-company), `contentAI.ts`
+- **Batch G — finance (1):** `InstructorEarnings` (request-instructor-payout)
 
-## Steps
+**ESLint guard** — `no-restricted-syntax` banning `supabase.functions.invoke` outside `src/domains/*/api/*Api.ts` (and one documented SSE exception `AIChatPanel.tsx`).
 
-### 1. Contracts pass
-- Audit `src/edge/contracts/{gigs,profile,finance,messaging,marketing}.ts` against real call-site bodies; tighten with `.passthrough()` where needed.
-- Create `src/edge/contracts/analytics.ts` with `AdminReportBuilderRequest` + response schema (read `ReportsBuilderTab.tsx` body shape verbatim — Phase 9 preserves runtime behavior).
-- Remove cross-owner duplicates from `gigs.ts` (`GenerateOutreachMessageRequest`, `ParseJobPostRequest`, `GenerateJobShareCaptionRequest`) — re-export from the owner domain instead.
+**Docs**:
+- `src/edge/README.md` — add Phase 9h ownership rows
+- `.lovable/known-edge-contract-drift.md` — note any wire-shape adaptations from `{data,error}` → throw
 
-### 2. Wrapper files (one per domain)
-For each domain, create `src/domains/<domain>/api/<domain>Api.ts` with **named async wrappers** using the canonical pattern:
+**Verification**:
+- `tsc` clean
+- `bunx eslint src` clean
+- `rg "supabase\.functions\.invoke" src` returns only domain wrapper files + `AIChatPanel.tsx`
 
-```ts
-const { data, error } = await supabase.functions.invoke("<fn>", { body });
-if (error) throw new EdgeFunctionError("<fn>", error);
-return parseEdgeResponse("<fn>", <fn>ResponseSchema, data);
-```
+### Notes for next turn
 
-Wrappers to ship:
-- `gigs/api/gigsApi.ts` → `aiBidCoach` only (the other three are cross-domain re-exports of owner wrappers).
-- `profile/api/profileApi.ts` → `claimPublicHandle`, `parseCv` (the `parse-cv` owner is profile per the existing manifest — confirm vs jobs README row before finalizing; if jobs already owns it, drop the duplicate and keep the import path single-source).
-- `finance/api/financeApi.ts` → `updateStripeSecret`, `processWithdrawal`, `createCheckout` (note: today's manifest leaks the raw `{ data, error }` shape — wrappers will return parsed data and throw on failure; callers updated accordingly).
-- `messaging/api/messagingApi.ts` → `unipileConnect`.
-- `marketing/api/marketingApi.ts` → `leadHuntMatch` (today's manifest also leaks `{ data, error }`; same fix).
-- `analytics/api/analyticsApi.ts` → `adminReportBuilder`.
-
-### 3. Convert manifests + index.ts to barrels
-Each `<domain>/api/manifest.ts` and `<domain>/index.ts` becomes pure re-export. Delete the `<domain>Api` const + `<Domain>Api` type.
-
-### 4. Migrate call sites (~14 files)
-- **gigs (4):** `JobSharingGigForm`, `JobPostingGigForm`, `CVUploadGigForm`, `BidCoachDialog`.
-- **profile (3):** `CVUploadSection` (in-domain), `usePublicProfileSettings` (raw → `claimPublicHandle`), plus the `profileApi.parseCv` caller already in `gigs/CVUploadGigForm`.
-- **finance (4):** `CreditPurchaseSheet`, `WithdrawalsTab`, `PaymentSettingsTab` (×2 invocations).
-- **messaging (1):** `MessagingChannelsTab` — replace all 4 raw `unipile-connect` invokes with `unipileConnect`.
-- **marketing (1):** `LeadHunterManager` — adapt from `{ data, error }` to try/catch.
-- **analytics (1):** `ReportsBuilderTab` — replace raw `admin-report-builder` invoke with `adminReportBuilder`.
-
-### 5. Update `src/edge/README.md`
-Add ownership rows for all 6 new domains so every shipped wrapper is accounted for.
-
-### 6. Update `.lovable/known-edge-contract-drift.md`
-- Log any drift discovered while writing contracts.
-- Note that returning-shape change (raw `{data,error}` → throw + parsed payload) is intentional behavior alignment, not regression.
-- If `parse-cv` ownership is genuinely shared between jobs (README) and profile (manifest), document the resolution there.
-
-### 7. Verify
-- `tsc` clean.
-- `rg "supabase.functions.invoke" src/domains` returns 0 hits outside `<domain>Api.ts` files.
-- `rg "(gigsApi|profileApi|financeApi|messagingApi|marketingApi|analyticsApi)\."` returns 0 hits repo-wide (named imports only).
-
-### 8. Mark Phase 9g ✅ and queue Phase 9h
-Phase 9h scope (preview, **not** part of 9g):
-- ~45 cross-domain raw invokes outside `src/domains/*` (pages, hooks, gro10x, lib helpers) — bulk migrate to owner-domain wrappers.
-- Add an ESLint rule banning `supabase.functions.invoke` outside `src/domains/*/api/*.ts` and `src/components/ai-instructor/AIChatPanel.tsx` (the one documented SSE streaming exception).
-
-## Out of scope for Phase 9g
-- Out-of-domain raw invokes (Phase 9h).
-- Fixing the existing drift entries (call-site body bugs) in `known-edge-contract-drift.md`.
-- Any behavior change beyond returning parsed data + throwing on failure (which a few finance/marketing callers already expect via destructuring — these are the only callers needing a small `try/catch` adaptation).
-
-## Risk
-Low. Pattern is identical to five completed phases; total touched files ≈ 20; every change is mechanical and verified by `tsc` plus the two `rg` invariants.
+- Two functions surfaced during inspection that weren't in the original plan: `generate-job-assessment` (jobs) and `check-company-account` (companies). Contracts + wrappers shipped this turn.
+- `request-instructor-payout` placed in **finance** (not learning) to keep payouts/withdrawals colocated.
+- All wrappers throw on failure. Migration must wrap legacy `{data,error}` destructuring patterns in `try/catch` where the caller previously branched on `error`.

@@ -1,5 +1,5 @@
 /**
- * Finance domain — edge function contracts (Phase 9g).
+ * Finance domain — edge function contracts (Phase 9g + 9h).
  */
 import { z } from "zod";
 
@@ -51,4 +51,23 @@ export const CreateCheckoutResponseSchema = z
   .passthrough();
 export type CreateCheckoutResponse = z.infer<
   typeof CreateCheckoutResponseSchema
+>;
+
+// request-instructor-payout (Phase 9h) --------------------------------------
+export interface RequestInstructorPayoutRequest {
+  amount: number;
+  method: string;
+  details: Record<string, unknown>;
+  [k: string]: unknown;
+}
+
+export const RequestInstructorPayoutResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    payout_id: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type RequestInstructorPayoutResponse = z.infer<
+  typeof RequestInstructorPayoutResponseSchema
 >;

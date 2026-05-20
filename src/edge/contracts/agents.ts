@@ -52,14 +52,6 @@ export const AiGeneralChatResponseSchema = z
 export type AiGeneralChatResponse = z.infer<typeof AiGeneralChatResponseSchema>;
 
 // admin-support-assistant ----------------------------------------------------
-/**
- * Fire-and-forget telemetry sink used by various admin/talent pages to
- * report client-side anomalies. Legacy call sites send
- * `{ type, error/event, context }`; the underlying edge function may not
- * exist on disk in all deployments and these calls are expected to fail
- * silently. Wrapper preserves runtime behavior and is documented in
- * `.lovable/known-edge-contract-drift.md`.
- */
 export interface AdminSupportAssistantRequest {
   type?: string;
   severity?: string;
@@ -77,14 +69,8 @@ export type AdminSupportAssistantResponse = z.infer<
 >;
 
 // ai-support-assistant -------------------------------------------------------
-/**
- * Image-OCR-driven CRM support assistant. Canonical body is
- * `{ image, context }` with `image` required.
- */
 export interface AiSupportAssistantRequest {
-  /** Data URL of the chat screenshot to analyze. */
   image: string;
-  /** Optional natural-language context for grounding. */
   context?: string;
 }
 
@@ -105,6 +91,8 @@ export type AiSupportAssistantResponse = z.infer<
 export interface AgentBlueprintRequest {
   brief: string;
   audience?: string;
+  name?: string;
+  [k: string]: unknown;
 }
 
 export const AgentBlueprintProposalSchema = z.object({
@@ -121,18 +109,16 @@ export const AgentBlueprintProposalSchema = z.object({
 });
 export type AgentBlueprintProposal = z.infer<typeof AgentBlueprintProposalSchema>;
 
-export const AgentBlueprintResponseSchema = z.object({
-  proposal: AgentBlueprintProposalSchema.optional(),
-  error: z.string().optional(),
-});
+export const AgentBlueprintResponseSchema = z
+  .object({
+    proposal: AgentBlueprintProposalSchema.optional(),
+    blueprint: z.unknown().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
 export type AgentBlueprintResponse = z.infer<typeof AgentBlueprintResponseSchema>;
 
 // ingest-agent-knowledge -----------------------------------------------------
-/**
- * NOTE: Call site (`AgentStudioTab.tsx`) sends `{ source_type, url }` but the
- * edge function expects `{ source_kind, source_ref }` — this wrapper preserves
- * the call-site shape so existing callers compile, drift is documented.
- */
 export interface IngestAgentKnowledgeRequest {
   agent_id: string;
   source_type: "text" | "url" | "file";
@@ -153,7 +139,6 @@ export type IngestAgentKnowledgeResponse = z.infer<
 
 // agent-event-dispatcher -----------------------------------------------------
 export interface AgentEventDispatcherRequest {
-  /** Cron sweep takes an empty body. Future overrides may pass filters. */
   filters?: Record<string, unknown>;
 }
 
@@ -164,4 +149,47 @@ export const AgentEventDispatcherResponseSchema = z.object({
 });
 export type AgentEventDispatcherResponse = z.infer<
   typeof AgentEventDispatcherResponseSchema
+>;
+
+// company-agent-tools (Phase 9h) ---------------------------------------------
+/**
+ * Generic tool-router edge function used by company / employer surfaces.
+ * Bodies vary by `tool_key`; we accept arbitrary args and validate the
+ * common `{ ok, result, error }` envelope.
+ */
+export interface CompanyAgentToolsRequest {
+  tool_key: string;
+  args?: Record<string, unknown>;
+  [k: string]: unknown;
+}
+
+export const CompanyAgentToolsResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    result: z.unknown().optional(),
+    draft_id: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type CompanyAgentToolsResponse = z.infer<
+  typeof CompanyAgentToolsResponseSchema
+>;
+
+// trigger-agent-pitch (Phase 9h) ---------------------------------------------
+export interface TriggerAgentPitchRequest {
+  company_id: string;
+  talent_id: string;
+  [k: string]: unknown;
+}
+
+export const TriggerAgentPitchResponseSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    dispatched: z.boolean().optional(),
+    dispatch_error: z.string().optional(),
+    error: z.string().optional(),
+  })
+  .passthrough();
+export type TriggerAgentPitchResponse = z.infer<
+  typeof TriggerAgentPitchResponseSchema
 >;
