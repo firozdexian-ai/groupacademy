@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { useGigsHubDashboard } from "@/hooks/useGigsHubDashboard";
+import { useGigsHubDashboard } from "@/domains/gigs";
 import { InfiniteGigsList } from "@/components/gigs/InfiniteGigsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
