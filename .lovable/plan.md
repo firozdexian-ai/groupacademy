@@ -1,70 +1,51 @@
-## Phase 5.9 — `finance` domain vertical slice
+## Phase 5.10 — `institutions` domain vertical slice
 
-Mixed phase: admin finance ops + the cross-app credits/payments surface (talent-facing wallet UI + hooks consumed by ~25 importers across the talent shell). Two-part scope, single migration.
+Small, clean phase. Zero edge functions; all persistence is direct table/RPC calls. Only consumer is `src/pages/Dashboard.tsx`.
 
 ### Scope
 
-**Admin UI → `src/domains/finance/components/admin/` (+ barrels at `src/components/dashboard/finance/*`)** — 9 files
-- `FinOverviewTab`, `InvoicesTab`, `TransactionsTab`, `WithdrawalsTab`
-- `PaymentInfraTab`, `PaymentSettingsTab`
-- `CompanyCreditsTab`, `Gro10xCreditsTab`, `TalentCreditsTab`
+**4 admin UI → `src/domains/institutions/components/admin/` (+ barrels at `src/components/dashboard/institutions/*`)**
+- `InstitutionsOverviewTab`
+- `InstitutionTypesManager`
+- `InstitutionChildRegistry`
+- `StakeholderRegistry`
 
-**Admin hook → `src/domains/finance/components/admin/hooks/` (+ barrel at `src/components/dashboard/finance/hooks/useFinOpsGraph.ts`)** — 1 file
+**1 hook → `src/domains/institutions/components/admin/hooks/` (+ barrel at `src/components/dashboard/institutions/hooks/useInstitutionGraph.ts`)**
+- `useInstitutionGraph`
 
-**Talent credits UI → `src/domains/finance/components/talent/` (+ barrels at `src/components/credits/*`)** — 6 files
-- `CreditBalance`, `CreditGateModal`, `CreditPurchaseSheet`
-- `MyInvoicesList`, `ServiceHistoryCard`, `ServiceUsageBadge`
+**Edge contract → `src/edge/contracts/institutions.ts`**
+- `InstitutionsEdgeContracts = Record<string, never>` (reserved namespace; no edge functions today).
 
-**Talent hooks → `src/domains/finance/hooks/` (+ barrels at `src/hooks/*`)** — 3 files
-- `useCredits`, `useCreditPurchase`, `usePaymentConfig`
+**API manifest → `src/domains/institutions/api/manifest.ts`**
+- `institutionsApi = {} as const` stub.
 
-**Edge contract → `src/edge/contracts/finance.ts`**
-- `UpdateStripeSecretRequest`: discriminated union on `action`: `"check"` | `"save-key"` (+ `stripeSecretKey`) | `"save-webhook"` (+ `stripeWebhookSecret`)
-- `UpdateStripeSecretResponse`: `{ hasSecretKey?: boolean; hasWebhookSecret?: boolean; saved?: boolean; error?: string }`
-- `ProcessWithdrawalRequest`: `{ withdrawal_id: string; action: string; admin_notes: string | null }`
-- `ProcessWithdrawalResponse`: `Record<string, unknown>` (permissive — UI reads `data?.error`)
-- `CreateCheckoutRequest`/`Response`: permissive `Record<string, unknown>` (talent purchase flow — used in `CreditPurchaseSheet`)
-
-**API manifest → `src/domains/finance/api/manifest.ts`**
-- `financeApi.updateStripeSecret(body)`
-- `financeApi.processWithdrawal(body)`
-- `financeApi.createCheckout(body)`
-
-**Domain index → `src/domains/finance/index.ts`**
-- Re-export admin + talent components, hooks, `financeApi`.
+**Domain index → `src/domains/institutions/index.ts`**
+- Re-export the 4 tabs + the hook + `institutionsApi`.
 
 **F3 sweep**
-- `PaymentSettingsTab`: 3 `supabase.functions.invoke("update-stripe-secret", …)` → `financeApi.updateStripeSecret(…)`.
-- `WithdrawalsTab`: 1 `supabase.functions.invoke("process-withdrawal", …)` → `financeApi.processWithdrawal(…)`.
-- `CreditPurchaseSheet`: 1 `supabase.functions.invoke("create-checkout", …)` → `financeApi.createCheckout(…)`.
+- None — `rg "functions.invoke" src/components/dashboard/institutions/` returns 0.
 
-### Importers that keep working via barrels
-- `src/pages/Dashboard.tsx` — all admin tabs.
-- `src/layouts/TalentAppShell.tsx`, 20+ talent pages, `domains/abroad`, `domains/jobs`, `domains/feed` — all consume `useCredits`/`useCreditPurchase`/`usePaymentConfig` via `@/hooks/*` barrels (no churn).
-- `CreditBalance`/`CreditPurchaseSheet`/`CreditGateModal` consumers continue importing from `@/components/credits/*`.
+### Importers kept stable via barrels
+- `src/pages/Dashboard.tsx` continues importing `@/components/dashboard/institutions/*` unchanged.
 
 ### Verification
 - Type-check passes.
-- `/dashboard` Finance group tabs (Overview / Invoices / Transactions / Withdrawals / Payment Infra / Payment Settings / Talent Credits / Company Credits / Gro10x Credits) mount.
-- Talent wallet: balance badge renders, purchase sheet opens, checkout edge call fires.
-- Admin actions: Stripe key check/save and withdrawal approve/reject still work.
-- `rg "functions.invoke" src/domains/finance/` → only the 3 wrappers in `api/manifest.ts`.
+- `/dashboard` Institutions group tabs (Overview / Types / Child Registry / Stakeholders) mount.
+- `rg "functions.invoke" src/domains/institutions/` → 0.
 
 ### Out of scope
-- Stripe/Paddle adapter code in edge functions (server-side).
-- `useCreditPurchase` internal helpers (kept as-is).
-- Notification ledger (Phase 6).
+- The 2 institutions chat agents (live in `dashboard/chat`, handled later).
+- Public university/partner pages.
 - Phases 6–9.
 
 ### Risk
-- Medium. 19 files, 3 edge fns, broad cross-shell consumption. The barrels keep all consumers working; risk is concentrated in the F3 swaps (small surgical edits).
+- Low. 5 files, no edge calls, single consumer.
 
-### Progress after 5.9
-~62%. Next: 5.10 institutions.
+### Progress after 5.10
+~65%. Next: 5.11 workforce.
 
 ### Roadmap remainder
 ```text
-5.10 institutions
 5.11 workforce
 5.12 ugc
 5.13 dashboard residuals (jobs admin, agents admin, etc.)
@@ -73,16 +54,3 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
-
-
-## Phase 5.9 finance — DONE
-- 9 admin tabs + 1 admin hook + 6 talent components + 3 talent hooks migrated to src/domains/finance/
-- Edge contracts: update-stripe-secret, process-withdrawal, create-checkout
-- F3 swaps: PaymentSettingsTab (3), WithdrawalsTab (1), CreditPurchaseSheet (1)
-- All originals replaced with barrels
-- Progress ~62
-## Phase 5.9 finance - DONE
-- 9 admin tabs + 1 admin hook + 6 talent components + 3 talent hooks migrated to src/domains/finance/
-- Edge contracts: update-stripe-secret, process-withdrawal, create-checkout
-- F3 swaps: PaymentSettingsTab (3), WithdrawalsTab (1), CreditPurchaseSheet (1)
-- Progress ~62%. Next: 5.10 institutions.
