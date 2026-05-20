@@ -28,16 +28,15 @@ exact runtime behavior. Fix in a dedicated follow-up.
 
 ## 3. `admin-support-assistant` — broad fire-and-forget telemetry
 
-- **Call sites (~13):** `src/pages/app/{Withdrawals,Unsubscribe,Transactions,TalentPublicProfile,TalentMirror,StudyAbroadDetail,TalentHome,StudyAbroad,ServicesHub,StudyAbroadRoadmap,StudyAbroadRoadmapResults,SavedItems,TalentDirectory,SchoolDetail}.tsx`, plus `AgentChatDialog` (now via typed wrapper).
+- **Call sites (~9 remaining):** `src/pages/app/{Withdrawals,Unsubscribe,Transactions,TalentPublicProfile,TalentMirror,TalentHome,ServicesHub,SavedItems,TalentDirectory}.tsx`, plus `AgentChatDialog` (already via typed wrapper).
+- **Migrated Phase 9e:** `StudyAbroadDetail`, `StudyAbroad`, `StudyAbroadRoadmap`, `StudyAbroadRoadmapResults`, `SchoolDetail` now call `adminSupportAssistant` from the agents domain wrapped in `try/catch` to preserve fire-and-forget semantics.
 - **Sends:** `{ type, severity, error/event, context }`.
 - **Edge fn:** `admin-support-assistant` does not exist on disk under
   `supabase/functions/`. All calls fail silently. The typed wrapper
   `adminSupportAssistant` is provided in the agents domain so future
   migration is a one-line swap when the function is implemented (or
-  rerouted to a real telemetry sink).
-- **Phase 9c scope:** wrapper exists, but cross-domain pages have not
-  been migrated to use it yet — that happens with each domain's phase
-  (talent → 9d, abroad → 9e, etc.).
+  rerouted to a real telemetry sink). Remaining cross-domain pages will
+  migrate alongside their owning-domain phase.
 
 ## 4. `ingest-agent-knowledge`
 
