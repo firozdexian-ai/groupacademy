@@ -8,6 +8,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Sparkles, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { gigsApi } from "@/domains/gigs/api/manifest";
 
 interface Props {
   open: boolean;
@@ -62,11 +63,12 @@ export function BidCoachDialog({
 
     try {
       // Direct RPC execution route mapping over the decentralized serverless client
-      const { data, error: edgeError } = await supabase.functions.invoke("ai-bid-coach", {
-        body: { gig_id: gigId, gig_kind: gigKind, draft_text: draft.trim() },
-      });
-
-      if (edgeError) throw edgeError;
+      let data: any;
+      try {
+        data = await gigsApi.aiBidCoach({ gig_id: gigId, gig_kind: gigKind, draft_text: draft.trim() });
+      } catch (edgeError) {
+        throw edgeError;
+      }
 
       const parsedData = data as any;
 
