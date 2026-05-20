@@ -29,3 +29,33 @@ export * from "./hooks/useTutorMasteryContext";
 
 export { learningApi } from "./api/manifest";
 export type { LearningApi } from "./api/manifest";
+
+// Talent-shell UI surface
+export * from "./components/talent/ActiveCourseHero";
+export * from "./components/talent/AdaptiveSnapshotCard";
+export * from "./components/talent/CareerTracksPreview";
+export * from "./components/talent/CoursesTab";
+export * from "./components/talent/EventsTab";
+export * from "./components/talent/ItemBankAnalyticsPanel";
+export * from "./components/talent/ItemRewriteSheet";
+export * from "./components/talent/JoinLivePanel";
+export * from "./components/talent/LearningStreak";
+export * from "./components/talent/ModuleQuizRunner";
+export * from "./components/talent/ModuleScenarioRunner";
+export * from "./components/talent/MyCoursesTab";
+export * from "./components/talent/NextActionsCard";
+export * from "./components/talent/QuickActionCard";
+export * from "./components/talent/QuickStats";
+export * from "./components/talent/ReviewQueueRunner";
+export * from "./components/talent/SkillCredentialsPanel";
+export * from "./components/talent/StudyAbroadSection";
+export * from "./components/talent/TalentMirrorPanel";
+export * from "./components/talent/TrackProgressRing";
+export * from "./components/talent/TracksTab";
+export * from "./components/talent/UnifiedDiscovery";
+export * from "./components/talent/UpcomingSessionsRail";
+export * from "./components/talent/WebinarEnrollPanel";
+export * from "./components/talent/views/AcademyView";
+export * from "./components/talent/views/MyHubView";
+export * from "./components/talent/views/StudyAbroadView";
+export * from "./components/talent/views/TracksView";
