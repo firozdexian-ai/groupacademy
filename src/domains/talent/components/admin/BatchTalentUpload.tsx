@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { batchParseCvs } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -263,9 +264,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
       if (batchError) throw batchError;
       setCurrentBatch(batch as BatchUpload);
 
-      await supabase.functions.invoke("batch-parse-cvs", {
-        body: { cvUrls: urls, batchId: batch.id },
-      });
+      await batchParseCvs({ cvUrls: urls, batchId: batch.id });
 
       toast.success(`URL Ingestion Initialized: ${urls.length} Artifacts Syncing`);
       setUrlsInput("");
@@ -322,9 +321,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
       if (batchError) throw batchError;
       setCurrentBatch(batch as BatchUpload);
 
-      await supabase.functions.invoke("batch-parse-cvs", {
-        body: { cvUrls: urls, batchId: batch.id },
-      });
+      await batchParseCvs({ cvUrls: urls, batchId: batch.id });
 
       toast.success(`Ingestion Initialized: ${urls.length} Artifacts Syncing`);
       setSelectedFiles([]);
