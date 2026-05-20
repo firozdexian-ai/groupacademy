@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -222,14 +223,11 @@ export function JobsManagerLegacyTab() {
     }
     setIsEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
-        body: {
-          title: form.title,
-          company: form.company_name,
-          description: form.description,
-        },
+      const data = await enhanceJobDescription({
+        title: form.title,
+        company: form.company_name,
+        description: form.description,
       });
-      if (error) throw error;
       const enhanced = data?.enhanced || data?.description;
       if (enhanced) {
         updateField("description", enhanced);
