@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Brain, Loader2, Zap, Target, ShieldCheck, AlertCircle } from "lucide-react";
@@ -47,14 +48,7 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
     const toastId = toast.loading("Scoring this match...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("score-job-match", {
-        body: { jobId, talentId },
-      });
-
-      if (error) {
-        const msg = (data as any)?.error || error.message || "Something went wrong";
-        throw new Error(msg);
-      }
+      const data = await scoreJobMatch({ jobId, talentId });
 
       const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
       const reco = data?.recommendation || data?.rationale || "";
