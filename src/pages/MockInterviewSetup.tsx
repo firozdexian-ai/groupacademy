@@ -154,22 +154,14 @@ function MockInterviewSetupContent() {
         };
       }
 
-      let data: any = null;
-      let error: any = null;
-      try {
-        data = await generateInterviewQuestions({
-          jobDescription,
-          questionCount: config.questionCount,
-          difficulty: config.difficulty,
-          professionCategoryId: config.professionCategoryId,
-          additionalNotes: config.additionalNotes,
-          candidateProfile,
-        });
-      } catch (e) { error = e; }
-      const _stub_removed_block_marker = ({
+      const data = await generateInterviewQuestions({
+        jobDescription,
+        questionCount: config.questionCount,
+        difficulty: config.difficulty,
+        professionCategoryId: config.professionCategoryId,
+        additionalNotes: config.additionalNotes,
+        candidateProfile,
       });
-
-      if (error) throw error;
       const interviewId = crypto.randomUUID();
 
       const { error: insertError } = await supabase.from("mock_interviews").insert({
