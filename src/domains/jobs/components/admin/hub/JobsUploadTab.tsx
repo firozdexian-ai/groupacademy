@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Plus, Link as LinkIcon, Upload, Database, ShieldCheck, Zap, Activity } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { parseJobPost } from "@/domains/jobs/api/jobsApi";
 import { JobFormDialog, type JobFormState } from "./JobFormDialog";
 import { PendingJobSubmissions } from "./PendingJobSubmissions";
 import { JobsLinkedInBatchUpload } from "@/domains/jobs/components/admin/JobsLinkedInBatchUpload";
@@ -32,11 +32,7 @@ export function JobsUploadTab() {
     const toastId = toast.loading("Initializing neural extraction...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("parse-job-post", {
-        body: { text: rawText },
-      });
-
-      if (error) throw error;
+      const data: any = await parseJobPost({ text: rawText });
 
       const p = (data?.parsed_job || data) as any;
       setPrefill({
