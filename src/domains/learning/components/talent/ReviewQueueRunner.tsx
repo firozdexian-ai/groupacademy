@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerQuizPool } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useReviewQueue, type ReviewTopic } from "@/hooks/useReviewQueue";
@@ -100,17 +101,15 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
     trackEvent("review_topic_quiz_dispatched", { topicTag: topic.topic_tag, itemsCount: item_ids.length });
 
     try {
-      const { data, error } = await supabase.functions.invoke("learner-quiz-pool", {
-        body: {
-          mode: "submit",
-          module_id: topic.module_id,
-          item_ids,
-          answers: ans,
-        },
+      const data = await learnerQuizPool({
+        mode: "submit",
+        module_id: topic.module_id,
+        item_ids,
+        answers: ans,
       });
 
-      if (error || (data as any)?.error) {
-        throw new Error((data as any)?.error || error?.message || "Synapse ledger verification failed.");
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       if (isRequestAlive) {
