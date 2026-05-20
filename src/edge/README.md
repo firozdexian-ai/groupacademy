@@ -16,6 +16,11 @@ whose admin surface conceptually owns the function; tie-breaker is the
 domain with the most call sites. Cross-domain callers import from the
 owner's `api/<owner>Api.ts` — never re-wrap the same function elsewhere.
 
+| Edge function | Owner domain |
+|---|---|
+| `batch-parse-cvs`, `generate-outreach-message` | talent |
+| `agent-runtime`, `ai-general-chat`, `agent-blueprint`, `ingest-agent-knowledge`, `agent-event-dispatcher`, `admin-support-assistant`, `ai-support-assistant` | agents |
+
 ## Convention
 
 - Import wrappers by name: `import { batchParseCvs } from "@/domains/talent/api/talentApi"`.
