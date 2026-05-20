@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, Brain, CheckCircle2, XCircle, RefreshCw, Zap, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { learnerAdaptiveSample, learnerQuizPool } from "@/domains/learning/api/learningApi";
+import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
