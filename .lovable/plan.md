@@ -1,61 +1,59 @@
-## Phase 5.10 — `institutions` domain vertical slice
+## Phase 5.11 — `workforce` domain vertical slice
 
-Small, clean phase. Zero edge functions; all persistence is direct table/RPC calls. Only consumer is `src/pages/Dashboard.tsx`.
+The "workforce" admin area lives under `src/components/dashboard/hr/` (named `hr` for legacy reasons; product surface is the Workforce group + HR ops). Six admin files + 1 hook. Zero edge functions. Only consumer is `src/pages/Dashboard.tsx`.
 
 ### Scope
 
-**4 admin UI → `src/domains/institutions/components/admin/` (+ barrels at `src/components/dashboard/institutions/*`)**
-- `InstitutionsOverviewTab`
-- `InstitutionTypesManager`
-- `InstitutionChildRegistry`
-- `StakeholderRegistry`
+**6 admin UI → `src/domains/workforce/components/admin/` (+ barrels at `src/components/dashboard/hr/*`)**
+- `HrOverviewTab` (default + named)
+- `WorkforceTab` → exports `WorkforceManager` (named only)
+- `HrOnboardingTab` (default + named)
+- `HrPayrollTab` (default + named)
+- `HrTargetsTab` (default + named)
+- `HrSimpleTabs` → exports `HrVerticalsTab`, `HrFunctionsTab`, `HrTeamsTab`, `HrGradesTab` (named only)
 
-**1 hook → `src/domains/institutions/components/admin/hooks/` (+ barrel at `src/components/dashboard/institutions/hooks/useInstitutionGraph.ts`)**
-- `useInstitutionGraph`
+**1 hook → `src/domains/workforce/components/admin/hooks/` (+ barrel at `src/components/dashboard/hr/hooks/useHrGraph.ts`)**
+- `useHrGraph`
 
-**Edge contract → `src/edge/contracts/institutions.ts`**
-- `InstitutionsEdgeContracts = Record<string, never>` (reserved namespace; no edge functions today).
+**Import rewrite**
+- `WorkforceTab.tsx` line 41: `../DashboardSkeleton` → `@/components/dashboard/DashboardSkeleton`.
 
-**API manifest → `src/domains/institutions/api/manifest.ts`**
-- `institutionsApi = {} as const` stub.
+**Edge contract → `src/edge/contracts/workforce.ts`**
+- `WorkforceEdgeContracts = Record<string, never>` (reserved namespace; no edge functions today).
 
-**Domain index → `src/domains/institutions/index.ts`**
-- Re-export the 4 tabs + the hook + `institutionsApi`.
+**API manifest → `src/domains/workforce/api/manifest.ts`**
+- `workforceApi = {} as const` stub.
 
-**F3 sweep**
-- None — `rg "functions.invoke" src/components/dashboard/institutions/` returns 0.
+**Domain index → `src/domains/workforce/index.ts`**
+- Re-export the 6 component files + hook + `workforceApi`.
+
+**F3 sweep** — none (0 `functions.invoke` in the source tree).
 
 ### Importers kept stable via barrels
-- `src/pages/Dashboard.tsx` continues importing `@/components/dashboard/institutions/*` unchanged.
+- `src/pages/Dashboard.tsx` continues importing `@/components/dashboard/hr/*` unchanged.
 
 ### Verification
 - Type-check passes.
-- `/dashboard` Institutions group tabs (Overview / Types / Child Registry / Stakeholders) mount.
-- `rg "functions.invoke" src/domains/institutions/` → 0.
+- `/dashboard` Workforce group tabs (Overview / Workforce / Onboarding / Payroll / Targets / Verticals / Functions / Teams / Grades) mount.
+- `rg "functions.invoke" src/domains/workforce/` → 0.
 
 ### Out of scope
-- The 2 institutions chat agents (live in `dashboard/chat`, handled later).
-- Public university/partner pages.
+- Renaming the `hr` folder physically (kept as barrel-only shim — frees up Phase 8 to retire).
+- Workforce chat agents (live in `dashboard/chat`, handled later).
 - Phases 6–9.
 
 ### Risk
-- Low. 5 files, no edge calls, single consumer.
+- Low. 7 files, no edge calls, single consumer, 1 relative-path rewrite.
 
-### Progress after 5.10
-~65%. Next: 5.11 workforce.
+### Progress after 5.11
+~68%. Next: 5.12 ugc.
 
 ### Roadmap remainder
 ```text
-5.11 workforce
 5.12 ugc
 5.13 dashboard residuals (jobs admin, agents admin, etc.)
 Phase 6  platform/ extraction (notifications, etc.)
 Phase 7  shells/*/routes.tsx + React.lazy
-Phase 8  retire barrel re-exports
+Phase 8  retire barrel re-exports (incl. hr/)
 Phase 9  edge/contracts/ for every domain
 ```
-
-## Phase 5.10 institutions - DONE
-- 4 admin tabs + 1 hook migrated to src/domains/institutions/
-- Stub manifest + contracts (no edge functions)
-- Progress ~65%. Next: 5.11 workforce.
