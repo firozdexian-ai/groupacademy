@@ -170,12 +170,12 @@ export function CVUploadSection() {
         setUploadProgress(40);
       }
 
-      const { data: edgeFunctionResponsePayload, error: parseEdgeFunctionRpcError } = await supabase.functions.invoke(
-        "parse-cv",
-        { body: { cvUrl: generatedPublicCvUrlStr } },
-      );
-
-      if (parseEdgeFunctionRpcError) throw parseEdgeFunctionRpcError;
+      let edgeFunctionResponsePayload: any;
+      try {
+        edgeFunctionResponsePayload = await profileApi.parseCv({ cvUrl: generatedPublicCvUrlStr });
+      } catch (parseEdgeFunctionRpcError) {
+        throw parseEdgeFunctionRpcError;
+      }
 
       clearSyncInterval();
 
