@@ -6,7 +6,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Bot, Pin, Sparkles } from "lucide-react";
 import { formatRelativeTime } from "@/lib/notificationHelpers";
 import { cn } from "@/lib/utils";
-import type { MessageThread } from "@/hooks/useMessageThreads";
+import type { MessageThread } from "@/domains/messaging/hooks/useMessageThreads";
 
 interface Props {
   thread: MessageThread;
