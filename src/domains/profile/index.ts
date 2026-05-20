@@ -19,7 +19,7 @@ export * from "./components/talent/ProfileCompletionMeter";
 export * from "./components/talent/ProfileCompletionPrompt";
 export * from "./components/talent/ProfileSectionEditor";
 export * from "./components/talent/ProfileEditDialog";
-export * from "./components/talent/PublicProfileSettings";
+export { PublicProfileSettings as PublicProfileSettingsPanel } from "./components/talent/PublicProfileSettings";
 export * from "./components/talent/ExperienceEditor";
 export * from "./components/talent/EducationEditor";
 export * from "./components/talent/SkillsEditor";
