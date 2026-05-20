@@ -53,15 +53,7 @@ export default function ProjectRoom() {
   const load = async () => {
     if (!projectId) return;
     try {
-      const [{ data: p, error: pErr }, { data: m, error: mErr }, { data: e }, { data: msg }] = await Promise.all([
-        supabase.from("gig_projects").select("*").eq("id", projectId).maybeSingle(),
-        supabase.from("gig_project_milestones").select("*").eq("project_id", projectId).order("seq"),
-        supabase.from("gig_escrow_accounts").select("*").eq("project_id", projectId).maybeSingle(),
-        supabase.from("gig_project_messages").select("*").eq("project_id", projectId).order("created_at"),
-      ]);
-
-      if (pErr || mErr) throw new Error("Fetch failed");
-
+      const { project: p, milestones: m, escrow: e, messages: msg } = await getProjectRoomBundle(projectId);
       setProject(p as Project);
       setMilestones((m as Milestone[]) || []);
       setEscrow(e);
