@@ -77,7 +77,7 @@ export default function InstructorReviewQueue() {
       const results = await Promise.all(
         batch.map(async (mid) => {
           try {
-            return (await authoringReviewDigest({ mode: "single", module_id: mid, days: 30 })) as ModuleDigest;
+            return (await authoringReviewDigest({ mode: "single", module_id: mid, days: 30 })) as unknown as ModuleDigest;
           } catch {
             return null;
           }
