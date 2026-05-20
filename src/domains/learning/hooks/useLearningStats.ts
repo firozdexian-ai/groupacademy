@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTalent } from "./useTalent";
+import { useTalent } from "@/hooks/useTalent";
 
 /**
  * GroUp Academy: Pedagogical Telemetry Sentinel (V5.6.0)
