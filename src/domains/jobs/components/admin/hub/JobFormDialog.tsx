@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,10 +174,11 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
     setIsEnhancing(true);
     const toastId = toast.loading("Initializing neural optimization...");
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
-        body: { title: form.title, company: form.company_name, description: form.description },
+      const data = await enhanceJobDescription({
+        title: form.title,
+        company: form.company_name,
+        description: form.description,
       });
-      if (error) throw error;
       const enhanced = data?.enhanced || data?.description;
       if (enhanced) {
         updateField("description", enhanced);
