@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { AlertTriangle, RefreshCw, Sparkles, Layers, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ItemRewriteSheet } from "@/components/learning/ItemRewriteSheet";
+import { ItemRewriteSheet } from "./ItemRewriteSheet";
 
 const FLAG_LABEL: Record<string, string> = {
   low_p_value: "Too hard",

@@ -11,9 +11,9 @@ import { Progress } from "@/components/ui/progress";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { BookOpen, MessageCircle, Award, PlayCircle, Loader2, Compass, RefreshCw, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
-import { NextActionsCard } from "@/components/learning/NextActionsCard";
-import { SkillCredentialsPanel } from "@/components/learning/SkillCredentialsPanel";
+import { AdaptiveSnapshotCard } from "./AdaptiveSnapshotCard";
+import { NextActionsCard } from "./NextActionsCard";
+import { SkillCredentialsPanel } from "./SkillCredentialsPanel";
 
 interface MyCoursesTabProps {
   onBrowseCatalog?: () => void;

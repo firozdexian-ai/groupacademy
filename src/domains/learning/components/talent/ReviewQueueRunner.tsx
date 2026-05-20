@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useReviewQueue, type ReviewTopic } from "@/hooks/useReviewQueue";
 import { formatDistanceToNowStrict } from "date-fns";
-import { ModuleScenarioRunner } from "@/components/learning/ModuleScenarioRunner";
+import { ModuleScenarioRunner } from "./ModuleScenarioRunner";
 
 interface TopicResult {
   score: number;
