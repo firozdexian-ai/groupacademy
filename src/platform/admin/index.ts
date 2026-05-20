@@ -2,8 +2,8 @@
  * Platform layer — shared admin chrome and UI primitives.
  *
  * Consumers should import from `@/platform/admin` going forward.
- * The legacy `@/components/dashboard/*` paths remain as thin barrels
- * for backwards compatibility until Phase 8 retires them.
+ * (Phase 8 retired the legacy @/components/dashboard barrels.)
+
  */
 export { AdminSidebar } from "./chrome/AdminSidebar";
 export {
