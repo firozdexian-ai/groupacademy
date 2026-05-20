@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { issueSkillCredentials } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 
 /**
@@ -89,18 +90,7 @@ export function useIssueSkillCredentials(talentId?: string | null) {
   return useMutation({
     mutationFn: async (): Promise<IssueCredentialsResponse> => {
       // HUD: INVOKING_CREDENTIAL_ISSUANCE_EDGE_ENGINE
-      const { data, error } = await supabase.functions.invoke("issue-skill-credentials", {
-        body: {},
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Essential for tracking algorithmic verification drops
-        console.error("[Digital Workforce] ANOMALY: issue-skill-credentials edge function failed.", {
-          talentId: talentId || "CURRENT_USER",
-          message: error.message,
-        });
-        throw error;
-      }
+      const data = await issueSkillCredentials({});
 
       interface EdgeResponseWrapper {
         error?: string;
