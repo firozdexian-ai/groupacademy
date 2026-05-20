@@ -1,61 +1,61 @@
-## Phase 5.6 — `companies` domain vertical slice
+## Phase 5.7 — `marketing` domain vertical slice
 
-Compact admin-heavy phase. Companies are surfaced to talents through the jobs hub (Phase 3.2 — `CompanyCard`, `CompanyDetailSheet` already live in `domains/jobs`), so the talent-facing UI stays in `domains/jobs`. This phase extracts the admin/CRM surface plus the 3 read hooks that power both.
+Pure admin domain — no talent-facing routes. Extract 13 admin tabs + 5 lead-management subviews + 1 graph hook + 1 typed edge contract for the only edge invoke in the area (`lead-hunt-match`).
 
 ### Scope
 
-**Hooks → `src/domains/companies/hooks/` (+ barrels at `src/hooks/*`)** — 3 files
-- `useCompaniesWithSignal`
-- `useCompanyDetail`
-- `useFollowedCompanies`
-- Note: `useEmployerPipeline` already lives in `domains/jobs/hooks/`; leave it there.
+**Admin UI → `src/domains/marketing/components/admin/` (+ barrels at `src/components/dashboard/marketing/*`)** — 13 files
+- `AccessCodesTab`, `AdminsRepsTab`, `BannersTab`
+- `CommunityMessagingChannelTab` (wrapper around `MessagingChannelsTab` — re-import from `@/domains/messaging`)
+- `ContentOutreachTab`, `LeadsActivitiesTab`, `MarketingAnalyticsTab`, `MktSimpleTabs`
+- `ServiceOutreachTab`, `TalentOutreachTab`, `ThemesTab`
+- `StandaloneMockInterviewCodeGenerator`, `StandaloneSalaryCodeGenerator`
 
-**Admin UI → `src/domains/companies/components/admin/` (+ barrels at `src/components/dashboard/companies/*`)** — 8 files
-- `CompaniesOverviewTab`, `CompaniesTab`, `BatchCompanyUpload`
-- `ContactsTab`, `ContactUnlocksTab`
-- `IndustriesTab`
-- `CompanyAgentsTab`
-- `EmployerMessagingChannelTab` (wrapper around `MessagingChannelsTab` from `domains/messaging` — pure re-mount, no logic change)
+**Admin leads → `src/domains/marketing/components/admin/leads/` (+ barrels at `src/components/dashboard/marketing/leads/*`)** — 5 files
+- `LeadHunterManager`, `MockInterviewCodeGenerator`, `MockInterviewLeadsManager`
+- `SalaryAnalysisCodeGenerator`, `SalaryAnalysisLeadsManager`
 
-**Edge contract → `src/edge/contracts/companies.ts`**
-- Namespace reserved with documentation only — no `supabase.functions.invoke` calls exist in companies admin or hooks today. All server interaction is direct table reads + Postgres RPCs (`get_companies_with_signal`, `get_company_detail`).
+**Hooks → `src/domains/marketing/components/admin/hooks/` (+ barrel at `src/components/dashboard/marketing/hooks/useMarketingGraph.ts`)** — 1 file
+- `useMarketingGraph`
 
-**API manifest → `src/domains/companies/api/manifest.ts`**
-- Empty `companiesApi = {}` stub for future edge functions, matching the pattern in `domains/feed`.
+**Edge contract → `src/edge/contracts/marketing.ts`**
+- `LeadHuntMatchRequest`: `{ jobTitle, companyName, jobDescription, leadsRequested }`
+- `LeadHuntMatchResponse`: `Record<string, unknown>` (permissive — UI reads `data` opaquely)
 
-**Domain index → `src/domains/companies/index.ts`**
-Re-export the 3 hooks, 8 admin components, and `companiesApi`.
+**API manifest → `src/domains/marketing/api/manifest.ts`**
+- `marketingApi.leadHuntMatch(body)` wraps `supabase.functions.invoke("lead-hunt-match", { body })` and returns the typed envelope.
+
+**Domain index → `src/domains/marketing/index.ts`**
+- Re-export all admin tabs, leads, hook, `marketingApi`.
 
 **F3 sweep**
-- No edge invokes to replace.
-- Cross-domain `jobs` components that consume these hooks (`CompanyCard`, `CompanyDetailSheet`, `useJobsHubDashboard`, `Dashboard.tsx`) keep working via `@/hooks/*` barrels; no edits needed.
+- Replace the single `supabase.functions.invoke("lead-hunt-match", …)` in `LeadHunterManager` with `marketingApi.leadHuntMatch(…)`.
+- Fix the internal import in `CommunityMessagingChannelTab` to point at `@/domains/messaging/components/admin/MessagingChannelsTab` (matches Phase 5.5 + 5.6 pattern).
+- Rewrite any `../hooks/useMarketingGraph` or `../DashboardSkeleton` relative imports to absolute `@/` paths after copy.
 
 ### Importers that keep working via barrels
-- `src/pages/Dashboard.tsx` → admin tabs (re-exports resolve unchanged)
-- `src/domains/jobs/hooks/useJobsHubDashboard.ts` → `useCompaniesWithSignal`/`useFollowedCompanies`
-- `src/domains/jobs/components/CompanyCard.tsx` + `CompanyDetailSheet.tsx` → `useCompanyDetail`, `useFollowedCompanies`
+- `src/pages/Dashboard.tsx` — sole external consumer of `components/dashboard/marketing/*`.
 
 ### Verification
 - Type-check passes.
-- `/dashboard` Companies group tabs (Overview / Companies / Contacts / Contact Unlocks / Industries / Agents / Messaging) all mount.
-- `/app/jobs` Companies tab + Company sheet still load.
-- No remaining `functions.invoke(` calls in companies admin or hooks.
+- `/dashboard` Marketing group tabs (Overview / Banners / Themes / Content / Service / Talent / Community Messaging / Analytics / Access Codes / Leads / Admins) all mount.
+- Lead Hunter "Hunt leads" action still fires through `marketingApi.leadHuntMatch`.
+- `rg "functions.invoke" src/domains/marketing/` returns 0.
 
 ### Out of scope
-- Talent-facing company UI in `domains/jobs` (CompanyCard, CompanyDetailSheet) — already extracted in Phase 3.2/J.
-- Employer pipeline (`useEmployerPipeline`, kanban) — already in `domains/jobs`.
-- Company offerings / credits / contact unlocks hooks under `src/gro10x/hooks/` — those belong to the gro10x shell, not this domain.
-- Phases 6–9 still deferred.
+- `useOffers`, `useOnboarding` (those belong to `talent`/`onboarding` domains — not marketing).
+- Public marketing landing pages (`/`, `/about`, `/pricing`) — owned by the marketing shell, separate from this admin extraction.
+- `src/components/marketing/` (does not exist).
+- Phases 6–9.
 
 ### Risk
-- Low. 11 files, 0 edge fns, only barrel re-exports. Cross-domain imports already use `@/hooks/*` paths.
+- Low/medium. 19 files, 1 edge fn, 1 cross-domain (messaging) import to retarget. No talent UI to retest.
 
-### Progress after 5.6
-~49%. Next: 5.7 marketing.
+### Progress after 5.7
+~53%. Next: 5.8 ir (Investor Relations admin group).
 
 ### Roadmap remainder
 ```text
-5.7  marketing
 5.8  ir
 5.9  finance
 5.10 institutions
@@ -67,16 +67,3 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
-
----
-
-## Phase 5.6 — completed
-
-- 3 hooks moved to `src/domains/companies/hooks/` with barrels at `src/hooks/*`.
-- 8 admin tabs moved to `src/domains/companies/components/admin/` with barrels at `src/components/dashboard/companies/*`.
-- `EmployerMessagingChannelTab` updated to import `MessagingChannelsTab` from `@/domains/messaging/...`.
-- 3 admin tabs (`CompaniesTab`, `ContactsTab`, `IndustriesTab`) had `../DashboardSkeleton` rewritten to absolute import.
-- `src/edge/contracts/companies.ts` reserved (no edge fns today).
-- `src/domains/companies/api/manifest.ts` stub created.
-- `src/domains/companies/index.ts` re-exports hooks, admin components, and `companiesApi`.
-- Verified zero `functions.invoke` in companies domain.
