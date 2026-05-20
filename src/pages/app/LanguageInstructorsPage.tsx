@@ -2,6 +2,7 @@ import * as React from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { bookLanguageSession } from "@/domains/abroad/api/abroadApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,16 +61,14 @@ export default function LanguageInstructorsPage() {
 
     setIsBookingPending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("book-language-session", {
-        body: {
-          instructor_user_id: instructor.user_id,
-          language_code: languageCode.toUpperCase(),
-          scheduled_at: proposedTimeStr,
-          duration_mins: 30,
-        },
+      const data = await bookLanguageSession({
+        instructor_user_id: instructor.user_id,
+        language_code: languageCode.toUpperCase(),
+        scheduled_at: proposedTimeStr,
+        duration_mins: 30,
       });
 
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Booking confirmed. Integration calendar sync complete.");
     } catch (e: any) {
