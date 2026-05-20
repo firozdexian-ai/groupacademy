@@ -67,3 +67,15 @@ Phase 7  shells/*/routes.tsx + React.lazy
 Phase 8  retire barrel re-exports
 Phase 9  edge/contracts/ for every domain
 ```
+
+---
+
+## Phase 5.8 — completed
+
+- 9 admin tabs + 4 dataroom + 6 economics + 2 pipeline + 2 hooks moved to `src/domains/ir/components/admin[/sub]/`.
+- Barrels at `src/components/dashboard/ir/*` for all 23 files.
+- Cross-domain `../talent/LinkedInJsonUpload` rewritten to `@/components/dashboard/talent/LinkedInJsonUpload`.
+- Sibling relative imports (`./InvestorDetailSheet`, `./InteractionLogger`, `./PipelineCard`, `./CohortRetentionCard`, `../hooks/useDataRoom`, `../hooks/useIRPipeline`, etc.) preserved as-is (paths still resolve in new layout).
+- `src/edge/contracts/ir.ts` reserved (no edge fns today) + `src/domains/ir/api/manifest.ts` stub.
+- `src/domains/ir/index.ts` re-exports everything.
+- Verified zero `functions.invoke` in domain.
