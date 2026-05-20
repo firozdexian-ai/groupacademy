@@ -21,7 +21,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { profileApi } from "@/domains/profile/api/manifest";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
 
 interface ParsedCVData {
   fullName?: string;
@@ -173,7 +173,7 @@ export function CVUploadSection() {
 
       let edgeFunctionResponsePayload: any;
       try {
-        edgeFunctionResponsePayload = await profileApi.parseCv({ cvUrl: generatedPublicCvUrlStr });
+        edgeFunctionResponsePayload = await parseCv({ cvUrl: generatedPublicCvUrlStr });
       } catch (parseEdgeFunctionRpcError) {
         throw parseEdgeFunctionRpcError;
       }

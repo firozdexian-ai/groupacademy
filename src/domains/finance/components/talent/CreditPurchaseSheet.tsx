@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { financeApi } from "@/domains/finance/api/manifest";
+import { createCheckout } from "@/domains/finance/api/financeApi";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
 import { SUPPORT_CONFIG, getCreditPurchaseMessage } from "@/lib/constants/support";
@@ -87,17 +87,22 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
       }
 
       // HUD: INVOKING_STRIPE_CHECKOUT_EDGE_FUNCTION
-      const { data, error } = await financeApi.createCheckout({
-        credits: payload.credits,
-        priceInCents: Math.round(payload.price * 100),
-        successUrl: `${window.location.origin}/app/feed?checkout=success`,
-        cancelUrl: `${window.location.origin}/app/feed?checkout=cancelled`,
-      });
-
-      if (error || !(data as { url?: string } | null)?.url) {
+      let data: { url?: string };
+      try {
+        data = await createCheckout({
+          credits: payload.credits,
+          priceInCents: Math.round(payload.price * 100),
+          successUrl: `${window.location.origin}/app/feed?checkout=success`,
+          cancelUrl: `${window.location.origin}/app/feed?checkout=cancelled`,
+        });
+      } catch {
         throw new Error("GATEWAY_SYNC_FAULT");
       }
-      return String((data as { url: string }).url);
+
+      if (!data?.url) {
+        throw new Error("GATEWAY_SYNC_FAULT");
+      }
+      return String(data.url);
     },
     onSuccess: (checkoutRedirectUrl) => {
       // Execute absolute hard redirect to unified payment gate canvas

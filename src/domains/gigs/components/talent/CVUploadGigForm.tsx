@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { gigsApi } from "@/domains/gigs/api/manifest";
-import { profileApi } from "@/domains/profile/api/manifest";
+import { parseCv } from "@/domains/jobs/api/jobsApi";
+import { generateOutreachMessage } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,7 +97,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       // PHASE 2: AI Synapse Parsing Analysis
       let parseRes: any;
       try {
-        parseRes = await profileApi.parseCv({ cvUrl: publicUrl, serviceType: "cv_outreach" } as any);
+        parseRes = await parseCv({ cvUrl: publicUrl, serviceType: "cv_outreach" } as any);
       } catch (parseErr: any) {
         throw new Error(parseErr?.message || "Ecosystem document parsing extraction failed.");
       }
@@ -110,7 +110,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       // PHASE 3: Outreach Strategy Synthesis
       let msgRes: any;
       try {
-        msgRes = await gigsApi.generateOutreachMessage({
+        msgRes = await generateOutreachMessage({
           parsedCV: parseRes.parsed,
           product: "digital-portfolio",
           professionCategory: parseRes.parsed?.profession_category || "Executive",

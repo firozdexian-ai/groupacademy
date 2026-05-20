@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { gigsApi } from "@/domains/gigs/api/manifest";
+import { generateJobShareCaption } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -158,7 +158,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     trackEvent("job_sharing_caption_synthesis_started", { jobId, channel });
 
     try {
-      const data = await gigsApi.generateJobShareCaption({ ...job, apply_link: shareUrl, channel } as any);
+      const data = await generateJobShareCaption({ ...job, apply_link: shareUrl, channel } as any);
       setCaptions((prev) => ({ ...prev, [channel]: (data as any)?.caption || "" }));
       trackEvent("job_sharing_caption_synthesis_success", { jobId, channel });
     } catch (err: any) {

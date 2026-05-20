@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { gigsApi } from "@/domains/gigs/api/manifest";
+import { parseJobPost } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,7 +120,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       }
 
       // INGRESS: Invoke edge engine function for automated entity extraction parameters
-      const data: any = await gigsApi.parseJobPost(payload as any);
+      const data: any = await parseJobPost(payload as any);
 
       const parsed = data.parsed || data;
       if (!parsed) throw new Error("AI engine generated empty payload parsing tokens.");

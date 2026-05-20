@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { financeApi } from "@/domains/finance/api/manifest";
+import { updateStripeSecret } from "@/domains/finance/api/financeApi";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,9 +56,11 @@ export function PaymentInfraTab() {
     queryKey: ["stripe-secret-status"],
     queryFn: async () => {
       try {
-        const { data, error } = await financeApi.updateStripeSecret({ action: "check" });
-        if (error) return { hasSecretKey: false, hasWebhookSecret: false };
-        return data as { hasSecretKey: boolean; hasWebhookSecret: boolean };
+        const data = await updateStripeSecret({ action: "check" });
+        return {
+          hasSecretKey: !!data.hasSecretKey,
+          hasWebhookSecret: !!data.hasWebhookSecret,
+        };
       } catch {
         return { hasSecretKey: false, hasWebhookSecret: false };
       }
@@ -117,9 +119,10 @@ export function PaymentInfraTab() {
     if (!secretKey.startsWith("sk_")) return toast.error("Key must start with sk_test_ or sk_live_");
     setSavingSecret(true);
     try {
-      const { data, error } = await financeApi.updateStripeSecret({ action: "save-key", stripeSecretKey: secretKey });
-      if (error || !data?.saved) toast.error(data?.error || "Failed to save Stripe key");
-      else {
+      const data = await updateStripeSecret({ action: "save-key", stripeSecretKey: secretKey });
+      if (!data?.saved) {
+        toast.error(data?.error || "Failed to save Stripe key");
+      } else {
         toast.success("Stripe Secret Key Validated & Saved!");
         setSecretKey("");
         queryClient.invalidateQueries({ queryKey: ["stripe-secret-status"] });
@@ -135,9 +138,10 @@ export function PaymentInfraTab() {
     if (!webhookSecret.startsWith("whsec_")) return toast.error("Webhook secret must start with whsec_");
     setSavingWebhook(true);
     try {
-      const { data, error } = await financeApi.updateStripeSecret({ action: "save-webhook", stripeWebhookSecret: webhookSecret });
-      if (error || !data?.saved) toast.error(data?.error || "Failed to save webhook secret");
-      else {
+      const data = await updateStripeSecret({ action: "save-webhook", stripeWebhookSecret: webhookSecret });
+      if (!data?.saved) {
+        toast.error(data?.error || "Failed to save webhook secret");
+      } else {
         toast.success("Webhook Secret Registered!");
         setWebhookSecret("");
         queryClient.invalidateQueries({ queryKey: ["stripe-secret-status"] });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { financeApi } from "@/domains/finance/api/manifest";
+import { processWithdrawal as processWithdrawalEdge } from "@/domains/finance/api/financeApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,12 +56,11 @@ export function WithdrawalsTab() {
   async function processWithdrawal(id: string, action_status: Row["status"]) {
     setProcessingId(id);
     try {
-      const { data, error } = await financeApi.processWithdrawal({
+      const data = await processWithdrawalEdge({
         withdrawal_id: id,
         action: action_status,
         admin_notes: noteDraft[id] ?? null,
       });
-      if (error) throw error;
       if ((data as { error?: string } | null)?.error) throw new Error((data as { error?: string }).error);
 
       toast.success(`Withdrawal securely marked as ${action_status}`);

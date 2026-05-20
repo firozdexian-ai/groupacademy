@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { marketingApi } from "@/domains/marketing/api/manifest";
+import { leadHuntMatch } from "@/domains/marketing/api/marketingApi";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
 import { TalentDetailDialog } from "@/domains/talent/components/admin/TalentDetailDialog";
 import { Button } from "@/components/ui/button";
@@ -160,13 +160,12 @@ export function LeadHunterManager() {
   const startHunt = async () => {
     setIsSearching(true);
     try {
-      const { error: huntError } = await marketingApi.leadHuntMatch({
+      await leadHuntMatch({
         jobTitle: huntMode === "select" ? jobTitle : "External Hunt",
         companyName: huntMode === "select" ? companyName : "Manual",
         jobDescription: huntMode === "select" ? jobDescription : rawJD,
         leadsRequested,
       });
-      if (huntError) throw huntError;
       toast.success("AI extraction complete!");
       loadRegistry();
       setShowNewHunt(false);
