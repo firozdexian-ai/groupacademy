@@ -1,3 +1,1 @@
-export function MyHubView() {
-  return <div className="text-sm text-muted-foreground">My Hub coming soon.</div>;
-}
+export * from "@/domains/learning/components/talent/views/MyHubView";

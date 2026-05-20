@@ -1,3 +1,1 @@
-export function StudyAbroadView() {
-  return <div className="text-sm text-muted-foreground">Study Abroad coming soon.</div>;
-}
+export * from "@/domains/learning/components/talent/views/StudyAbroadView";

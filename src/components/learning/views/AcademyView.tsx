@@ -1,3 +1,1 @@
-export function AcademyView() {
-  return <div className="text-sm text-muted-foreground">Academy coming soon.</div>;
-}
+export * from "@/domains/learning/components/talent/views/AcademyView";
