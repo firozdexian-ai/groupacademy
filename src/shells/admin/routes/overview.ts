@@ -1,0 +1,41 @@
+import React from "react";
+
+export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
+  overview: React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/LifetimeOverviewTab").then((m) => ({ default: m.LifetimeOverviewTab })),
+  ),
+  "overview-lifetime": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/LifetimeOverviewTab").then((m) => ({ default: m.LifetimeOverviewTab })),
+  ),
+  "overview-month": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/PeriodOverviewTab").then((m) => ({
+      default: () => {
+        const C = m.PeriodOverviewTab;
+        return React.createElement(C, { mode: "month" });
+      },
+    })),
+  ),
+  "overview-quarter": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/PeriodOverviewTab").then((m) => ({
+      default: () => {
+        const C = m.PeriodOverviewTab;
+        return React.createElement(C, { mode: "quarter" });
+      },
+    })),
+  ),
+  "overview-analyst": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/AnalystChatTab").then((m) => ({ default: m.AnalystChatTab })),
+  ),
+  "overview-reports": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/ReportsBuilderTab").then((m) => ({ default: m.ReportsBuilderTab })),
+  ),
+};
+
+export const TITLES: Record<string, string> = {
+  overview: "Lifetime Overview",
+  "overview-lifetime": "Lifetime Overview",
+  "overview-month": "Monthly Overview",
+  "overview-quarter": "Quarterly Overview",
+  "overview-analyst": "Business Analyst",
+  "overview-reports": "Report Builder",
+};

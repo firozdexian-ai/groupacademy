@@ -1,0 +1,43 @@
+import React from "react";
+
+export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
+  "learning-overview": React.lazy(() => import("@/domains/learning/components/admin/LearningOverviewTab").then(m => ({ default: m.LearningOverviewTab }))),
+  "learning-academies": React.lazy(() => import("@/domains/learning/components/admin/LearningSimpleTabs").then(m => ({ default: m.AcademiesTab }))),
+  "learning-schools": React.lazy(() => import("@/domains/learning/components/admin/LearningSimpleTabs").then(m => ({ default: m.SchoolsTab }))),
+  "learning-pro-lives": React.lazy(() => import("@/domains/learning/components/admin/LearningSimpleTabs").then(m => ({ default: m.ProfessionalLivesTab }))),
+  "learning-career-tracks": React.lazy(() => import("@/domains/learning/components/admin/LearningCareerTracksTab").then(m => ({ default: m.LearningCareerTracksTab }))),
+  "learning-courses": React.lazy(() => import("@/domains/learning/components/admin/LearningCoursesTab").then(m => ({ default: m.LearningCoursesTab }))),
+  "learning-webinars": React.lazy(() => import("@/domains/learning/components/admin/LearningWebinarsTab").then(m => ({ default: m.LearningWebinarsTab }))),
+  "learning-enrollments": React.lazy(() => import("@/domains/learning/components/admin/LearningEnrollmentsTab").then(m => ({ default: m.LearningEnrollmentsTab }))),
+  "learning-progress": React.lazy(() => import("@/domains/learning/components/admin/LearningProgressTab").then(m => ({ default: m.LearningProgressTab }))),
+  "learning-graduates": React.lazy(() => import("@/domains/learning/components/admin/LearningGraduatesTab").then(m => ({ default: m.LearningGraduatesTab }))),
+  "learning-b2b-courses": React.lazy(() => import("@/domains/learning/components/admin/LearningB2BCoursesTab").then(m => ({ default: m.LearningB2BCoursesTab }))),
+  "learning-course-briefs": React.lazy(() => import("@/domains/learning/components/admin/LearningCourseBriefsTab").then(m => ({ default: m.LearningCourseBriefsTab }))),
+  "learning-cohorts": React.lazy(() => import("@/domains/learning/components/admin/LearningCohortsTab").then(m => ({ default: m.LearningCohortsTab }))),
+  "learning-moderation": React.lazy(() => import("@/domains/learning/components/admin/LearningModerationTab").then(m => ({ default: m.LearningModerationTab }))),
+  "learning-b2b-engagements": React.lazy(() => import("@/domains/learning/components/admin/LearningB2BEngagementsTab").then(m => ({ default: m.LearningB2BEngagementsTab }))),
+  "learning-payouts": React.lazy(() => import("@/domains/learning/components/admin/LearningPayoutsTab").then(m => ({ default: m.LearningPayoutsTab }))),
+  "learning-json-importer": React.lazy(() => import("@/domains/learning/components/admin/CourseJSONImporter").then(m => ({ default: m.CourseJSONImporter }))),
+  modules: React.lazy(() => import("@/domains/learning/components/admin/modules/ModulePickerPanel")),
+};
+
+export const TITLES: Record<string, string> = {
+  "learning-overview": "Learning Overview",
+  "learning-academies": "Academies",
+  "learning-schools": "Schools",
+  "learning-pro-lives": "Pro Lives",
+  "learning-career-tracks": "AI Career Tracks",
+  "learning-courses": "Recorded Courses",
+  "learning-webinars": "Webinars",
+  "learning-enrollments": "Student Ingestion",
+  "learning-progress": "Academic Velocity",
+  "learning-graduates": "Graduates",
+  "learning-b2b-courses": "B2B Courses",
+  "learning-course-briefs": "Course Briefs",
+  "learning-cohorts": "Cohorts",
+  "learning-moderation": "Moderation Queue",
+  "learning-b2b-engagements": "B2B Engagements",
+  "learning-payouts": "Instructor Payouts",
+  "learning-json-importer": "Bulk Course Importer",
+  modules: "Module Architecture",
+};
