@@ -205,25 +205,19 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     trackEvent("job_sharing_submission_finalizing", { gigId: gig.id, selectedJobId, talentId });
 
     try {
-      const { data: inserted, error: insertError } = await supabase
-        .from("gig_submissions")
-        .insert({
-          gig_id: gig.id,
-          talent_id: talentId,
-          status: "pending",
-          submission_data: {
-            job_id: selectedJobId,
-            channels: sharedChannels,
-            share_url: shareUrl,
-            ref_code: talentRefCode,
-            protocol_v: "2.0_VIRAL",
-            timestamp: new Date().toISOString(),
-          },
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+      const inserted = await insertGigSubmission({
+        gig_id: gig.id,
+        talent_id: talentId,
+        status: "pending",
+        submission_data: {
+          job_id: selectedJobId,
+          channels: sharedChannels,
+          share_url: shareUrl,
+          ref_code: talentRefCode,
+          protocol_v: "2.0_VIRAL",
+          timestamp: new Date().toISOString(),
+        },
+      });
 
       // Load auto-review scripts dynamically within clean sandbox execution layers
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");
