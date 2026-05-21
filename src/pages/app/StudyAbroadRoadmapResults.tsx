@@ -78,9 +78,7 @@ export default function StudyAbroadRoadmapResults() {
 
     const fetchRoadmap = async () => {
       try {
-        const { data, error } = await supabase.from("study_abroad_roadmaps").select("*").eq("id", id).maybeSingle();
-
-        if (error) throw error;
+        const data = await getStudyAbroadRoadmapById(id);
         if (!data) return;
 
         setRoadmap({
