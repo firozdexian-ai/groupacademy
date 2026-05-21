@@ -50,9 +50,7 @@ export function CompaniesOverviewTab() {
     setLoading(true);
     try {
       // A1 Fix: Atomic RPC replaces 12 sequential queries & client-side tallies
-      const { data: res, error } = await supabase.rpc("get_companies_overview");
-
-      if (error) throw error;
+      const res = await getCompaniesOverview();
       setData(res as unknown as OverviewData);
     } catch (err) {
       console.error("B2B Telemetry Fault:", err);
