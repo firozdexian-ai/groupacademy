@@ -104,14 +104,16 @@ export function useDirectMessages(threadId: string | undefined) {
       if (authError || !u.user) throw new Error("AUTH_SYNC_REQUIRED: Identity node untrusted.");
 
       // HUD: EXECUTING_MESSAGE_INGRESS_INSERT
-      const { error: insertError } = await supabase.from("direct_messages").insert({
-        thread_id: threadId,
-        sender_id: u.user.id,
-        sender_role: input.role,
-        body: input.body.trim(),
-      });
-
-      if (insertError) throw insertError;
+      try {
+        await insertDirectMessage({
+          threadId,
+          senderId: u.user.id,
+          senderRole: input.role,
+          body: input.body.trim(),
+        });
+      } catch (insertError) {
+        throw insertError;
+      }
     },
     onError: (err: any, variables) => {
       // Digital Workforce Sensor: Intercept transmission friction points for real-time parsing
