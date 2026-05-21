@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import {
+  listAdminJobs,
+  getJobById,
+  insertJob,
+  updateJob,
+  deleteJob,
+  getJobEngagementCounts,
+} from "@/domains/jobs/repo/jobsRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,35 +129,26 @@ export function JobsManagerLegacyTab() {
 
   const fetchEngagement = useCallback(async (jobIds: string[]) => {
     if (jobIds.length === 0) return;
-    const clicksRes = await supabase.from("job_analytics").select("job_id").in("job_id", jobIds);
-    const savesRes = await (supabase.from("saved_items") as any).select("item_id").eq("kind", "job").in("item_id", jobIds);
-    const recsRes = await supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds);
-
-    const stats: Record<string, EngagementData> = {};
-    jobIds.forEach((id) => (stats[id] = { job_id: id, clicks: 0, saves: 0, recommendations: 0 }));
-    ((clicksRes.data ?? []) as Array<{ job_id: string }>).forEach((c) => stats[c.job_id] && stats[c.job_id].clicks++);
-    ((savesRes.data ?? []) as Array<{ item_id: string }>).forEach((s) => stats[s.item_id] && stats[s.item_id].saves++);
-    ((recsRes.data ?? []) as Array<{ job_id: string }>).forEach((r) => stats[r.job_id] && stats[r.job_id].recommendations++);
-    setEngagement(stats);
+    const stats = await getJobEngagementCounts(jobIds);
+    const mapped: Record<string, EngagementData> = {};
+    Object.entries(stats).forEach(([id, s]) => {
+      mapped[id] = { job_id: id, clicks: s.clicks, saves: s.saves, recommendations: s.recommendations };
+    });
+    setEngagement(mapped);
   }, []);
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
-      if (searchQuery) {
-        const safe = sanitizeIlike(searchQuery);
-        query = query.or(`title.ilike.%${safe}%,company_name.ilike.%${safe}%`);
-      }
-      if (statusFilter === "active") query = query.eq("is_active", true);
-      if (statusFilter === "featured") query = query.eq("is_featured", true);
-
-      const from = (page - 1) * 10;
-      const { data, count, error } = await query.range(from, from + 9);
-      if (error) throw error;
-      setJobs(data as Job[]);
+      const { rows, count } = await listAdminJobs({
+        search: searchQuery,
+        status: statusFilter as any,
+        page,
+        pageSize: 10,
+      });
+      setJobs(rows as Job[]);
       setTotalCount(count || 0);
-      if (data) fetchEngagement(data.map((j) => j.id));
+      if (rows) fetchEngagement(rows.map((j: any) => j.id));
     } finally {
       setLoading(false);
     }
@@ -166,8 +164,14 @@ export function JobsManagerLegacyTab() {
 
   const openEdit = async (job: Job) => {
     setEditingJobId(job.id);
-    const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
-    if (error || !data) {
+    let data: any = null;
+    try {
+      data = await getJobById(job.id);
+    } catch {
+      toast.error("Failed to load job");
+      return;
+    }
+    if (!data) {
       toast.error("Failed to load job");
       return;
     }
@@ -286,12 +290,10 @@ export function JobsManagerLegacyTab() {
       };
 
       if (editingJobId) {
-        const { error } = await supabase.from("jobs").update(payload).eq("id", editingJobId);
-        if (error) throw error;
+        await updateJob(editingJobId, payload);
         toast.success("Job updated");
       } else {
-        const { error } = await supabase.from("jobs").insert(payload);
-        if (error) throw error;
+        await insertJob(payload);
         toast.success("Job created");
       }
 
@@ -385,7 +387,7 @@ export function JobsManagerLegacyTab() {
                             className="h-8 w-8 text-destructive"
                             onClick={async () => {
                               if (confirm("Remove listing?")) {
-                                await supabase.from("jobs").delete().eq("id", job.id);
+                                await deleteJob(job.id);
                                 loadJobs();
                               }
                             }}

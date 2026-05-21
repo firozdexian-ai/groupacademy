@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertAssessmentAccessCode } from "@/domains/jobs/repo/jobsRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,7 +51,7 @@ export function StandaloneAssessmentCodeGenerator() {
 
         // Wrap insertion in async function to ensure standard Promise return
         const executeInsertion = async () => {
-          return await supabase.from("assessment_access_codes").insert({
+          return await insertAssessmentAccessCode({
             code,
             email: email.toLowerCase().trim(),
             created_by: user?.id,

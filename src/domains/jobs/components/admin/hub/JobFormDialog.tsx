@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
+import { getJobById, insertJob, updateJob } from "@/domains/jobs/repo/jobsRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,9 +109,14 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
 
       setLoading(true);
       try {
-        const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
-
-        if (error || !data) {
+        let data: any = null;
+        try {
+          data = await getJobById(jobId);
+        } catch {
+          toast.error("Registry Ingestion Fault: Node not found.");
+          return;
+        }
+        if (!data) {
           toast.error("Registry Ingestion Fault: Node not found.");
           return;
         }
@@ -222,11 +228,11 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
         deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
       };
 
-      const { error } = jobId
-        ? await supabase.from("jobs").update(payload).eq("id", jobId)
-        : await supabase.from("jobs").insert(payload);
-
-      if (error) throw error;
+      if (jobId) {
+        await updateJob(jobId, payload);
+      } else {
+        await insertJob(payload);
+      }
       toast.success(jobId ? "Infrastructure Updated" : "Deployment Successful");
       onOpenChange(false);
       onSaved?.();

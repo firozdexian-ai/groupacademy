@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertAssessmentAccessCode } from "@/domains/jobs/repo/jobsRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
@@ -60,14 +61,12 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
       const code = generateCode();
 
       const { error } = await withTimeout(
-        Promise.resolve(
-          supabase.from("assessment_access_codes").insert({
-            code,
-            email: leadEmail.toLowerCase().trim(),
-            created_by: user.id,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          }),
-        ),
+        insertAssessmentAccessCode({
+          code,
+          email: leadEmail.toLowerCase().trim(),
+          created_by: user.id,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        }),
         TIMEOUTS.DEFAULT,
         "Protocol Registry Sync Timeout",
       );

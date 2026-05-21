@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPendingApprovalJobs, updateJob } from "@/domains/jobs/repo/jobsRepo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,22 +10,12 @@ export default function JobsUploadApprovalTab() {
   const qc = useQueryClient();
   const list = useQuery({
     queryKey: ["jobs-pending-approval"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jobs" as any)
-        .select("id,title,company_name,location,is_active,is_featured,created_at")
-        .eq("is_active", false)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
+    queryFn: () => listPendingApprovalJobs(),
   });
 
   const setActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("jobs" as any).update({ is_active }).eq("id", id);
-      if (error) throw error;
+      await updateJob(id, { is_active });
     },
     onSuccess: () => {
       toast.success("Updated");

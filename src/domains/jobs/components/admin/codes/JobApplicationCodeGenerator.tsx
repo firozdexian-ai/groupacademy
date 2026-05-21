@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertJobApplicationAccessCode } from "@/domains/jobs/repo/jobsRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,13 +63,11 @@ export function JobApplicationCodeGenerator() {
       for (let i = 0; i < quantity; i++) {
         const code = synthesizeLogicKey();
         const { error } = await withTimeout(
-          Promise.resolve(
-            supabase.from("job_application_access_codes").insert({
-              code,
-              email: email.toLowerCase().trim(),
-              created_by: user?.id,
-            }),
-          ),
+          insertJobApplicationAccessCode({
+            code,
+            email: email.toLowerCase().trim(),
+            created_by: user?.id,
+          }),
           TIMEOUTS.DEFAULT,
           "Database Ingestion Timeout",
         );

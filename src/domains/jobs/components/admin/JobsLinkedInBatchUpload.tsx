@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertJobsBulk } from "@/domains/jobs/repo/jobsRepo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -294,9 +295,12 @@ export function JobsLinkedInBatchUpload({
 
     for (let i = 0; i < jobsToInsert.length; i += batchSize) {
       const chunk = jobsToInsert.slice(i, i + batchSize);
-      const { error } = await supabase.from("jobs").insert(chunk as any);
-      if (error) errors.push(error.message);
-      else created += chunk.length;
+      try {
+        await insertJobsBulk(chunk as any);
+        created += chunk.length;
+      } catch (e: any) {
+        errors.push(e?.message ?? String(e));
+      }
       setProgress(Math.round(((i + chunk.length) / jobsToInsert.length) * 100));
     }
 
