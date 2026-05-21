@@ -92,18 +92,13 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     refetchOnWindowFocus: false,
     queryFn: () => getTalentRefCode(talentId),
   });
+
+  // 2. Active Employment Tracking Query Pipeline
+  const { data: jobs = [], isLoading } = useQuery({
+    queryKey: ["active-jobs-for-sharing"],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("id, title, company_name, location")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getActiveJobsForSharing(),
   });
 
   function detectCountry(location: string | null): string {
