@@ -712,27 +712,17 @@ function RoutingPanel() {
 
   const listQ = useQuery({
     queryKey: ["wcc-rules"],
-    queryFn: async () => {
-      // FIX 3: Changed .select("") to .select("*")
-      const { data, error } = await (supabase as any).from("workforce_routing_rules").select("*").order("event_topic");
-      if (error) throw error;
-      return (data ?? []) as RoutingRule[];
-    },
+    queryFn: async () => (await listWorkforceRoutingRules()) as RoutingRule[],
   });
 
   const agentsQ = useQuery({
     queryKey: ["wcc-agents-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ai_agents").select("agent_key,name,is_template").order("name");
-      if (error) throw error;
-      return (data ?? []) as { agent_key: string; name: string; is_template: boolean }[];
-    },
+    queryFn: async () => await listAiAgentsCompact(),
   });
 
   const delMut = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("workforce_routing_rules").delete().eq("id", id);
-      if (error) throw error;
+      await deleteWorkforceRoutingRule(id);
     },
     onSuccess: () => {
       toast.success("Rule deleted");
