@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { listJobChannelPosts, insertJobChannelPost } from "@/domains/jobs/repo/jobsRepo";
 import { generateJobShareCaption } from "@/domains/jobs/api/jobsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
