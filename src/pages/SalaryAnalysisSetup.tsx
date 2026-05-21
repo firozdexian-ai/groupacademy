@@ -141,14 +141,10 @@ const SalaryAnalysisSetupContent = () => {
   const validateAccessCode = async () => {
     if (!accessCode.trim()) return;
     try {
-      const { data, error } = await supabase
-        .from("salary_analysis_access_codes")
-        .select("*")
-        .eq("code", accessCode.trim().toUpperCase())
-        .eq("email", email.trim().toLowerCase())
-        .eq("is_used", false)
-        .gt("expires_at", new Date().toISOString())
-        .single();
+      const { data, error } = await getValidSalaryAccessCode(
+        accessCode.trim().toUpperCase(),
+        email.trim().toLowerCase(),
+      );
 
       if (error || !data) {
         toast({ title: "Invalid Protocol", description: "Code is expired or unrecognized.", variant: "destructive" });
