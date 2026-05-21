@@ -114,12 +114,9 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
 
   const agentReportToAdmin = async (anomalyCount: number, errorLog: string[]) => {
     try {
-      await (supabase.from("messaging_messages") as any).insert({
-        direction: "inbound",
-        author: "Data Ingestion Agent",
-        body: `CSV Ingestion complete. Flagged ${anomalyCount} anomalies during import. Details: ${errorLog.slice(0, 3).join(" | ")}...`,
-        status: "delivered",
-      });
+      await talentRepo.logAgentMessage(
+        `CSV Ingestion complete. Flagged ${anomalyCount} anomalies during import. Details: ${errorLog.slice(0, 3).join(" | ")}...`,
+      );
     } catch (err) {
       console.warn("Agent reporting deferred: messaging schema not fully linked.");
     }
