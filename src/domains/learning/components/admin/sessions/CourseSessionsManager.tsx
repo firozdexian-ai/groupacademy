@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,15 @@ import { toast } from "sonner";
 import { EventDateTimeField } from "@/components/admin/EventDateTimeField";
 import { DEFAULT_EVENT_TZ, formatEventTime } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
+import {
+  listCourseSessionsByContent,
+  listInstructorsLite,
+  upsertCourseSession,
+  deleteCourseSession,
+  updateCourseSessionStatus,
+  bulkInsertCourseSessions,
+} from "@/domains/learning/repo/learningRepo";
+
 
 type SessionStatus = "scheduled" | "ongoing" | "completed" | "cancelled";
 
