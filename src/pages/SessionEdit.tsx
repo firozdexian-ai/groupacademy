@@ -78,41 +78,22 @@ export default function SessionEdit() {
     refetch,
   } = useQueryWithTimeout({
     queryKey: ["session", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("course_sessions").select("*").eq("id", id!).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getCourseSessionById(id!),
     timeout: TIMEOUTS.DEFAULT,
   });
 
   const { data: courses } = useQueryWithTimeout({
     queryKey: ["courses-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title")
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listPublishedContentBasic(),
     timeout: TIMEOUTS.DEFAULT,
   });
 
   const { data: instructors } = useQueryWithTimeout({
     queryKey: ["instructors-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("instructors")
-        .select("id, full_name")
-        .eq("status", "active")
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listActiveInstructorsBasic(),
     timeout: TIMEOUTS.DEFAULT,
   });
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
