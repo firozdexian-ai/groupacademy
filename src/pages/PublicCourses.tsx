@@ -38,33 +38,14 @@ export default function PublicCourses() {
   const { data: courses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["public-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select(
-          "id, title, slug, description, cover_image_url, thumbnail_url, content_type, duration_hours, current_enrollment, instructor_name, modules_count",
-        )
-        .eq("is_published", true)
-        .eq("is_private", false)
-        .eq("is_ready", true)
-        .in("content_type", ["recorded_course", "batch_class", "free_video"])
-        .order("current_enrollment", { ascending: false })
-        .limit(12);
-      if (error) throw error;
-      return data || [];
+      return await listPublicCoursesCatalog(12);
     },
   });
 
   const { data: tracks = [] } = useQuery({
     queryKey: ["public-tracks"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profession_categories")
-        .select("id, name, slug")
-        .eq("is_active", true)
-        .order("display_order")
-        .limit(8);
-      if (error) throw error;
-      return data || [];
+      return await listPublicProfessionTracks(8);
     },
   });
 
