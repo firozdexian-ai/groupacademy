@@ -164,8 +164,14 @@ export function JobsManagerLegacyTab() {
 
   const openEdit = async (job: Job) => {
     setEditingJobId(job.id);
-    const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
-    if (error || !data) {
+    let data: any = null;
+    try {
+      data = await getJobById(job.id);
+    } catch {
+      toast.error("Failed to load job");
+      return;
+    }
+    if (!data) {
       toast.error("Failed to load job");
       return;
     }
