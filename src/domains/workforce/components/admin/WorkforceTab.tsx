@@ -130,16 +130,15 @@ export function WorkforceManager() {
       const spec = formData.specialization_type
         ? { type: formData.specialization_type, value: formData.specialization_value }
         : {};
-      const { error } = await supabase.from("workforce_members").insert({
+      await insertWorkforceMember({
         talent_id: selectedTalent.id,
-        role_type: formData.role_type as any,
+        role_type: formData.role_type,
         status: formData.status,
         city: formData.city || null,
         team_id: formData.team_id,
         grade_id: formData.grade_id,
         specialization: spec,
-      } as any);
-      if (error) throw error;
+      });
       toast.success("Identity Deployed to Workforce");
       setShowAddDialog(false);
       fetchMembers();
