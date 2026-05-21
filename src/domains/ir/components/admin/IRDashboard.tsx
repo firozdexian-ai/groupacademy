@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { getIRDashboardTelemetry } from "@/domains/ir/repo/irRepo";
 import {
   TrendingUp,
   Users,
@@ -47,50 +47,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
   // B1 & B2 Fix: Unified Fetch Protocol for Live Telemetry
   const { data: telemetry, isLoading: statsLoading } = useQuery({
     queryKey: ["ir-unified-telemetry", currentMonth],
-    queryFn: async () => {
-      const now = new Date();
-      const last30d = new Date(now.setDate(now.getDate() - 30)).toISOString();
-
-      const [targetRes, usageRes, vcRes, invRes, talentRes, outreachRes] = await Promise.all([
-        // B1: Correct table mapping for ir_monthly_targets
-        supabase.from("ir_monthly_targets").select("*").eq("month", currentMonth).maybeSingle(),
-        // Real-time credit utilization
-        supabase
-          .from("credit_transactions")
-          .select("amount, service_type, talent_id")
-          .in("transaction_type", ["service_usage", "usage"])
-          .gte("created_at", startOfMonth.toISOString()),
-        // B2: Real counts vs hardcoded firms
-        supabase.from("ir_vc_firms").select("id", { count: "exact", head: true }),
-        // B2: Real counts vs hardcoded investors
-        supabase.from("ir_investors").select("id", { count: "exact", head: true }),
-        // B2: Real global talent pool count
-        supabase.from("talents").select("id", { count: "exact", head: true }),
-        // P6: 30D Outreach activity
-        supabase.from("ir_outreach_log").select("id", { count: "exact", head: true }).gt("created_at", last30d),
-      ]);
-
-      const totalCredits = usageRes.data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
-      const byService: Record<string, number> = {};
-      usageRes.data?.forEach((t) => {
-        if (t.service_type) byService[t.service_type] = (byService[t.service_type] || 0) + Math.abs(t.amount);
-      });
-
-      return {
-        target: targetRes.data || null,
-        usage: {
-          totalCredits,
-          byService,
-          activeTalents: new Set(usageRes.data?.map((d) => d.talent_id).filter(Boolean)).size,
-        },
-        registry: {
-          vcs: vcRes.count || 0,
-          investors: invRes.count || 0,
-          talents: talentRes.count || 0,
-          outreach30: outreachRes.count || 0,
-        },
-      };
-    },
+    queryFn: () => getIRDashboardTelemetry(currentMonth, startOfMonth.toISOString()),
   });
 
   // KPI CALIBRATION

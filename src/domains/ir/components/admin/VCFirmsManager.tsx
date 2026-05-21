@@ -17,7 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
+import { listVCFirms, upsertGraphRow, deleteGraphRow } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import {
   Plus,
@@ -78,16 +78,12 @@ export function VCFirmsManager() {
     isRefetching,
   } = useQuery({
     queryKey: ["ir-vc-firms"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ir_vc_firms").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as VCFirm[];
-    },
+    queryFn: async () => (await listVCFirms()) as VCFirm[],
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const payload: any = {
         name: formData.name,
         logo_url: formData.logo_url || null,
         stage_focus: formData.stage_focus.length > 0 ? formData.stage_focus : null,
@@ -97,14 +93,8 @@ export function VCFirmsManager() {
         status: formData.status,
         notes: formData.notes || null,
       };
-
-      if (editingFirm) {
-        const { error } = await supabase.from("ir_vc_firms").update(payload).eq("id", editingFirm.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("ir_vc_firms").insert(payload);
-        if (error) throw error;
-      }
+      if (editingFirm) payload.id = editingFirm.id;
+      await upsertGraphRow("ir_vc_firms", payload);
     },
     onSuccess: () => {
       toast.success(editingFirm ? "Institutional Node Optimized" : "VC Identity Deployed");
@@ -116,10 +106,7 @@ export function VCFirmsManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("ir_vc_firms").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteGraphRow("ir_vc_firms", id),
     onSuccess: () => {
       toast.success("Institutional Node Terminated");
       setDeleteConfirmId(null);

@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  listDataRoomDocuments,
+  uploadDataRoomDocument,
+  createDataRoomShareLink,
+  revokeDataRoomShareLink,
+  listShareLinksByDocument,
+  listDocumentViews,
+  listDocumentHotSlides,
+} from "@/domains/ir/repo/irRepo";
 
 export interface IRDocument {
   id: string;
@@ -50,38 +58,12 @@ export function useIRDataRoom() {
 
   const documents = useQuery({
     queryKey: ["ir-data-room-documents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_data_room_documents")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as IRDocument[];
-    },
+    queryFn: async () => (await listDataRoomDocuments()) as IRDocument[],
   });
 
   const uploadDocument = useMutation({
-    mutationFn: async (input: {
-      file: File;
-      title: string;
-      doc_type: string;
-      total_slides?: number | null;
-    }) => {
-      const path = `${crypto.randomUUID()}/${input.file.name}`;
-      const { error: upErr } = await supabase.storage
-        .from("ir-data-room")
-        .upload(path, input.file, { upsert: false });
-      if (upErr) throw upErr;
-      const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase.from("ir_data_room_documents").insert({
-        title: input.title,
-        doc_type: input.doc_type,
-        file_url: path,
-        total_slides: input.total_slides ?? null,
-        created_by: user.user?.id,
-      });
-      if (error) throw error;
-    },
+    mutationFn: (input: { file: File; title: string; doc_type: string; total_slides?: number | null }) =>
+      uploadDataRoomDocument(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ir-data-room-documents"] });
       toast.success("Document uploaded");
@@ -90,31 +72,12 @@ export function useIRDataRoom() {
   });
 
   const createShareLink = useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       document_id: string;
       investor_id?: string | null;
       expires_in_days?: number | null;
       require_email?: boolean;
-    }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const expires_at =
-        input.expires_in_days && input.expires_in_days > 0
-          ? new Date(Date.now() + input.expires_in_days * 86400000).toISOString()
-          : null;
-      const { data, error } = await supabase
-        .from("ir_data_room_share_links")
-        .insert({
-          document_id: input.document_id,
-          investor_id: input.investor_id ?? null,
-          expires_at,
-          require_email: input.require_email ?? true,
-          created_by: user.user?.id,
-        })
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data as IRShareLink;
-    },
+    }) => createDataRoomShareLink(input) as Promise<IRShareLink>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ir-share-links"] });
       toast.success("Share link created");
@@ -123,13 +86,7 @@ export function useIRDataRoom() {
   });
 
   const revokeShareLink = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("ir_data_room_share_links")
-        .update({ revoked_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => revokeDataRoomShareLink(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ir-share-links"] });
       toast.success("Share link revoked");
@@ -143,44 +100,19 @@ export function useDocumentTelemetry(documentId: string | null) {
   const links = useQuery({
     queryKey: ["ir-share-links", documentId],
     enabled: !!documentId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_data_room_share_links")
-        .select("*")
-        .eq("document_id", documentId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as IRShareLink[];
-    },
+    queryFn: async () => (await listShareLinksByDocument(documentId!)) as IRShareLink[],
   });
 
   const views = useQuery({
     queryKey: ["ir-document-views", documentId],
     enabled: !!documentId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_document_views")
-        .select("*")
-        .eq("document_id", documentId!)
-        .order("started_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data as IRDocumentView[];
-    },
+    queryFn: async () => (await listDocumentViews(documentId!)) as IRDocumentView[],
   });
 
   const hotSlides = useQuery({
     queryKey: ["ir-document-hot-slides", documentId],
     enabled: !!documentId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_document_hot_slides" as any)
-        .select("*")
-        .eq("document_id", documentId!)
-        .order("total_dwell", { ascending: false });
-      if (error) throw error;
-      return ((data as unknown) ?? []) as IRHotSlide[];
-    },
+    queryFn: async () => (await listDocumentHotSlides(documentId!)) as IRHotSlide[],
   });
 
   return { links, views, hotSlides };

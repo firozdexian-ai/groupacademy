@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logOutreachAndEmail } from "@/domains/ir/repo/irRepo";
 import { Send, X, ShieldCheck, Mail, Loader2, ExternalLink, History, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -145,8 +146,8 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       if (sessionError || !session) throw new Error("Unauthorized Dispatch");
 
       // 1. Cross-channel outreach log (kept for IR FP&A agent's unified feed)
-      const { error: logError } = await supabase.from("ir_outreach_log").insert([
-        {
+      await logOutreachAndEmail({
+        outreach: {
           channel: "email",
           target_type: "investor",
           target_label: selectedInvestor.full_name || selectedInvestor.email,
@@ -154,12 +155,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
           body,
           created_by: session.user.id,
         },
-      ]);
-      if (logError) throw logError;
-
-      // 2. IR-Z1.1: per-investor email communication history
-      const { error: commError } = await supabase.from("ir_email_communications").insert([
-        {
+        email: {
           investor_id: selectedInvestor.id ?? null,
           email_type: emailType,
           subject,
@@ -169,8 +165,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
           sent_by: session.user.id,
           status: "logged",
         },
-      ]);
-      if (commError) throw commError;
+      });
 
       // 3. Native handshake (mailto)
       const mailtoUrl = `mailto:${selectedInvestor.email}?subject=${encodeURIComponent(

@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { getMonthlyTarget, upsertMonthlyTarget } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import {
   Save,
@@ -65,16 +65,7 @@ export function MRRTargetManager() {
   // PROTOCOL: Fetch Active Target Node
   const { data: target, isLoading } = useQuery({
     queryKey: ["ir-target", currentMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_monthly_targets")
-        .select("*")
-        .eq("month", currentMonth)
-        .maybeSingle();
-
-      if (error && error.code !== "PGRST116") throw error;
-      return data || null;
-    },
+    queryFn: () => getMonthlyTarget(currentMonth),
   });
 
   // CTO FIX: Safely hydrate state using useEffect instead of inside the queryFn
@@ -91,7 +82,7 @@ export function MRRTargetManager() {
   // MUTATION: Synchronize Target Protocol
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const payload: any = {
         month: currentMonth,
         mrr_target_usd: mrrTarget,
         service_mix: serviceMix,
@@ -99,12 +90,8 @@ export function MRRTargetManager() {
         target_churn_rate: targetChurnRate,
         notes: notes || null,
       };
-
-      const { error } = target?.id
-        ? await supabase.from("ir_monthly_targets").update(payload).eq("id", target.id)
-        : await supabase.from("ir_monthly_targets").insert(payload);
-
-      if (error) throw error;
+      if (target?.id) payload.id = target.id;
+      await upsertMonthlyTarget(payload);
     },
     onSuccess: () => {
       toast.success("Protocol Successful: Target Synchronized");

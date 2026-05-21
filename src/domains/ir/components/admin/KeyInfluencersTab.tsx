@@ -26,7 +26,7 @@ import {
   Globe,
   AlertTriangle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listInfluencers, upsertInfluencer, deleteInfluencer } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -60,13 +60,8 @@ export default function KeyInfluencersTab() {
 
   const loadRegistry = useCallback(async () => {
     setLoading(true);
-    // P5 Fix: Using typed Supabase client, removing 'as any'
-    let query = supabase.from("ir_influencers").select("*").order("created_at", { ascending: false });
-    if (filter !== "all") query = query.eq("tier", filter);
-
     try {
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await listInfluencers(filter);
       setRows(data || []);
     } catch (err: any) {
       toast.error("Registry Sync Failed: " + err.message);
@@ -100,13 +95,9 @@ export default function KeyInfluencersTab() {
     if (!form.name.trim()) return toast.error("Identity Fault: Name required.");
     setBusy(true);
     try {
-      const protocol = editingNode
-        ? supabase.from("ir_influencers").update(form).eq("id", editingNode.id)
-        : supabase.from("ir_influencers").insert([form]);
-
-      const { error } = await protocol;
-      if (error) throw error;
-
+      const payload: any = { ...form };
+      if (editingNode) payload.id = editingNode.id;
+      await upsertInfluencer(payload);
       toast.success(editingNode ? "Node Recalibrated" : "Entity Injected Successfully");
       setDialogOpen(false);
       loadRegistry();
@@ -119,8 +110,7 @@ export default function KeyInfluencersTab() {
 
   const executePurge = async (id: string) => {
     try {
-      const { error } = await supabase.from("ir_influencers").delete().eq("id", id);
-      if (error) throw error;
+      await deleteInfluencer(id);
       toast.success("Node Terminated");
       loadRegistry();
     } catch (err: any) {

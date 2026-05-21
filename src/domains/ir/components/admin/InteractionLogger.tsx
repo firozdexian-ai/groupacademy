@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { logInvestorInteraction } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import { IR_CONFIG } from "@/lib/irConfig";
 import { Zap, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
@@ -53,29 +53,24 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
     mutationFn: async () => {
       if (!investorId) throw new Error("Registry Fault: Investor ID missing.");
 
-      const { error: insertError } = await supabase.from("ir_investor_interactions").insert({
-        investor_id: investorId,
-        interaction_type: formData.interaction_type,
-        subject: formData.subject || null,
-        content: formData.content || null,
-        sentiment: formData.sentiment || null,
-        key_points: formData.key_points.length > 0 ? formData.key_points : null,
-        follow_up_needed: formData.follow_up_needed,
-        follow_up_date: formData.follow_up_date || null,
-      });
-
-      if (insertError) throw insertError;
-
-      // Telemetry Update: Investor pulse record
       const updatePayload: any = { last_contacted_at: new Date().toISOString() };
-
       if (formData.interaction_type === "reply_received" && formData.content) {
         updatePayload.last_feedback_summary = formData.content.slice(0, 500);
       }
 
-      const { error: updateError } = await supabase.from("ir_investors").update(updatePayload).eq("id", investorId);
-
-      if (updateError) throw updateError;
+      await logInvestorInteraction({
+        investorId,
+        payload: {
+          interaction_type: formData.interaction_type,
+          subject: formData.subject || null,
+          content: formData.content || null,
+          sentiment: formData.sentiment || null,
+          key_points: formData.key_points.length > 0 ? formData.key_points : null,
+          follow_up_needed: formData.follow_up_needed,
+          follow_up_date: formData.follow_up_date || null,
+        },
+        updatePayload,
+      });
     },
     onSuccess: () => {
       toast.success("Protocol Successful: Interaction logged.");
