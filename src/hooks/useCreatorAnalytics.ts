@@ -176,7 +176,7 @@ export function useRecordShare() {
 // Backward-compatible stateless export ensuring zero pipeline regressions across feed controllers
 export async function recordShare(postId: string, channel: string) {
   try {
-    await supabase.rpc("record_share" as any, { _post_id: postId, _channel: channel });
+    await recordShareRepo(postId, channel);
   } catch (err: any) {
     console.error("[Digital Workforce] ANOMALY: Stateless legacy recordShare swallowed a fault.", err?.message);
   }
