@@ -68,31 +68,17 @@ export function LearningProgressTab() {
 
   const { data: courses, isLoading: coursesLoading } = useQuery({
     queryKey: ["admin-courses-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, content_type")
-        .in("content_type", ["recorded_course", "batch_class", "live_webinar"])
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listPublishedCourses(),
   });
 
   const { data: enrollmentStats, isLoading: statsLoading } = useQuery({
     queryKey: ["admin-enrollment-stats", selectedCourse],
     queryFn: async () => {
-      let query = supabase.from("enrollments").select(`
-          id, status, content_id, enrolled_at, completed_at,
-          content:content_id (id, title, modules_count)
-        `);
-      if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await listEnrollmentStatsRaw(selectedCourse);
 
       const statsMap = new Map<string, CourseStats>();
       (data || []).forEach((enrollment: any) => {
+
         const contentId = enrollment.content_id;
         const content = enrollment.content;
         if (!statsMap.has(contentId)) {
