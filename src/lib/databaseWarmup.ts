@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { pingProfessionCategories } from "@/domains/talent/repo/talentRepo";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 /**
@@ -40,7 +40,7 @@ export function warmupDatabase(): Promise<void> {
     }, TIMEOUTS.COLD_START);
 
     // ACTION: Execute lightweight registry audit
-    const query = supabase.from("profession_categories").select("id").limit(1).abortSignal(controller.signal);
+    const query = pingProfessionCategories(controller.signal);
 
     Promise.resolve(query)
       .then(() => {
