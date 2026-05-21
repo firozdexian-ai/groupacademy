@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCourseSessionById,
+  updateCourseSession,
+  deleteCourseSession,
+  listPublishedContentBasic,
+  listActiveInstructorsBasic,
+} from "@/domains/learning/repo/learningRepo";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useForm } from "react-hook-form";
