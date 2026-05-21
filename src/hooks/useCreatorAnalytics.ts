@@ -94,18 +94,15 @@ export function usePostInsights(postId?: string, enabled: boolean = true) {
     enabled: !!postId && enabled,
     staleTime: 60 * 1000, // 60s fast caching for interactive feed viewports
     queryFn: async (): Promise<PostInsightData> => {
-      const { data, error } = await supabase.rpc("get_post_insights" as any, {
-        _post_id: postId,
-      });
-
-      if (error) {
+      try {
+        return (await getPostInsights(postId!)) as PostInsightData;
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_post_insights telemetry extraction failure.", {
           postId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data as PostInsightData;
     },
   });
 }
