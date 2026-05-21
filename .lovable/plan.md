@@ -55,3 +55,15 @@ Storage (logos, CSV uploads) stays in components — repo only owns table I/O.
 - **10j** — ESLint `NO_RAW_FROM` rule to lock cleaned domains (Learning, Talent, Profile, Companies, Jobs, Gigs).
 
 Reply to approve and I'll start with the repo scaffold.
+---
+
+## Phase 10f Status — Done
+
+Completed:
+- `src/domains/companies/repo/companiesRepo.ts` scaffolded with helpers for companies, contacts, contact_outreach, company_agents, ai_agents (admin views), company_agent_leads, talent_contact_unlocks, talents lookup, and followed_companies.
+- Refactored 7 call sites: `useFollowedCompanies`, `CompaniesTab`, `CompanyAgentsTab`, `ContactsTab`, `ContactUnlocksTab`, `IndustriesTab`, `BatchCompanyUpload`.
+- Codemod swept `@/hooks/useCompaniesWithSignal|useCompanyDetail|useFollowedCompanies` imports to `@/domains/companies/hooks/*`.
+- Deleted 3 legacy shim files in `src/hooks/`.
+- Verification: `rg "supabase\.from" src/domains/companies/` returns only `companiesRepo.ts`.
+
+Next: **10g** Gigs domain final sweep.
