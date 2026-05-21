@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getNextBestTool } from "@/domains/jobs/repo/jobsRepo";
 import type { ToolKey } from "./useToolRuns";
 
 /**
@@ -30,21 +31,16 @@ export function useNextBestTool() {
       if (authError || !userRes.user) return null;
 
       // HUD: EXECUTING_AGENTIC_RECOMMENDATION_RPC
-      const { data, error } = await supabase.rpc("get_next_best_tool", {
-        p_user_id: userRes.user.id,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Critical for monitoring background recommendation engine health.
+      try {
+        const data = await getNextBestTool(userRes.user.id);
+        return data as unknown as NextBestTool;
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_next_best_tool RPC handshake failed.", {
           userId: userRes.user.id,
-          message: error.message,
+          message: error?.message,
         });
         return null;
       }
-
-      return data as unknown as NextBestTool;
     },
   });
 }

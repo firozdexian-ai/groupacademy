@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   updateTalentOnboardingStep,
   getTalentCreditExistence,
   getTalentDuplicateState,
   completeTalentOnboarding,
   deleteAiRecommendationsForTalent,
+  assignCareerCoach,
 } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
@@ -91,7 +91,7 @@ export function useOnboarding() {
 
       // Step 5: Assign automated career coach via rpc
       try {
-        await supabase.rpc("assign_career_coach", { _talent_id: talent.id });
+        await assignCareerCoach(talent.id);
       } catch (rpcErr) {
         console.warn("[Digital Workforce] ANOMALY: assign_career_coach rpc execution bypassed.", rpcErr);
       }

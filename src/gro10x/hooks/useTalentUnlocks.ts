@@ -1,15 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentContactUnlockCost, getCompanyUnlockedTalents } from "@/domains/talent/repo/talentRepo";
 import { unlockTalentContact } from "@/domains/talent/api/talentApi";
 
 export function useUnlockCost() {
   return useQuery({
     queryKey: ["talent-unlock-cost"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_talent_contact_unlock_cost" as any);
-      if (error) throw error;
-      return Number(data ?? 10);
-    },
+    queryFn: () => getTalentContactUnlockCost(),
     staleTime: 5 * 60_000,
   });
 }
@@ -18,11 +14,7 @@ export function useCompanyUnlocks(companyId: string | null) {
   return useQuery({
     queryKey: ["company-unlocks", companyId],
     enabled: !!companyId,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_company_unlocked_talents" as any, { p_company_id: companyId });
-      if (error) throw error;
-      return new Set(((data as any[]) ?? []).map((r) => (typeof r === "string" ? r : r.get_company_unlocked_talents)));
-    },
+    queryFn: () => getCompanyUnlockedTalents(companyId!),
   });
 }
 

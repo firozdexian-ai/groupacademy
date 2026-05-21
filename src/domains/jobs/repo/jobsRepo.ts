@@ -568,3 +568,49 @@ export async function updateJobAssessment(id: string, patch: Record<string, any>
   const { error } = await supabase.from("job_assessments").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+// ─── Phase 10j.6a: jobs/offers/interview RPC helpers ───────────────────────
+export async function getRemoteFriendlySummary() {
+  const { data, error } = await supabase.rpc("get_remote_friendly_summary");
+  if (error) throw error;
+  return data;
+}
+
+export async function getCountriesWithSignal(p_limit: number) {
+  const { data, error } = await supabase.rpc("get_countries_with_signal", { p_limit });
+  if (error) throw error;
+  return data;
+}
+
+export async function getNextBestTool(p_user_id: string) {
+  const { data, error } = await supabase.rpc("get_next_best_tool", { p_user_id });
+  if (error) throw error;
+  return data;
+}
+
+export async function acceptOffer(p_offer_id: string, p_signed_name: string): Promise<void> {
+  const { error } = await supabase.rpc("accept_offer", { p_offer_id, p_signed_name });
+  if (error) throw error;
+}
+
+export async function declineOffer(p_offer_id: string, p_note: string | null): Promise<void> {
+  const { error } = await supabase.rpc("decline_offer", { p_offer_id, p_note });
+  if (error) throw error;
+}
+
+export async function getApplicationHireState(p_application_id: string) {
+  const { data, error } = await supabase.rpc("get_application_hire_state", { p_application_id });
+  if (error) throw error;
+  return data;
+}
+
+export async function confirmInterviewSlot(p_interview_id: string, p_slot_id: string): Promise<void> {
+  const { error } = await supabase.rpc("confirm_interview_slot", { p_interview_id, p_slot_id });
+  if (error) throw error;
+}
+
+export async function getEmployerJobsDashboard(p_company_id: string) {
+  const { data, error } = await supabase.rpc("get_employer_jobs_dashboard", { p_company_id });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

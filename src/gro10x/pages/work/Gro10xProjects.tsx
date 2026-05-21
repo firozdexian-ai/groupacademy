@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCompanyProjectPipeline,
+  createGigProject,
+  addProjectMilestone,
+  fundGigProject,
+} from "@/domains/gigs/repo/gigsRepo";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +25,7 @@ export default function Gro10xProjects() {
 
   const load = async () => {
     if (!companyId) return;
-    const { data } = await supabase.rpc("get_company_project_pipeline", { _company_id: companyId });
+    const data = await getCompanyProjectPipeline(companyId);
     setPipeline((data as any) || []);
   };
   useEffect(() => { load(); }, [companyId]);
@@ -39,21 +44,26 @@ export default function Gro10xProjects() {
 
   const createProject = async () => {
     if (!companyId) return;
-    const { data: pid, error } = await supabase.rpc("create_gig_project", {
-      _payload: { company_id: companyId, title: form.title, summary: form.summary, budget_credits: form.budget_credits },
-    });
-    if (error) { toast.error(error.message); return; }
-    for (const m of proposed) {
-      await supabase.rpc("add_project_milestone", { _project_id: pid as any, _payload: m });
+    try {
+      const pid = await createGigProject({ company_id: companyId, title: form.title, summary: form.summary, budget_credits: form.budget_credits });
+      for (const m of proposed) {
+        await addProjectMilestone(pid as any, m);
+      }
+      toast.success("Project created");
+      setOpen(false); setProposed([]); setForm({ title: "", summary: "", budget_credits: 0, brief: "" });
+      load();
+    } catch (error: any) {
+      toast.error(error?.message ?? "Failed");
     }
-    toast.success("Project created");
-    setOpen(false); setProposed([]); setForm({ title: "", summary: "", budget_credits: 0, brief: "" });
-    load();
   };
 
   const fundProject = async (id: string) => {
-    const { error } = await supabase.rpc("fund_gig_project", { _project_id: id });
-    if (error) toast.error(error.message); else { toast.success("Funded"); load(); }
+    try {
+      await fundGigProject(id);
+      toast.success("Funded"); load();
+    } catch (error: any) {
+      toast.error(error?.message ?? "Failed");
+    }
   };
 
   return (

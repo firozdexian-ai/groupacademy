@@ -13,6 +13,7 @@ import {
   getSubmissionWithReviews,
   upsertSubmissionReview,
   insertContentReport,
+  acceptLessonAnswer,
 } from "@/domains/learning/repo/learningRepo";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
@@ -279,12 +280,7 @@ export function useAcceptAnswer() {
 
   return useMutation({
     mutationFn: async (input: { question_id: string; answer_id: string }) => {
-      const { error } = await supabase.rpc("accept_lesson_answer", {
-        _question_id: input.question_id,
-        _answer_id: input.answer_id,
-      });
-
-      if (error) throw error;
+      await acceptLessonAnswer(input.question_id, input.answer_id);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["qna"] });

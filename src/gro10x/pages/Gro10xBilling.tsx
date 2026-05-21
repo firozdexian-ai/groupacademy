@@ -8,7 +8,8 @@ import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Plus, AlertTriangle, Graduat
 import { useCompanyCredits } from "../hooks/useCompanyCredits";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { getInstructorEarningsSummary } from "@/domains/learning/repo/learningRepo";
+import { getTalentCountryByUserId } from "@/domains/talent/repo/talentRepo";
 import { creditsToUSD, formatMoney, formatUSD } from "@/lib/currency";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { TelegramTopUpModal } from "../components/TelegramTopUpModal";
@@ -31,7 +32,7 @@ export default function Gro10xBilling() {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    void supabase.rpc("get_instructor_earnings_summary" as any).then(({ data }) => {
+    void getInstructorEarningsSummary().then((data: any) => {
       if (cancelled || !data) return;
       const d = data as any;
       if ((d?.lifetime_credits ?? 0) > 0) {
@@ -45,14 +46,9 @@ export default function Gro10xBilling() {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    void supabase
-      .from("talents")
-      .select("country")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setCountry((data?.country as string | null) ?? "");
-      });
+    void getTalentCountryByUserId(user.id).then((c) => {
+      if (!cancelled) setCountry(c ?? "");
+    });
     return () => {
       cancelled = true;
     };

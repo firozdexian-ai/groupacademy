@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { createAgentChatSession, updateAgentChatSessionMessages } from "@/domains/agents/repo/agentsRepo";
+import { createAgentChatSession, updateAgentChatSessionMessages, incrementAgentConversations } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
@@ -44,7 +44,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
         const expiresAt = new Date(now.getTime() + 1440 * 60 * 1000); // 24h Registry Lifecycle
 
         // Telemetry: Synchronize platform-level usage counters for the Digital Workforce
-        await supabase.rpc("increment_agent_conversations", { p_agent_key: "ai-general" });
+        await incrementAgentConversations("ai-general");
 
         const newId = await createAgentChatSession({
           talent_id: talent.id,

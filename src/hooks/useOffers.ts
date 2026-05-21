@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
-import { insertOffer, updateOfferStatus } from "@/domains/jobs/repo/jobsRepo";
+import { insertOffer, updateOfferStatus, acceptOffer, declineOffer } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Legal & Offer Finality Suite (V5.6.0)
@@ -118,13 +118,9 @@ export function useAcceptOffer() {
       signedName: string;
       applicationId: string;
     }) => {
-      // HUD: EXECUTING_RPC_OFFER_SIGNATURE_ACCEPT
-      const { error } = await supabase.rpc("accept_offer", {
-        p_offer_id: offerId,
-        p_signed_name: signedName,
-      });
-
-      if (error) {
+      try {
+        await acceptOffer(offerId, signedName);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: accept_offer transaction verification failed.", error);
         throw error;
       }
@@ -155,13 +151,9 @@ export function useDeclineOffer() {
 
   return useMutation({
     mutationFn: async ({ offerId, note, applicationId }: { offerId: string; note?: string; applicationId: string }) => {
-      // HUD: EXECUTING_RPC_OFFER_DECLINE
-      const { error } = await supabase.rpc("decline_offer", {
-        p_offer_id: offerId,
-        p_note: note ?? null,
-      });
-
-      if (error) {
+      try {
+        await declineOffer(offerId, note ?? null);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: decline_offer transaction rejected by schema rules.", error);
         throw error;
       }

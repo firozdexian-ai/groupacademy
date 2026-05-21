@@ -39,3 +39,16 @@ export async function userHasRole(userId: string, role: string): Promise<boolean
     .maybeSingle();
   return !!data;
 }
+
+// ─── Phase 10j.6a: cross-domain RPC helpers ────────────────────────────────
+export async function checkAuthEmail(lookup_email: string) {
+  const { data, error } = await supabase.rpc("check_auth_email", { lookup_email });
+  if (error) throw error;
+  return data;
+}
+
+export async function gro10xGlobalSearch(_q: string, _limit = 6) {
+  const { data, error } = await supabase.rpc("gro10x_global_search", { _q, _limit });
+  if (error) throw error;
+  return (data ?? {}) as any;
+}

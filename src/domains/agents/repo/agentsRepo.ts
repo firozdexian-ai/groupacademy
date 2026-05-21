@@ -394,3 +394,9 @@ export async function listAiAgentInstancesMinimal() {
   if (error) throw error;
   return (data ?? []) as Array<{ agent_key: string; name: string }>;
 }
+
+// ─── Phase 10j.6a: agent telemetry RPC ─────────────────────────────────────
+export async function incrementAgentConversations(p_agent_key: string): Promise<void> {
+  const { error } = await supabase.rpc("increment_agent_conversations", { p_agent_key });
+  if (error) throw error;
+}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getEmployerJobsDashboard } from "@/domains/jobs/repo/jobsRepo";
 
 export interface EmployerJobRow {
   id: string;
@@ -29,11 +29,8 @@ export function useEmployerJobsDashboard(companyId: string | null | undefined) {
     enabled: !!companyId,
     staleTime: 30_000,
     queryFn: async (): Promise<EmployerJobRow[]> => {
-      const { data, error } = await supabase.rpc("get_employer_jobs_dashboard", {
-        p_company_id: companyId!,
-      });
-      if (error) throw error;
-      return ((data ?? []) as any[]).map((r) => ({
+      const data = await getEmployerJobsDashboard(companyId!);
+      return (data as any[]).map((r) => ({
         ...r,
         applicant_count: Number(r.applicant_count ?? 0),
       })) as EmployerJobRow[];

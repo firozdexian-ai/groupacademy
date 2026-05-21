@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
-import { insertInterview, insertInterviewSlots } from "@/domains/jobs/repo/jobsRepo";
+import { insertInterview, insertInterviewSlots, getApplicationHireState, confirmInterviewSlot } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Hiring Workflow & Interview Orchestrator (V5.6.0)
@@ -51,16 +51,13 @@ export function useApplicationHireState(applicationId: string | undefined) {
     enabled: !!applicationId,
     staleTime: 1000 * 60, // 1-minute consistency for active scheduling
     queryFn: async (): Promise<HireState> => {
-      // HUD: EXECUTING_RPC_HIRE_STATE_SYNC
-      const { data, error } = await supabase.rpc("get_application_hire_state", {
-        p_application_id: applicationId,
-      });
-
-      if (error) {
+      try {
+        const data = await getApplicationHireState(applicationId!);
+        return (data as any) ?? { interview: null, offer: null };
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_application_hire_state query failed.", error);
         throw error;
       }
-      return (data as any) ?? { interview: null, offer: null };
     },
   });
 }
@@ -141,13 +138,7 @@ export function useConfirmInterviewSlot() {
       slotId: string;
       applicationId: string;
     }) => {
-      // HUD: EXECUTING_RPC_SLOT_CONFIRMATION
-      const { error: rpcError } = await supabase.rpc("confirm_interview_slot", {
-        p_interview_id: interviewId,
-        p_slot_id: slotId,
-      });
-
-      if (rpcError) throw rpcError;
+      await confirmInterviewSlot(interviewId, slotId);
 
       try {
         await notifyHiringEvent({ kind: "interview_confirmed", ref: { interview_id: interviewId } });

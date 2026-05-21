@@ -272,3 +272,44 @@ export async function insertMarketplaceDeliverable(payload: {
   const { error } = await supabase.from("marketplace_deliverables").insert(payload as any);
   return { error };
 }
+
+// ─── Phase 10j.6a: gigs/projects RPC helpers ───────────────────────────────
+export async function getCompanyProjectPipeline(_company_id: string) {
+  const { data, error } = await (supabase as any).rpc("get_company_project_pipeline", { _company_id });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function createGigProject(_payload: Record<string, any>) {
+  const { data, error } = await (supabase as any).rpc("create_gig_project", { _payload });
+  if (error) throw error;
+  return data;
+}
+
+export async function addProjectMilestone(_project_id: string, _payload: Record<string, any>) {
+  const { data, error } = await (supabase as any).rpc("add_project_milestone", { _project_id, _payload });
+  if (error) throw error;
+  return data;
+}
+
+export async function fundGigProject(_project_id: string): Promise<void> {
+  const { error } = await (supabase as any).rpc("fund_gig_project", { _project_id });
+  if (error) throw error;
+}
+
+export async function getEmployerGigBids(p_gig_id: string) {
+  const { data, error } = await (supabase as any).rpc("get_employer_gig_bids", { p_gig_id });
+  if (error) throw error;
+  return (data ?? {}) as any;
+}
+
+export async function acceptGigBid(p_bid_id: string, p_company_id: string) {
+  const { data, error } = await (supabase as any).rpc("accept_gig_bid", { p_bid_id, p_company_id });
+  if (error) throw error;
+  return data;
+}
+
+export async function rejectMarketplaceBid(id: string): Promise<void> {
+  const { error } = await (supabase as any).from("marketplace_bids").update({ status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}

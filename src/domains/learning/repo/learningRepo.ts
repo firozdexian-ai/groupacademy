@@ -1372,3 +1372,15 @@ export async function insertIeltsResourceAccess(talentId: string, resourceId: st
     .insert([{ talent_id: talentId, resource_id: resourceId } as any]);
   return { error };
 }
+
+// ─── Phase 10j.6a: learning RPC helpers ────────────────────────────────────
+export async function getInstructorEarningsSummary() {
+  const { data, error } = await (supabase as any).rpc("get_instructor_earnings_summary");
+  if (error) throw error;
+  return data;
+}
+
+export async function acceptLessonAnswer(_question_id: string, _answer_id: string): Promise<void> {
+  const { error } = await supabase.rpc("accept_lesson_answer", { _question_id, _answer_id });
+  if (error) throw error;
+}

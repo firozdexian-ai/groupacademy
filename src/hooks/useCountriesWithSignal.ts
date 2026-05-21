@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCountriesWithSignal } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Geographic Market Intelligence Hook
@@ -22,25 +22,17 @@ export function useCountriesWithSignal(limit = 50) {
     // Performance Baseline: Enforce 5-minute stability caching to safeguard compute budgets
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<CountryWithSignal[]> => {
-      // HUD: EXECUTING_RPC_GEOGRAPHIC_SYNC
-      // Hardened parameters mapping explicit types matching database public schema specs
-      const { data, error } = await supabase.rpc("get_countries_with_signal", {
-        p_limit: limit,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Sensor:
-        // Automatically formats core failures for real-time aggregation by Admin Chat bots.
+      try {
+        const data = await getCountriesWithSignal(limit);
+        return (data ?? []) as CountryWithSignal[];
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_countries_with_signal query failed sync.", {
           limitSetting: limit,
-          error: error.message,
-          code: error.code,
+          error: error?.message,
+          code: error?.code,
         });
-        throw new Error(`REGISTRY_SYNC_FAULT: Failed to pull geographic signal metrics. Code: ${error.code}`);
+        throw new Error(`REGISTRY_SYNC_FAULT: Failed to pull geographic signal metrics. Code: ${error?.code}`);
       }
-
-      // Protocol Fallback: Guarantee clean object serialization array to protect SaaS UI tables
-      return (data ?? []) as CountryWithSignal[];
     },
   });
 }

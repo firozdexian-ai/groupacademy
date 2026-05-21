@@ -1,5 +1,6 @@
 import { useReducer, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { checkAuthEmail } from "@/domains/admin/repo/adminRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 import { AuthAgentReplySchema, AuthActionSchema } from "@/lib/schemas/authAgent";
@@ -273,8 +274,7 @@ export function useAuthChat() {
             dispatch({ type: "PATCH_COLLECTED", value: { email } });
 
             // HUD: Identity Verification via check_auth_email RPC
-            const { data, error } = await supabase.rpc("check_auth_email", { lookup_email: email });
-            if (error) throw error;
+            const data = await checkAuthEmail(email);
 
             const emailResult = data as unknown as EmailCheckResponse;
 

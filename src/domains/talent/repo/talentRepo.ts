@@ -705,3 +705,26 @@ export async function listPostHypeRecipientsByIds(ids: string[]) {
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.6a: talent contact unlocks + coach assignment ───────────────
+export async function getTalentContactUnlockCost(): Promise<number> {
+  const { data, error } = await (supabase as any).rpc("get_talent_contact_unlock_cost");
+  if (error) throw error;
+  return Number(data ?? 10);
+}
+
+export async function getCompanyUnlockedTalents(p_company_id: string): Promise<Set<string>> {
+  const { data, error } = await (supabase as any).rpc("get_company_unlocked_talents", { p_company_id });
+  if (error) throw error;
+  return new Set(((data as any[]) ?? []).map((r) => (typeof r === "string" ? r : r.get_company_unlocked_talents)));
+}
+
+export async function assignCareerCoach(_talent_id: string): Promise<void> {
+  const { error } = await supabase.rpc("assign_career_coach", { _talent_id });
+  if (error) throw error;
+}
+
+export async function getTalentCountryByUserId(user_id: string): Promise<string | null> {
+  const { data } = await supabase.from("talents").select("country").eq("user_id", user_id).maybeSingle();
+  return (data?.country as string | null) ?? null;
+}

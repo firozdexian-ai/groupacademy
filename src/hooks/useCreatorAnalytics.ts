@@ -1,6 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCreatorScorecard,
+  getCreatorTopPosts,
+  getPostInsights,
+  recordImpressionAsync,
+  recordShare as recordShareRepo,
+} from "@/domains/feed/repo/feedRepo";
 
 /**
  * GroUp Academy: Creator Shell Analytics & Tracking Suite (V5.6.0)
@@ -44,20 +50,15 @@ export function useCreatorScorecard(talentId?: string, days: number = 7) {
     enabled: !!talentId,
     staleTime: 5 * 60 * 1000, // 5-minute metric consistency window
     queryFn: async (): Promise<CreatorScorecard> => {
-      // HUD: EXECUTING_RPC_AGGREGATION_SYNC
-      const { data, error } = await supabase.rpc("get_creator_scorecard" as any, {
-        _talent_id: talentId,
-        _days: days,
-      });
-
-      if (error) {
+      try {
+        return (await getCreatorScorecard(talentId!, days)) as CreatorScorecard;
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_creator_scorecard transaction failed.", {
           talentId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data as CreatorScorecard;
     },
   });
 }
@@ -71,20 +72,15 @@ export function useCreatorTopPosts(talentId?: string, days: number = 30, limit: 
     enabled: !!talentId,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.rpc("get_creator_top_posts" as any, {
-        _talent_id: talentId,
-        _days: days,
-        _limit: limit,
-      });
-
-      if (error) {
+      try {
+        return await getCreatorTopPosts(talentId!, days, limit);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_creator_top_posts transaction failed.", {
           talentId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data ?? [];
     },
   });
 }
@@ -98,18 +94,15 @@ export function usePostInsights(postId?: string, enabled: boolean = true) {
     enabled: !!postId && enabled,
     staleTime: 60 * 1000, // 60s fast caching for interactive feed viewports
     queryFn: async (): Promise<PostInsightData> => {
-      const { data, error } = await supabase.rpc("get_post_insights" as any, {
-        _post_id: postId,
-      });
-
-      if (error) {
+      try {
+        return (await getPostInsights(postId!)) as PostInsightData;
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_post_insights telemetry extraction failure.", {
           postId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data as PostInsightData;
     },
   });
 }
@@ -137,7 +130,7 @@ export function useImpressionTracker(postId?: string, surface: string = "feed") 
             seenPosts.add(key);
 
             // Execute the impression collection pipeline cleanly via public schema bounds
-            (supabase.rpc("record_impression" as any, { _post_id: postId, _surface: surface }) as any).then?.((res: any) => {
+            (recordImpressionAsync(postId, surface) as any).then?.((res: any) => {
               if (res?.error) {
                 console.error("[Digital Workforce] ANOMALY: record_impression background tracking failure.", {
                   postId,
@@ -167,11 +160,7 @@ export function useImpressionTracker(postId?: string, surface: string = "feed") 
 export function useRecordShare() {
   return useMutation({
     mutationFn: async ({ postId, channel }: { postId: string; channel: string }) => {
-      const { error } = await supabase.rpc("record_share" as any, {
-        _post_id: postId,
-        _channel: channel,
-      });
-      if (error) throw error;
+      await recordShareRepo(postId, channel);
     },
     onError: (err: any, variables) => {
       // Hardened: Replaces silent swallow protocols with explicit platform sensors logging
@@ -187,7 +176,7 @@ export function useRecordShare() {
 // Backward-compatible stateless export ensuring zero pipeline regressions across feed controllers
 export async function recordShare(postId: string, channel: string) {
   try {
-    await supabase.rpc("record_share" as any, { _post_id: postId, _channel: channel });
+    await recordShareRepo(postId, channel);
   } catch (err: any) {
     console.error("[Digital Workforce] ANOMALY: Stateless legacy recordShare swallowed a fault.", err?.message);
   }
