@@ -35,18 +35,18 @@ export function useRankedJobs(talentId: string | undefined) {
       const { pageParam } = context;
 
       // HUD: EXECUTING_KEYSET_PAGINATED_JOB_INGRESS_SYNC
-      const { data, error } = await supabase.rpc("get_ranked_jobs_for_talent", {
-        _talent_id: talentId!,
-        _cursor: pageParam,
-        _limit: PAGE_SIZE,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Imprints tracing packets for background monitoring agents
+      let data: any[];
+      try {
+        data = await getRankedJobsForTalent({
+          talentId: talentId!,
+          cursor: pageParam,
+          limit: PAGE_SIZE,
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_ranked_jobs_for_talent RPC pipeline dropped.", {
           talentId,
           cursor: pageParam,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
