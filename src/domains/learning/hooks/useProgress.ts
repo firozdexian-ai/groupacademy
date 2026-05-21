@@ -124,23 +124,13 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
       rvs: Record<string, boolean>;
     }) => {
       if (!enrollmentId) return;
-
-      const { error } = await supabase.from("enrollment_stage_progress").upsert(
-        {
-          enrollment_id: enrollmentId,
-          module_id: payload.moduleId,
-          completed_stages: payload.completedStages,
-          current_stage: payload.currentStage,
-          resource_view_states: payload.rvs,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "enrollment_id,module_id" },
-      );
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: enrollment_stage_progress update rejected.", error);
-        throw error;
-      }
+      await upsertEnrollmentStageProgress({
+        enrollment_id: enrollmentId,
+        module_id: payload.moduleId,
+        completed_stages: payload.completedStages,
+        current_stage: payload.currentStage,
+        resource_view_states: payload.rvs,
+      });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey });
@@ -150,18 +140,14 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
   const currentModuleMutation = useMutation({
     mutationFn: async (targetModuleId: string) => {
       if (!enrollmentId) return;
-
-      const { error } = await supabase
-        .from("enrollments")
-        .update({
+      try {
+        await updateEnrollmentProgress(enrollmentId, {
           current_module_id: targetModuleId,
           last_accessed_at: new Date().toISOString(),
-        })
-        .eq("id", enrollmentId);
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: Failed to update current_module_id tracking registry.", error);
-        throw error;
+        });
+      } catch (err) {
+        console.error("[Digital Workforce] FAULT: Failed to update current_module_id tracking registry.", err);
+        throw err;
       }
     },
     onMutate: async (targetModuleId) => {
