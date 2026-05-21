@@ -75,14 +75,11 @@ export default function MockInterviewCapture() {
     setSubmissionError(null);
 
     try {
-      await supabase
-        .from("mock_interviews")
-        .update({
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
-          talent_id: talent?.id || null,
-        })
-        .eq("id", id);
+      await updateMockInterview(id, {
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        talent_id: talent?.id || null,
+      });
 
       await analyzeMockInterview({ interviewId: id });
 
