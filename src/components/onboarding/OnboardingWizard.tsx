@@ -196,38 +196,24 @@ export function OnboardingWizard({
       trackError(rpcErr, { component: "OnboardingWizard", action: "provisionOrGetInstance_rpc_fallback" });
     }
 
-    const { data: existing } = await supabase
-      .from("workforce_hired_instances")
-      .select("id")
-      .eq("cluster_geo_id", institutionName)
-      .limit(1)
-      .maybeSingle();
+    const existing = await findWorkforceInstanceByCluster(institutionName);
     if (existing?.id) return { instance_id: existing.id, created: false };
 
-    const { data: tplRow } = await supabase
-      .from("workforce_master_templates")
-      .select("id")
-      .eq("agent_key", "b2c_campus_ambassador")
-      .eq("is_active", true)
-      .maybeSingle();
+    const tplRow = await getActiveWorkforceTemplateByKey("b2c_campus_ambassador");
 
     const { data: authData } = await supabase.auth.getUser();
     const userId = authData?.user?.id;
     if (!tplRow?.id || !userId) return null;
 
-    const { data: created, error: insertErr } = await supabase
-      .from("workforce_hired_instances")
-      .insert({
-        template_id: tplRow.id,
-        tenant_id: userId,
-        cluster_geo_id: institutionName,
-        name_override: `${institutionName} Campus Ambassador`,
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (insertErr || !created?.id) return null;
-    return { instance_id: created.id, created: true };
+    const createdId = await insertWorkforceInstanceReturningId({
+      template_id: tplRow.id,
+      tenant_id: userId,
+      cluster_geo_id: institutionName,
+      name_override: `${institutionName} Campus Ambassador`,
+      status: "active",
+    });
+    if (!createdId) return null;
+    return { instance_id: createdId, created: true };
   };
 
   const handleNext = async () => {
