@@ -181,14 +181,11 @@ export function useCredits() {
       if (!talent?.id) throw new Error("AUTH_REQUIRED");
 
       // HUD: EXECUTING_RPC_ATOMIC_INGRESS
-      const { data, error } = await supabase.rpc("add_credits" as any, {
-        p_amount: amount,
-        p_transaction_type: type,
-        p_description: description || `${type} sync`,
+      return await addCreditsRpc({
+        amount,
+        transactionType: type,
+        description: description || `${type} sync`,
       });
-
-      if (error) throw error;
-      return data;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["talent-credits-balance", talent?.id] });
