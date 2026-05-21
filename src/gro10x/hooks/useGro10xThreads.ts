@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { GOAL_TO_AGENTS, DEFAULT_PINNED_AGENTS, type ProGoalKey } from "../lib/tokens";
+import {
+  getActiveCompanyMembership,
+  getCompanyGoals,
+} from "@/domains/companies/repo/companiesRepo";
+import {
+  listGro10xThreads,
+  insertGro10xThreads,
+  upsertGro10xThread,
+  bumpGro10xThread,
+  markGro10xThreadRead,
+} from "@/domains/messaging/repo/messagingRepo";
 
 export interface Gro10xThread {
   id: string;
@@ -40,41 +50,19 @@ export function useGro10xThreads() {
     }
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      // Resolve active company
-      const { data: m } = await supabase
-        .from("company_members")
-        .select("company_id")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      const companyId = m?.company_id ?? null;
+      const membership = await getActiveCompanyMembership(user.id);
+      const companyId = membership?.company_id ?? null;
 
       if (!companyId) {
         setState({ threads: [], companyId: null, loading: false, error: null });
         return;
       }
 
-      // Fetch existing threads
-      const { data: existing } = await supabase
-        .from("gro10x_agent_threads")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("company_id", companyId)
-        .order("pinned", { ascending: false })
-        .order("last_message_at", { ascending: false });
-
-      let threads = (existing ?? []) as Gro10xThread[];
+      let threads = (await listGro10xThreads(user.id, companyId)) as Gro10xThread[];
 
       // Auto-seed if empty
       if (threads.length === 0) {
-        const { data: company } = await supabase
-          .from("companies")
-          .select("goals")
-          .eq("id", companyId)
-          .maybeSingle();
-        const goals = (company?.goals ?? []) as ProGoalKey[];
+        const goals = (await getCompanyGoals(companyId)) as ProGoalKey[];
         const seed = new Set<string>(DEFAULT_PINNED_AGENTS);
         for (const g of goals) {
           (GOAL_TO_AGENTS[g] ?? []).forEach((a) => seed.add(a));
@@ -86,11 +74,7 @@ export function useGro10xThreads() {
           pinned: true,
         }));
         if (rows.length) {
-          const { data: inserted } = await supabase
-            .from("gro10x_agent_threads")
-            .insert(rows)
-            .select("*");
-          threads = (inserted ?? []) as Gro10xThread[];
+          threads = (await insertGro10xThreads(rows)) as Gro10xThread[];
         }
       }
 
@@ -108,54 +92,42 @@ export function useGro10xThreads() {
   const pinAgent = useCallback(
     async (agent_key: string) => {
       if (!user?.id || !state.companyId) return null;
-      const { data, error } = await supabase
-        .from("gro10x_agent_threads")
-        .upsert(
-          { user_id: user.id, company_id: state.companyId, agent_key, pinned: true },
-          { onConflict: "user_id,company_id,agent_key" }
-        )
-        .select("*")
-        .single();
+      const { data, error } = await upsertGro10xThread({
+        user_id: user.id,
+        company_id: state.companyId,
+        agent_key,
+        pinned: true,
+      });
       if (error) return null;
       await refresh();
       return data as Gro10xThread;
     },
-    [user?.id, state.companyId, refresh]
+    [user?.id, state.companyId, refresh],
   );
 
   /** Mark thread as read (unread_count -> 0). */
   const markRead = useCallback(
     async (agent_key: string) => {
       if (!user?.id || !state.companyId) return;
-      await supabase
-        .from("gro10x_agent_threads")
-        .update({ unread_count: 0 })
-        .eq("user_id", user.id)
-        .eq("company_id", state.companyId)
-        .eq("agent_key", agent_key);
+      await markGro10xThreadRead(user.id, state.companyId, agent_key);
     },
-    [user?.id, state.companyId]
+    [user?.id, state.companyId],
   );
 
   /** Bump last_message after a chat exchange. */
   const bumpThread = useCallback(
     async (agent_key: string, last_message: string, agent_thread_id?: string | null) => {
       if (!user?.id || !state.companyId) return;
-      await supabase
-        .from("gro10x_agent_threads")
-        .upsert(
-          {
-            user_id: user.id,
-            company_id: state.companyId,
-            agent_key,
-            last_message: last_message.slice(0, 200),
-            last_message_at: new Date().toISOString(),
-            ...(agent_thread_id ? { agent_thread_id } : {}),
-          },
-          { onConflict: "user_id,company_id,agent_key" }
-        );
+      await bumpGro10xThread({
+        user_id: user.id,
+        company_id: state.companyId,
+        agent_key,
+        last_message: last_message.slice(0, 200),
+        last_message_at: new Date().toISOString(),
+        ...(agent_thread_id ? { agent_thread_id } : {}),
+      });
     },
-    [user?.id, state.companyId]
+    [user?.id, state.companyId],
   );
 
   return { ...state, refresh, pinAgent, markRead, bumpThread };

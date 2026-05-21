@@ -728,3 +728,25 @@ export async function getTalentCountryByUserId(user_id: string): Promise<string 
   const { data } = await supabase.from("talents").select("country").eq("user_id", user_id).maybeSingle();
   return (data?.country as string | null) ?? null;
 }
+
+// ─── Phase 10j.5g: talent credit pools (gro10x contact view) ──────────────
+export async function getTalentCreditPoolsByUserId(
+  userId: string,
+): Promise<{ balance: number; earned: number; bonus: number }> {
+  const { data: t } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!t?.id) return { balance: 0, earned: 0, bonus: 0 };
+  const { data } = await supabase
+    .from("talent_credits")
+    .select("balance, earned_balance, contact_bonus_balance")
+    .eq("talent_id", t.id)
+    .maybeSingle();
+  return {
+    balance: Number(data?.balance ?? 0),
+    earned: Number(data?.earned_balance ?? 0),
+    bonus: Number((data as any)?.contact_bonus_balance ?? 0),
+  };
+}

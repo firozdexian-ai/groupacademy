@@ -77,3 +77,48 @@ export async function deleteMessagingConversation(id: string): Promise<void> {
 export async function pauseMessagingConversationAutoReply(id: string, paused: boolean): Promise<void> {
   await supabase.from("messaging_conversations").update({ auto_reply_paused: paused }).eq("id", id);
 }
+
+// ─── Phase 10j.5g: gro10x agent threads ───────────────────────────────────
+export async function listGro10xThreads(userId: string, companyId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("gro10x_agent_threads")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .order("pinned", { ascending: false })
+    .order("last_message_at", { ascending: false });
+  return (data ?? []) as any[];
+}
+
+export async function insertGro10xThreads(rows: Array<Record<string, any>>): Promise<any[]> {
+  const { data } = await supabase.from("gro10x_agent_threads").insert(rows as any).select("*");
+  return (data ?? []) as any[];
+}
+
+export async function upsertGro10xThread(payload: Record<string, any>): Promise<{ data: any; error: any }> {
+  const { data, error } = await supabase
+    .from("gro10x_agent_threads")
+    .upsert(payload as any, { onConflict: "user_id,company_id,agent_key" })
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function bumpGro10xThread(payload: Record<string, any>): Promise<void> {
+  await supabase
+    .from("gro10x_agent_threads")
+    .upsert(payload as any, { onConflict: "user_id,company_id,agent_key" });
+}
+
+export async function markGro10xThreadRead(
+  userId: string,
+  companyId: string,
+  agentKey: string,
+): Promise<void> {
+  await supabase
+    .from("gro10x_agent_threads")
+    .update({ unread_count: 0 })
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .eq("agent_key", agentKey);
+}
