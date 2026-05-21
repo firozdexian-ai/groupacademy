@@ -96,18 +96,9 @@ export function LeadHunterManager() {
     setIsLoading(true);
     setError(null);
     try {
-      const [sessionsRes, jobsRes] = await Promise.all([
-        supabase.from("lead_hunt_sessions").select("*").order("created_at", { ascending: false }),
-        supabase
-          .from("jobs")
-          .select("id, title, company_name, description")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(200),
-      ]);
-      if (sessionsRes.error) throw sessionsRes.error;
-      setSessions(sessionsRes.data || []);
-      setActiveJobs(jobsRes.data || []);
+      const { sessions, jobs } = await listLeadHuntSessionsAndJobs();
+      setSessions(sessions || []);
+      setActiveJobs(jobs || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -122,17 +113,9 @@ export function LeadHunterManager() {
   const loadSessionMatches = async (session: any) => {
     setSelectedSession(session);
     setLoadingMatches(true);
-    setExpandedExplanationId(null); // Reset expansions on new session
+    setExpandedExplanationId(null);
     try {
-      // CTO FIX: Added ai_explanation to the select query to expose the AI's reasoning
-      const { data, error: matchErr } = await supabase
-        .from("lead_hunt_matches")
-        .select(
-          `id, ai_match_score, ai_explanation, shortlisted, talent:talents ( id, full_name, email, phone, country, cv_url )`,
-        )
-        .eq("session_id", session.id)
-        .order("ai_match_score", { ascending: false });
-      if (matchErr) throw matchErr;
+      const data = await listLeadHuntMatches(session.id);
       setMatches(data || []);
     } catch (err) {
       toast.error("Failed to load match results");

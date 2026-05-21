@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listBannersWithContent,
+  listPublishedContentTitles,
+  insertBanner,
+  setBannerActive,
+  deleteBanner as deleteBannerRepo,
+} from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,35 +87,17 @@ export const BannerManager = () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const bannersResult = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("banners")
-            .select(
-              `id, image_url, link_content_id, display_order, is_active, placement, content:link_content_id (id, title)`,
-            )
-            .order("display_order"),
-        ),
-        TIMEOUTS.DEFAULT,
-        "Registry Link Timeout",
-      );
-      if (bannersResult.error) throw bannersResult.error;
+      const bannersData = await withTimeout(listBannersWithContent(), TIMEOUTS.DEFAULT, "Registry Link Timeout");
 
-      // CTO FIX: Assert types for generic database strings to match our strict union types
-      const typedBanners = (bannersResult.data as any[]).map((banner) => ({
+      const typedBanners = (bannersData as any[]).map((banner) => ({
         ...banner,
         placement: banner.placement as PlacementType,
       })) as Banner[];
 
       setBanners(typedBanners);
 
-      const contentResult = await withTimeout(
-        Promise.resolve(supabase.from("content").select("id, title").eq("is_published", true).order("title")),
-        TIMEOUTS.DEFAULT,
-        "Logic Source Timeout",
-      );
-      if (contentResult.error) throw contentResult.error;
-      setAvailableContent(contentResult.data || []);
+      const contentData = await withTimeout(listPublishedContentTitles(), TIMEOUTS.DEFAULT, "Logic Source Timeout");
+      setAvailableContent(contentData || []);
     } catch (error: any) {
       setLoadError(error.message || "Failed to synchronize banners");
       toast.error("Transmission Error: Sync failed");
@@ -127,31 +116,26 @@ export const BannerManager = () => {
       } = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Auth Handshake Timeout");
       if (!user) throw new Error("Registry Access Denied");
 
-      const { error } = await withTimeout(
-        Promise.resolve(
-          supabase.from("banners").insert([
-            {
-              image_url: newBanner.image_url,
-              link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
-              display_order: newBanner.display_order,
-              placement: newBanner.placement,
-              media_type: newBanner.media_type,
-              media_url: newBanner.media_url || null,
-              poster_url: newBanner.poster_url || null,
-              link_url: newBanner.link_url || null,
-              cta_label: newBanner.cta_label || null,
-              focal_point: newBanner.focal_point,
-              start_at: newBanner.start_at ? new Date(newBanner.start_at).toISOString() : null,
-              end_at: newBanner.end_at ? new Date(newBanner.end_at).toISOString() : null,
-              created_by: user.id,
-            },
-          ]),
-        ),
+      await withTimeout(
+        insertBanner({
+          image_url: newBanner.image_url,
+          link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
+          display_order: newBanner.display_order,
+          placement: newBanner.placement,
+          media_type: newBanner.media_type,
+          media_url: newBanner.media_url || null,
+          poster_url: newBanner.poster_url || null,
+          link_url: newBanner.link_url || null,
+          cta_label: newBanner.cta_label || null,
+          focal_point: newBanner.focal_point,
+          start_at: newBanner.start_at ? new Date(newBanner.start_at).toISOString() : null,
+          end_at: newBanner.end_at ? new Date(newBanner.end_at).toISOString() : null,
+          created_by: user.id,
+        }),
         TIMEOUTS.DEFAULT,
         "Artifact Insertion Timeout",
       );
 
-      if (error) throw error;
       toast.success("Artifact Deployed: Banner successfully registered.");
       setNewBanner({
         image_url: "",
@@ -175,12 +159,7 @@ export const BannerManager = () => {
 
   const handleToggleState = async (bannerId: string, isActive: boolean) => {
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("banners").update({ is_active: !isActive }).eq("id", bannerId)),
-        TIMEOUTS.DEFAULT,
-        "Logic State Update Timeout",
-      );
-      if (error) throw error;
+      await withTimeout(setBannerActive(bannerId, !isActive), TIMEOUTS.DEFAULT, "Logic State Update Timeout");
       toast.success(`Node ${!isActive ? "Activated" : "Terminated"}`);
       loadRegistryData();
     } catch (error: any) {
@@ -191,12 +170,7 @@ export const BannerManager = () => {
   const handlePurgeArtifact = async (bannerId: string) => {
     if (!confirm("Authorize permanent artifact purge?")) return;
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("banners").delete().eq("id", bannerId)),
-        TIMEOUTS.DEFAULT,
-        "Purge Protocol Timeout",
-      );
-      if (error) throw error;
+      await withTimeout(deleteBannerRepo(bannerId), TIMEOUTS.DEFAULT, "Purge Protocol Timeout");
       toast.success("Artifact Purged from Registry");
       loadRegistryData();
     } catch (error: any) {

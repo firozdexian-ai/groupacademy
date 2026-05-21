@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPromotableContent,
+  listOutreachableTalents,
+  listCourseOutreachRecords,
+  logCourseOutreach,
+  listContentShareLogs,
+  insertContentShareLog,
+} from "@/domains/marketing/repo/marketingRepo";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,30 +89,14 @@ export function ContentOutreachTab() {
   const [customChannel, setCustomChannel] = useState("");
 
   const loadContents = useCallback(async () => {
-    const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    const { data: recorded, error: e1 } = await supabase
-      .from("content")
-      .select("id, title, slug, content_type, current_enrollment, is_published, description")
-      .eq("is_published", true)
-      .eq("is_ready", true)
-      .eq("is_private", false)
-      .eq("content_type", "recorded_course")
-      .order("title");
-
-    const { data: live, error: e2 } = await supabase
-      .from("content")
-      .select("id, title, slug, content_type, current_enrollment, is_published, description")
-      .eq("is_published", true)
-      .eq("is_ready", true)
-      .eq("is_private", false)
-      .in("content_type", ["batch_class", "live_webinar"])
-      .not("event_date", "is", null)
-      .gte("event_date", cutoff)
-      .order("event_date", { ascending: true });
-
-    if (e1 || e2) return console.error("Registry Fault:", e1 || e2);
-    setContents([...(recorded || []), ...(live || [])]);
-    setIsLoading(false);
+    try {
+      const data = await listPromotableContent();
+      setContents(data as any);
+    } catch (err) {
+      console.error("Registry Fault:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -115,44 +106,27 @@ export function ContentOutreachTab() {
   const loadTalents = useCallback(async () => {
     if (!selectedContent) return;
     setIsLoading(true);
-
-    const { data: talentData, error: talentError } = await supabase
-      .from("talents")
-      .select("id, full_name, email, phone, profession_category_id, country")
-      .not("phone", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    if (talentError) {
+    try {
+      const talentData = await listOutreachableTalents();
+      const outreachData = await listCourseOutreachRecords(selectedContent.id);
+      setOutreachRecords(outreachData || []);
+      let filteredTalents = (talentData as any[]) || [];
+      if (filterType === "not_pitched") {
+        const pitchedTalentIds = new Set((outreachData || []).map((r: any) => r.talent_id));
+        filteredTalents = filteredTalents.filter((t) => !pitchedTalentIds.has(t.id));
+      }
+      setTalents(filteredTalents);
+    } catch (err) {
+      console.error("Talent Registry Fault:", err);
+    } finally {
       setIsLoading(false);
-      return console.error("Talent Registry Fault:", talentError);
     }
-
-    const { data: outreachData } = await supabase
-      .from("outreach_messages")
-      .select("talent_id, course_id")
-      .eq("product", "course")
-      .eq("course_id", selectedContent.id);
-
-    setOutreachRecords(outreachData || []);
-
-    let filteredTalents = talentData || [];
-    if (filterType === "not_pitched") {
-      const pitchedTalentIds = new Set((outreachData || []).map((r) => r.talent_id));
-      filteredTalents = filteredTalents.filter((t) => !pitchedTalentIds.has(t.id));
-    }
-
-    setTalents(filteredTalents);
-    setIsLoading(false);
   }, [selectedContent, filterType]);
 
   const loadShareLogs = async () => {
     if (!selectedContent) return;
-    const { data } = await supabase
-      .from("content_share_logs")
-      .select("channel, shared_at")
-      .eq("content_id", selectedContent.id);
-    setShareLogs(data || []);
+    const data = await listContentShareLogs(selectedContent.id);
+    setShareLogs((data as any) || []);
   };
 
   useEffect(() => {
@@ -167,14 +141,11 @@ export function ContentOutreachTab() {
     setIsSending(talent.id);
 
     try {
-      const { error } = await supabase.from("outreach_messages").insert({
-        talent_id: talent.id,
-        product: "course",
-        course_id: selectedContent.id,
-        message_content: `Course pitch: ${selectedContent.title}`,
+      await logCourseOutreach({
+        talentId: talent.id,
+        courseId: selectedContent.id,
+        messageContent: `Course pitch: ${selectedContent.title}`,
       });
-
-      if (error) throw error;
 
       const firstName = getFirstName(talent.full_name);
       const whatsappUrl = getOutreachWhatsAppLink(talent.phone, "course", firstName, selectedContent.title);
@@ -195,16 +166,12 @@ export function ContentOutreachTab() {
   const recordShare = async (channel: string) => {
     if (!selectedContent) return;
     setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
-    const { error } = await supabase.from("content_share_logs").insert({
-      content_id: selectedContent.id,
-      channel: channel,
-      shared_at: new Date().toISOString(),
-    });
-    if (error) {
+    try {
+      await insertContentShareLog({ contentId: selectedContent.id, channel });
+      toast.success(`Protocol Logged: Shared via ${channel}`);
+    } catch {
       setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
       toast.error("Log Fault: Distribution update failed");
-    } else {
-      toast.success(`Protocol Logged: Shared via ${channel}`);
     }
   };
 
