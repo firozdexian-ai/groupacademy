@@ -723,3 +723,8 @@ export async function assignCareerCoach(_talent_id: string): Promise<void> {
   const { error } = await supabase.rpc("assign_career_coach", { _talent_id });
   if (error) throw error;
 }
+
+export async function getTalentCountryByUserId(user_id: string): Promise<string | null> {
+  const { data } = await supabase.from("talents").select("country").eq("user_id", user_id).maybeSingle();
+  return (data?.country as string | null) ?? null;
+}
