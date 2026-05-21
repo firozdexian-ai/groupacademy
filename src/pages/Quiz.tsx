@@ -146,16 +146,15 @@ export default function Quiz() {
         answers: answers as any, // Cast to Json-compatible type
       };
 
-      const { error: attemptError } = await supabase.from("quiz_attempts").insert(attemptData);
+      await insertQuizAttempt(attemptData as any);
 
-      if (attemptError) throw attemptError;
-
-      if (isPassed) {
-        await supabase
-          .from("enrollments")
-          .update({ status: "completed", completed_at: new Date().toISOString() })
-          .eq("id", enrollmentId);
+      if (isPassed && enrollmentId) {
+        await updateEnrollmentRow(enrollmentId, {
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        });
       }
+
 
       setScore(correctCount);
       setPassed(isPassed);
