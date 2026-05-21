@@ -258,21 +258,17 @@ export function OnboardingWizard({
       const userId = authData.user.id;
 
       const isFreeform = institution.id.startsWith("freeform:");
-      const { error: updateErr } = await supabase
-        .from("talents")
-        .update({
-          country_id: country.id,
-          country_code: country.iso2,
-          country: country.name,
-          career_stage_id: stage.id,
-          institution_id: isFreeform ? null : institution.id,
-          institution: institution.name,
-          school_id: school.id,
-          onboarding_step: 4,
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
-      if (updateErr) throw updateErr;
+      await patchTalentByUser(userId, {
+        country_id: country.id,
+        country_code: country.iso2,
+        country: country.name,
+        career_stage_id: stage.id,
+        institution_id: isFreeform ? null : institution.id,
+        institution: institution.name,
+        school_id: school.id,
+        onboarding_step: 4,
+        onboarding_completed_at: new Date().toISOString(),
+      });
 
       setSubmittingPhase(`Connecting to ${institution.name} Campus Agent…`);
       const provisioned = await provisionOrGetInstance(institution.name);
