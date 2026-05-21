@@ -45,3 +45,16 @@ Storage `supabase.storage.from(...)` calls stay in the components — repo only 
 - **10j** — ESLint `NO_RAW_FROM` rule to lock cleaned domains.
 
 Reply to approve and I'll start with the repo scaffold.
+
+---
+
+## Phase 10e Status — Done
+
+Completed:
+- `src/domains/profile/repo/profileRepo.ts` scaffolded with helpers for public-profile settings, talent lists/members, talent relationships, agent pitch log, identity documents, and payout accounts.
+- Refactored 5 raw-`from()` call sites: `usePublicProfileSettings`, `useTalentLists`, `useTalentRelationships`, `useTalentPitches`, `IdentityDocsUpload`, `PayoutAccountsManager`.
+- Codemod swept all `@/hooks/useTalent*` + `@/hooks/usePublicProfileSettings` imports to `@/domains/profile/hooks/*`.
+- Deleted 7 legacy shim files in `src/hooks/` (kept `useTalent.ts` — context re-export).
+- Verification: `rg "supabase\.from" src/domains/profile/` returns only `profileRepo.ts`; `tsc --noEmit` clean.
+
+Next: **10f** Companies domain.
