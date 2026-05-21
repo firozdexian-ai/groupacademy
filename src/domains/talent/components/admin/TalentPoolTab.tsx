@@ -65,23 +65,13 @@ export function TalentPoolTab() {
   const loadTalents = useCallback(async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from("talents")
-        // P3 Fix: Select outreach_messages count directly to ensure accurate lifetime counting
-        .select(`*, outreach_count:outreach_messages(count)`, { count: "exact" })
-        .order("updated_at", { ascending: false });
-
-      if (searchQuery) {
-        const safe = sanitizeIlike(searchQuery);
-        if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
-      }
-      if (countryFilter !== "all") query = query.eq("country", countryFilter);
-
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count, error } = await query.range(from, from + ITEMS_PER_PAGE - 1);
-
+      const { data, count, error } = await talentRepo.listTalentsForPool({
+        searchQuery,
+        countryFilter,
+        page,
+        pageSize: ITEMS_PER_PAGE,
+      });
       if (error) throw error;
-
       setTalents(data || []);
       setTotalCount(count || 0);
     } catch (err) {
