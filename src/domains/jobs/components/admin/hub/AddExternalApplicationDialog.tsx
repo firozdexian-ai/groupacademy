@@ -134,8 +134,8 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       setTalentExists(null);
       return;
     }
-    const { data } = await supabase.from("talents").select("id").ilike("email", em.trim()).maybeSingle();
-    setTalentExists(!!data);
+    const found = await findTalentByEmail(em);
+    setTalentExists(!!found);
   };
 
   const handleSave = async () => {
