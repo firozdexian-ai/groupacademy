@@ -115,15 +115,7 @@ const SalaryAnalysisSetupContent = () => {
 
     setIsCheckingEmail(true);
     try {
-      const { data, error } = await supabase
-        .from("salary_analyses")
-        .select("created_at")
-        .eq("email", email.trim().toLowerCase())
-        .eq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
+      const data = await getLatestCompletedSalaryAnalysisByEmail(email.trim().toLowerCase());
 
       if (!data || data.length === 0) {
         setCanProceed(true);
