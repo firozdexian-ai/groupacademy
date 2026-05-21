@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateAgentChatSession,
+  getAgentChatSession,
+  deductCredits,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError } from "@/lib/aiErrorHandler";
