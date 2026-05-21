@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfessionCategoriesBasic } from "@/domains/marketing/repo/marketingRepo";
 import { ProfessionSelector } from "@/components/assessment/ProfessionSelector";
 import { AssessmentStepper } from "@/components/assessment/AssessmentStepper";
 import { LeadCaptureForm } from "@/components/assessment/LeadCaptureForm";
