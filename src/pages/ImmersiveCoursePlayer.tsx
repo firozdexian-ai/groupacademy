@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getStudentRecordByUserId } from "@/domains/learning/repo/learningRepo";
+import { getTalentMiniProfileByUser } from "@/domains/talent/repo/talentRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";

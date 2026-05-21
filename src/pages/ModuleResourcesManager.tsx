@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getContentSlim,
+  getCourseModuleById,
+  listModuleResourcesForModule,
+  insertModuleResourceReturning,
+  updateModuleResourceReturning,
+  deleteModuleResourceById,
+  bulkUpdateModuleResourceOrder,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -137,19 +146,14 @@ export default function ModuleResourcesManager() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [courseRes, moduleRes, resRes] = await Promise.all([
-        supabase.from("content").select("id, title").eq("id", contentId).maybeSingle(),
-        supabase.from("course_modules").select("*").eq("id", moduleId).maybeSingle(),
-        supabase
-          .from("module_resources")
-          .select("*")
-          .eq("module_id", moduleId)
-          .order("stage_number", { ascending: true })
-          .order("display_order", { ascending: true }),
+      const [courseRow, moduleRow, resRows] = await Promise.all([
+        getContentSlim(contentId!),
+        getCourseModuleById(moduleId!),
+        listModuleResourcesForModule(moduleId!),
       ]);
-      if (courseRes.data) setCourse(courseRes.data);
-      if (moduleRes.data) setModule(moduleRes.data);
-      const rows = (resRes.data || []).map((r: any) => ({ ...r, _key: r.id }));
+      if (courseRow) setCourse(courseRow);
+      if (moduleRow) setModule(moduleRow);
+      const rows = (resRows || []).map((r: any) => ({ ...r, _key: r.id }));
       setResources(rows);
       const states: Record<string, ResourceSaveState> = {};
       rows.forEach((r: any) => (states[r._key] = { status: "saved" }));
@@ -223,26 +227,24 @@ export default function ModuleResourcesManager() {
         is_required: !!resource.is_required,
       };
 
-      let result;
-      if (resource.id) {
-        result = await supabase
-          .from("module_resources")
-          .update(payload)
-          .eq("id", resource.id)
-          .select()
-          .single();
-      } else {
-        result = await supabase.from("module_resources").insert([payload]).select().single();
+      let resultData: any;
+      try {
+        if (resource.id) {
+          resultData = await updateModuleResourceReturning(resource.id, payload);
+        } else {
+          resultData = await insertModuleResourceReturning(payload);
+        }
+      } catch (err: any) {
+        throw err;
       }
-      if (result.error) throw result.error;
 
       setResources((prev) =>
-        prev.map((r) => (r._key === key ? { ...(result.data as any), _key: (result.data as any).id } : r)),
+        prev.map((r) => (r._key === key ? { ...resultData, _key: resultData.id } : r)),
       );
       setSaveStates((prev) => {
         const next = { ...prev };
         delete next[key];
-        next[(result.data as any).id] = { status: "saved" };
+        next[resultData.id] = { status: "saved" };
         return next;
       });
       toast.success("Resource saved.");
@@ -266,8 +268,7 @@ export default function ModuleResourcesManager() {
     }
     if (!confirm(`Delete resource "${resource.title}"? This cannot be undone.`)) return;
     try {
-      const { error } = await supabase.from("module_resources").delete().eq("id", resource.id);
-      if (error) throw error;
+      await deleteModuleResourceById(resource.id);
       setResources((prev) => prev.filter((r) => r._key !== key));
       toast.success("Resource deleted.");
     } catch (err: any) {
@@ -289,10 +290,8 @@ export default function ModuleResourcesManager() {
     });
     if (!updates.length) return;
     try {
-      await Promise.all(
-        updates.map((r) =>
-          supabase.from("module_resources").update({ display_order: r.display_order }).eq("id", r.id!),
-        ),
+      await bulkUpdateModuleResourceOrder(
+        updates.map((r) => ({ id: r.id!, display_order: r.display_order })),
       );
     } catch (e: any) {
       toast.error("Reorder failed; reloading.");

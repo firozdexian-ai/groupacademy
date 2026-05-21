@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getContentBasic,
+  listCourseModulesForContentFull,
+  listModuleResourceModuleIdsForModules,
+  insertCourseModuleReturning,
+  updateCourseModule,
+  deleteCourseModule,
+  bulkUpdateCourseModuleOrder,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -119,29 +128,21 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
     }
     setLoading(true);
     try {
-      const [courseRes, modulesRes] = await Promise.all([
-        supabase.from("content").select("title, content_type").eq("id", contentId).maybeSingle(),
-        supabase
-          .from("course_modules")
-          .select("id, content_id, title, description, video_url, duration_minutes, display_order, is_preview")
-          .eq("content_id", contentId)
-          .order("display_order", { ascending: true, nullsFirst: false }),
+      const [courseRow, modulesRows] = await Promise.all([
+        getContentBasic(contentId),
+        listCourseModulesForContentFull(contentId),
       ]);
 
-      if (courseRes.data) setCourse(courseRes.data);
-      if (modulesRes.error) throw modulesRes.error;
+      if (courseRow) setCourse(courseRow);
 
-      const mods = (modulesRes.data || []) as CourseModule[];
+      const mods = (modulesRows || []) as CourseModule[];
       setModules(mods);
       setSaveStates({});
 
       // Fetch resource counts per module so admins see content readiness at a glance.
       if (mods.length > 0) {
         const ids = mods.map((m) => m.id);
-        const { data: resRows } = await supabase
-          .from("module_resources")
-          .select("module_id")
-          .in("module_id", ids);
+        const resRows = await listModuleResourceModuleIdsForModules(ids);
         const counts: Record<string, number> = {};
         (resRows || []).forEach((r: any) => {
           counts[r.module_id] = (counts[r.module_id] || 0) + 1;
@@ -173,20 +174,13 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
     if (!contentId) return;
     const nextOrder = modules.reduce((max, m) => Math.max(max, m.display_order ?? 0), 0) + 1;
     try {
-      const { data, error } = await supabase
-        .from("course_modules")
-        .insert([
-          {
-            content_id: contentId,
-            title: `Module ${nextOrder}`,
-            description: "",
-            display_order: nextOrder,
-            is_preview: false,
-          },
-        ])
-        .select()
-        .single();
-      if (error) throw error;
+      const data = await insertCourseModuleReturning({
+        content_id: contentId,
+        title: `Module ${nextOrder}`,
+        description: "",
+        display_order: nextOrder,
+        is_preview: false,
+      });
       setModules((prev) => [...prev, data as CourseModule]);
       toast.success("Module created.");
     } catch (e: any) {
@@ -197,18 +191,14 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const saveModule = async (mod: CourseModule) => {
     setSaveStates((prev) => ({ ...prev, [mod.id]: "saving" }));
     try {
-      const { error } = await supabase
-        .from("course_modules")
-        .update({
-          title: mod.title,
-          description: mod.description,
-          video_url: mod.video_url,
-          duration_minutes: mod.duration_minutes,
-          display_order: mod.display_order,
-          is_preview: mod.is_preview,
-        })
-        .eq("id", mod.id);
-      if (error) throw error;
+      await updateCourseModule(mod.id, {
+        title: mod.title,
+        description: mod.description,
+        video_url: mod.video_url,
+        duration_minutes: mod.duration_minutes,
+        display_order: mod.display_order,
+        is_preview: mod.is_preview,
+      });
       setSaveStates((prev) => ({ ...prev, [mod.id]: "saved" }));
       toast.success("Module saved.");
     } catch (e: any) {
@@ -236,10 +226,8 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
     setModules(renumbered);
     if (!changed.length) return;
     try {
-      await Promise.all(
-        changed.map((m) =>
-          supabase.from("course_modules").update({ display_order: m.display_order }).eq("id", m.id),
-        ),
+      await bulkUpdateCourseModuleOrder(
+        changed.map((m) => ({ id: m.id, display_order: m.display_order as number })),
       );
     } catch (e: any) {
       toast.error("Reorder failed; reloading.");
@@ -250,8 +238,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const confirmDelete = async () => {
     if (!deleteId) return;
     try {
-      const { error } = await supabase.from("course_modules").delete().eq("id", deleteId);
-      if (error) throw error;
+      await deleteCourseModule(deleteId);
       setModules((prev) => prev.filter((m) => m.id !== deleteId));
       toast.success("Module deleted.");
     } catch (e: any) {
