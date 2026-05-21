@@ -236,3 +236,15 @@ export async function deletePayoutAccount(accountId: string) {
   const { error } = await supabase.from("talent_payout_accounts" as any).delete().eq("id", accountId);
   if (error) throw error;
 }
+
+// ─── Phase 10j.2 — RBAC lookups ───────────────────────────────────────────
+export async function listUserRoles(userId: string): Promise<Array<{ role: string }>> {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []) as Array<{ role: string }>;
+}
+
+export async function listUserRolesSafe(userId: string): Promise<Array<{ role: string }>> {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return (data ?? []) as Array<{ role: string }>;
+}

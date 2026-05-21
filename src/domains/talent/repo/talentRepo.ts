@@ -324,3 +324,75 @@ export async function patchTalentByUser(userId: string, patch: Record<string, un
   if (error) throw error;
 }
 
+
+// ─── Phase 10j.2 — notifications + onboarding state ────────────────────────
+export async function listNotifications(talentId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function markNotificationRead(id: string, timestamp: string): Promise<void> {
+  const { error } = await supabase.from("notifications").update({ is_read: true, read_at: timestamp }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(talentId: string, timestamp: string): Promise<void> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: timestamp })
+    .eq("talent_id", talentId)
+    .eq("is_read", false);
+  if (error) throw error;
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const { error } = await supabase.from("notifications").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateTalentOnboardingStep(talentId: string, step: number): Promise<void> {
+  const { error } = await supabase.from("talents").update({ onboarding_step: step }).eq("id", talentId);
+  if (error) throw error;
+}
+
+export async function getTalentCreditExistence(talentId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("talent_credits")
+    .select("id")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getTalentDuplicateState(
+  talentId: string,
+): Promise<{ is_suspected_duplicate: boolean | null; cv_fingerprint: string | null } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("is_suspected_duplicate, cv_fingerprint")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function completeTalentOnboarding(talentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("talents")
+    .update({
+      onboarding_completed_at: new Date().toISOString(),
+      onboarding_step: 4,
+    })
+    .eq("id", talentId);
+  if (error) throw error;
+}
+
+export async function deleteAiRecommendationsForTalent(talentId: string): Promise<void> {
+  await supabase.from("ai_recommendations").delete().eq("talent_id", talentId);
+}

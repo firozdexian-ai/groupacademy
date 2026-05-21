@@ -250,3 +250,30 @@ export async function unfollowCompany(userId: string, companyName: string): Prom
     .eq("company_name", companyName);
   if (error) throw error;
 }
+
+// ─── Phase 10j.2 — active company membership ──────────────────────────────
+export async function getActiveCompanyMembership(userId: string): Promise<{ company_id: string } | null> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function getActiveAdminCompanyMembership(
+  userId: string,
+): Promise<{ company_id: string; role: string } | null> {
+  const { data, error } = await supabase
+    .from("company_members")
+    .select("company_id, role")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["owner", "admin"])
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
