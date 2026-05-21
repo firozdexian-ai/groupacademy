@@ -91,7 +91,7 @@ export function useOnboarding() {
 
       // Step 5: Assign automated career coach via rpc
       try {
-        await supabase.rpc("assign_career_coach", { _talent_id: talent.id });
+        await assignCareerCoach(talent.id);
       } catch (rpcErr) {
         console.warn("[Digital Workforce] ANOMALY: assign_career_coach rpc execution bypassed.", rpcErr);
       }
