@@ -55,8 +55,8 @@ export function ChannelPromotionCard({ job }: Props) {
 
   useEffect(() => {
     const fetchSyndicationState = async () => {
-      const { data } = await supabase.from("job_channel_posts").select("channel").eq("job_id", job.id);
-      setPosted(new Set((data || []).map((d: any) => d.channel)));
+      const data = await listJobChannelPosts(job.id);
+      setPosted(new Set(data.map((d) => d.channel)));
     };
     fetchSyndicationState();
   }, [job.id]);
