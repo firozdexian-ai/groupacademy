@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   markMockInterviewAccessCodeUsed,
   insertMockInterview,
+  listActiveProfessionCategoriesWithSlug,
+  getLatestCompletedMockInterviewByEmail,
+  getValidMockInterviewAccessCode,
 } from "@/domains/marketing/repo/marketingRepo";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
