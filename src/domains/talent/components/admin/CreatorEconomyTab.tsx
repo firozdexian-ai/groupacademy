@@ -5,8 +5,11 @@
  * Restored: Dual Leaderboard UI & Full Boost Profiles
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { talentRepo } from "@/domains/talent/repo/talentRepo";
+import {
+  talentRepo,
+  getCreatorEconomyLeaderboard,
+  sweepExpiredConnections,
+} from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -36,14 +39,12 @@ export function CreatorEconomyTab() {
       const now = new Date().toISOString();
 
       // P2: Adoption of optimized RPCs for heavy lifting
-      const [leaderboardRes, countsRes, boostsRes, connectionsRes] = await Promise.all([
-        supabase.rpc("get_creator_economy_leaderboard", { window_days: 30 }),
+      const [leaderboardRows, countsRes, boostsRes, connectionsRes] = await Promise.all([
+        getCreatorEconomyLeaderboard(30),
         talentRepo.countPostHypes(),
         talentRepo.listBoostedInboxes(now),
         talentRepo.listTopAcceptedConnections(),
       ]);
-
-      if (leaderboardRes.error) throw leaderboardRes.error;
 
       // Stats Calculation
       setStats({
@@ -53,7 +54,7 @@ export function CreatorEconomyTab() {
       });
 
       // A3: Process Leaderboards
-      setTopHype(leaderboardRes.data || []);
+      setTopHype(leaderboardRows || []);
 
       // Restore: Top Connection Earners mapping
       setTopConn(
@@ -79,11 +80,12 @@ export function CreatorEconomyTab() {
   }, [load]);
 
   const sweep = async () => {
-    const { data, error } = await supabase.rpc("sweep_expired_connections");
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`${data ?? 0} expired requests refunded.`);
+    try {
+      const count = await sweepExpiredConnections();
+      toast.success(`${count ?? 0} expired requests refunded.`);
       load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Sweep failed");
     }
   };
 
