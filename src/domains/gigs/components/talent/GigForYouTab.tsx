@@ -31,12 +31,7 @@ export function GigForYouTab() {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("match_gigs_for_talent", {
-        _talent_id: talent!.id,
-        _limit: 20,
-      });
-      if (error) throw error;
-      return data || [];
+      return await matchGigsForTalent(talent!.id, 20);
     },
   });
 
