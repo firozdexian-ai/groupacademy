@@ -131,13 +131,10 @@ function CareerAssessmentContent() {
     if (!accessCode.trim()) return toast.error("Verification code required.");
     setValidatingCode(true);
     try {
-      const { data: codeData, error } = await supabase
-        .from("assessment_access_codes")
-        .select("*")
-        .eq("code", accessCode.trim().toUpperCase())
-        .eq("email", email.toLowerCase().trim())
-        .eq("is_used", false)
-        .maybeSingle();
+      const { data: codeData, error } = await getValidAssessmentAccessCode(
+        accessCode.trim().toUpperCase(),
+        email.toLowerCase().trim(),
+      );
 
       if (error || !codeData) throw new Error("Invalid sequence.");
 
