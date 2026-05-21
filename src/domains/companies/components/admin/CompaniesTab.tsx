@@ -6,6 +6,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listCompaniesPaged,
+  upsertCompany,
+  deleteCompany,
+  listLatestOutreachForCompanies,
+  logContactOutreach,
+} from "@/domains/companies/repo/companiesRepo";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
