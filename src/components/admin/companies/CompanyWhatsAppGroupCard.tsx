@@ -1,6 +1,11 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listMessagingChannelsByKeys,
+  listCompanyGroupConversations,
+  deleteMessagingConversation,
+} from "@/domains/messaging/repo/messagingRepo";
 import { toast } from "sonner";
 
 // UI Primitive Matrix Registries
@@ -55,16 +60,8 @@ export function CompanyWhatsAppGroupCard({ companyId, companyName }: Props) {
     queryKey: channelsQueryKey,
     staleTime: 60 * 1000, // 1-minute visual tracking consistency baseline
     queryFn: async (): Promise<Channel[]> => {
-      const { data, error } = await supabase
-        .from("messaging_channels")
-        .select("id, agent_key, status, phone_e164")
-        .in("agent_key", [COMMUNITY_KEY, EMPLOYER_KEY]);
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: messaging_channels query pipeline dropped.", error);
-        throw error;
-      }
-      return (data || []) as Channel[];
+      const data = await listMessagingChannelsByKeys([COMMUNITY_KEY, EMPLOYER_KEY]);
+      return data as Channel[];
     },
   });
 
@@ -74,18 +71,8 @@ export function CompanyWhatsAppGroupCard({ companyId, companyName }: Props) {
     enabled: !!companyId,
     staleTime: 15 * 1000, // Throttled tracking for active pipeline monitoring
     queryFn: async (): Promise<GroupConv[]> => {
-      const { data, error } = await supabase
-        .from("messaging_conversations")
-        .select("id, channel_id, external_chat_id, peer_display_name, group_kind, metadata")
-        .eq("company_id", companyId)
-        .eq("is_group", true)
-        .order("last_message_at", { ascending: false, nullsFirst: false });
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: messaging_conversations collection failed.", error);
-        throw error;
-      }
-      return (data || []) as GroupConv[];
+      const data = await listCompanyGroupConversations(companyId);
+      return data as GroupConv[];
     },
   });
 
