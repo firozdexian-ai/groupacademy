@@ -38,20 +38,9 @@ export function CreatorEconomyTab() {
       // P2: Adoption of optimized RPCs for heavy lifting
       const [leaderboardRes, countsRes, boostsRes, connectionsRes] = await Promise.all([
         supabase.rpc("get_creator_economy_leaderboard", { window_days: 30 }),
-        supabase.from("post_hypes").select("id", { count: "exact", head: true }),
-        supabase
-          .from("talent_inbox_settings")
-          .select("talent_id, boost_until, talents(full_name, profile_photo_url)")
-          .gt("boost_until", now),
-        // Restore: Connections aggregation scoped to last 30d
-        supabase
-          .from("talent_connections")
-          .select(
-            "recipient_talent_id, recipient_share, talents!talent_connections_recipient_talent_id_fkey(full_name)",
-          )
-          .eq("status", "accepted")
-          .order("recipient_share", { ascending: false })
-          .limit(10),
+        talentRepo.countPostHypes(),
+        talentRepo.listBoostedInboxes(now),
+        talentRepo.listTopAcceptedConnections(),
       ]);
 
       if (leaderboardRes.error) throw leaderboardRes.error;
