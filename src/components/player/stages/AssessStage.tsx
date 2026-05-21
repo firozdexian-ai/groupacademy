@@ -19,7 +19,6 @@ import {
   Target,
   Loader2,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listQuizQuestionsByModule,
   listFallbackQuizQuestionsByContent,
