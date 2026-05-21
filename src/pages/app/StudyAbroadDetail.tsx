@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudyAbroadProgramById } from "@/domains/abroad/repo/abroadRepo";
+import { insertContactLog } from "@/domains/marketing/repo/marketingRepo";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
