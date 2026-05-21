@@ -66,8 +66,8 @@ export default function MessageThread() {
 
     if (isSystemThread) {
       const loadSystemFeed = async () => {
-        const { data: tid } = await supabase.rpc("ensure_system_thread", { _talent_id: talent.id });
-        if (tid) markThreadRead(tid as string);
+        const tid = await ensureSystemThread(talent.id);
+        if (tid) markThreadRead(tid);
 
         const data = await listTalentSystemFeedNotifications(talent.id, 200);
         setSystemNotifications(data ?? []);
