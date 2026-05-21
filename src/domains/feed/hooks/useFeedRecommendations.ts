@@ -247,9 +247,12 @@ export function useFeedRecommendations() {
     },
     markInterested: async (item: FeedItem) => {
       if (talent?.id)
-        await supabase
-          .from("feed_interactions")
-          .upsert({ talent_id: talent.id, item_id: item.id, item_type: item.type, interaction_type: "interested" });
+        await upsertFeedInteraction({
+          talentId: talent.id,
+          itemId: item.id,
+          itemType: item.type,
+          interactionType: "interested",
+        });
     },
     markNotInterested: (itemId: string) => {
       setDismissedIds((prev) => new Set([...prev, itemId]));
