@@ -276,3 +276,123 @@ export async function updateTalentJobPreferences(
     .eq("id", talentId);
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.1 — shared infra helpers
+// -----------------------------------------------------------------------------
+
+/** Lightweight registry ping used to warm up the PostgREST connection. */
+export function pingProfessionCategories(signal?: AbortSignal) {
+  let q = supabase.from("profession_categories").select("id").limit(1);
+  if (signal) q = (q as any).abortSignal(signal);
+  return q;
+}
+
+/** Email + display name lookup used by transactional email dispatch. */
+export async function getTalentContact(talentId: string): Promise<{ email: string | null; full_name: string | null } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("email, full_name")
+    .eq("id", talentId)
+    .single();
+  if (error) return null;
+  return data as { email: string | null; full_name: string | null } | null;
+}
+
+/** Onboarding state fetched by auth user id (pre-auth stash finalization). */
+export async function getTalentOnboardingStateByUser(userId: string) {
+  const { data } = await supabase
+    .from("talents")
+    .select("country_id, career_stage_id, institution_id, institution, school_id, onboarding_completed_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data as
+    | {
+        country_id: string | null;
+        career_stage_id: string | null;
+        institution_id: string | null;
+        institution: string | null;
+        school_id: string | null;
+        onboarding_completed_at: string | null;
+      }
+    | null;
+}
+
+/** Patch talents row by auth user id (used by finalizePendingOnboarding). */
+export async function patchTalentByUser(userId: string, patch: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from("talents").update(patch).eq("user_id", userId);
+  if (error) throw error;
+}
+
+
+// ─── Phase 10j.2 — notifications + onboarding state ────────────────────────
+export async function listNotifications(talentId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function markNotificationRead(id: string, timestamp: string): Promise<void> {
+  const { error } = await supabase.from("notifications").update({ is_read: true, read_at: timestamp }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(talentId: string, timestamp: string): Promise<void> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: timestamp })
+    .eq("talent_id", talentId)
+    .eq("is_read", false);
+  if (error) throw error;
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const { error } = await supabase.from("notifications").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateTalentOnboardingStep(talentId: string, step: number): Promise<void> {
+  const { error } = await supabase.from("talents").update({ onboarding_step: step }).eq("id", talentId);
+  if (error) throw error;
+}
+
+export async function getTalentCreditExistence(talentId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("talent_credits")
+    .select("id")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getTalentDuplicateState(
+  talentId: string,
+): Promise<{ is_suspected_duplicate: boolean | null; cv_fingerprint: string | null } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("is_suspected_duplicate, cv_fingerprint")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function completeTalentOnboarding(talentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("talents")
+    .update({
+      onboarding_completed_at: new Date().toISOString(),
+      onboarding_step: 4,
+    })
+    .eq("id", talentId);
+  if (error) throw error;
+}
+
+export async function deleteAiRecommendationsForTalent(talentId: string): Promise<void> {
+  await supabase.from("ai_recommendations").delete().eq("talent_id", talentId);
+}

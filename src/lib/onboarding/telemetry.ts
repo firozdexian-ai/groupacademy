@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { insertPlatformEvent } from "@/domains/analytics/repo/analyticsRepo";
 
 /**
  * Onboarding + Career Coach telemetry. Fire-and-forget into platform_events.
@@ -10,12 +10,12 @@ export type CoachAction = "opened" | "first_message" | "session_resume";
 
 async function emit(event_kind: string, subject_id: string | null | undefined, payload: Record<string, unknown>) {
   try {
-    await supabase.from("platform_events").insert({
+    await insertPlatformEvent({
       event_kind,
       subject_kind: "talent",
       subject_id: subject_id ?? null,
       payload,
-    } as any);
+    });
   } catch (e) {
     // Telemetry must never throw.
     console.debug("[telemetry insert failed]", event_kind, e);

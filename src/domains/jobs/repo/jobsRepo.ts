@@ -473,3 +473,61 @@ export async function updateJobApplication(id: string, patch: Record<string, any
   const { error } = await supabase.from("job_applications").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+// ─── Phase 10j.2 — tool_runs / offers / interviews ────────────────────────
+export async function listToolRunsForUser(userId: string, limit = 5) {
+  const { data, error } = await supabase
+    .from("tool_runs")
+    .select("id, tool_key, cost_credits, payload, job_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertToolRun(payload: {
+  user_id: string;
+  tool_key: string;
+  cost_credits: number;
+  payload?: Record<string, any>;
+  job_id?: string | null;
+}) {
+  const { error } = await supabase.from("tool_runs").insert({
+    user_id: payload.user_id,
+    tool_key: payload.tool_key,
+    cost_credits: payload.cost_credits,
+    payload: payload.payload ?? {},
+    job_id: payload.job_id ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function insertOffer(payload: Record<string, any>): Promise<string> {
+  const { data, error } = await (supabase.from("offers") as any)
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function updateOfferStatus(offerId: string, status: string): Promise<void> {
+  const { error } = await supabase.from("offers").update({ status: status as any }).eq("id", offerId);
+  if (error) throw error;
+}
+
+export async function insertInterview(payload: Record<string, any>): Promise<string> {
+  const { data, error } = await (supabase.from("interviews") as any)
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function insertInterviewSlots(rows: Array<Record<string, any>>): Promise<void> {
+  if (!rows.length) return;
+  const { error } = await (supabase.from("interview_slots") as any).insert(rows);
+  if (error) throw error;
+}

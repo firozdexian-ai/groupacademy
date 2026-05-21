@@ -1,11 +1,10 @@
 /**
  * GroUp Academy: Admin Scope Intelligence
- * CTO Reference: Resolves governance levels for the Admin Command Center.
- * Architecture: Phase Z0 Hardened with Digital Workforce anomaly logging.
  */
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { listUserRoles } from "@/domains/profile/repo/profileRepo";
+import { getActiveAdminCompanyMembership } from "@/domains/companies/repo/companiesRepo";
 
 export type AdminScope = "super" | "internal" | "company" | "none";
 
@@ -24,25 +23,18 @@ export function useAdminScope() {
       if (!user?.id) return { scope: "none", companyId: null };
 
       try {
-        // Parallel sync of hierarchy data
-        const [{ data: roles, error: rolesError }, { data: company, error: companyError }] = await Promise.all([
-          supabase.from("user_roles").select("role").eq("user_id", user.id),
-          supabase
-            .from("company_members")
-            .select("company_id, role")
-            .eq("user_id", user.id)
-            .eq("status", "active")
-            .in("role", ["owner", "admin"])
-            .limit(1)
-            .maybeSingle(),
+        const [roles, company] = await Promise.all([
+          listUserRoles(user.id).catch((e) => {
+            console.error("[Digital Workforce] Scope Resolution Error:", e);
+            return [] as Array<{ role: string }>;
+          }),
+          getActiveAdminCompanyMembership(user.id).catch((e) => {
+            console.error("[Digital Workforce] Scope Resolution Error:", e);
+            return null;
+          }),
         ]);
 
-        if (rolesError || companyError) {
-          console.error("[Digital Workforce] Scope Resolution Error:", rolesError || companyError);
-          return { scope: "none", companyId: null };
-        }
-
-        const roleSet = new Set((roles ?? []).map((r) => r.role as string));
+        const roleSet = new Set(roles.map((r) => r.role));
 
         // 1. Super Scope: Sees all 16 stakeholder groups
         if ([...roleSet].some((r) => SUPER_ROLES.has(r))) {

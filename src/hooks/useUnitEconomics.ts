@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listIrMetricsSnapshots, upsertIrMetricsSnapshot } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 
 /**
@@ -68,14 +68,10 @@ export function useUnitEconomics() {
     queryKey,
     staleTime: 60 * 1000, // 1-minute tracking caching baseline for investor data panels
     queryFn: async (): Promise<IRSnapshot[]> => {
-      // HUD: EXECUTING_FINANCIAL_METRICS_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("ir_metrics_snapshots")
-        .select("*")
-        .order("snapshot_date", { ascending: false })
-        .limit(12);
-
-      if (error) {
+      let data: any[] = [];
+      try {
+        data = await listIrMetricsSnapshots(12);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: ir_metrics_snapshots data link dropped.", error);
         throw error;
       }
@@ -109,11 +105,9 @@ export function useUnitEconomics() {
   // --- ACTION: FINANCIAL_METRICS_UPSERT_MUTATION ---
   const upsertSnapshot = useMutation({
     mutationFn: async (input: Partial<IRSnapshot> & { snapshot_date: string }): Promise<void> => {
-      // HUD: COMMITTING_INVESTOR_SNAPSHOT_UPSERT_TRANSACTION
-      const { error } = await supabase.from("ir_metrics_snapshots").upsert(input, { onConflict: "snapshot_date" });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Crucial for logging financial write access failures
+      try {
+        await upsertIrMetricsSnapshot(input);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: ir_metrics_snapshots record update rejected.", {
           snapshotDate: input.snapshot_date,
           message: error.message,

@@ -530,3 +530,111 @@ export async function deleteLearningGraphRow(table: LearningGraphTable, id: stri
   if (error) throw error;
 }
 
+
+// ─── Phase 10j.2 — Discussions / Q&A / Submissions ─────────────────────────
+export async function listDiscussionThreads(cohortId: string) {
+  const { data, error } = await supabase
+    .from("discussion_threads")
+    .select("*")
+    .eq("cohort_id", cohortId)
+    .order("is_pinned", { ascending: false })
+    .order("last_post_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getDiscussionThreadWithPosts(threadId: string) {
+  const [{ data: thread, error: threadError }, { data: posts, error: postsError }] = await Promise.all([
+    supabase.from("discussion_threads").select("*").eq("id", threadId).maybeSingle(),
+    supabase.from("discussion_posts").select("*").eq("thread_id", threadId).order("created_at"),
+  ]);
+  if (threadError) throw threadError;
+  if (postsError) throw postsError;
+  return { thread, posts: posts ?? [] };
+}
+
+export async function insertDiscussionThread(payload: { cohort_id: string; title: string; body?: string; author_id: string }) {
+  const { data, error } = await supabase
+    .from("discussion_threads")
+    .insert(payload)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function insertDiscussionPost(payload: { thread_id: string; body: string; parent_post_id?: string; author_id: string }) {
+  const { error } = await supabase.from("discussion_posts").insert(payload);
+  if (error) throw error;
+}
+
+export async function listLessonQuestions(contentId: string, itemId?: string) {
+  let query = supabase.from("lesson_questions").select("*, answers:lesson_answers(*)").eq("content_id", contentId);
+  if (itemId) query = query.eq("item_id", itemId);
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertLessonQuestion(payload: {
+  content_id: string;
+  item_id?: string;
+  module_id?: string;
+  cohort_id?: string;
+  body: string;
+  author_id: string;
+}) {
+  const { error } = await supabase.from("lesson_questions").insert(payload);
+  if (error) throw error;
+}
+
+export async function insertLessonAnswer(payload: { question_id: string; body: string; author_id: string }) {
+  const { error } = await supabase.from("lesson_answers").insert(payload);
+  if (error) throw error;
+}
+
+export async function listReviewQueueForReviewer(reviewerId: string) {
+  const { data, error } = await supabase
+    .from("review_assignments")
+    .select("*, submission:submission_id(id, title, kind, content_id, author_id)")
+    .eq("reviewer_id", reviewerId)
+    .eq("status", "pending")
+    .order("due_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getSubmissionWithReviews(id: string) {
+  const [
+    { data: sub, error: subError },
+    { data: reviews, error: revError },
+    { data: assigns, error: assignError },
+  ] = await Promise.all([
+    supabase.from("submissions").select("*").eq("id", id).maybeSingle(),
+    supabase.from("submission_reviews").select("*").eq("submission_id", id),
+    supabase.from("review_assignments").select("*").eq("submission_id", id),
+  ]);
+  if (subError) throw subError;
+  if (revError) throw revError;
+  if (assignError) throw assignError;
+  return { submission: sub, reviews: reviews ?? [], assignments: assigns ?? [] };
+}
+
+export async function upsertSubmissionReview(payload: {
+  submission_id: string;
+  reviewer_id: string;
+  rubric: any;
+  score: number;
+  comments?: string | null;
+}) {
+  const { error } = await supabase
+    .from("submission_reviews")
+    .upsert(payload, { onConflict: "submission_id,reviewer_id" });
+  if (error) throw error;
+}
+
+export async function insertContentReport(payload: { scope: string; scope_id: string; reason: string; reporter_id: string }) {
+  const { error } = await supabase.from("content_reports").insert(payload);
+  if (error) throw error;
+}

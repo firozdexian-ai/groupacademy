@@ -1,6 +1,12 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification as repoDeleteNotification,
+} from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { mapNotificationRow, type Notification } from "@/lib/notificationHelpers";
 
@@ -27,20 +33,13 @@ export function useNotifications() {
     enabled: !!talentId,
     staleTime: 15000, // 15-second cache consistency baseline
     queryFn: async (): Promise<Notification[]> => {
-      // HUD: EXECUTING_NOTIFICATION_REGISTRY_INGRESS
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("talent_id", talentId!)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) {
+      try {
+        const data = await listNotifications(talentId!, 50);
+        return (data || []).map(mapNotificationRow);
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: notifications fetch rejected.", error);
         throw error;
       }
-
-      return (data || []).map(mapNotificationRow);
     },
   });
 
@@ -88,9 +87,7 @@ export function useNotifications() {
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
       const timestamp = new Date().toISOString();
-      const { error } = await supabase.from("notifications").update({ is_read: true, read_at: timestamp }).eq("id", id);
-
-      if (error) throw error;
+      await markNotificationRead(id, timestamp);
       return { id, timestamp };
     },
     onMutate: async (id) => {
@@ -116,13 +113,7 @@ export function useNotifications() {
     mutationFn: async () => {
       if (!talentId) return;
       const timestamp = new Date().toISOString();
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: timestamp })
-        .eq("talent_id", talentId)
-        .eq("is_read", false);
-
-      if (error) throw error;
+      await markAllNotificationsRead(talentId, timestamp);
       return { timestamp };
     },
     onMutate: async () => {
@@ -145,8 +136,7 @@ export function useNotifications() {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notifications").delete().eq("id", id);
-      if (error) throw error;
+      await repoDeleteNotification(id);
       return id;
     },
     onMutate: async (id) => {

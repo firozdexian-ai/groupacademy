@@ -254,3 +254,19 @@ export async function listDocumentHotSlides(documentId: string): Promise<any[]> 
   if (error) throw error;
   return ((data as unknown) ?? []) as any[];
 }
+
+// ─── Phase 10j.2 — IR metrics snapshots ──────────────────────────────────
+export async function listIrMetricsSnapshots(limit = 12) {
+  const { data, error } = await supabase
+    .from("ir_metrics_snapshots")
+    .select("*")
+    .order("snapshot_date", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertIrMetricsSnapshot(input: Record<string, any> & { snapshot_date: string }): Promise<void> {
+  const { error } = await supabase.from("ir_metrics_snapshots").upsert(input, { onConflict: "snapshot_date" });
+  if (error) throw error;
+}

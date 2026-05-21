@@ -58,3 +58,18 @@ export async function getLifetimeOverviewMaster(todayIso: string) {
     txTodayResult,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.1 — telemetry helper
+// -----------------------------------------------------------------------------
+
+/** Fire-and-forget telemetry insert into platform_events. Never throws. */
+export async function insertPlatformEvent(input: {
+  event_kind: string;
+  subject_kind: string;
+  subject_id: string | null;
+  payload: Record<string, unknown>;
+}): Promise<void> {
+  await supabase.from("platform_events").insert(input as any);
+}
+

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentContact } from "@/domains/talent/repo/talentRepo";
 import { sendTransactionalEmail as invokeTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 /**
@@ -65,9 +65,9 @@ async function sendToTalent(
   idempotencyKeySuffix: string,
   data?: Record<string, any>,
 ): Promise<boolean> {
-  const { data: talent, error } = await supabase.from("talents").select("email, full_name").eq("id", talentId).single();
+  const talent = await getTalentContact(talentId);
 
-  if (error || !talent?.email) {
+  if (!talent?.email) {
     console.warn(`[Sentinel] ID_RESOLUTION_FAULT: Could not find talent ${talentId}`);
     return false;
   }

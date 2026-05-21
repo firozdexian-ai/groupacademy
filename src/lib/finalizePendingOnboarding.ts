@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getTalentOnboardingStateByUser,
+  patchTalentByUser,
+} from "@/domains/talent/repo/talentRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 
 interface PendingOnboarding {
@@ -44,13 +48,7 @@ export async function finalizePendingOnboarding(): Promise<boolean> {
     if (authErr || !authData?.user?.id) return false;
     const userId = authData.user.id;
 
-    const { data: existing } = await supabase
-      .from("talents")
-      .select(
-        "country_id, career_stage_id, institution_id, institution, school_id, onboarding_completed_at",
-      )
-      .eq("user_id", userId)
-      .maybeSingle();
+    const existing = await getTalentOnboardingStateByUser(userId);
 
     const isFreeform = pending.institution.id.startsWith("freeform:");
     const patch: Record<string, unknown> = {};
@@ -71,8 +69,7 @@ export async function finalizePendingOnboarding(): Promise<boolean> {
     }
 
     if (Object.keys(patch).length > 0) {
-      const { error: updateErr } = await supabase.from("talents").update(patch).eq("user_id", userId);
-      if (updateErr) throw updateErr;
+      await patchTalentByUser(userId, patch);
     }
 
     trackEvent("pending_onboarding_finalized", {
