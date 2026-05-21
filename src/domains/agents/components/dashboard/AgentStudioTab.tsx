@@ -726,11 +726,12 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("agent_knowledge_sources").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteAgentKnowledgeSource(id);
       toast.success("Source artifact purged");
       await load();
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
