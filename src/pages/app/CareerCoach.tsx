@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Loader2, Bot, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { assignCareerCoach } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { AIChatPanel } from "@/components/ai-instructor/AIChatPanel";
 import { trackCoachEvent } from "@/lib/onboarding/telemetry";
