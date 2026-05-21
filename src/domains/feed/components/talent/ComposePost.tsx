@@ -71,7 +71,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
     });
 
     try {
-      const { error } = await supabase.from("feed_posts").insert({
+      const { error } = await insertFeedPost({
         text_content: trimmed,
         author_name: talent.fullName || "Community member",
         author_avatar: talent.profilePhotoUrl || null,
