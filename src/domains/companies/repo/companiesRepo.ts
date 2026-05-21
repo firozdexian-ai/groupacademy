@@ -508,3 +508,14 @@ export async function listActiveCompanyMemberUserIds(companyId: string, limit = 
     .limit(limit);
   return ((data ?? []) as any[]).map((r) => r.user_id).filter(Boolean);
 }
+
+// ─── Phase 10j.5g5 ─────────────────────────────────────────────────────────
+export async function listCompanyShortlistsRecent(companyId: string, limit = 200) {
+  const { data } = await supabase
+    .from("company_talent_shortlists")
+    .select("talent_id, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as Array<{ talent_id: string; created_at: string }>;
+}

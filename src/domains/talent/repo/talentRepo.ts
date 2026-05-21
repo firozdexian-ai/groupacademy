@@ -787,3 +787,13 @@ export async function listTalentSystemFeedNotifications(talentId: string, limit 
   if (error) throw error;
   return (data ?? []) as Array<{ id: string; title: string; message: string | null; link: string | null; created_at: string }>;
 }
+
+// ─── Phase 10j.5g5 ─────────────────────────────────────────────────────────
+export async function listTalentsBasicByIds(ids: string[]) {
+  if (!ids.length) return [] as any[];
+  const { data } = await supabase
+    .from("talents")
+    .select("id, user_id, full_name, custom_profession, profile_photo_url")
+    .in("id", ids);
+  return (data ?? []) as any[];
+}
