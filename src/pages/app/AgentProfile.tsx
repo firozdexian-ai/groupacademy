@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getAiAgentByKey,
+  getAiAgentStatsByKey,
+  listAgentChatSessionsForTalentAgent,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { AgentReviewSection } from "@/components/agents/AgentReviewSection";
 import { cn } from "@/lib/utils";
