@@ -119,14 +119,11 @@ export default function AssessmentResults() {
   const { data: recommendedCourses = [] } = useQuery({
     queryKey: ["recommended_courses", assessment?.profession_category_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, slug, description, estimated_hours, thumbnail_url")
-        .eq("profession_line_id", assessment!.profession_category_id)
-        .eq("is_published", true)
-        .limit(3);
-
-      if (error) throw error;
+      const data = await listRecommendedCoursesForProfession(
+        assessment!.profession_category_id,
+        3,
+        true,
+      );
       return data as Course[];
     },
     enabled: !!assessment?.profession_category_id,
