@@ -15,12 +15,7 @@ export default function Gro10xJobApplicants() {
 
   useEffect(() => {
     if (!jobId) return;
-    void supabase
-      .from("jobs")
-      .select("title")
-      .eq("id", jobId)
-      .maybeSingle()
-      .then(({ data }) => data?.title && setJobTitle(data.title));
+    void getJobTitleById(jobId).then((t) => t && setJobTitle(t));
   }, [jobId]);
 
   if (!user) return null;
