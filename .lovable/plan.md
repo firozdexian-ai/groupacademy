@@ -95,3 +95,19 @@ useCertificate, useCohorts, useCourseBriefs, useCourseProgress, useEnrollment, u
 ## Next batch after this
 
 10d — talent (`useTalent`, `useTalentLists`, `useTalentMirror`, `useTalentOutcomeSignal`, `useTalentPitches`, `useTalentRelationships`, `useTalentSearch`, `useSkillCredentials` admin views).
+
+---
+
+## Phase 10c.1 — COMPLETE (hooks-only)
+
+- Created `src/domains/learning/repo/learningRepo.ts` with: `getStageProgress`, `upsertEnrollmentStageProgress`, `updateEnrollmentProgress`, `getEnrollmentProgressBundle`, `getCertificateByEnrollment`, `getCompanyWallet`, `updateLearningTrack`, `listLearningTrackItems`, `insertLearningTrackItem`, `deleteLearningTrackItem`, `upsertCohort`, `upsertCourseSession`.
+- Moved `useAuthoringTrends.ts` → `src/domains/learning/hooks/`; added to barrel.
+- Refactored 6 hooks to use the repo: `useStageProgress`, `useProgress`, `useOrgLearning`, `useLearningTracks`, `useCohorts`, `useCertificate`. Realtime channels stay inline.
+- Deleted 23 shim files in `src/hooks/`.
+- Sed-rewrote ~26 external import sites from `@/hooks/use*` → `@/domains/learning`.
+- Verified: zero `supabase.from(...)` inside `src/domains/learning/hooks/`; zero `@/hooks/use<learning>` imports anywhere.
+
+## Phase 10c.2 — DEFERRED (admin/talent components)
+
+Next turn will route the 9 remaining in-domain `supabase.from(...)` call sites through `learningRepo`:
+`TracksTab.tsx`, `CourseSessionsManager.tsx`, `LearningProgressTab.tsx`, `LearningModerationTab.tsx`, `CourseJSONImporter.tsx`, `BulkResourceUpload.tsx`, `ContentReadinessChecklist.tsx`, `useLearningGraph.ts`, `BatchContentGenerator.tsx`, `ContentFilters.tsx`.
