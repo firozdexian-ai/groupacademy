@@ -110,22 +110,10 @@ export function LearningProgressTab() {
   const { data: learnerDetails, isLoading: learnersLoading } = useQuery({
     queryKey: ["admin-learner-details", selectedCourse],
     queryFn: async () => {
-      let query = supabase
-        .from("enrollments")
-        .select(
-          `
-          id, status, enrolled_at, completed_at, content_id, talent_id,
-          talents:talent_id (id, full_name, email),
-          content:content_id (id, title, modules_count)
-        `,
-        )
-        .order("enrolled_at", { ascending: false })
-        .limit(50);
-      if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await listLearnerDetailsRaw(selectedCourse, 50);
 
       return (data || []).map(
+
         (enrollment: any): LearnerDetail => ({
           enrollmentId: enrollment.id,
           talentId: enrollment.talent_id,
