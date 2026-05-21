@@ -25,11 +25,6 @@ export default function Gro10xProjects() {
 
   const load = async () => {
     if (!companyId) return;
-    const { data } = await supabase.rpc("get_company_project_pipeline", { _company_id: companyId });
-    setPipeline((data as any) || []);
-  };
-  const load = async () => {
-    if (!companyId) return;
     const data = await getCompanyProjectPipeline(companyId);
     setPipeline((data as any) || []);
   };
