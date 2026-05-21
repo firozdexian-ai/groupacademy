@@ -185,6 +185,16 @@ export async function getAgentChatSession(sessionId: string) {
   return data;
 }
 
+export async function getAgentCreditCost(agentKey: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("credit_cost")
+    .eq("agent_key", agentKey)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.credit_cost as number | undefined) ?? null;
+}
+
 export async function deductCredits(args: Record<string, any>) {
   return await supabase.rpc("deduct_credits", args as any);
 }
