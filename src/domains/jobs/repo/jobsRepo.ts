@@ -693,3 +693,56 @@ export async function listTalentApplicationsWithJob(talentId: string) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+export async function getPublicActiveJobById(id: string) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("id", id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export interface PublicJobSearchFilters {
+  company?: string | null;
+  location?: string | null;
+  search?: string | null;
+  jobTypes?: string[];
+  sort?: "hot" | "expiring" | null;
+}
+
+export async function searchPublicActiveJobs(
+  filters: PublicJobSearchFilters,
+  rangeFrom: number,
+  rangeTo: number,
+) {
+  let q = supabase
+    .from("jobs")
+    .select(
+      `id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency`,
+    )
+    .eq("is_active", true)
+    .or("deadline.is.null,deadline.gte.now()");
+
+  if (filters.company) q = q.ilike("company_name", `%${filters.company}%`);
+  if (filters.location && filters.location !== "abroad") {
+    q = q.ilike("location", `%${filters.location}%`);
+  }
+  if (filters.search && filters.search.trim()) {
+    const s = filters.search.trim();
+    q = q.or(`title.ilike.%${s}%,company_name.ilike.%${s}%`);
+  }
+  if (filters.jobTypes && filters.jobTypes.length) {
+    q = q.in("job_type", filters.jobTypes as any);
+  }
+  if (filters.sort === "hot") q = q.order("is_featured", { ascending: false });
+  else if (filters.sort === "expiring") q = q.order("deadline", { ascending: true });
+
+  const { data, error } = await q
+    .order("created_at", { ascending: false })
+    .range(rangeFrom, rangeTo);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

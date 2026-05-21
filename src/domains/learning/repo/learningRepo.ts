@@ -1495,3 +1495,27 @@ export async function claimCourseProject(projectId: string): Promise<any> {
   if (error) throw error;
   return data;
 }
+
+// ─── Phase 10j.5g4 ─────────────────────────────────────────────────────────
+export async function listRecommendedCoursesForProfession(
+  professionLineId: string,
+  limit = 3,
+  publishedOnly = false,
+) {
+  let q = supabase
+    .from("content")
+    .select("id, title, slug, description, estimated_hours, thumbnail_url")
+    .eq("profession_line_id", professionLineId)
+    .limit(limit);
+  if (publishedOnly) q = q.eq("is_published", true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Array<{
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    estimated_hours: number | null;
+    thumbnail_url: string | null;
+  }>;
+}
