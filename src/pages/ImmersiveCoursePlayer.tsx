@@ -86,8 +86,8 @@ export default function ImmersiveCoursePlayer() {
   const { data: talent } = useQueryWithTimeout({
     queryKey: ["talent-id", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("talents").select("id").eq("user_id", user!.id).maybeSingle();
-      return data;
+      const profile = await getTalentMiniProfileByUser(user!.id);
+      return profile ? { id: profile.id } : null;
     },
     enabled: !!user?.id,
     timeout: TIMEOUTS.DEFAULT,
@@ -95,11 +95,7 @@ export default function ImmersiveCoursePlayer() {
 
   const { data: student } = useQueryWithTimeout({
     queryKey: ["student-profile", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*").eq("user_id", user!.id).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => getStudentRecordByUserId(user!.id),
     enabled: !!user?.id,
     timeout: TIMEOUTS.DEFAULT,
   });
