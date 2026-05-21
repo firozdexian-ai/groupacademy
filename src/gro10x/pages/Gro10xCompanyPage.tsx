@@ -65,25 +65,13 @@ export default function Gro10xCompanyPage() {
     let companyId = paramId;
     let editor = false;
     if (!companyId && user?.id) {
-      const { data: m } = await supabase
-        .from("company_members")
-        .select("company_id, role")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
+      const m = await getActiveCompanyMembership(user.id);
       companyId = m?.company_id;
       // Owner only — admins can manage hiring/CRM but not the public face.
       editor = m?.role === "owner";
     } else if (companyId && user?.id) {
-      const { data: m } = await supabase
-        .from("company_members")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("company_id", companyId)
-        .eq("status", "active")
-        .maybeSingle();
-      editor = m?.role === "owner";
+      const role = await getCompanyMemberRole(user.id, companyId);
+      editor = role === "owner";
     }
     setCanEdit(editor);
 
@@ -96,46 +84,28 @@ export default function Gro10xCompanyPage() {
       return;
     }
 
-    const { data: c } = await supabase
-      .from("companies")
-      .select("id,name,tagline,about,logo_url,banner_url,website,country,slug,profile_completion,verification_tier")
-      .eq("id", companyId)
-      .maybeSingle();
+    const c = await getCompanyPublicProfile(companyId);
     setCompany(c as Company | null);
 
     // Team — fetch members then enrich with talents
-    const { data: rawMembers } = await supabase
-      .from("company_members")
-      .select("user_id, role, status, invited_email")
-      .eq("company_id", companyId)
-      .eq("status", "active");
-    const userIds = (rawMembers ?? []).map((m: any) => m.user_id).filter(Boolean) as string[];
-    let talents: Record<string, any> = {};
-    if (userIds.length) {
-      const { data: t } = await supabase
-        .from("talents")
-        .select("user_id, full_name, profile_photo_url, custom_profession")
-        .in("user_id", userIds);
-      talents = Object.fromEntries((t ?? []).map((row: any) => [row.user_id, row]));
-    }
+    const rawMembers = await listActiveCompanyMembers(companyId);
+    const userIds = rawMembers.map((m: any) => m.user_id).filter(Boolean) as string[];
+    const talentRows = await listTalentMiniProfilesByUserIds(userIds);
+    const talents: Record<string, any> = Object.fromEntries(
+      talentRows.map((row: any) => [row.user_id, row]),
+    );
     setMembers(
-      (rawMembers ?? []).map((m: any) => ({
+      rawMembers.map((m: any) => ({
         ...m,
         full_name: talents[m.user_id]?.full_name ?? null,
         profile_photo_url: talents[m.user_id]?.profile_photo_url ?? null,
         custom_profession: talents[m.user_id]?.custom_profession ?? null,
-      }))
+      })),
     );
 
     // Open jobs
-    const { data: jobRows } = await supabase
-      .from("jobs")
-      .select("id, title, location, job_type, is_active, created_at")
-      .eq("company_id", companyId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(10);
-    setJobs((jobRows ?? []) as Job[]);
+    const jobRows = await listActiveJobsByCompanyId(companyId, 10);
+    setJobs(jobRows as Job[]);
 
     setLoading(false);
   }, [paramId, user?.id]);
@@ -151,10 +121,7 @@ export default function Gro10xCompanyPage() {
 
   const saveEdit = async () => {
     if (!editing || !company) return;
-    const { error } = await supabase
-      .from("companies")
-      .update({ [editing]: draftValue.trim() || null })
-      .eq("id", company.id);
+    const { error } = await updateCompanyField(company.id, { [editing]: draftValue.trim() || null });
     if (error) {
       toast.error("Could not save");
       return;
