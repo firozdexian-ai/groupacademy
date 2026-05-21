@@ -103,40 +103,18 @@ export default function AppJobs() {
         const offsetRangeFromInt = targetPageNum * PAGE_SIZE_CAP;
         const offsetRangeToInt = offsetRangeFromInt + PAGE_SIZE_CAP - 1;
 
-        let databaseQueryBuilder = supabase
-          .from("jobs")
-          .select(
-            `id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency`,
-          )
-          .eq("is_active", true)
-          .or("deadline.is.null,deadline.gte.now()");
+        const fetchOutputPayload = await searchPublicActiveJobs(
+          {
+            company: targetCompanyContextStr ?? null,
+            location: targetLocationContextStr ?? null,
+            search: debouncedSearchQueryStr ?? null,
+            jobTypes: selectedJobTypesArray,
+            sort: sortOrderContextStr === "hot" ? "hot" : sortOrderContextStr === "expiring" ? "expiring" : null,
+          },
+          offsetRangeFromInt,
+          offsetRangeToInt,
+        );
 
-        if (targetCompanyContextStr) {
-          databaseQueryBuilder = databaseQueryBuilder.ilike("company_name", `%${targetCompanyContextStr}%`);
-        }
-        if (targetLocationContextStr && targetLocationContextStr !== "abroad") {
-          databaseQueryBuilder = databaseQueryBuilder.ilike("location", `%${targetLocationContextStr}%`);
-        }
-        if (debouncedSearchQueryStr.trim()) {
-          databaseQueryBuilder = databaseQueryBuilder.or(
-            `title.ilike.%${debouncedSearchQueryStr.trim()}%,company_name.ilike.%${debouncedSearchQueryStr.trim()}%`,
-          );
-        }
-        if (selectedJobTypesArray.length > 0) {
-          databaseQueryBuilder = databaseQueryBuilder.in("job_type", selectedJobTypesArray as any);
-        }
-
-        if (sortOrderContextStr === "hot") {
-          databaseQueryBuilder = databaseQueryBuilder.order("is_featured", { ascending: false });
-        } else if (sortOrderContextStr === "expiring") {
-          databaseQueryBuilder = databaseQueryBuilder.order("deadline", { ascending: true });
-        }
-
-        const { data: fetchOutputPayload, error: queryHandshakeError } = await databaseQueryBuilder
-          .order("created_at", { ascending: false })
-          .range(offsetRangeFromInt, offsetRangeToInt);
-
-        if (queryHandshakeError) throw queryHandshakeError;
         if (!isThreadMountedFlag.current) return;
 
         const convertedJobsPayload = (fetchOutputPayload as unknown as JobWithSalary[]) || [];
