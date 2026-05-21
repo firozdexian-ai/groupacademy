@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateLearningTrack,
+  deleteLearningTrackItem,
+} from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -155,7 +159,7 @@ export function useUpdateTrack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<LearningTrack> & { id: string }) => {
-      const { data, error } = await supabase.from("learning_tracks").update(patch).eq("id", id).select().single();
+      const data = (await updateLearningTrack(id, patch)) as LearningTrack;
 
       if (error) throw error;
       return data as LearningTrack;
