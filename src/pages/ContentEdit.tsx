@@ -166,18 +166,16 @@ export default function ContentEdit() {
         throw new Error("Invalid WhatsApp link format.");
       }
 
-      const { error } = await supabase
-        .from("content")
-        .update({
-          ...formData,
-          price: formData.price ? parseFloat(formData.price) : null,
-          duration_hours: formData.duration_hours ? parseInt(formData.duration_hours) : null,
-          modules_count: formData.modules_count ? parseInt(formData.modules_count) : null,
-          event_duration_minutes: formData.event_duration_minutes ? parseInt(formData.event_duration_minutes) : null,
-          max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : null,
-          event_date: formData.event_date || null,
-        })
-        .eq("id", id);
+      await updateContent(id!, {
+        ...formData,
+        price: formData.price ? parseFloat(formData.price) : null,
+        duration_hours: formData.duration_hours ? parseInt(formData.duration_hours) : null,
+        modules_count: formData.modules_count ? parseInt(formData.modules_count) : null,
+        event_duration_minutes: formData.event_duration_minutes ? parseInt(formData.event_duration_minutes) : null,
+        max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : null,
+        event_date: formData.event_date || null,
+      });
+
 
       if (error) throw error;
       toast({ title: "Success", description: "Academy record synchronized." });
