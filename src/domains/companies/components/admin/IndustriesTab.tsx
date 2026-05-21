@@ -73,14 +73,12 @@ export function IndustriesTab() {
     setIsLoading(true);
     try {
       // A3 Fix: Single RPC for aggregates + Parallel head query for unassigned
-      const [rollupRes, unassignedCountVal] = await Promise.all([
-        supabase.rpc("get_industry_rollup"),
+      const [rollupData, unassignedCountVal] = await Promise.all([
+        getIndustryRollup(),
         countCompaniesWithNullIndustry(),
       ]);
 
-      if (rollupRes.error) throw rollupRes.error;
-
-      setIndustries(rollupRes.data || []);
+      setIndustries(rollupData || []);
       setUnassignedCount(unassignedCountVal);
     } catch (err: any) {
       toast.error("Registry Sync Failed: " + err.message);
