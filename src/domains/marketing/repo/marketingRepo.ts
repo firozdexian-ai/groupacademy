@@ -324,3 +324,103 @@ export async function listServiceHistoryByTalent(talentId: string) {
     portfolio: (portfolioRes.data ?? []) as any[],
   };
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.5c additions
+// -----------------------------------------------------------------------------
+
+export async function getMockInterviewById(id: string) {
+  const { data, error } = await supabase
+    .from("mock_interviews")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function insertMockInterview(payload: Record<string, unknown>): Promise<{ error: any }> {
+  const { error } = await supabase.from("mock_interviews").insert(payload as any);
+  return { error };
+}
+
+export async function markMockInterviewAccessCodeUsed(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("mock_interview_access_codes")
+    .update({ is_used: true })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function markSalaryAnalysisAccessCodeUsed(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("salary_analysis_access_codes")
+    .update({ is_used: true })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAssessmentAccessCodeUsed(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("assessment_access_codes")
+    .update({ is_used: true })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function insertSalaryAnalysis(payload: Record<string, unknown>): Promise<{ error: any }> {
+  const { error } = await supabase.from("salary_analyses").insert(payload as any);
+  return { error };
+}
+
+export async function countPortfolioRequests(): Promise<number> {
+  const { count } = await supabase
+    .from("portfolio_requests")
+    .select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
+
+export async function insertPortfolioRequest(payload: Record<string, unknown>): Promise<{ error: any }> {
+  const { error } = await supabase.from("portfolio_requests").insert(payload as any);
+  return { error };
+}
+
+export async function insertOrganizationWaitlist(payload: {
+  email: string;
+  company_name: string | null;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("organization_waitlist").insert(payload as any);
+  return { error };
+}
+
+export async function incrementBlogPostViews(postId: string): Promise<void> {
+  const { data } = await supabase
+    .from("blog_posts")
+    .select("views")
+    .eq("id", postId)
+    .single();
+  await supabase
+    .from("blog_posts")
+    .update({ views: ((data as any)?.views || 0) + 1 })
+    .eq("id", postId);
+}
+
+export async function listActiveProfessionCategoriesBasic() {
+  const { data, error } = await supabase
+    .from("profession_categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+
+export async function listActiveProfessionCategoriesWithSlug() {
+  const { data, error } = await supabase
+    .from("profession_categories")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; slug: string }>;
+}
