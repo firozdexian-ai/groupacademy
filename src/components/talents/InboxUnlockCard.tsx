@@ -49,8 +49,6 @@ export function InboxUnlockCard() {
       ]);
 
       if (isMountedRef.current) {
-        const normalizedVolumeNum = Number((volumePayloadData as any)?.volume ?? 0);
-        const normalizedUnlockStatusBool = Boolean((settingsPayloadData as any)?.unlocked);
 
         setVolume(normalizedVolumeNum);
         setUnlocked(normalizedUnlockStatusBool);
