@@ -5,6 +5,7 @@ import {
   findJobIdsBySearch,
   searchAdminApplications,
   updateApplicationStatus,
+  updateJobApplication,
 } from "@/domains/jobs/repo/jobsRepo";
 import { findTalentIdsBySearch } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
