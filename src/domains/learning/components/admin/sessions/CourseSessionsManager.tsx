@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,15 @@ import { toast } from "sonner";
 import { EventDateTimeField } from "@/components/admin/EventDateTimeField";
 import { DEFAULT_EVENT_TZ, formatEventTime } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
+import {
+  listCourseSessionsByContent,
+  listInstructorsLite,
+  upsertCourseSession,
+  deleteCourseSession,
+  updateCourseSessionStatus,
+  bulkInsertCourseSessions,
+} from "@/domains/learning/repo/learningRepo";
+
 
 type SessionStatus = "scheduled" | "ongoing" | "completed" | "cancelled";
 
@@ -78,13 +86,16 @@ export default function CourseSessionsManager({
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { data: ins }] = await Promise.all([
-      supabase.from("course_sessions").select("*").eq("content_id", contentId).order("scheduled_date", { ascending: true }),
-      supabase.from("instructors").select("id, full_name").order("full_name"),
-    ]);
-    setSessions((s as Session[]) || []);
-    setInstructors((ins as Instructor[]) || []);
-    setLoading(false);
+    try {
+      const [s, ins] = await Promise.all([
+        listCourseSessionsByContent(contentId),
+        listInstructorsLite(),
+      ]);
+      setSessions((s as Session[]) || []);
+      setInstructors((ins as Instructor[]) || []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [contentId]);
@@ -115,10 +126,12 @@ export default function CourseSessionsManager({
       status: editing.status || "scheduled",
       instructor_id: editing.instructor_id || null,
     };
-    const { error } = editing.id
-      ? await supabase.from("course_sessions").update(payload).eq("id", editing.id)
-      : await supabase.from("course_sessions").insert(payload);
-    if (error) { toast.error(error.message); return; }
+    try {
+      await upsertCourseSession(editing.id ? { id: editing.id, ...payload } : payload);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Save failed");
+      return;
+    }
     toast.success(editing.id ? "Session updated" : "Session created");
     setEditing(null);
     load();
@@ -126,15 +139,21 @@ export default function CourseSessionsManager({
 
   const remove = async (id: string) => {
     if (!confirm("Delete this session?")) return;
-    const { error } = await supabase.from("course_sessions").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    try {
+      await deleteCourseSession(id);
+    } catch (err: any) {
+      return toast.error(err?.message ?? "Delete failed");
+    }
     toast.success("Session deleted");
     load();
   };
 
   const setStatus = async (s: Session, status: SessionStatus) => {
-    const { error } = await supabase.from("course_sessions").update({ status }).eq("id", s.id);
-    if (error) return toast.error(error.message);
+    try {
+      await updateCourseSessionStatus(s.id, status);
+    } catch (err: any) {
+      return toast.error(err?.message ?? "Update failed");
+    }
     toast.success(`Marked ${status}`);
     load();
   };
@@ -152,12 +171,16 @@ export default function CourseSessionsManager({
         status: "scheduled" as SessionStatus,
       };
     });
-    const { error } = await supabase.from("course_sessions").insert(rows);
-    if (error) return toast.error(error.message);
+    try {
+      await bulkInsertCourseSessions(rows);
+    } catch (err: any) {
+      return toast.error(err?.message ?? "Create failed");
+    }
     toast.success(`${rows.length} sessions created`);
     setRecurringOpen(false);
     load();
   };
+
 
   return (
     <div className="space-y-4">

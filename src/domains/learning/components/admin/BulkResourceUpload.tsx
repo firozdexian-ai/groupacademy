@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { insertModuleResources } from "@/domains/learning/repo/learningRepo";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -151,8 +152,8 @@ export function BulkResourceUpload({
         display_order: currentMaxOrder + i + 1,
         is_required: false,
       }));
-      const { error } = await supabase.from("module_resources").insert(rows);
-      if (error) throw error;
+      await insertModuleResources(rows);
+
       toast.success(`Added ${rows.length} resource${rows.length === 1 ? "" : "s"}.`);
       // Drop saved items, keep failures for retry.
       setQueue((prev) => prev.filter((q) => q.status !== "uploaded"));

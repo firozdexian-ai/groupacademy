@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPublishedCourses,
+  listEnrollmentStatsRaw,
+  listLearnerDetailsRaw,
+} from "@/domains/learning/repo/learningRepo";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -63,31 +68,17 @@ export function LearningProgressTab() {
 
   const { data: courses, isLoading: coursesLoading } = useQuery({
     queryKey: ["admin-courses-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, content_type")
-        .in("content_type", ["recorded_course", "batch_class", "live_webinar"])
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listPublishedCourses(),
   });
 
   const { data: enrollmentStats, isLoading: statsLoading } = useQuery({
     queryKey: ["admin-enrollment-stats", selectedCourse],
     queryFn: async () => {
-      let query = supabase.from("enrollments").select(`
-          id, status, content_id, enrolled_at, completed_at,
-          content:content_id (id, title, modules_count)
-        `);
-      if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await listEnrollmentStatsRaw(selectedCourse);
 
       const statsMap = new Map<string, CourseStats>();
       (data || []).forEach((enrollment: any) => {
+
         const contentId = enrollment.content_id;
         const content = enrollment.content;
         if (!statsMap.has(contentId)) {
@@ -119,22 +110,10 @@ export function LearningProgressTab() {
   const { data: learnerDetails, isLoading: learnersLoading } = useQuery({
     queryKey: ["admin-learner-details", selectedCourse],
     queryFn: async () => {
-      let query = supabase
-        .from("enrollments")
-        .select(
-          `
-          id, status, enrolled_at, completed_at, content_id, talent_id,
-          talents:talent_id (id, full_name, email),
-          content:content_id (id, title, modules_count)
-        `,
-        )
-        .order("enrolled_at", { ascending: false })
-        .limit(50);
-      if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await listLearnerDetailsRaw(selectedCourse, 50);
 
       return (data || []).map(
+
         (enrollment: any): LearnerDetail => ({
           enrollmentId: enrollment.id,
           talentId: enrollment.talent_id,

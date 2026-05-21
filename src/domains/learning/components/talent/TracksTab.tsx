@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listAcademiesSchoolsReadiness } from "@/domains/learning/repo/learningRepo";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,20 +75,14 @@ export function TracksTab() {
         const authenticatedUserId = userData?.user?.id;
 
         // Concurrent Ingress: Resolve baseline structures in a single batch transaction pass
-        const [acadResult, schoolResult, readinessResult] = await Promise.all([
-          supabase.from("academies").select("*").eq("is_active", true).order("display_order"),
-          supabase.from("schools").select("*").eq("is_active", true).order("display_order"),
-          supabase.from("school_readiness_v" as any).select("*"),
-        ]);
-
-        if (acadResult.error) throw acadResult.error;
-        if (schoolResult.error) throw schoolResult.error;
-        if (readinessResult.error) throw readinessResult.error;
+        const { academies: academiesData, schools: schoolsData, readiness: readinessData } =
+          await listAcademiesSchoolsReadiness();
 
         const mappedReadinessBuffer: Record<string, SchoolReadiness> = {};
-        ((readinessResult.data as any[]) || []).forEach((rowItem: any) => {
+        readinessData.forEach((rowItem: any) => {
           if (rowItem?.school_id) mappedReadinessBuffer[rowItem.school_id] = rowItem;
         });
+
 
         let synchronizedEnrollments: any[] = [];
 
@@ -113,8 +109,9 @@ export function TracksTab() {
 
         // 1. Component-Lifetime Safety Lock Check: Freeze updates if workspace teardown completes mid-flight
         if (isMounted) {
-          setAcademies(acadResult.data || []);
-          setSchools(schoolResult.data || []);
+          setAcademies(academiesData || []);
+          setSchools(schoolsData || []);
+
           setReadiness(mappedReadinessBuffer);
           setEnrollments(synchronizedEnrollments);
           setIsLoading(false);

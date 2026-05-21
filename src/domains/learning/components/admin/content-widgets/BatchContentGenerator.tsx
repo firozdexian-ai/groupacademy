@@ -1,5 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listSchoolsLite,
+  listProgramsBySchool,
+  listContentsByProgramIds,
+  listModulesByContentIds,
+  listQuizQuestionsByModuleIds,
+  listModuleResourcesByType,
+  listDraftPosts,
+  updateDraftPost,
+  type DraftPostTable,
+} from "@/domains/learning/repo/learningRepo";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -188,43 +200,33 @@ export function BatchContentGenerator() {
   const fetchSchools = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: schoolsData } = await supabase.from("schools").select("id, name").order("name");
-      if (!schoolsData) return;
+      const schoolsData = await listSchoolsLite();
+      if (!schoolsData?.length) return;
 
       const schoolInfos: SchoolInfo[] = [];
       for (const school of schoolsData) {
-        const { data: programs } = await supabase.from("profession_categories").select("id").eq("school_id", school.id);
+        const programs = await listProgramsBySchool(school.id);
         if (!programs?.length) continue;
-        const programIds = programs.map((p) => p.id);
-        const { data: contents } = await supabase
-          .from("content")
-          .select("id, description, learning_objectives, estimated_hours")
-          .in("profession_line_id", programIds);
+        const programIds = programs.map((p: any) => p.id);
+        const contents = await listContentsByProgramIds(programIds);
         if (!contents?.length) continue;
-        const contentIds = contents.map((c) => c.id);
-        const { data: modules } = await supabase
-          .from("course_modules")
-          .select("id, description")
-          .in("content_id", contentIds);
+        const contentIds = contents.map((c: any) => c.id);
+        const modules = await listModulesByContentIds(contentIds);
         if (!modules?.length) continue;
 
         let pending = 0;
-        const moduleIds = modules.map((m) => m.id);
+        const moduleIds = modules.map((m: any) => m.id);
         if (activeTab === "quizzes") {
-          const { data: qm } = await supabase.from("quiz_questions").select("module_id").in("module_id", moduleIds);
-          pending = modules.length - new Set(qm?.map((q) => q.module_id)).size;
+          const qm = await listQuizQuestionsByModuleIds(moduleIds);
+          pending = modules.length - new Set(qm?.map((q: any) => q.module_id)).size;
         } else if (activeTab === "descriptions") {
-          pending = modules.filter((m) => (m.description || "").length < 500).length;
+          pending = modules.filter((m: any) => (m.description || "").length < 500).length;
         } else if (activeTab === "course-metadata") {
-          pending = contents.filter((c) => !c.description || !c.learning_objectives).length;
+          pending = contents.filter((c: any) => !c.description || !c.learning_objectives).length;
         } else {
           const rType = activeTab === "flashcards" ? "flashcards" : "ai_scenario";
-          const { data: res } = await supabase
-            .from("module_resources")
-            .select("module_id")
-            .in("module_id", moduleIds)
-            .eq("resource_type", rType);
-          pending = modules.length - new Set(res?.map((r) => r.module_id)).size;
+          const res = await listModuleResourcesByType(moduleIds, rType);
+          pending = modules.length - new Set(res?.map((r: any) => r.module_id)).size;
         }
 
         schoolInfos.push({
@@ -242,6 +244,7 @@ export function BatchContentGenerator() {
     }
   }, [activeTab]);
 
+
   useEffect(() => {
     if (generator.needsSchool) fetchSchools();
   }, [fetchSchools, activeTab]);
@@ -250,24 +253,17 @@ export function BatchContentGenerator() {
     setLoadingDrafts(true);
     try {
       if (activeTab === "blog-posts") {
-        const { data } = await supabase
-          .from("blog_posts")
-          .select("*")
-          .eq("status", "draft")
-          .order("created_at", { ascending: false });
+        const data = await listDraftPosts("blog_posts", "draft");
         setDrafts((data || []) as DraftPost[]);
       } else if (activeTab === "feed-posts") {
-        const { data } = await supabase
-          .from("feed_posts")
-          .select("*")
-          .eq("status", "pending")
-          .order("created_at", { ascending: false });
+        const data = await listDraftPosts("feed_posts", "pending");
         setDrafts((data || []) as DraftPost[]);
       }
     } finally {
       setLoadingDrafts(false);
     }
   }, [activeTab]);
+
 
   useEffect(() => {
     if (!generator.needsSchool) fetchDrafts();
@@ -360,8 +356,9 @@ export function BatchContentGenerator() {
         activeTab === "blog-posts"
           ? { status: "published", published_at: new Date().toISOString() }
           : { status: "published", is_active: true };
-      const table = activeTab === "blog-posts" ? "blog_posts" : "feed_posts";
-      await supabase.from(table).update(payload).eq("id", draft.id);
+      const table: DraftPostTable = activeTab === "blog-posts" ? "blog_posts" : "feed_posts";
+      await updateDraftPost(table, draft.id, payload);
+
       setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
       toast.success("Artifact Deployed: Node live.");
     } finally {

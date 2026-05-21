@@ -2,12 +2,24 @@
  * Admin Learn → Moderation tab.
  */
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Flag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  listContentReports,
+  resolveContentReport,
+  hideModerationTarget,
+  type ModerationTable,
+} from "@/domains/learning/repo/learningRepo";
+
+const SCOPE_TO_TABLE: Record<string, ModerationTable> = {
+  post: "discussion_posts",
+  thread: "discussion_threads",
+  question: "lesson_questions",
+  answer: "lesson_answers",
+};
 
 export function LearningModerationTab() {
   const [rows, setRows] = useState<any[]>([]);
@@ -16,20 +28,21 @@ export function LearningModerationTab() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("content_reports").select("*").order("created_at", { ascending: false }).limit(100);
+    const data = await listContentReports(100);
     setRows(data ?? []); setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const resolve = async (id: string, status: "dismissed" | "removed", scope?: string, scope_id?: string) => {
-    await supabase.from("content_reports").update({ status, resolved_at: new Date().toISOString() }).eq("id", id);
+    await resolveContentReport(id, status);
     if (status === "removed" && scope && scope_id) {
-      const table = ({ post: "discussion_posts", thread: "discussion_threads", question: "lesson_questions", answer: "lesson_answers" } as any)[scope];
-      if (table) await supabase.from(table).update({ is_hidden: true }).eq("id", scope_id);
+      const table = SCOPE_TO_TABLE[scope];
+      if (table) await hideModerationTarget(table, scope_id);
     }
     toast({ title: status === "removed" ? "Hidden + report closed" : "Report dismissed" });
     load();
   };
+
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>;
 

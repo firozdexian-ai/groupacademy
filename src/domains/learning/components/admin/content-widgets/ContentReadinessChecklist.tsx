@@ -7,7 +7,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, Zap, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { setContentPublished } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
+
 import {
   computeChecks,
   readinessSummary,
@@ -69,10 +71,15 @@ export default function ContentReadinessChecklist({
 
   const forcePublish = async () => {
     setBusy(true);
-    const { error } = await supabase.from("content").update({ is_published: true }).eq("id", contentId);
+    try {
+      await setContentPublished(contentId, true);
+    } catch (err: any) {
+      setBusy(false);
+      return toast.error(err?.message ?? "Force publish failed");
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
     toast.success("Force-published. Talent app may still hide it until is_ready = true.");
+
     onRecomputed?.();
   };
 
