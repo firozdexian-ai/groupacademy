@@ -570,3 +570,13 @@ export async function listTalentNamesByIds(ids: string[]): Promise<Array<{ id: s
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.4: mini profile for composer ────────────────────────────────
+export async function getTalentMiniProfileByUser(userId: string) {
+  const { data } = await supabase
+    .from("talents")
+    .select("id, full_name, profile_photo_url, custom_profession")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as any) ?? null;
+}

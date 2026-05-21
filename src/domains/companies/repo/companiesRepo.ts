@@ -277,3 +277,96 @@ export async function getActiveAdminCompanyMembership(
   if (error) throw error;
   return (data as any) ?? null;
 }
+
+// ─── Phase 10j.4: Gro10x feed/CRM/offerings ────────────────────────────────
+export async function getActiveCompanyMembershipWithName(
+  userId: string,
+): Promise<{ company_id: string; role: string; companies: { name: string | null } | null } | null> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("company_id, role, companies:company_id (name)")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function listPendingCompanyPostDrafts(companyId: string, limit = 10) {
+  const { data } = await supabase
+    .from("company_post_drafts")
+    .select("id, text_content, tags, agent_key, created_at")
+    .eq("company_id", companyId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as any[];
+}
+
+// CRM — leads
+export async function listCompanyLeads(companyId: string) {
+  const { data } = await supabase
+    .from("company_leads")
+    .select(
+      "id,name,email,phone,company_name,title,source,stage,value_usd,notes,next_step,offering_id,created_at",
+    )
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as any[];
+}
+
+export async function insertCompanyLead(payload: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("company_leads").insert(payload as any);
+  if (error) throw error;
+}
+
+export async function updateCompanyLead(id: string, patch: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("company_leads").update(patch as any).eq("id", id);
+  if (error) throw error;
+}
+
+export async function listCompanyLeadActivities(leadId: string) {
+  const { data } = await supabase
+    .from("company_lead_activities")
+    .select("id, activity_type, body, created_at")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as any[];
+}
+
+export async function insertCompanyLeadActivity(payload: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("company_lead_activities").insert(payload as any);
+  if (error) throw error;
+}
+
+// Offerings
+export async function listCompanyOfferings(companyId: string, activeOnly = false) {
+  let q = supabase
+    .from("company_offerings")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (activeOnly) q = q.eq("is_active", true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function upsertCompanyOffering(
+  payload: Record<string, any> & { id?: string },
+): Promise<void> {
+  if (payload.id) {
+    const { error } = await supabase.from("company_offerings").update(payload as any).eq("id", payload.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("company_offerings").insert(payload as any);
+    if (error) throw error;
+  }
+}
+
+export async function deleteCompanyOffering(id: string): Promise<void> {
+  const { error } = await supabase.from("company_offerings").delete().eq("id", id);
+  if (error) throw error;
+}

@@ -108,3 +108,27 @@ export async function upsertFeedInteraction(input: {
     interaction_type: input.interactionType,
   });
 }
+
+// ─── Phase 10j.4: audience-aware feed list ─────────────────────────────────
+export async function listAudienceFeedPosts(opts: {
+  audience: "network" | "internal";
+  companyId?: string | null;
+  limit?: number;
+}) {
+  let query = supabase
+    .from("feed_posts")
+    .select(
+      "id, author_name, author_avatar, author_title, text_content, tags, created_at, author_type, author_company_id",
+    )
+    .eq("is_active", true)
+    .eq("status", "published")
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 30);
+  if (opts.audience === "internal" && opts.companyId) {
+    query = query.eq("audience", "internal").eq("author_company_id", opts.companyId);
+  } else {
+    query = query.eq("audience", "network");
+  }
+  const { data } = await query;
+  return (data ?? []) as any[];
+}

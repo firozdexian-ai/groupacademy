@@ -195,3 +195,9 @@ export async function listActiveCurrencyRates() {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.4: manual payment requests ──────────────────────────────────
+export async function insertManualPaymentRequest(payload: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("manual_payment_requests").insert(payload as any);
+  if (error) throw error;
+}
