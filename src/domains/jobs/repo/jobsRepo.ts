@@ -468,3 +468,8 @@ export async function deleteGraphRow(table: string, id: string): Promise<void> {
   const { error } = await supabase.from(table as any).delete().eq("id", id);
   if (error) throw error;
 }
+
+export async function updateJobApplication(id: string, patch: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("job_applications").update(patch).eq("id", id);
+  if (error) throw error;
+}
