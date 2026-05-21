@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getGigsHubDashboard } from "@/domains/gigs/repo/gigsRepo";
 
 /**
  * GroUp Academy: Gigs & Marketplace Command Center (V5.6.0)
