@@ -94,12 +94,7 @@ export function IndustriesTab() {
     if (!renameTo.trim() || renameTo === renameFrom) return toast.error("Logic Fault: Invalid identifier");
     setIsRenaming(true);
     try {
-      const { error } = await supabase
-        .from("companies")
-        .update({ industry: renameTo.trim() })
-        .eq("industry", renameFrom);
-
-      if (error) throw error;
+      await renameCompanyIndustry(renameFrom, renameTo.trim());
       toast.success(`Node Recalibrated: "${renameFrom}" → "${renameTo}"`);
       setRenameDialogOpen(false);
       loadRegistry();
