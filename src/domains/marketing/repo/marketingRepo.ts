@@ -290,3 +290,37 @@ export async function insertCareerAssessment(payload: Record<string, unknown>): 
   const { error } = await supabase.from("career_assessments").insert(payload as any);
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function listActiveBannersForPlacement(placement: string) {
+  const { data, error } = await supabase
+    .from("banners")
+    .select("id, image_url, media_type, media_url, poster_url, link_url, link_content_id, cta_label, focal_point, display_order, start_at, end_at")
+    .eq("is_active", true)
+    .eq("placement", placement)
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listServiceHistoryByTalent(talentId: string) {
+  const [assessmentsRes, interviewsRes, salaryRes, portfolioRes] = await Promise.all([
+    supabase.from("career_assessments").select("id, percentage, readiness_level, created_at").eq("talent_id", talentId).order("created_at", { ascending: false }),
+    supabase.from("mock_interviews").select("id, job_title, status, selection_percentage, created_at").eq("talent_id", talentId).order("created_at", { ascending: false }),
+    supabase.from("salary_analyses").select("id, job_title, status, created_at").eq("talent_id", talentId).order("created_at", { ascending: false }),
+    supabase.from("portfolio_requests").select("id, status, created_at").eq("talent_id", talentId).order("created_at", { ascending: false }),
+  ]);
+  if (assessmentsRes.error) throw assessmentsRes.error;
+  if (interviewsRes.error) throw interviewsRes.error;
+  if (salaryRes.error) throw salaryRes.error;
+  if (portfolioRes.error) throw portfolioRes.error;
+  return {
+    assessments: (assessmentsRes.data ?? []) as any[],
+    interviews: (interviewsRes.data ?? []) as any[],
+    salary: (salaryRes.data ?? []) as any[],
+    portfolio: (portfolioRes.data ?? []) as any[],
+  };
+}

@@ -248,3 +248,96 @@ export async function listUserRolesSafe(userId: string): Promise<Array<{ role: s
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   return (data ?? []) as Array<{ role: string }>;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions — onboarding & RBAC lookups
+// -----------------------------------------------------------------------------
+
+import { supabase as _supabaseProfile } from "@/integrations/supabase/client";
+
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  const { data, error } = await _supabaseProfile
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+
+export async function listActiveCountries() {
+  const { data, error } = await _supabaseProfile
+    .from("gtm_countries")
+    .select("id, iso2, name")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; iso2: string; name: string }>;
+}
+
+export async function listActiveCareerStages() {
+  const { data, error } = await _supabaseProfile
+    .from("career_stages")
+    .select("id, name, slug, academy_id")
+    .eq("is_active", true)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; slug: string; academy_id: string | null }>;
+}
+
+export async function listActiveProfessionCategoriesFull() {
+  const { data, error } = await _supabaseProfile
+    .from("profession_categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+
+export async function listProfessionalRolesByCategory(categoryId: string) {
+  const { data, error } = await _supabaseProfile
+    .from("professional_roles")
+    .select("id, name, profession_category_id")
+    .eq("profession_category_id", categoryId)
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; profession_category_id: string }>;
+}
+
+export async function searchOnboardingInstitutions(opts: { query: string; countryName?: string | null }) {
+  const base = () =>
+    _supabaseProfile
+      .from("institutions")
+      .select("id, name, country")
+      .eq("type", "university")
+      .order("name")
+      .limit(30);
+  let q = base();
+  if (opts.query) q = q.ilike("name", `%${opts.query}%`);
+  if (opts.countryName) q = q.ilike("country", opts.countryName);
+  const { data, error } = await q;
+  if (error) throw error;
+  if ((data ?? []).length === 0 && opts.countryName) {
+    let global = base();
+    if (opts.query) global = global.ilike("name", `%${opts.query}%`);
+    const { data: globalData, error: gErr } = await global;
+    if (gErr) throw gErr;
+    return (globalData ?? []) as Array<{ id: string; name: string; country: string | null }>;
+  }
+  return (data ?? []) as Array<{ id: string; name: string; country: string | null }>;
+}
+
+export async function listActiveSchools(academyId?: string | null) {
+  let q = _supabaseProfile
+    .from("schools")
+    .select("id, name, slug, description, icon, academy_id")
+    .eq("is_active", true)
+    .order("display_order");
+  if (academyId) q = q.eq("academy_id", academyId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; slug: string; description: string | null; icon: string | null; academy_id: string | null }>;
+}

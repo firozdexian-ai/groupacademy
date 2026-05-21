@@ -182,3 +182,16 @@ export async function sumReferralBonusCredits(talentId: string): Promise<number>
   if (error) throw error;
   return (data ?? []).reduce((sum: number, row: any) => sum + Number(row?.amount ?? 0), 0);
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function listActiveCurrencyRates() {
+  const { data, error } = await supabase
+    .from("currency_rates")
+    .select("code, symbol, name, usd_rate, country_codes")
+    .order("code");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
