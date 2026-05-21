@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getStudioBundle,
+  updateAiAgent,
+  insertAiAgent,
+  deactivateAiAgent,
+  deleteAgentKnowledgeSource,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
