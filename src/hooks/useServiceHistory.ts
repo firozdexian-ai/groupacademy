@@ -42,46 +42,16 @@ export function useServiceHistory(talentId?: string | null): UseServiceHistoryRe
     enabled: !!talentId,
     staleTime: 60 * 1000, // 1-minute structural cache baseline to defend database thresholds
     queryFn: async (): Promise<ServiceHistoryItem[]> => {
-      // HUD: ATOMIC_MULTI_NODE_REGISTRY_SELECT
-      const [assessmentsRes, interviewsRes, salaryRes, portfolioRes] = await Promise.all([
-        supabase
-          .from("career_assessments")
-          .select("id, percentage, readiness_level, created_at")
-          .eq("talent_id", talentId!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("mock_interviews")
-          .select("id, job_title, status, selection_percentage, created_at")
-          .eq("talent_id", talentId!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("salary_analyses")
-          .select("id, job_title, status, created_at")
-          .eq("talent_id", talentId!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("portfolio_requests")
-          .select("id, status, created_at")
-          .eq("talent_id", talentId!)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      // Handle individual query error captures defensively
-      if (assessmentsRes.error) {
-        console.error("[Digital Workforce] FAULT: career_assessments channel dropped.", assessmentsRes.error);
-        throw assessmentsRes.error;
-      }
-      if (interviewsRes.error) {
-        console.error("[Digital Workforce] FAULT: mock_interviews channel dropped.", interviewsRes.error);
-        throw interviewsRes.error;
-      }
-      if (salaryRes.error) {
-        console.error("[Digital Workforce] FAULT: salary_analyses channel dropped.", salaryRes.error);
-        throw salaryRes.error;
-      }
-      if (portfolioRes.error) {
-        console.error("[Digital Workforce] FAULT: portfolio_requests channel dropped.", portfolioRes.error);
-        throw portfolioRes.error;
+      let assessments: any[] = [], interviews: any[] = [], salary: any[] = [], portfolio: any[] = [];
+      try {
+        const bundle = await listServiceHistoryByTalent(talentId!);
+        assessments = bundle.assessments;
+        interviews = bundle.interviews;
+        salary = bundle.salary;
+        portfolio = bundle.portfolio;
+      } catch (error) {
+        console.error("[Digital Workforce] FAULT: service history channel dropped.", error);
+        throw error;
       }
 
       const aggregatedItems: ServiceHistoryItem[] = [];
