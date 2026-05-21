@@ -823,14 +823,3 @@ export async function getEmployerPipelineFull(args: {
   if (error) throw error;
   return (data ?? {}) as any;
 }
-
-export async function updateApplicationStatus(
-  applicationId: string,
-  status: string,
-): Promise<void> {
-  const { error } = await supabase
-    .from("job_applications")
-    .update({ application_status: status })
-    .eq("id", applicationId);
-  if (error) throw error;
-}
