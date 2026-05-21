@@ -51,16 +51,13 @@ export function useApplicationHireState(applicationId: string | undefined) {
     enabled: !!applicationId,
     staleTime: 1000 * 60, // 1-minute consistency for active scheduling
     queryFn: async (): Promise<HireState> => {
-      // HUD: EXECUTING_RPC_HIRE_STATE_SYNC
-      const { data, error } = await supabase.rpc("get_application_hire_state", {
-        p_application_id: applicationId,
-      });
-
-      if (error) {
+      try {
+        const data = await getApplicationHireState(applicationId!);
+        return (data as any) ?? { interview: null, offer: null };
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_application_hire_state query failed.", error);
         throw error;
       }
-      return (data as any) ?? { interview: null, offer: null };
     },
   });
 }
