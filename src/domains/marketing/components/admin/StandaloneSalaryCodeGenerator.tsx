@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertSalaryAnalysisAccessCode } from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,14 +50,13 @@ export function StandaloneSalaryCodeGenerator() {
         const code = generateCode();
 
         // Wrap query in native async for standard Promise behavior
-        const executeInsertion = async () => {
-          return await supabase.from("salary_analysis_access_codes").insert({
+        const executeInsertion = async () =>
+          insertSalaryAnalysisAccessCode({
             code,
             email: email.toLowerCase().trim(),
-            created_by: user?.id,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            createdBy: user?.id,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           });
-        };
 
         const result = (await withTimeout(
           executeInsertion(),

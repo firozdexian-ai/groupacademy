@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toggleAiAgentActive } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,8 +104,7 @@ export function AIAgentsManager() {
 
   const handleToggleActive = async (agent: AIAgent) => {
     try {
-      const { error } = await supabase.from("ai_agents").update({ is_active: !agent.is_active }).eq("id", agent.id);
-      if (error) throw error;
+      await toggleAiAgentActive(agent.id, !agent.is_active);
       setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, is_active: !a.is_active } : a)));
       toast.success(`Node ${agent.name} status updated.`);
     } catch (error: any) {

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPayoutRequestsByStatus,
+  markPayoutPaid,
+  updatePayoutRequestStatus,
+  insertNotification,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,13 +42,12 @@ export function AgentPayoutsManager() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from("agent_payout_requests")
-      .select("*, talent:talents(full_name,email)")
-      .eq("status", tab)
-      .order("created_at", { ascending: false });
-    setRows((data as PayoutRow[]) ?? []);
-    setLoading(false);
+    try {
+      const data = await listPayoutRequestsByStatus(tab);
+      setRows((data as PayoutRow[]) ?? []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // CTO FIX: Pass the entire row so we can trigger targeted notifications
@@ -51,18 +55,13 @@ export function AgentPayoutsManager() {
     setBusyId(row.id);
     try {
       if (status === "paid") {
-        const { error } = await supabase.rpc("mark_payout_paid", { p_request_id: row.id, p_notes: notes ?? null });
-        if (error) throw error;
+        await markPayoutPaid(row.id, notes ?? null);
       } else {
-        const { error } = await supabase
-          .from("agent_payout_requests")
-          .update({ status, admin_notes: notes ?? null, processed_at: new Date().toISOString() })
-          .eq("id", row.id);
-        if (error) throw error;
+        await updatePayoutRequestStatus(row.id, status, notes ?? null);
       }
 
       // Dispatch notification to the creator
-      await supabase.from("notifications").insert({
+      await insertNotification({
         talent_id: row.talent_id,
         title: `Payout ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         message:

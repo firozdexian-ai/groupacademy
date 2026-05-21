@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { insertSalaryAnalysisAccessCode } from "@/domains/marketing/repo/marketingRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { toast } from "sonner";
@@ -59,14 +60,13 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
       expiresAt.setDate(expiresAt.getDate() + 30);
 
       // 2. Wrap PostgrestBuilder in a native async function for standard Promise return
-      const executeInsertion = async () => {
-        return await supabase.from("salary_analysis_access_codes").insert({
+      const executeInsertion = async () =>
+        insertSalaryAnalysisAccessCode({
           code,
           email: leadEmail.toLowerCase().trim(),
-          created_by: user.id,
-          expires_at: expiresAt.toISOString(),
+          createdBy: user.id,
+          expiresAt: expiresAt.toISOString(),
         });
-      };
 
       // 3. Monitor Execution via Platform Timeout Protocol
       const { error } = (await withTimeout(executeInsertion(), TIMEOUTS.DEFAULT, "Code generation timed out")) as {

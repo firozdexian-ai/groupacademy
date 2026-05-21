@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertMockInterviewAccessCode } from "@/domains/marketing/repo/marketingRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
@@ -56,15 +57,14 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
 
       const code = generateCode();
 
-      // 2. Wrap PostgrestBuilder in a native async function to return a full Promise
-      const executeInsertion = async () => {
-        return await supabase.from("mock_interview_access_codes").insert({
+      // 2. Wrap repo call in a native async function to return a full Promise
+      const executeInsertion = async () =>
+        insertMockInterviewAccessCode({
           code,
           email: leadEmail.toLowerCase().trim(),
-          created_by: user.id,
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          createdBy: user.id,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         });
-      };
 
       // 3. Monitor Execution via Platform Timeout Protocol
       const { error } = (await withTimeout(executeInsertion(), TIMEOUTS.DEFAULT, "Code insertion timed out")) as {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listMockInterviewLeads } from "@/domains/marketing/repo/marketingRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
@@ -85,12 +85,9 @@ export function MockInterviewLeadsManager() {
     setLoading(true);
     setError(null);
     try {
-      // FIXED: Wrap PostgrestBuilder in a native async function to ensure native Promise return [cite: 33, 43]
-      const fetchLeads = async () => {
-        return await supabase.from("mock_interviews").select("*").order("created_at", { ascending: false });
-      };
+      // Wrap repo call so withTimeout receives a native Promise
+      const fetchLeads = async () => ({ data: await listMockInterviewLeads(), error: null as any });
 
-      // FIXED: Destructure from the result of withTimeout with a specific cast [cite: 36, 43]
       const result = (await withTimeout(fetchLeads(), TIMEOUTS.DEFAULT, "Loading mock interview leads timed out")) as {
         data: MockInterviewLead[] | null;
         error: any;

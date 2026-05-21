@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateAgentChatSession,
+  getAgentChatSession,
+  deductCredits,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError } from "@/lib/aiErrorHandler";
@@ -66,7 +71,7 @@ export function useAgentChat(): UseAgentChatReturn {
         updatePayload.credits_charged = (Number(session.credits_charged) || 0) + additionalCredits;
       }
 
-      await supabase.from("agent_chat_sessions").update(updatePayload).eq("id", session.id);
+      await updateAgentChatSession(session.id, updatePayload);
     },
     [session],
   );
@@ -327,7 +332,7 @@ export function useAgentChat(): UseAgentChatReturn {
 
   const endSession = useCallback(async () => {
     if (!session) return;
-    await supabase.from("agent_chat_sessions").update({ is_active: false }).eq("id", session.id);
+    await updateAgentChatSession(session.id, { is_active: false });
     setSession((prev) => (prev ? { ...prev, is_active: false } : null));
   }, [session]);
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listAgentsForInsights, listAgentCreditEvents } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -76,19 +76,12 @@ export function AgentInsights() {
   async function load() {
     setLoading(true);
     const since = new Date(Date.now() - days * 86400000).toISOString();
-    const [agentsRes, eventsRes] = await Promise.all([
-      supabase.from("ai_agents").select("id,name,agent_key,active_prompt_variant,prompt_variants"),
-      supabase
-        .from("agent_credit_events")
-        .select(
-          "id,agent_id,thread_id,subject_kind,event_kind,credits,llm_cost_usd,tokens_in,tokens_out,prompt_variant,created_at",
-        )
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(10000), // CTO Patch: Expanded limit for higher volume telemetry
+    const [agentsList, eventsList] = await Promise.all([
+      listAgentsForInsights(),
+      listAgentCreditEvents(since, 10000),
     ]);
-    setAgents((agentsRes.data as AgentRow[]) ?? []);
-    setEvents((eventsRes.data as CreditEvent[]) ?? []);
+    setAgents((agentsList as AgentRow[]) ?? []);
+    setEvents((eventsList as CreditEvent[]) ?? []);
     setLoading(false);
   }
 

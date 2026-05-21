@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { updateAiAgent, insertNotification } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,12 +74,11 @@ export function AgentMarketplaceReview() {
     if (status === "approved") updates.visibility = "marketplace";
 
     try {
-      const { error } = await supabase.from("ai_agents").update(updates).eq("id", agent.id);
-      if (error) throw error;
+      await updateAiAgent(agent.id, updates);
 
       // CTO FIX: Dispatch notification to the agent creator to close the loop
       if (agent.owner_id && agent.owner_kind === "talent") {
-        await supabase.from("notifications").insert({
+        await insertNotification({
           talent_id: agent.owner_id,
           title: status === "approved" ? "Agent Approved! 🚀" : "Agent Review Update",
           message:
@@ -86,7 +86,7 @@ export function AgentMarketplaceReview() {
               ? `Your AI Agent "${agent.name}" has been approved and is now live on the marketplace!`
               : `Your AI Agent "${agent.name}" requires attention. Review admin notes.`,
           type: "system",
-          link: "/app/studio", // Directs them back to the builder
+          link: "/app/studio",
         });
       }
 

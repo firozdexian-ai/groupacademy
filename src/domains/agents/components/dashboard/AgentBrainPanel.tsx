@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { updateAiAgent } from "@/domains/agents/repo/agentsRepo";
 import { agentBlueprint } from "@/domains/agents/api/agentsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,8 +126,11 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
   }
 
   async function setActive(key: string) {
-    const { error } = await supabase.from("ai_agents").update({ active_prompt_variant: key }).eq("id", agent.id);
-    if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    try {
+      await updateAiAgent(agent.id, { active_prompt_variant: key });
+    } catch (error: any) {
+      return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    }
     setActiveVariant(key);
     toast({ title: `Variant ${key} is now live` });
     onSaved?.();
@@ -144,8 +148,11 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
       return toast({ title: "Prompt too short" });
     }
     const next = { ...(agent.prompt_variants || {}), [key]: newVariantPrompt };
-    const { error } = await supabase.from("ai_agents").update({ prompt_variants: next }).eq("id", agent.id);
-    if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    try {
+      await updateAiAgent(agent.id, { prompt_variants: next });
+    } catch (error: any) {
+      return toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    }
     setNewVariantKey("");
     setNewVariantPrompt("");
     toast({ title: `Variant ${key} added` });
@@ -158,8 +165,11 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
       return toast({ title: "Variant is live", description: "Switch to another variant first." });
     const next = { ...(agent.prompt_variants || {}) };
     delete next[key];
-    const { error } = await supabase.from("ai_agents").update({ prompt_variants: next }).eq("id", agent.id);
-    if (error) return toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    try {
+      await updateAiAgent(agent.id, { prompt_variants: next });
+    } catch (error: any) {
+      return toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    }
     onSaved?.();
   }
 

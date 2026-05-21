@@ -4,6 +4,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getTriggersBundle,
+  listRecentAgentOutreach,
+  insertAgentTrigger,
+  toggleAgentTrigger,
+  deleteAgentTrigger,
+  updateHeadlessPoolBalance,
+  updateHeadlessPoolMonthlyCap,
+} from "@/domains/agents/repo/agentsRepo";
 import { agentEventDispatcher } from "@/domains/agents/api/agentsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,21 +118,15 @@ export function AgentTriggers() {
 
   async function load() {
     setLoading(true);
-    const [a, t, p, o] = await Promise.all([
-      supabase.from("ai_agents").select("id, name, agent_key").eq("is_active", true).order("name"),
-      supabase.from("agent_triggers").select("*").order("created_at", { ascending: false }),
-      supabase.from("headless_pool").select("*").eq("id", 1).maybeSingle(),
-      supabase
-        .from("agent_outreach")
-        .select("id, agent_id, recipient_kind, channel, status, body, credits_charged, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20),
+    const [{ agents: agentRows, triggers: triggerRows, pool: poolRow }, outreachRows] = await Promise.all([
+      getTriggersBundle(),
+      listRecentAgentOutreach(20),
     ]);
-    setAgents((a.data || []) as Agent[]);
-    setTriggers((t.data || []) as Trigger[]);
-    setPool((p.data as Pool) || null);
-    setOutreach((o.data || []) as OutreachRow[]);
-    setCapAmount(p.data ? String((p.data as Pool).monthly_cap) : "");
+    setAgents((agentRows || []) as Agent[]);
+    setTriggers((triggerRows || []) as Trigger[]);
+    setPool((poolRow as Pool) || null);
+    setOutreach((outreachRows || []) as OutreachRow[]);
+    setCapAmount(poolRow ? String((poolRow as Pool).monthly_cap) : "");
     setLoading(false);
   }
 
@@ -140,16 +143,17 @@ export function AgentTriggers() {
       });
       return;
     }
-    const { error } = await supabase.from("agent_triggers").insert({
-      agent_id: draft.agent_id,
-      event_kind: draft.event_kind,
-      recipient_strategy: draft.recipient_strategy || "subject",
-      template: draft.template,
-      is_active: draft.is_active ?? true,
-      channel: draft.channel && draft.channel !== "auto" ? draft.channel : null,
-      cooldown_minutes: Number(draft.cooldown_minutes ?? 1440),
-    });
-    if (error) {
+    try {
+      await insertAgentTrigger({
+        agent_id: draft.agent_id,
+        event_kind: draft.event_kind,
+        recipient_strategy: draft.recipient_strategy || "subject",
+        template: draft.template,
+        is_active: draft.is_active ?? true,
+        channel: draft.channel && draft.channel !== "auto" ? draft.channel : null,
+        cooldown_minutes: Number(draft.cooldown_minutes ?? 1440),
+      });
+    } catch (error: any) {
       toast({ title: "Protocol Rejection", description: error.message, variant: "destructive" });
       return;
     }
@@ -168,15 +172,21 @@ export function AgentTriggers() {
   }
 
   async function toggleTrigger(t: Trigger) {
-    const { error } = await supabase.from("agent_triggers").update({ is_active: !t.is_active }).eq("id", t.id);
-    if (error) return toast({ title: "Protocol Rejection", description: error.message, variant: "destructive" });
+    try {
+      await toggleAgentTrigger(t.id, !t.is_active);
+    } catch (error: any) {
+      return toast({ title: "Protocol Rejection", description: error.message, variant: "destructive" });
+    }
     load();
   }
 
   async function deleteTrigger(id: string) {
     if (!confirm("Purge this trigger node?")) return;
-    const { error } = await supabase.from("agent_triggers").delete().eq("id", id);
-    if (error) return toast({ title: "Purge Failed", description: error.message, variant: "destructive" });
+    try {
+      await deleteAgentTrigger(id);
+    } catch (error: any) {
+      return toast({ title: "Purge Failed", description: error.message, variant: "destructive" });
+    }
     load();
   }
 
@@ -184,8 +194,11 @@ export function AgentTriggers() {
     const amt = Number(topUpAmount);
     if (!Number.isFinite(amt) || amt <= 0) return;
     const newBalance = (pool?.balance || 0) + amt;
-    const { error } = await supabase.from("headless_pool").update({ balance: newBalance }).eq("id", 1);
-    if (error) return toast({ title: "Transaction Rejection", description: error.message, variant: "destructive" });
+    try {
+      await updateHeadlessPoolBalance(newBalance);
+    } catch (error: any) {
+      return toast({ title: "Transaction Rejection", description: error.message, variant: "destructive" });
+    }
     toast({ title: `Allocated ${amt} CR to Headless Pool` });
     load();
   }
@@ -193,8 +206,11 @@ export function AgentTriggers() {
   async function updateCap() {
     const cap = Number(capAmount);
     if (!Number.isFinite(cap) || cap < 0) return;
-    const { error } = await supabase.from("headless_pool").update({ monthly_cap: cap }).eq("id", 1);
-    if (error) return toast({ title: "Transaction Rejection", description: error.message, variant: "destructive" });
+    try {
+      await updateHeadlessPoolMonthlyCap(cap);
+    } catch (error: any) {
+      return toast({ title: "Transaction Rejection", description: error.message, variant: "destructive" });
+    }
     toast({ title: "Burn Cap Synchronized" });
     load();
   }

@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getStudioBundle,
+  updateAiAgent,
+  insertAiAgent,
+  deactivateAiAgent,
+  deleteAgentKnowledgeSource,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,10 +110,7 @@ export function AgentStudio() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: a }, { data: t }] = await Promise.all([
-      supabase.from("ai_agents").select("*").order("display_order", { ascending: true }),
-      supabase.from("agent_tools").select("*").order("category"),
-    ]);
+    const { agents: a, tools: t } = await getStudioBundle();
     setAgents((a as any) ?? []);
     setTools((t as any) ?? []);
     setLoading(false);
@@ -115,12 +119,14 @@ export function AgentStudio() {
   const handleSave = async (patch: Partial<AgentRow>) => {
     if (!selected) return;
     setSaving(true);
-    const { error } = await supabase.from("ai_agents").update(patch).eq("id", selected.id);
-    setSaving(false);
-    if (error) {
+    try {
+      await updateAiAgent(selected.id, patch);
+    } catch (error: any) {
+      setSaving(false);
       toast.error(error.message);
       return;
     }
+    setSaving(false);
     toast.success("Protocol Synced: Agent updated");
     await load();
     setSelected((s) => (s ? { ...s, ...patch } : s));
@@ -140,14 +146,15 @@ export function AgentStudio() {
       toast.error("Logic Fault: agent_key and name required");
       return;
     }
-    const { error } = await supabase.from("ai_agents").insert({
-      ...form,
-      is_active: true,
-      owner_kind: "platform",
-      allowed_tools: [],
-      canvas_mode: "chat",
-    } as any);
-    if (error) {
+    try {
+      await insertAiAgent({
+        ...form,
+        is_active: true,
+        owner_kind: "platform",
+        allowed_tools: [],
+        canvas_mode: "chat",
+      });
+    } catch (error: any) {
       toast.error(error.message);
       return;
     }
@@ -158,12 +165,13 @@ export function AgentStudio() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This will archive the agent. Linked threads remain intact.")) return;
-    const { error } = await supabase.from("ai_agents").update({ is_active: false }).eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deactivateAiAgent(id);
       toast.success("Agent node archived");
       await load();
       setSelected(null);
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -718,11 +726,12 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("agent_knowledge_sources").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteAgentKnowledgeSource(id);
       toast.success("Source artifact purged");
       await load();
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
