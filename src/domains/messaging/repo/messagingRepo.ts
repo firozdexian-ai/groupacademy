@@ -91,14 +91,14 @@ export async function listGro10xThreads(userId: string, companyId: string): Prom
 }
 
 export async function insertGro10xThreads(rows: Array<Record<string, any>>): Promise<any[]> {
-  const { data } = await supabase.from("gro10x_agent_threads").insert(rows).select("*");
+  const { data } = await supabase.from("gro10x_agent_threads").insert(rows as any).select("*");
   return (data ?? []) as any[];
 }
 
 export async function upsertGro10xThread(payload: Record<string, any>): Promise<{ data: any; error: any }> {
   const { data, error } = await supabase
     .from("gro10x_agent_threads")
-    .upsert(payload, { onConflict: "user_id,company_id,agent_key" })
+    .upsert(payload as any, { onConflict: "user_id,company_id,agent_key" })
     .select("*")
     .single();
   return { data, error };
@@ -107,7 +107,7 @@ export async function upsertGro10xThread(payload: Record<string, any>): Promise<
 export async function bumpGro10xThread(payload: Record<string, any>): Promise<void> {
   await supabase
     .from("gro10x_agent_threads")
-    .upsert(payload, { onConflict: "user_id,company_id,agent_key" });
+    .upsert(payload as any, { onConflict: "user_id,company_id,agent_key" });
 }
 
 export async function markGro10xThreadRead(

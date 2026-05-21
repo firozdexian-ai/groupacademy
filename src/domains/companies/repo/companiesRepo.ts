@@ -382,19 +382,6 @@ export async function listAllCompaniesWithSlug(): Promise<Array<{ id: string; na
 }
 
 // ─── Phase 10j.5g: gro10x active-company helpers ──────────────────────────
-export async function getActiveCompanyMembership(
-  userId: string,
-): Promise<{ company_id: string; role: string | null } | null> {
-  const { data } = await supabase
-    .from("company_members")
-    .select("company_id, role")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return (data as any) ?? null;
-}
 
 export async function getActiveCompanyIdForUser(userId: string): Promise<string | null> {
   const { data } = await supabase
