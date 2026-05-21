@@ -244,7 +244,7 @@ export async function createAgentChatSession(payload: {
 }): Promise<string | null> {
   const { data, error } = await supabase
     .from("agent_chat_sessions")
-    .insert(payload)
+    .insert(payload as any)
     .select("id")
     .maybeSingle();
   if (error) throw error;
