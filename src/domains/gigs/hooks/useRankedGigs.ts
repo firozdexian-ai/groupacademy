@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getRankedGigsForTalent } from "@/domains/gigs/repo/gigsRepo";
 
 /**
  * GroUp Academy: Keyset Gig Feed Aggregator (V5.6.0)
