@@ -276,3 +276,51 @@ export async function updateTalentJobPreferences(
     .eq("id", talentId);
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.1 — shared infra helpers
+// -----------------------------------------------------------------------------
+
+/** Lightweight registry ping used to warm up the PostgREST connection. */
+export function pingProfessionCategories(signal?: AbortSignal) {
+  let q = supabase.from("profession_categories").select("id").limit(1);
+  if (signal) q = (q as any).abortSignal(signal);
+  return q;
+}
+
+/** Email + display name lookup used by transactional email dispatch. */
+export async function getTalentContact(talentId: string): Promise<{ email: string | null; full_name: string | null } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("email, full_name")
+    .eq("id", talentId)
+    .single();
+  if (error) return null;
+  return data as { email: string | null; full_name: string | null } | null;
+}
+
+/** Onboarding state fetched by auth user id (pre-auth stash finalization). */
+export async function getTalentOnboardingStateByUser(userId: string) {
+  const { data } = await supabase
+    .from("talents")
+    .select("country_id, career_stage_id, institution_id, institution, school_id, onboarding_completed_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data as
+    | {
+        country_id: string | null;
+        career_stage_id: string | null;
+        institution_id: string | null;
+        institution: string | null;
+        school_id: string | null;
+        onboarding_completed_at: string | null;
+      }
+    | null;
+}
+
+/** Patch talents row by auth user id (used by finalizePendingOnboarding). */
+export async function patchTalentByUser(userId: string, patch: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from("talents").update(patch).eq("user_id", userId);
+  if (error) throw error;
+}
+
