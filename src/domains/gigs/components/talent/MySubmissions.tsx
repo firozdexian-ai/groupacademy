@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getMyGigSubmissions } from "@/domains/gigs/repo/gigsRepo";
+import { getJobShareClickCounts } from "@/domains/jobs/repo/jobsRepo";
+import { getTalentRefCode } from "@/domains/talent/repo/talentRepo";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -74,18 +76,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
     enabled: !!talentId,
     staleTime: 1000 * 60 * 3,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gig_submissions")
-        .select(
-          "id, created_at, status, submission_data, ai_score, ai_feedback, admin_notes, credits_awarded, gigs(title, credit_reward, category)",
-        )
-        .eq("talent_id", talentId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getMyGigSubmissions(talentId),
   });
 
   // 2. Referral Parameters Synchronization Query Node
@@ -93,12 +84,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
     queryKey: ["talent-ref-code", talentId],
     enabled: !!talentId,
     staleTime: 1000 * 60 * 10,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("talents").select("ref_code").eq("id", talentId).single();
-
-      if (error) throw error;
-      return data?.ref_code;
-    },
+    queryFn: () => getTalentRefCode(talentId),
   });
 
   // TELEMETRY Matrix: Extract job codes safely to execute atomic batch count aggregation
@@ -114,25 +100,8 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
     enabled: jobShareIds.length > 0 && !!talentId,
     refetchInterval: 30000, // Sync loop intervals preserved safely
     queryFn: async () => {
-      const countsAccumulator: Record<string, number> = {};
-
       try {
-        // Fetch raw metrics in a single pass using relational .in() matching criteria
-        const { data: bulkClicks, error: clickError } = await supabase
-          .from("job_share_clicks")
-          .select("job_id")
-          .eq("talent_id", talentId)
-          .in("job_id", jobShareIds);
-
-        if (clickError) throw clickError;
-
-        (bulkClicks || []).forEach((row: any) => {
-          if (row?.job_id) {
-            countsAccumulator[row.job_id] = (countsAccumulator[row.job_id] || 0) + 1;
-          }
-        });
-
-        return countsAccumulator;
+        return await getJobShareClickCounts(talentId, jobShareIds);
       } catch (loopErr) {
         trackError(loopErr, {
           component: "MySubmissions",

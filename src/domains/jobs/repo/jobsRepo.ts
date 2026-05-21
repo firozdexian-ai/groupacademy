@@ -62,3 +62,35 @@ export async function markApplicationMessagesRead(input: {
     .is("read_at", null);
   if (error) throw error;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Job sharing helpers (used by gigs/JobSharing flow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getActiveJobsForSharing() {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, title, company_name, location")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getJobShareClickCounts(
+  talentId: string,
+  jobIds: string[],
+): Promise<Record<string, number>> {
+  if (jobIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("job_share_clicks")
+    .select("job_id")
+    .eq("talent_id", talentId)
+    .in("job_id", jobIds);
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  (data ?? []).forEach((row: any) => {
+    if (row?.job_id) counts[row.job_id] = (counts[row.job_id] || 0) + 1;
+  });
+  return counts;
+}

@@ -1,66 +1,137 @@
-# Course to a Stable, Publishable Platform
+# Codebase Reorganization — Comprehensive Audit & Completion Plan
 
-## Where we are
+## What "done" will look like
 
-The Phase 10 work (domain repository extraction) is **~60% done by domain, but it's what's destabilizing the app right now**. Five domains are clean (Learning, Talent, Profile, Companies, Jobs, Gigs partial), but **147 files across 20+ areas still call `supabase.from()` directly**, and during the codemod sweeps some imports and prop contracts drifted — which is why you're seeing tabs render but not function.
+When this is finished, opening `src/` will show one obvious mental model:
 
-No runtime errors are being captured at `/index`, so the breakage is route-specific (admin tabs, agents, IR, marketing, workforce, feed, messaging). We need to **stop refactoring and start verifying** before publishing.
+```text
+src/
+├── domains/                ← the entire app, grouped by business area
+│   ├── jobs/    learning/   talent/   profile/   companies/
+│   ├── gigs/    feed/       messaging/   agents/   workforce/
+│   ├── institutions/   ir/   marketing/   finance/   abroad/   ugc/
+│   └── <each domain>/
+│       ├── repo/<name>Repo.ts   ← ONLY file in the domain that calls supabase.from
+│       ├── api/                 ← edge-function client wrappers
+│       ├── hooks/               ← React Query hooks calling repo or api
+│       ├── components/          ← talent/, admin/, public/ subfolders
+│       └── index.ts             ← the public surface of the domain
+├── pages/                  ← only thin route components that compose domain pieces
+├── components/ui/          ← shadcn primitives only (no business logic)
+├── lib/                    ← truly generic utilities (no DB calls)
+├── integrations/supabase/  ← auto-generated client + types (never edited)
+└── gro10x/                 ← Gro10x-branded shell, consumes the same domains
+```
 
-## The course (3 phases, ~in order of urgency)
+- **Zero raw `supabase.from(...)` calls outside `domains/*/repo/`.** An ESLint rule (`NO_RAW_FROM`) enforces it.
+- **No `src/hooks/use*Repo` shims, no `src/components/<domain>/*` re-export files.** Every component imports from `@/domains/<area>/...` directly.
+- **No orphaned/duplicate page files** (e.g. the Feed.tsx-vs-AppTrackDetail.tsx duplicate we just hit).
+- **57 → ~30 top-level files in `src/pages/`**, mostly route shells; data-heavy pages move into their domain.
 
-### Phase S1 — Freeze & Triage (stability gate)
+## Where we are right now
 
-**Goal:** stop introducing churn; produce a definitive list of what's broken.
+### Completed (6 of ~12 domains have a repo + clean callers)
 
-1. **Pause Phase 10g/h/j** (Gigs sweep, Feed/Messaging, ESLint rule). Refactor work is the source of the instability you're seeing.
-2. **Tab-by-tab smoke pass** on the admin shell and the talent app shell — I click through every tab in preview, capture console + network errors, and log each into a triage table (route → symptom → suspected cause → severity).
-3. **Type/build gate** — confirm `tsc --noEmit` is clean across the whole project (the codemods may have left dangling imports the build tolerates but runtime doesn't).
-4. **Deliverable:** a ranked broken-tabs list (blocker / major / minor) you can sign off on before any fixes land.
+| Domain | Repo | Shims deleted | Status |
+|---|---|---|---|
+| learning | ✅ | ✅ | Clean |
+| talent | ✅ | ✅ | Clean |
+| profile | ✅ | ✅ | Clean |
+| companies | ✅ | ✅ | Clean |
+| jobs | ✅ partial | — | **14 files still call `supabase.from` directly** |
+| gigs | ✅ partial | — | 2 files still call `supabase.from` |
 
-### Phase S2 — Fix to Publishable
+### Not started
 
-**Goal:** every "blocker" and "major" tab works end-to-end. Minor cosmetic issues can ship.
+| Area | Raw call sites | Type of work |
+|---|---|---|
+| `pages/app/*` (23 files) + 22 top-level `pages/*` | ~45 | Need domain repos or migration into domain folders |
+| `domains/agents` | 10 | Needs `agentsRepo.ts` |
+| `domains/marketing` | 9 | Needs `marketingRepo.ts` |
+| `domains/ir` | 8 | Needs `irRepo.ts` |
+| `domains/workforce` (4), `institutions` (4), `feed` (4) | 12 | One repo each |
+| `domains/messaging` (3), `finance` (2), `abroad` (2), `ugc` (1), `analytics` (1) | 9 | One repo each |
+| `src/hooks/*` (9 files) | 9 | Move into the right domain |
+| `src/components/*` (9 files) | 9 | Move into the right domain |
+| `src/lib/*` (4 files) | 4 | Move DB calls into repos, keep utilities |
+| `src/gro10x/*` (4 files) | 4 | Route through new repos |
+| ESLint `NO_RAW_FROM` rule | — | Lock-in |
 
-Likely fix buckets (confirmed after S1, but based on the refactor history these are the usual suspects):
+**Headline number:** ~437 raw `supabase.from(...)` call sites across 147 files. Six domains worth (~290 sites) are already gone. ~147 sites + ~9 dead shim packs are left to consolidate.
 
-- **Import drift** from the `@/hooks/*` → `@/domains/*/hooks/*` codemods (components still importing old paths or named exports that were renamed).
-- **Hook signature changes** where a repo helper returns a slightly different shape than the old inline query.
-- **Missing RLS / auth context** on tabs that used to query directly and now go through a repo that assumes a session.
-- **Edge-function vs repo confusion** in domains where some calls were moved to edge functions and others to repos.
+### Cleanup debt already visible
 
-I fix top-down by severity, re-smoke after each batch, and stop the moment the blocker+major list is empty. **This is the gate to publish.**
+- **`src/components/feed/` — 28 one-line shim files** pointing at `@/domains/feed/...`. These get deleted as soon as the last importer is gone.
+- **`src/components/learning/` — 24 one-line shim files** in the same shape.
+- **`src/hooks/` — 9 hooks** still mixing raw queries; need to move + delete.
+- **Orphan/duplicate pages** like `pages/app/Feed.tsx` vs `pages/app/AppTrackDetail.tsx` (the one we just unbroke) — every phase ends with a sweep for these.
 
-### Phase S3 — Lock-in (post-publish hardening)
+## How files get removed (your direct question)
 
-Only after S2 ships:
+For every phase, the recipe is the same and you can audit it:
 
-1. **Resume Phase 10g** — Gigs sweep (3 files left).
-2. **Phase 10h** — Feed (4 files) + Messaging (3 files).
-3. **Phase 10i** — Sweep the long tail: `pages/app` (23), `domains/agents` (10), `marketing` (9), `ir` (8), `workforce`/`institutions`/`abroad`/`finance` (12 combined).
-4. **Phase 10j** — Turn on the `NO_RAW_FROM` ESLint rule so this can never regress.
+1. **Move** the implementation into `domains/<area>/...`.
+2. **Codemod** every importer (`sed`) from old path → new domain path.
+3. **Verify** with `rg` that the old path has zero importers and `tsc --noEmit` is clean.
+4. **Delete** the old file (`rm`). No "leave it for safety" — if step 3 passes, it's dead code.
+5. **Report** the deletions in the phase summary so you see exactly what disappeared.
 
-Each of S3's phases is small, isolated, and now safe because the smoke harness from S1 exists.
+So yes — abandoned shims, duplicate components, orphan pages, and dead hooks all go away as part of the work. By the end you should be able to `rg "supabase\.from" src/` and only see `domains/*/repo/*Repo.ts` files in the output.
 
-## Completion snapshot
+## Completion plan — phases 10g → 10k
 
-| Track | Status |
-|---|---|
-| Domain repo extraction (Learning, Talent, Profile, Companies, Jobs) | Done |
-| Gigs domain repo | ~80% (3 files remain) |
-| Feed / Messaging repo | Not started (7 files) |
-| Long-tail pages & secondary domains | Not started (~75 files) |
-| ESLint lock (`NO_RAW_FROM`) | Not started |
-| **Tab-by-tab stability verification** | **Not started — biggest gap to publish** |
-| Publishable build | **Blocked on S1 + S2** |
+Each phase is small (1–2 days of work), self-contained, and ends with a `tsc --noEmit` + smoke pass before moving on.
 
-So roughly: **architecture refactor ~65% done, but stability verification 0% done** — and stability, not refactor completeness, is what's standing between us and a publishable build.
+### Phase 10g — Gigs final sweep
+Migrate `MySubmissions.tsx` + `JobSharingGigForm.tsx` to `gigsRepo`. Audit pass. Removes the last 2 raw calls in the Gigs domain.
+
+### Phase 10h — Jobs final sweep
+14 files in `domains/jobs/components/admin/*` still call `supabase.from` directly. Extend `jobsRepo` (jobs CRUD, applications, batch upload, access codes, channel promotion) and migrate. Codemod any remaining `@/hooks/useJobs*` → `@/domains/jobs/hooks/*`.
+
+### Phase 10i — Secondary domains (one repo each)
+**agents · marketing · ir · workforce · institutions · feed · messaging · finance · abroad · ugc · analytics.** Same pattern as 10c–10f, but smaller — most are 1–10 files each. Each ends with shim deletion.
+
+### Phase 10j — Top-level pages migration
+`src/pages/*` and `src/pages/app/*` — the largest single bucket left (~45 files).
+- Pages that are essentially **one screen of one domain** (CourseDetail, QuizManagement, MockInterview*, InstructorEdit, etc.) move into `domains/learning/pages/`, `domains/jobs/pages/`, etc.
+- `src/App.tsx` route imports update with a codemod.
+- Anything truly cross-domain (e.g. `AuthClassic`, `Organization`) stays in `src/pages/` as a thin shell.
+- This is where the **57 top-level pages drop to ~30**.
+
+### Phase 10k — Hooks, components, lib, gro10x cleanup
+- Move 9 remaining `src/hooks/*` into their domain.
+- Move 9 remaining `src/components/*` (non-`ui/`) into their domain.
+- Move 4 `src/lib/*` DB-touching files into their domain; keep pure utils.
+- Migrate 4 `src/gro10x/*` raw callers to repos.
+- **Delete** all `src/components/feed/*` (28 shims) and `src/components/learning/*` (24 shims) once the last importer is gone.
+
+### Phase 10L — Lock-in
+- Turn on ESLint rule `NO_RAW_FROM` (blocks `supabase.from(` anywhere except `domains/*/repo/`).
+- Add a `bun run audit:domains` script that runs the same `rg` audit you saw above and fails CI on regressions.
+- Update `src/domains/README.md` with the final contract.
+
+## Your expected outcome (what you'll see)
+
+After 10g → 10L:
+
+- **One folder per business area** under `src/domains/`. Click a domain and you have everything: data access, hooks, components, pages, public surface.
+- **`pages/` becomes a thin routing layer** — almost no business code.
+- **`hooks/` and `components/` (outside `ui/`) shrink to near-empty** — only truly shared, cross-domain helpers remain.
+- **Searching `supabase.from(` returns ~15 results, all in `*Repo.ts` files.** That single rule is what makes the codebase reasonable to maintain going forward.
+- **Adding a feature** = add a helper to `domains/<area>/repo/<area>Repo.ts`, add a hook in `domains/<area>/hooks/`, drop a component in `domains/<area>/components/`. No more guessing where things live.
+- **Adding a domain** = copy the template folder, you're done.
 
 ## Recommendation
 
-Approve **Phase S1 (Freeze & Triage)** first. I'll come back with the broken-tabs list and a concrete S2 fix plan sized against it — no more refactor churn until publish.
+Approve and I'll run **Phase 10g (Gigs sweep)** first as the smallest warm-up, then 10h, 10i, 10j, 10k, 10L in order. After every phase I'll report:
+- files moved
+- files deleted (the abandoned/duplicate cleanup you asked about)
+- raw `supabase.from` count remaining (so you can watch it tick down from 437 → 0)
+- tsc + smoke pass result
 
 ## Technical notes
 
-- S1 uses `code--read_session_replay`, `read_console_logs`, `read_network_requests` per route plus a `tsc --noEmit` sweep; no source edits.
-- S2 fixes stay in presentation/hook layer — repo files (`*Repo.ts`) and edge functions are not touched unless a smoke failure points there.
-- S3 follows the exact pattern of 10c–10f (scaffold repo → migrate callers → codemod imports → delete shims → verify), so risk is bounded.
+- All migration uses `rg` + `sed` codemods + `tsc --noEmit` gates; no behavior changes.
+- Each phase is a single approval-able unit; you can stop after any phase and the app stays publishable.
+- Phase 10j (pages migration) is the riskiest because it touches `App.tsx` routes; I'll split it into 3 sub-batches by domain (learning pages, jobs/career pages, misc) with a smoke pass between each.
+- Phase 10L's ESLint rule is opt-in per-directory at first so existing exceptions don't block the build.

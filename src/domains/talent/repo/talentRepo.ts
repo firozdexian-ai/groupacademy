@@ -15,6 +15,16 @@ export interface TalentPoolFilters {
   pageSize: number;
 }
 
+export async function getTalentRefCode(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("ref_code")
+    .eq("id", talentId)
+    .single();
+  if (error) throw error;
+  return (data?.ref_code as string) ?? null;
+}
+
 export const talentRepo = {
   // ---------- Pool ----------
   listTalentsForPool: ({ searchQuery, countryFilter, page, pageSize }: TalentPoolFilters) => {

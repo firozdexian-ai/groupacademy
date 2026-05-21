@@ -190,3 +190,34 @@ export async function deleteGigGraphRow(table: GigGraphTable, id: string): Promi
   const { error } = await supabase.from(table as any).delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Talent submissions surface (MySubmissions + JobSharing flow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getMyGigSubmissions(talentId: string) {
+  const { data, error } = await supabase
+    .from("gig_submissions")
+    .select(
+      "id, created_at, status, submission_data, ai_score, ai_feedback, admin_notes, credits_awarded, gigs(title, credit_reward, category)",
+    )
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertGigSubmission(payload: {
+  gig_id: string;
+  talent_id: string;
+  status: string;
+  submission_data: Record<string, unknown>;
+}): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from("gig_submissions")
+    .insert(payload as any)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data as { id: string };
+}

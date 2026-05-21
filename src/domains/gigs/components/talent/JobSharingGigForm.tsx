@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { generateJobShareCaption } from "@/domains/jobs/api/jobsApi";
+import { getActiveJobsForSharing } from "@/domains/jobs/repo/jobsRepo";
+import { getTalentRefCode } from "@/domains/talent/repo/talentRepo";
+import { insertGigSubmission } from "@/domains/gigs/repo/gigsRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,12 +90,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     queryKey: ["talent-ref-code", talentId],
     enabled: !!talentId,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("talents").select("ref_code").eq("id", talentId).single();
-
-      if (error) throw error;
-      return data?.ref_code;
-    },
+    queryFn: () => getTalentRefCode(talentId),
   });
 
   // 2. Active Employment Tracking Query Pipeline
@@ -101,16 +98,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     queryKey: ["active-jobs-for-sharing"],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("id, title, company_name, location")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getActiveJobsForSharing(),
   });
 
   function detectCountry(location: string | null): string {
@@ -217,25 +205,19 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     trackEvent("job_sharing_submission_finalizing", { gigId: gig.id, selectedJobId, talentId });
 
     try {
-      const { data: inserted, error: insertError } = await supabase
-        .from("gig_submissions")
-        .insert({
-          gig_id: gig.id,
-          talent_id: talentId,
-          status: "pending",
-          submission_data: {
-            job_id: selectedJobId,
-            channels: sharedChannels,
-            share_url: shareUrl,
-            ref_code: talentRefCode,
-            protocol_v: "2.0_VIRAL",
-            timestamp: new Date().toISOString(),
-          },
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+      const inserted = await insertGigSubmission({
+        gig_id: gig.id,
+        talent_id: talentId,
+        status: "pending",
+        submission_data: {
+          job_id: selectedJobId,
+          channels: sharedChannels,
+          share_url: shareUrl,
+          ref_code: talentRefCode,
+          protocol_v: "2.0_VIRAL",
+          timestamp: new Date().toISOString(),
+        },
+      });
 
       // Load auto-review scripts dynamically within clean sandbox execution layers
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");
