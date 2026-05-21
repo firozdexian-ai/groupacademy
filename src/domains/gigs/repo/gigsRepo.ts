@@ -215,7 +215,7 @@ export async function insertGigSubmission(payload: {
 }): Promise<{ id: string }> {
   const { data, error } = await supabase
     .from("gig_submissions")
-    .insert(payload)
+    .insert(payload as any)
     .select("id")
     .single();
   if (error) throw error;
