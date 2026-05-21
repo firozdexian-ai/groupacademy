@@ -122,3 +122,18 @@ export async function markGro10xThreadRead(
     .eq("company_id", companyId)
     .eq("agent_key", agentKey);
 }
+
+// ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
+export async function getMessageThreadIdByTalentAndAgent(
+  talentId: string,
+  agentKey: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("message_threads")
+    .select("id")
+    .eq("talent_id", talentId)
+    .eq("agent_key", agentKey)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.id as string | undefined) ?? null;
+}
