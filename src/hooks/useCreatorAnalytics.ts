@@ -160,11 +160,7 @@ export function useImpressionTracker(postId?: string, surface: string = "feed") 
 export function useRecordShare() {
   return useMutation({
     mutationFn: async ({ postId, channel }: { postId: string; channel: string }) => {
-      const { error } = await supabase.rpc("record_share" as any, {
-        _post_id: postId,
-        _channel: channel,
-      });
-      if (error) throw error;
+      await recordShareRepo(postId, channel);
     },
     onError: (err: any, variables) => {
       // Hardened: Replaces silent swallow protocols with explicit platform sensors logging
