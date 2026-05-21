@@ -25,8 +25,8 @@ export async function insertPostReaction(input: {
     .insert({
       post_id: input.postId,
       talent_id: input.talentId,
-      reaction_type: input.reactionType,
-    });
+      reaction_type: input.reactionType as any,
+    } as any);
   return { error };
 }
 
