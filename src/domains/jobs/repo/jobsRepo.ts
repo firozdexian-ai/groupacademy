@@ -614,3 +614,15 @@ export async function getEmployerJobsDashboard(p_company_id: string) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5g2: active jobs for a company ─────────────────────────────
+export async function listActiveJobsByCompanyId(companyId: string, limit = 10): Promise<any[]> {
+  const { data } = await supabase
+    .from("jobs")
+    .select("id, title, location, job_type, is_active, created_at")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as any[];
+}

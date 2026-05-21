@@ -445,3 +445,46 @@ export async function listCompanyCreditTransactionsSince(
     balance_after: Number(r.balance_after),
   })) as CompanyCreditTxnRow[];
 }
+
+// ─── Phase 10j.5g2: Gro10xCompanyPage helpers ─────────────────────────────
+export async function getCompanyMemberRole(
+  userId: string,
+  companyId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .maybeSingle();
+  return (data?.role as string | null) ?? null;
+}
+
+export async function getCompanyPublicProfile(companyId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from("companies")
+    .select(
+      "id,name,tagline,about,logo_url,banner_url,website,country,slug,profile_completion,verification_tier",
+    )
+    .eq("id", companyId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export async function listActiveCompanyMembers(companyId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("user_id, role, status, invited_email")
+    .eq("company_id", companyId)
+    .eq("status", "active");
+  return (data ?? []) as any[];
+}
+
+export async function updateCompanyField(
+  companyId: string,
+  patch: Record<string, any>,
+): Promise<{ error: any }> {
+  const { error } = await supabase.from("companies").update(patch).eq("id", companyId);
+  return { error };
+}
