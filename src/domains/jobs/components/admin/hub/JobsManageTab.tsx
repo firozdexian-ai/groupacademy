@@ -139,8 +139,11 @@ export function JobsManageTab() {
   const bulkUpdate = async (patch: Partial<Pick<Job, "is_active" | "is_featured" | "is_active">>) => {
     if (!selected.size) return;
     const ids = Array.from(selected);
-    const { error } = await supabase.from("jobs").update(patch).in("id", ids);
-    if (error) return toast.error("Protocol Fault: " + error.message);
+    try {
+      await updateJobsBulk(ids, patch);
+    } catch (e: any) {
+      return toast.error("Protocol Fault: " + e.message);
+    }
     toast.success(`${ids.length} Nodes Synchronized`);
     setSelected(new Set());
     loadJobs();
@@ -149,8 +152,11 @@ export function JobsManageTab() {
   const bulkDelete = async () => {
     if (!selected.size) return;
     if (!confirm(`Confirm unit termination for ${selected.size} nodes?`)) return;
-    const { error } = await supabase.from("jobs").delete().in("id", Array.from(selected));
-    if (error) return toast.error("Termination Fault");
+    try {
+      await deleteJobsBulk(Array.from(selected));
+    } catch {
+      return toast.error("Termination Fault");
+    }
     toast.success("Nodes Decommissioned");
     setSelected(new Set());
     loadJobs();
@@ -158,11 +164,9 @@ export function JobsManageTab() {
 
   const inlineToggle = async (id: string, field: "is_active" | "is_featured", value: boolean) => {
     setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, [field]: value } : j)));
-    const { error } = await supabase
-      .from("jobs")
-      .update({ [field]: value })
-      .eq("id", id);
-    if (error) {
+    try {
+      await updateJob(id, { [field]: value });
+    } catch {
       toast.error("Protocol Sync Error");
       loadJobs();
     }
