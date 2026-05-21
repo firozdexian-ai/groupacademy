@@ -531,3 +531,34 @@ export async function insertInterviewSlots(rows: Array<Record<string, any>>): Pr
   const { error } = await (supabase.from("interview_slots") as any).insert(rows);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+export async function getInterviewById(id: string) {
+  const { data, error } = await supabase
+    .from("interviews")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listInterviewSlots(interviewId: string) {
+  const { data, error } = await supabase
+    .from("interview_slots")
+    .select("*")
+    .eq("interview_id", interviewId)
+    .order("starts_at");
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listJobsByIdsBasic(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, title, company_name, location")
+    .in("id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}

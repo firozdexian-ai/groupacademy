@@ -424,3 +424,24 @@ export async function listActiveProfessionCategoriesWithSlug() {
   if (error) throw error;
   return (data ?? []) as Array<{ id: string; name: string; slug: string }>;
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+export async function insertContactLog(payload: {
+  full_name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("contacts").insert([payload as any]);
+  return { error };
+}
+
+export async function listBlogPostsByIds(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("id, title, slug, featured_image")
+    .in("id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}

@@ -1318,3 +1318,14 @@ export async function getCertificateById(id: string) {
   if (error) throw error;
   return data as any;
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+export async function listContentByIdsBasic(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title, slug, thumbnail_url")
+    .in("id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
