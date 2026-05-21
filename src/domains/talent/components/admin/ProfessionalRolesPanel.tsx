@@ -89,7 +89,7 @@ export function ProfessionalRolesPanel() {
     const name = newRole.trim();
     if (!name || !activeCat) return;
     setSaving(true);
-    const { error } = await supabase.from("professional_roles").insert({
+    const { error } = await talentRepo.insertProfessionalRole({
       profession_category_id: activeCat,
       name,
       slug: slugify(name),
