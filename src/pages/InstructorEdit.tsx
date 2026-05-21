@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getInstructorById, updateInstructor } from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,7 @@ const InstructorEdit = () => {
   const loadInstructor = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.from("instructors").select("*").eq("id", id).single();
-
-      if (error) throw error;
+      const data = await getInstructorById(id as string);
 
       setFormData({
         full_name: data.full_name,
@@ -71,22 +69,17 @@ const InstructorEdit = () => {
         .map((e) => e.trim())
         .filter((e) => e.length > 0);
 
-      const { error } = await supabase
-        .from("instructors")
-        .update({
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone || null,
-          bio: formData.bio || null,
-          profile_image_url: formData.profile_image_url || null,
-          expertise: expertiseArray.length > 0 ? expertiseArray : null,
-          team_role: formData.team_role,
-          status: formData.status,
-          hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
+      await updateInstructor(id as string, {
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone || null,
+        bio: formData.bio || null,
+        profile_image_url: formData.profile_image_url || null,
+        expertise: expertiseArray.length > 0 ? expertiseArray : null,
+        team_role: formData.team_role,
+        status: formData.status,
+        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+      });
 
       toast.success("Profile Synchronized: Instructor record updated.");
       navigate("/instructors");

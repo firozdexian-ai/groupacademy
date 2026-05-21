@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listStudentsWithEnrollments } from "@/domains/learning/repo/learningRepo";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,18 +70,11 @@ export default function Students() {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const { data, error: queryError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("students")
-            .select(`*, enrollments(id, status, enrolled_at, content:content_id(title, content_type))`)
-            .order("created_at", { ascending: false }),
-        ),
+      const data = await withTimeout(
+        listStudentsWithEnrollments(),
         TIMEOUTS.DEFAULT,
         "Registry handshake timed out.",
       );
-
-      if (queryError) throw queryError;
       setStudents((data || []) as any);
     } catch (err: any) {
       setError(err.message || "Logic Fetch Error");

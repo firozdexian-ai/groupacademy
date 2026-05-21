@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { listAllInstructors, deleteInstructor } from "@/domains/learning/repo/learningRepo";
+import { isUserAdmin } from "@/domains/profile/repo/profileRepo";
 import { useQueryWithTimeout, withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
@@ -74,8 +76,7 @@ const Instructors = () => {
   } = useQueryWithTimeout({
     queryKey: ["instructors"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("instructors").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      const data = await listAllInstructors();
       return data as Instructor[];
     },
     timeout: TIMEOUTS.DEFAULT,
@@ -92,8 +93,7 @@ const Instructors = () => {
       } = await supabase.auth.getUser();
       if (!user) return navigate("/auth");
 
-      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
-      setIsAdmin(roleData?.role === "admin");
+      setIsAdmin(await isUserAdmin(user.id));
     } catch (e) {
       toast.error("Security handshake failed.");
     }
@@ -112,8 +112,7 @@ const Instructors = () => {
   const handleDelete = async () => {
     if (!selectedInstructor) return;
     try {
-      const { error } = await supabase.from("instructors").delete().eq("id", selectedInstructor.id);
-      if (error) throw error;
+      await deleteInstructor(selectedInstructor.id);
       toast.success("Instructor node purged.");
       refetch();
       setDeleteDialogOpen(false);

@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPublishedContentBasic,
+  listActiveInstructorsBasic,
+  insertCourseSession,
+} from "@/domains/learning/repo/learningRepo";
 import { useQueryWithTimeout, withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useForm } from "react-hook-form";
@@ -53,29 +57,13 @@ export default function SessionNew() {
 
   const { data: courses } = useQueryWithTimeout({
     queryKey: ["courses-registry"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title")
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => await listPublishedContentBasic(),
     timeout: TIMEOUTS.DEFAULT,
   });
 
   const { data: instructors } = useQueryWithTimeout({
     queryKey: ["instructors-active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("instructors")
-        .select("id, full_name")
-        .eq("status", "active")
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => await listActiveInstructorsBasic(),
     timeout: TIMEOUTS.DEFAULT,
   });
 
@@ -98,25 +86,21 @@ export default function SessionNew() {
       const [hours, minutes] = values.scheduled_time.split(":").map(Number);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
 
-      const { error } = await withTimeout(
-        Promise.resolve(
-          supabase.from("course_sessions").insert({
-            content_id: values.content_id,
-            instructor_id: values.instructor_id || null,
-            title: values.title,
-            description: values.description || null,
-            scheduled_date: scheduledDateTime.toISOString(),
-            duration_minutes: values.duration_minutes,
-            meeting_link: values.meeting_link || null,
-            recording_link: values.recording_link || null,
-            status: values.status,
-          }),
-        ),
+      await withTimeout(
+        insertCourseSession({
+          content_id: values.content_id,
+          instructor_id: values.instructor_id || null,
+          title: values.title,
+          description: values.description || null,
+          scheduled_date: scheduledDateTime.toISOString(),
+          duration_minutes: values.duration_minutes,
+          meeting_link: values.meeting_link || null,
+          recording_link: values.recording_link || null,
+          status: values.status,
+        }),
         TIMEOUTS.DEFAULT,
         "Sequence timed out during committal",
       );
-
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });

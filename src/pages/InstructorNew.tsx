@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { insertInstructor } from "@/domains/learning/repo/learningRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
@@ -57,13 +57,11 @@ const InstructorNew = () => {
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
       };
 
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("instructors").insert([payload])),
+      await withTimeout(
+        insertInstructor(payload),
         TIMEOUTS.DEFAULT,
         "Handshake timeout: Database write delayed.",
       );
-
-      if (error) throw error;
 
       toast.success("Identity Created: New instructor node active.");
       navigate("/instructors");

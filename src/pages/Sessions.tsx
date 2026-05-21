@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
-import { supabase } from "@/integrations/supabase/client";
+import { listAllSessionsWithRelations } from "@/domains/learning/repo/learningRepo";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ErrorState } from "@/components/ui/error-state";
 import { cn } from "@/lib/utils";
@@ -34,19 +34,7 @@ export default function Sessions() {
   } = useQueryWithTimeout({
     queryKey: ["sessions-registry"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_sessions")
-        .select(
-          `
-          *,
-          content:content_id ( id, title, slug ),
-          instructors:instructor_id ( id, full_name, profile_image_url )
-        `,
-        )
-        .order("scheduled_date", { ascending: true });
-
-      if (error) throw error;
-      return data;
+      return await listAllSessionsWithRelations();
     },
     timeout: TIMEOUTS.DEFAULT,
   });

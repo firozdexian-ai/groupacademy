@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listEnrollmentsWithRelations } from "@/domains/learning/repo/learningRepo";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,23 +66,11 @@ export default function Enrollments() {
     setLoading(true);
     setLoadError(null);
     try {
-      const { data, error } = await withTimeout<any>(
-        Promise.resolve(
-          supabase
-            .from("enrollments")
-            .select(
-              `
-          *, 
-          student:student_id(full_name, student_id), 
-          content:content_id(title, content_type, event_date, max_capacity, current_enrollment)
-        `,
-            )
-            .order("enrolled_at", { ascending: false }),
-        ),
+      const data = await withTimeout<any>(
+        listEnrollmentsWithRelations(),
         TIMEOUTS.DEFAULT,
         "Connection timed out",
       );
-      if (error) throw error;
       setEnrollments(data || []);
     } catch (err: any) {
       setLoadError(err.message);
