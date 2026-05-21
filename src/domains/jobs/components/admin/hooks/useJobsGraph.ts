@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getJobsGraphMaster,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/jobs/repo/jobsRepo";
 
 export interface JobNode { id: string; title: string; company_id: string; status: string; is_published: boolean; created_at: string; }
 export interface JobApplication { id: string; job_id: string; talent_id: string; status: string; created_at: string; }
@@ -15,24 +19,9 @@ export function useJobsGraph() {
   const jobsGraphQuery = useQuery({
     queryKey: ["jobs_graph_master"],
     queryFn: async () => {
-      const [jobsRes, appsRes, crmRes, assessRes, inviteRes] = await Promise.all([
-        // Schema aliases: `jobs` lacks status/is_published; surface is_active under both fields.
-        supabase.from("jobs").select("id, title, company_id, is_active, created_at").order("created_at", { ascending: false }).limit(500),
-        // `job_applications.status` lives on the `application_status` enum.
-        supabase.from("job_applications").select("id, job_id, talent_id, status:application_status, created_at").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("talent_relationships").select("id, talent_id, company_id, stage, created_at").order("created_at", { ascending: false }).limit(500),
-        supabase.from("job_assessments").select("id, job_id, talent_id, status, created_at").order("created_at", { ascending: false }).limit(500),
-        supabase.from("job_invitations").select("id, job_id, talent_id, status, created_at").order("created_at", { ascending: false }).limit(500),
-      ]);
-
-      if (jobsRes.error) throw jobsRes.error;
-      if (appsRes.error) throw appsRes.error;
-      if (crmRes.error) throw crmRes.error;
-      if (assessRes.error) throw assessRes.error;
-      if (inviteRes.error) throw inviteRes.error;
-
+      const { jobsRaw, applications, crmRecords, assessments, invitations } = await getJobsGraphMaster();
       return {
-        jobs: (jobsRes.data ?? []).map((j: any) => ({
+        jobs: (jobsRaw as any[]).map((j) => ({
           id: j.id,
           title: j.title,
           company_id: j.company_id,
@@ -40,10 +29,10 @@ export function useJobsGraph() {
           is_published: !!j.is_active,
           created_at: j.created_at,
         })) as JobNode[],
-        applications: (appsRes.data ?? []) as unknown as JobApplication[],
-        crmRecords: (crmRes.data ?? []) as unknown as TalentCrmRecord[],
-        assessments: (assessRes.data ?? []) as unknown as JobAssessment[],
-        invitations: (inviteRes.data ?? []) as unknown as JobInvitation[],
+        applications: applications as unknown as JobApplication[],
+        crmRecords: crmRecords as unknown as TalentCrmRecord[],
+        assessments: assessments as unknown as JobAssessment[],
+        invitations: invitations as unknown as JobInvitation[],
       };
     },
   });
@@ -51,15 +40,7 @@ export function useJobsGraph() {
   // 2. Generic Mutation Generator
   const createUpsertMutation = (table: string, entityName: string) => {
     return useMutation({
-      mutationFn: async (payload: any) => {
-        if (payload.id) {
-          const { error } = await supabase.from(table as any).update(payload).eq("id", payload.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from(table as any).insert(payload);
-          if (error) throw error;
-        }
-      },
+      mutationFn: async (payload: any) => upsertGraphRow(table, payload),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["jobs_graph_master"] });
         toast.success(`${entityName} synchronized successfully.`);
@@ -70,10 +51,7 @@ export function useJobsGraph() {
 
   const createDeleteMutation = (table: string, entityName: string) => {
     return useMutation({
-      mutationFn: async (id: string) => {
-        const { error } = await supabase.from(table as any).delete().eq("id", id);
-        if (error) throw error;
-      },
+      mutationFn: async (id: string) => deleteGraphRow(table, id),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["jobs_graph_master"] });
         toast.success(`${entityName} purged from the pipeline.`);
