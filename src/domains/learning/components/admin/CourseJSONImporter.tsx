@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  insertContent,
+  insertCourseModule,
+  insertModuleResources,
+} from "@/domains/learning/repo/learningRepo";
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
