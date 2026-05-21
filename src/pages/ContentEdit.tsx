@@ -3,7 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CourseSessionsManager from "@/domains/learning/components/admin/sessions/CourseSessionsManager";
 import CoursePerformanceDashboard from "@/domains/learning/components/admin/content-widgets/CoursePerformanceDashboard";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listCourseModuleSummariesForContent,
+  listModuleResourceLinksForModules,
+  getContentById,
+  updateContent,
+  countCourseSessionsForContent,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
