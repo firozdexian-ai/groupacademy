@@ -1,7 +1,14 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCourseProjectById,
+  getCourseProjectCourse,
+  listCourseProjectSubtasks,
+  submitCourseProject,
+  updateCourseProjectSubtask,
+  claimCourseProject,
+} from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
