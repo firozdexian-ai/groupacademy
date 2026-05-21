@@ -116,13 +116,7 @@ export function OnboardingWizard({
     queryKey: ["onboarding-countries"],
     staleTime: 30 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gtm_countries")
-        .select("id, iso2, name")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Country[];
+      return (await listActiveCountries()) as Country[];
     },
   });
 
@@ -131,13 +125,7 @@ export function OnboardingWizard({
     queryKey: ["onboarding-stages"],
     staleTime: 30 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("career_stages")
-        .select("id, name, slug, academy_id")
-        .eq("is_active", true)
-        .order("display_order");
-      if (error) throw error;
-      return (data ?? []) as Stage[];
+      return (await listActiveCareerStages()) as Stage[];
     },
   });
 
