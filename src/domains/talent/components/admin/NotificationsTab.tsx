@@ -40,18 +40,14 @@ export function NotificationsTab() {
     setIsLoading(true);
     try {
       const from = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count, error } = await supabase
-        .from("notifications")
-        .select(`*, talent:talents(full_name, email)`, { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, from + ITEMS_PER_PAGE - 1);
+      const { data, count, error } = await talentRepo.listNotificationsPage(page, ITEMS_PER_PAGE);
 
       if (error) throw error;
       setNotifications(data || []);
       setTotalCount(count || 0);
 
       // Pre-fetch categories for segmenting
-      const { data: catData } = await supabase.from("profession_categories").select("id, name");
+      const { data: catData } = await talentRepo.listProfessionCategoriesNames();
       if (catData) setCategories(catData);
     } catch (err) {
       toast.error("Transmission log sync failed");
