@@ -507,3 +507,65 @@ export async function getValidSalaryAccessCode(code: string, email: string) {
     .single();
   return { data: data as { id: string } | null, error };
 }
+
+// ─── Phase 10j.5g4 ─────────────────────────────────────────────────────────
+export async function getLatestCareerAssessmentByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("career_assessments")
+    .select("*")
+    .eq("email", email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function getValidAssessmentAccessCode(code: string, email: string) {
+  const { data, error } = await supabase
+    .from("assessment_access_codes")
+    .select("*")
+    .eq("code", code)
+    .eq("email", email)
+    .eq("is_used", false)
+    .maybeSingle();
+  return { data: data as { id: string } | null, error };
+}
+
+export async function getLatestCompletedMockInterviewByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("mock_interviews")
+    .select("*")
+    .eq("email", email)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function getValidMockInterviewAccessCode(code: string, email: string) {
+  const { data, error } = await supabase
+    .from("mock_interview_access_codes")
+    .select("*")
+    .eq("code", code)
+    .eq("email", email)
+    .eq("is_used", false)
+    .maybeSingle();
+  return { data: data as { id: string } | null, error };
+}
+
+export async function updateMockInterview(id: string, patch: Record<string, unknown>): Promise<void> {
+  await supabase.from("mock_interviews").update(patch as any).eq("id", id);
+}
+
+export async function getCareerAssessmentWithCategory(id: string) {
+  const { data, error } = await supabase
+    .from("career_assessments")
+    .select(`*, profession_categories (name)`)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
