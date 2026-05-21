@@ -79,6 +79,19 @@ export async function listAgentsForInsights() {
   return data ?? [];
 }
 
+export async function listAgentCreditEvents(sinceIso: string, limit = 10000) {
+  const { data, error } = await supabase
+    .from("agent_credit_events")
+    .select(
+      "id,agent_id,thread_id,subject_kind,event_kind,credits,llm_cost_usd,tokens_in,tokens_out,prompt_variant,created_at",
+    )
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ─── Triggers ─────────────────────────────────────────────────────────────
 export async function getTriggersBundle() {
   const [agentsRes, triggersRes, poolRes] = await Promise.all([
