@@ -3,6 +3,7 @@
  * for talent (`/app/learning`, `/app/instructor`), gro10x (`/gro10x/learn`),
  * and admin (`dashboard/learning`) shells.
  */
+export * from "./hooks/useAuthoringTrends";
 export * from "./hooks/useCertificate";
 export * from "./hooks/useCohorts";
 export * from "./hooks/useCourseBriefs";

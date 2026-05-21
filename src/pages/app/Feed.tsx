@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, BookOpen, CheckCircle2, Lock, Clock, Award, Loader2, ShieldAlert } from "lucide-react";
-import { useMyTrackAssignments, useTrackProgress } from "@/hooks/useLearningTracks";
+import { useMyTrackAssignments, useTrackProgress } from "@/domains/learning";
 import { TrackProgressRing } from "@/components/learning/TrackProgressRing";
 import { GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { IS_GRO10X } from "@/lib/host";

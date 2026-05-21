@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
 import { BookOpen, Target, Library, Globe, Bell } from "lucide-react";
-import { useReviewQueue } from "@/hooks/useReviewQueue";
+import { useReviewQueue } from "@/domains/learning";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

@@ -8,7 +8,7 @@ import {
   useAddTrackItem,
   useRemoveTrackItem,
   type LearningTrack,
-} from "@/hooks/useLearningTracks";
+} from "@/domains/learning";
 import { GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { Plus, BookOpen, Eye, EyeOff, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

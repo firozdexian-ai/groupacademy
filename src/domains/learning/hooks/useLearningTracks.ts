@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateLearningTrack,
+  deleteLearningTrackItem,
+} from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -155,10 +159,8 @@ export function useUpdateTrack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<LearningTrack> & { id: string }) => {
-      const { data, error } = await supabase.from("learning_tracks").update(patch).eq("id", id).select().single();
-
-      if (error) throw error;
-      return data as LearningTrack;
+      const data = (await updateLearningTrack(id, patch)) as LearningTrack;
+      return data;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["company-tracks", data.company_id] });
@@ -213,8 +215,7 @@ export function useRemoveTrackItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, track_id: _track_id }: { id: string; track_id: string }) => {
-      const { error } = await supabase.from("learning_track_items").delete().eq("id", id);
-      if (error) throw error;
+      await deleteLearningTrackItem(id);
     },
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["track-items", v.track_id] });

@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 import { WebinarEnrollPanel } from "@/components/learning/WebinarEnrollPanel";
 import { JoinLivePanel } from "@/components/learning/JoinLivePanel";
-import { useEnrollment } from "@/hooks/useEnrollment";
+import { useEnrollment } from "@/domains/learning";
 import { useTalent } from "@/hooks/useTalent";
 import { getCourseCredits } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";

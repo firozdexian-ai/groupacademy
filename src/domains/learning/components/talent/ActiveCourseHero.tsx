@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { ActiveEnrollment } from "@/hooks/useLearningStats";
+import { ActiveEnrollment } from "@/domains/learning";
 import { cn } from "@/lib/utils";
 
 interface ActiveCourseHeroProps {

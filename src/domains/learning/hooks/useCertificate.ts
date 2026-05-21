@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCertificateByEnrollment } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -135,8 +136,7 @@ export function useCertificate() {
     // Legacy mapping support ensuring 100% plug-and-play coverage with current controllers
     issueCertificate: issueMutation.mutateAsync,
     getCertificateForEnrollment: async (enrollmentId: string) => {
-      const { data } = await supabase.from("certificates").select("*").eq("enrollment_id", enrollmentId).maybeSingle();
-      return data;
+      return await getCertificateByEnrollment(enrollmentId);
     },
     useCertificateForEnrollment,
     issuing: issueMutation.isPending,

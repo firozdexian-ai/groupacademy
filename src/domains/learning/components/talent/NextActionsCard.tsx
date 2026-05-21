@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Sparkles, Clock, Target, PlayCircle, BookOpen, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useNextActions, type NextAction, type NextActionType } from "@/hooks/useNextActions";
+import { useNextActions, type NextAction, type NextActionType } from "@/domains/learning";
 
 const ICON: Record<NextActionType, React.ComponentType<{ className?: string }>> = {
   review_due: Clock,

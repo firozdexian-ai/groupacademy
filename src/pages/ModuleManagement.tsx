@@ -49,7 +49,7 @@ import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/domains/learning/components/admin/content-widgets/BatchContentGenerator";
 import { DraggableList } from "@/platform/admin/ui/DraggableList";
 import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
-import { useModuleReviewBadge } from "@/hooks/useModuleReviewBadge";
+import { useModuleReviewBadge } from "@/domains/learning";
 
 function ReviewNudge({ moduleId, onClick }: { moduleId: string; onClick: () => void }) {
   const { flagged, loading } = useModuleReviewBadge(moduleId);

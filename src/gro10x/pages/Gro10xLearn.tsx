@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import { GraduationCap, Sparkles, BookOpen, Building2, Clock, Coins, Layers } from "lucide-react";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { useB2BCatalog, useMyAssignments } from "../hooks/useCourseAssignments";
-import { useMyTrackAssignments } from "@/hooks/useLearningTracks";
+import { useMyTrackAssignments } from "@/domains/learning";
 import { TrackProgressRing } from "@/components/learning/TrackProgressRing";
 
 export default function Gro10xLearn() {

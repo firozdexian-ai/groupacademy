@@ -13,7 +13,7 @@ import {
   useSaveSession,
   useSaveCohort,
   useInstructorAttendance,
-} from "@/hooks/useCohorts";
+} from "@/domains/learning";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";

@@ -1,6 +1,10 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getStageProgress,
+  upsertEnrollmentStageProgress,
+  updateEnrollmentProgress,
+} from "@/domains/learning/repo/learningRepo";
 
 /**
  * GroUp Academy: Monotonic Progress Guard (V5.6.0)
@@ -39,17 +43,7 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
     staleTime: 15000, // 15-second consistency boundary
     queryFn: async (): Promise<StageProgressPayload> => {
       // HUD: EXECUTING_STAGE_PROGRESS_INGRESS
-      const { data, error } = await supabase
-        .from("enrollment_stage_progress")
-        .select("completed_stages, current_stage, resource_view_states")
-        .eq("enrollment_id", enrollmentId!)
-        .eq("module_id", moduleId!)
-        .maybeSingle();
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: enrollment_stage_progress lookup failed.", error);
-        throw error;
-      }
+      const data = await getStageProgress(enrollmentId!, moduleId!);
 
       if (!data) {
         return { completedStages: [], currentStage: 1, resourceViewStates: {} };
@@ -74,32 +68,20 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
       if (!enrollmentId || !moduleId) return;
 
       // HUD: EXECUTING_PROGRESS_UPSERT_HANDSHAKE
-      const { error: upsertError } = await supabase.from("enrollment_stage_progress").upsert(
-        {
-          enrollment_id: enrollmentId,
-          module_id: moduleId,
-          completed_stages: payload.completedStages,
-          current_stage: payload.currentStage,
-          resource_view_states: payload.resourceViewStates,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "enrollment_id,module_id" },
-      );
-
-      if (upsertError) throw upsertError;
+      await upsertEnrollmentStageProgress({
+        enrollment_id: enrollmentId,
+        module_id: moduleId,
+        completed_stages: payload.completedStages,
+        current_stage: payload.currentStage,
+        resource_view_states: payload.resourceViewStates,
+      });
 
       // HUD: EXECUTING_ENROLLMENT_AGGREGATE_CALCULATION
       const progressPercent = Math.round((payload.completedStages.length / totalStages) * 100);
-
-      const { error: updateError } = await supabase
-        .from("enrollments")
-        .update({
-          progress: Math.min(progressPercent, 100),
-          last_accessed_at: new Date().toISOString(),
-        })
-        .eq("id", enrollmentId);
-
-      if (updateError) throw updateError;
+      await updateEnrollmentProgress(enrollmentId, {
+        progress: Math.min(progressPercent, 100),
+        last_accessed_at: new Date().toISOString(),
+      });
     },
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey });

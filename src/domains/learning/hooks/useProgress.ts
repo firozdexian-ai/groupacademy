@@ -1,6 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getEnrollmentProgressBundle,
+  upsertEnrollmentStageProgress,
+  updateEnrollmentProgress,
+} from "@/domains/learning/repo/learningRepo";
 
 /**
  * GroUp Academy: Academic Milestone & Progression Core (V5.6.0)
@@ -48,35 +53,10 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
     staleTime: 15000, // 15-second cache consistency boundary
     queryFn: async (): Promise<ProgressQueryPayload> => {
       // HUD: ATOMIC_ACADEMIC_PROGRESS_BUNDLE_SELECT
-      const [cmRes, mpRes, enrRes, espRes] = await Promise.all([
-        supabase
-          .from("course_modules")
-          .select("id, display_order, title")
-          .eq("content_id", contentId!)
-          .order("display_order", { ascending: true }),
-        supabase
-          .from("module_progress")
-          .select("module_id, stages_completed, total_stages, progress_pct, started_at, completed_at")
-          .eq("enrollment_id", enrollmentId!),
-        supabase
-          .from("enrollments")
-          .select("progress, status, current_module_id")
-          .eq("id", enrollmentId!)
-          .maybeSingle(),
-        supabase
-          .from("enrollment_stage_progress")
-          .select("module_id, resource_view_states")
-          .eq("enrollment_id", enrollmentId!),
-      ]);
+      const bundle = await getEnrollmentProgressBundle(enrollmentId!, contentId!);
+      const mpByModule = new Map(bundle.moduleProgress.map((r) => [r.module_id, r]));
 
-      if (cmRes.error) throw cmRes.error;
-      if (mpRes.error) throw mpRes.error;
-      if (enrRes.error) throw enrRes.error;
-      if (espRes.error) throw espRes.error;
-
-      const mpByModule = new Map((mpRes.data ?? []).map((r) => [r.module_id, r]));
-
-      const modules: ModuleProgressRow[] = (cmRes.data ?? []).map((m) => {
+      const modules: ModuleProgressRow[] = bundle.modules.map((m) => {
         const mp = mpByModule.get(m.id);
         return {
           moduleId: m.id,
@@ -91,12 +71,12 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
       });
 
       const resourceViewStates: Record<string, Record<string, boolean>> = {};
-      (espRes.data ?? []).forEach((row) => {
+      bundle.stageProgress.forEach((row) => {
         resourceViewStates[row.module_id] = (row.resource_view_states as Record<string, boolean>) ?? {};
       });
 
       const resumeModuleId =
-        enrRes.data?.current_module_id ??
+        bundle.enrollment?.current_module_id ??
         modules.find((m) => m.progressPct < 100)?.moduleId ??
         modules[0]?.moduleId ??
         null;
@@ -104,8 +84,8 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
       return {
         modules,
         resourceViewStates,
-        overallPct: enrRes.data?.progress ?? 0,
-        isCompleted: enrRes.data?.status === "completed",
+        overallPct: bundle.enrollment?.progress ?? 0,
+        isCompleted: bundle.enrollment?.status === "completed",
         currentModuleId: resumeModuleId,
       };
     },
@@ -144,23 +124,13 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
       rvs: Record<string, boolean>;
     }) => {
       if (!enrollmentId) return;
-
-      const { error } = await supabase.from("enrollment_stage_progress").upsert(
-        {
-          enrollment_id: enrollmentId,
-          module_id: payload.moduleId,
-          completed_stages: payload.completedStages,
-          current_stage: payload.currentStage,
-          resource_view_states: payload.rvs,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "enrollment_id,module_id" },
-      );
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: enrollment_stage_progress update rejected.", error);
-        throw error;
-      }
+      await upsertEnrollmentStageProgress({
+        enrollment_id: enrollmentId,
+        module_id: payload.moduleId,
+        completed_stages: payload.completedStages,
+        current_stage: payload.currentStage,
+        resource_view_states: payload.rvs,
+      });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey });
@@ -170,18 +140,14 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
   const currentModuleMutation = useMutation({
     mutationFn: async (targetModuleId: string) => {
       if (!enrollmentId) return;
-
-      const { error } = await supabase
-        .from("enrollments")
-        .update({
+      try {
+        await updateEnrollmentProgress(enrollmentId, {
           current_module_id: targetModuleId,
           last_accessed_at: new Date().toISOString(),
-        })
-        .eq("id", enrollmentId);
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: Failed to update current_module_id tracking registry.", error);
-        throw error;
+        });
+      } catch (err) {
+        console.error("[Digital Workforce] FAULT: Failed to update current_module_id tracking registry.", err);
+        throw err;
       }
     },
     onMutate: async (targetModuleId) => {

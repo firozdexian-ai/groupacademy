@@ -15,7 +15,7 @@ import {
   useOrgWallet,
   useOrgSeats,
   useAssignTalents,
-} from "@/hooks/useOrgLearning";
+} from "@/domains/learning";
 import { useB2BCatalog } from "../hooks/useCourseAssignments";
 import { Button } from "@/components/ui/button";
 

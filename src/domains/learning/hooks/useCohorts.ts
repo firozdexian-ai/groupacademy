@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { upsertCohort, upsertCourseSession } from "@/domains/learning/repo/learningRepo";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
@@ -241,14 +242,7 @@ export function useSaveSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SessionSaveInput) => {
-      const { id, ...rest } = input;
-      if (id) {
-        const { error } = await supabase.from("course_sessions").update(rest).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("course_sessions").insert(rest as any);
-        if (error) throw error;
-      }
+      await upsertCourseSession(input as any);
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["cohort-sessions", vars.cohort_id] });
@@ -269,14 +263,7 @@ export function useSaveCohort() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CohortSaveInput) => {
-      const { id, ...rest } = input;
-      if (id) {
-        const { error } = await supabase.from("cohorts").update(rest).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("cohorts").insert(rest);
-        if (error) throw error;
-      }
+      await upsertCohort(input as any);
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["cohorts", vars.content_id] });

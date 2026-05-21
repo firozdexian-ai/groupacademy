@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCompanyWallet } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -148,29 +149,10 @@ export function useOrgWallet(companyId: string | undefined) {
     staleTime: 30000, // 30-second balance security window
     queryFn: async (): Promise<OrgWalletData> => {
       // HUD: CONCURRENT_MONETARY_LEDGER_HANDSHAKE
-      // Wrapped in an atomic bundle to eliminate visual balance desynchronization vectors
-      const [balanceResult, transactionsResult] = await Promise.all([
-        supabase.from("company_credits").select("balance, earned_balance").eq("company_id", companyId!).maybeSingle(),
-        supabase
-          .from("company_credit_transactions")
-          .select("*")
-          .eq("company_id", companyId!)
-          .order("created_at", { ascending: false })
-          .limit(50),
-      ]);
-
-      if (balanceResult.error) {
-        console.error("[Digital Workforce] FAULT: company_credits sync failure.", balanceResult.error);
-        throw balanceResult.error;
-      }
-      if (transactionsResult.error) {
-        console.error("[Digital Workforce] FAULT: company_credit_transactions ledger drop.", transactionsResult.error);
-        throw transactionsResult.error;
-      }
-
+      const wallet = await getCompanyWallet(companyId!);
       return {
-        balance: balanceResult.data,
-        transactions: transactionsResult.data ?? [],
+        balance: wallet.balance,
+        transactions: wallet.transactions,
       };
     },
   });

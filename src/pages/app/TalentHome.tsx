@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useTalent } from "@/hooks/useTalent";
 import { useTalentPitches } from "@/hooks/useTalentPitches";
-import { useSkillCredentials } from "@/hooks/useSkillCredentials";
+import { useSkillCredentials } from "@/domains/learning";
 import { computeReadiness } from "@/lib/talentReadiness";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";

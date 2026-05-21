@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { BadgeCheck, Award, Trophy, ExternalLink, Sparkles, Share2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSkillCredentials, useIssueSkillCredentials, type SkillCredential } from "@/hooks/useSkillCredentials";
+import { useSkillCredentials, useIssueSkillCredentials, type SkillCredential } from "@/domains/learning";
 import { useTalent } from "@/hooks/useTalent";
 import { usePublicProfileSettings } from "@/hooks/usePublicProfileSettings";
 import { useToast } from "@/hooks/use-toast";

@@ -4,7 +4,7 @@ import { Loader2, Calendar, Users, Radio, Video, ChevronLeft, Inbox } from "luci
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCohort, useCohortSessions, useCohortHealth } from "@/hooks/useCohorts";
+import { useCohort, useCohortSessions, useCohortHealth } from "@/domains/learning";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
 
