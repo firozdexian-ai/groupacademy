@@ -145,6 +145,17 @@ export async function updateHeadlessPoolMonthlyCap(cap: number): Promise<void> {
 }
 
 // ─── Payouts ──────────────────────────────────────────────────────────────
+export async function listPayoutRequestsByStatus(status: string) {
+  const { data, error } = await supabase
+    .from("agent_payout_requests")
+    .select("*, talent:talents(full_name,email)")
+    .eq("status", status)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+
 export async function markPayoutPaid(requestId: string, notes: string | null): Promise<void> {
   const { error } = await supabase.rpc("mark_payout_paid", { p_request_id: requestId, p_notes: notes });
   if (error) throw error;
