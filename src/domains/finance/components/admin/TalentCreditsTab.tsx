@@ -7,6 +7,8 @@ import {
   getConsumptionTotals,
   getMonthlyConsumption,
   manualAdjustTalentCredit,
+  addCreditsRpc,
+  deductCreditsRpc,
 } from "@/domains/finance/repo/financeRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
