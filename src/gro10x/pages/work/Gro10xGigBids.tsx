@@ -1,6 +1,10 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getEmployerGigBids,
+  acceptGigBid,
+  rejectMarketplaceBid,
+} from "@/domains/gigs/repo/gigsRepo";
 import { useGro10xCompanyId } from "../../hooks/useGro10xCompanyId";
 import { GRO10X_MUTED } from "../../lib/tokens";
 import { ArrowLeft, Loader2, CheckCircle2, XCircle, Award, ShieldCheck } from "lucide-react";
