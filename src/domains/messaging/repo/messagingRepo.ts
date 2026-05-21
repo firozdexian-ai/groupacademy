@@ -137,3 +137,10 @@ export async function getMessageThreadIdByTalentAndAgent(
   if (error) throw error;
   return (data?.id as string | undefined) ?? null;
 }
+
+// ─── Phase 10j.5h1: RPC wrappers ──────────────────────────────────────────
+export async function ensureSystemThread(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("ensure_system_thread", { _talent_id: talentId });
+  if (error) throw error;
+  return data ? String(data) : null;
+}
