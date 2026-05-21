@@ -146,19 +146,9 @@ export function JobsManagerLegacyTab() {
         page,
         pageSize: 10,
       });
-      if (searchQuery) {
-        const safe = sanitizeIlike(searchQuery);
-        query = query.or(`title.ilike.%${safe}%,company_name.ilike.%${safe}%`);
-      }
-      if (statusFilter === "active") query = query.eq("is_active", true);
-      if (statusFilter === "featured") query = query.eq("is_featured", true);
-
-      const from = (page - 1) * 10;
-      const { data, count, error } = await query.range(from, from + 9);
-      if (error) throw error;
-      setJobs(data as Job[]);
+      setJobs(rows as Job[]);
       setTotalCount(count || 0);
-      if (data) fetchEngagement(data.map((j) => j.id));
+      if (rows) fetchEngagement(rows.map((j: any) => j.id));
     } finally {
       setLoading(false);
     }
