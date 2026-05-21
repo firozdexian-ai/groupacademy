@@ -79,4 +79,9 @@ After 5h + 5i + 5j:
 2. **10j.5i** — Storage helpers (single batch).
 3. **10j.5j** — Auth cleanup + final import-boundary lint check.
 
-Say **"continue 10j.5h1"** to start with the companies-domain RPCs.
+Progress:
+- ✅ **10j.5h1**: companies/talent/messaging — 7 RPCs, 11 callsites
+- ✅ **10j.5h2**: finance/feed/gigs — 7 RPCs, 7 files
+- ✅ **10j.5h3**: analytics/messaging/learning/ugc/agents — `track_service_click`, `track_content_click`, `track_course_referral_click`, `upsert_direct_thread`, `talent_enroll_track`, `upcoming_sessions_for_user`, `toggle_project_public`, `talent_marketplace_summary` (8 RPCs, 10 callsites)
+
+Say **"continue 10j.5h4"** to proceed with the next batch (admin overview RPCs: `get_workforce_dashboard`, `analyst_metrics_bulk`, `get_global_crm_overview`, `get_creator_economy_leaderboard`, `sweep_expired_connections`, `get_contact_unlocks_summary`, `get_ugc_dashboard`, `broadcast_notifications`).
