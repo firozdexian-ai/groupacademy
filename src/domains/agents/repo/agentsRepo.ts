@@ -204,3 +204,27 @@ export async function deleteAgentMessage(id: string): Promise<void> {
   const { error } = await supabase.from("agent_messages").delete().eq("id", id);
   if (error) throw error;
 }
+
+/* ---------------- Phase 10j.3: review section helpers ---------------- */
+
+export async function listAgentReviews(agentKey: string) {
+  const { data, error } = await supabase
+    .from("agent_reviews")
+    .select("id, talent_id, rating, review_text, created_at, talent:talents(full_name)")
+    .eq("agent_key", agentKey)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function upsertAgentReview(input: {
+  agent_key: string;
+  talent_id: string;
+  rating: number;
+  review_text: string | null;
+}): Promise<void> {
+  const { error } = await supabase.from("agent_reviews").upsert(input, {
+    onConflict: "agent_key,talent_id",
+  });
+  if (error) throw error;
+}

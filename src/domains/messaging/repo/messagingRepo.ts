@@ -45,3 +45,30 @@ export async function updateChannelAutoReply(
     .eq("id", id);
   return { error };
 }
+
+/* ---------------- Phase 10j.3: WhatsApp group manager helpers ---------------- */
+
+export async function listMessagingChannelsByKeys(keys: string[]) {
+  const { data, error } = await supabase
+    .from("messaging_channels")
+    .select("id, agent_key, status, phone_e164")
+    .in("agent_key", keys);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCompanyGroupConversations(companyId: string) {
+  const { data, error } = await supabase
+    .from("messaging_conversations")
+    .select("id, channel_id, external_chat_id, peer_display_name, group_kind, metadata")
+    .eq("company_id", companyId)
+    .eq("is_group", true)
+    .order("last_message_at", { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function deleteMessagingConversation(id: string): Promise<void> {
+  const { error } = await supabase.from("messaging_conversations").delete().eq("id", id);
+  if (error) throw error;
+}

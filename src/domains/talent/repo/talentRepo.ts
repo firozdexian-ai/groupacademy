@@ -396,3 +396,71 @@ export async function completeTalentOnboarding(talentId: string): Promise<void> 
 export async function deleteAiRecommendationsForTalent(talentId: string): Promise<void> {
   await supabase.from("ai_recommendations").delete().eq("talent_id", talentId);
 }
+
+/* ---------------- Phase 10j.3: shared component helpers ---------------- */
+
+export async function getTalentRowByUserId(userId: string) {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function updateTalentById(id: string, patch: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from("talents").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function getTalentReferralIdentityByUser(
+  userId: string,
+): Promise<{ id: string; ref_code: string | null } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id, ref_code")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function countTalentsReferredBy(referrerTalentId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("talents")
+    .select("id", { count: "exact", head: true })
+    .eq("referred_by", referrerTalentId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function getTalentInboxVolume(talentId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("v_talent_transaction_volume" as any)
+    .select("volume")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return Number((data as any)?.volume ?? 0);
+}
+
+export async function getTalentInboxUnlocked(talentId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("talent_inbox_settings")
+    .select("unlocked")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean((data as any)?.unlocked);
+}
+
+export async function getTalentCareerCoachInstructorId(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("career_coach_instructor_id")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.career_coach_instructor_id as string | null) ?? null;
+}

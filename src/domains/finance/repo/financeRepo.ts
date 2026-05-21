@@ -170,3 +170,15 @@ export async function manualAdjustTalentCredit(input: {
   });
   if (txError) throw txError;
 }
+
+/* ---------------- Phase 10j.3: referral telemetry ---------------- */
+
+export async function sumReferralBonusCredits(talentId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("amount")
+    .eq("talent_id", talentId)
+    .eq("service_type", "referral_bonus");
+  if (error) throw error;
+  return (data ?? []).reduce((sum: number, row: any) => sum + Number(row?.amount ?? 0), 0);
+}

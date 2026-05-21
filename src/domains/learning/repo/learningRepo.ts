@@ -638,3 +638,89 @@ export async function insertContentReport(payload: { scope: string; scope_id: st
   const { error } = await supabase.from("content_reports").insert(payload);
   if (error) throw error;
 }
+
+/* ---------------- Phase 10j.3: shared component helpers ---------------- */
+
+export async function getContentIdBySlug(slug: string): Promise<string | null> {
+  const { data } = await supabase.from("content").select("id").eq("slug", slug).maybeSingle();
+  return ((data as any)?.id as string | null) ?? null;
+}
+
+export async function findStudentIdByUserId(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("students")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.id as string | null) ?? null;
+}
+
+export async function requireStudentIdByUserId(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("students")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw error;
+  return String((data as any).id);
+}
+
+export async function getActiveAccessCode(
+  code: string,
+  contentId: string,
+): Promise<any | null> {
+  const { data, error } = await supabase
+    .from("access_codes")
+    .select("*")
+    .eq("code", code)
+    .eq("content_id", contentId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function insertEnrollmentRow(payload: {
+  student_id: string;
+  content_id: string;
+  status: string;
+  payment_amount: number;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("enrollments").insert(payload);
+  return { error };
+}
+
+export async function insertQuizAttempt(payload: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from("quiz_attempts").insert(payload as any);
+  if (error) throw error;
+}
+
+export async function listQuizQuestionsByModule(moduleId: string) {
+  const { data, error } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("module_id", moduleId)
+    .order("display_order");
+  return { data: data as any[] | null, error };
+}
+
+export async function listFallbackQuizQuestionsByContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("content_id", contentId)
+    .is("module_id", null)
+    .order("display_order");
+  return { data: data as any[] | null, error };
+}
+
+export async function getAiInstructorName(id: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("ai_instructors")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.name as string | null) ?? null;
+}

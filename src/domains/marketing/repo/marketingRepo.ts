@@ -283,3 +283,10 @@ export async function listMockInterviewLeads(): Promise<any[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+/* ---------------- Phase 10j.3: lead capture ---------------- */
+
+export async function insertCareerAssessment(payload: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from("career_assessments").insert(payload as any);
+  if (error) throw error;
+}
