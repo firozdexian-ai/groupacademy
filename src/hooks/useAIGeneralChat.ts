@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { createAgentChatSession, updateAgentChatSessionMessages } from "@/domains/agents/repo/agentsRepo";
+import { createAgentChatSession, updateAgentChatSessionMessages, incrementAgentConversations } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
