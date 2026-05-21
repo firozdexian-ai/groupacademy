@@ -504,8 +504,7 @@ export async function insertToolRun(payload: {
 }
 
 export async function insertOffer(payload: Record<string, any>): Promise<string> {
-  const { data, error } = await supabase
-    .from("offers")
+  const { data, error } = await (supabase.from("offers") as any)
     .insert(payload)
     .select("id")
     .single();
@@ -514,13 +513,12 @@ export async function insertOffer(payload: Record<string, any>): Promise<string>
 }
 
 export async function updateOfferStatus(offerId: string, status: string): Promise<void> {
-  const { error } = await supabase.from("offers").update({ status }).eq("id", offerId);
+  const { error } = await supabase.from("offers").update({ status: status as any }).eq("id", offerId);
   if (error) throw error;
 }
 
 export async function insertInterview(payload: Record<string, any>): Promise<string> {
-  const { data, error } = await supabase
-    .from("interviews")
+  const { data, error } = await (supabase.from("interviews") as any)
     .insert(payload)
     .select("id")
     .single();
@@ -530,6 +528,6 @@ export async function insertInterview(payload: Record<string, any>): Promise<str
 
 export async function insertInterviewSlots(rows: Array<Record<string, any>>): Promise<void> {
   if (!rows.length) return;
-  const { error } = await supabase.from("interview_slots").insert(rows);
+  const { error } = await (supabase.from("interview_slots") as any).insert(rows);
   if (error) throw error;
 }
