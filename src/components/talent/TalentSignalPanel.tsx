@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Award, Trophy, Layers, Sparkles, Activity, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useTalentOutcomeSignal } from "@/hooks/useTalentOutcomeSignal";
+import { useTalentOutcomeSignal } from "@/domains/profile/hooks/useTalentOutcomeSignal";
 import { ActiveInstructorChip } from "./ActiveInstructorChip";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";

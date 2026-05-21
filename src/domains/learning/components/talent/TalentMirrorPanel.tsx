@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTalentMirror, type TalentMirrorCourse, type TalentMirrorTopic } from "@/hooks/useTalentMirror";
+import { useTalentMirror, type TalentMirrorCourse, type TalentMirrorTopic } from "@/domains/profile/hooks/useTalentMirror";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

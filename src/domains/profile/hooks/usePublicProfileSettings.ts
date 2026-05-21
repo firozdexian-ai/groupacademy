@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { claimPublicHandle } from "@/domains/profile/api/profileApi";
+import { getPublicProfileSettings, updatePublicProfileSettings } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
+
 
 /**
  * GroUp Academy: Identity & Privacy Sentinel (V5.6.0)
@@ -33,18 +34,12 @@ export function usePublicProfileSettings() {
     enabled: !!talent?.id,
     staleTime: 60 * 1000, // 1-minute safety window for privacy configs
     queryFn: async (): Promise<PublicProfileSettings | null> => {
-      // HUD: EXECUTING_PRIVACY_MATRIX_INGRESS
-      const { data, error } = await supabase
-        .from("talents")
-        .select("public_handle, public_profile_enabled, public_show_mastery, public_show_credentials, public_bio")
-        .eq("id", talent!.id)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        return await getPublicProfileSettings(talent!.id);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: public_profile_settings lookup failed.", error);
         throw error;
       }
-      return data as PublicProfileSettings | null;
     },
   });
 
@@ -52,11 +47,9 @@ export function usePublicProfileSettings() {
   const update = useMutation({
     mutationFn: async (patch: Partial<PublicProfileSettings>) => {
       if (!talent?.id) throw new Error("no_talent");
-
-      // HUD: COMMITTING_PRIVACY_RECORD_UPDATE
-      const { error } = await supabase.from("talents").update(patch).eq("id", talent.id);
-
-      if (error) {
+      try {
+        await updatePublicProfileSettings(talent.id, patch);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talents privacy parameters write rejected.", error);
         throw error;
       }

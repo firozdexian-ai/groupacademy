@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTalentLists, useCreateTalentList } from "@/hooks/useTalentLists";
+import { useTalentLists, useCreateTalentList } from "@/domains/profile/hooks/useTalentLists";
 import { useActiveCompany } from "@/gro10x/hooks/useActiveCompany";
 import { GRO10X_BG, GRO10X_TEXT, GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { Plus, Users } from "lucide-react";

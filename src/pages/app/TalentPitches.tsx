@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles, Building2, MessageCircle, ExternalLink, CheckCircle2, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTalentPitches } from "@/hooks/useTalentPitches";
+import { useTalentPitches } from "@/domains/profile/hooks/useTalentPitches";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   GRO10X_BG,

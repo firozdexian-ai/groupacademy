@@ -10,7 +10,7 @@ import { BadgeCheck, Award, Trophy, ExternalLink, Sparkles, Share2, Lock } from 
 import { cn } from "@/lib/utils";
 import { useSkillCredentials, useIssueSkillCredentials, type SkillCredential } from "@/domains/learning";
 import { useTalent } from "@/hooks/useTalent";
-import { usePublicProfileSettings } from "@/hooks/usePublicProfileSettings";
+import { usePublicProfileSettings } from "@/domains/profile/hooks/usePublicProfileSettings";
 import { useToast } from "@/hooks/use-toast";
 
 const LEVEL_META: Record<SkillCredential["level"], { icon: any; label: string; tone: string }> = {

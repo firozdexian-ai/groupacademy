@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listTalentRelationships as repoListTalentRelationships,
+  upsertTalentRelationship,
+  updateTalentRelationshipStage,
+} from "@/domains/profile/repo/profileRepo";
 import { toast } from "sonner";
+
 
 /**
  * GroUp Academy: Enterprise CRM & Talent Pipeline Lifecycle Funnel (V5.6.0)
@@ -62,20 +67,14 @@ export function useTalentRelationships(companyId?: string | null) {
     enabled: !!companyId,
     staleTime: 30 * 1000, // 30-second pipeline cache consistency boundary
     queryFn: async (): Promise<TalentRelationship[]> => {
-      // HUD: EXECUTING_TALENT_RELATIONSHIPS_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("talent_relationships")
-        .select("*, talent:talents(id, full_name, profile_photo_url, custom_profession, public_handle)")
-        .eq("company_id", companyId!)
-        .order("updated_at", { ascending: false });
-
-      if (error) {
+      let data: any[];
+      try {
+        data = await repoListTalentRelationships(companyId!);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_relationships query pipeline dropped.", error);
         throw error;
       }
-
-      // Hardened Data Normalization Layer: Sanitizes child nodes against relational schema drift
-      return (data || []).map((row: any) => ({
+      return data.map((row: any) => ({
         id: String(row.id),
         company_id: String(row.company_id),
         talent_id: String(row.talent_id),
@@ -111,26 +110,12 @@ export function useUpsertRelationship() {
 
   return useMutation({
     mutationFn: async (input: { companyId: string; talentId: string; stage?: TalentRelStage; source?: string }) => {
-      // HUD: COMMITTING_TALENT_RELATIONSHIP_UPSERT_HANDSHAKE
-      const { data, error } = await supabase
-        .from("talent_relationships")
-        .upsert(
-          {
-            company_id: input.companyId,
-            talent_id: input.talentId,
-            stage: input.stage ?? "prospect",
-            source: input.source ?? "sourcing",
-          },
-          { onConflict: "company_id,talent_id" },
-        )
-        .select()
-        .single();
-
-      if (error) {
+      try {
+        return await upsertTalentRelationship(input);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_relationships upsert transaction rejected.", error);
         throw error;
       }
-      return data;
     },
     onSuccess: (_, variables) => {
       // Evict targeted query line cleanly to maintain corporate dashboard load balance
@@ -154,15 +139,13 @@ export function useMoveRelationshipStage(companyId?: string | null) {
 
   return useMutation({
     mutationFn: async (input: { id: string; stage: TalentRelStage }) => {
-      // HUD: COMMITTING_PIPELINE_STAGE_UPDATE_TRANSACTION
-      const { error } = await supabase.from("talent_relationships").update({ stage: input.stage }).eq("id", input.id);
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Crucial for auditing pipeline stage drops
+      try {
+        await updateTalentRelationshipStage(input.id, input.stage);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: talent_relationships update operation rejected.", {
           relationshipId: input.id,
           targetStage: input.stage,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }

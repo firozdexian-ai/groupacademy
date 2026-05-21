@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getLatestIdentityDoc, insertIdentityDoc } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { ShieldCheck, Upload, Loader2, CheckCircle2, Clock, XCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 
 interface IdDoc {
   id: string;
@@ -78,17 +80,9 @@ export function IdentityDocsUpload() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("talent_id_documents" as any)
-        .select("*")
-        .eq("talent_id", talent.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
+      const structuralRecord = (await getLatestIdentityDoc(talent.id)) as IdDoc | null;
 
       if (isMountedRef.current) {
-        const structuralRecord = (((data as any) || [])[0] as IdDoc) || null;
         setDoc(structuralRecord);
         setLoading(false);
         trackEvent("identity_docs_record_loaded", { status: structuralRecord?.status });
@@ -137,16 +131,13 @@ export function IdentityDocsUpload() {
       const front_url = await uploadOne(uid, frontFile, "front");
       const back_url = backFile ? await uploadOne(uid, backFile, "back") : null;
 
-      const { error: insertError } = await supabase.from("talent_id_documents" as any).insert({
-        talent_id: talent.id,
-        user_id: uid,
-        doc_type: docType,
-        front_url,
-        back_url,
-        status: "pending",
-      } as any);
-
-      if (insertError) throw insertError;
+      await insertIdentityDoc({
+        talentId: talent.id,
+        userId: uid,
+        docType,
+        frontUrl: front_url,
+        backUrl: back_url,
+      });
 
       // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
       await queryClient.invalidateQueries({ queryKey: ["talent-id-docs"] });

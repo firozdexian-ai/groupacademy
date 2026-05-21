@@ -8,7 +8,7 @@ import {
   useTalentRelationships,
   useMoveRelationshipStage,
   type TalentRelStage,
-} from "@/hooks/useTalentRelationships";
+} from "@/domains/profile/hooks/useTalentRelationships";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { TalentSignalPanel } from "@/components/talent/TalentSignalPanel";

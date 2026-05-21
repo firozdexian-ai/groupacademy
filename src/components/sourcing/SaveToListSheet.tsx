@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { useTalentLists, useAddToList, useCreateTalentList } from "@/hooks/useTalentLists";
+import { useTalentLists, useAddToList, useCreateTalentList } from "@/domains/profile/hooks/useTalentLists";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Plus, Bookmark, Loader2, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
