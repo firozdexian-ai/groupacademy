@@ -1,12 +1,20 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Building2, Globe, MapPin, Briefcase, Edit2, Check, X, Package, ChevronRight } from "lucide-react";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { CompletionRing } from "../components/CompletionRing";
 import { useCompanyOfferings } from "../hooks/useCompanyOfferings";
 import { toast } from "sonner";
+import {
+  getActiveCompanyMembership,
+  getCompanyMemberRole,
+  getCompanyPublicProfile,
+  listActiveCompanyMembers,
+  updateCompanyField,
+} from "@/domains/companies/repo/companiesRepo";
+import { listTalentMiniProfilesByUserIds } from "@/domains/talent/repo/talentRepo";
+import { listActiveJobsByCompanyId } from "@/domains/jobs/repo/jobsRepo";
 
 interface Company {
   id: string;
