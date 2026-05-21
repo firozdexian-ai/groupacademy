@@ -122,34 +122,21 @@ export default function CourseProjectDetail() {
     queryKey: ["app-course-project-composite-detail", unverifiedProjectIdStr],
     enabled: !!unverifiedProjectIdStr,
     queryFn: async (): Promise<ProjectCompositePayload> => {
-      const { data: projectRow, error: projectQueryError } = await supabase
-        .from("course_projects")
-        .select("id, course_id, status, claimed_by, deadline, total_credit_reward, progress_percent")
-        .eq("id", unverifiedProjectIdStr!)
-        .single();
+      const { data: projectRow, error: projectQueryError } = await getCourseProjectById(
+        unverifiedProjectIdStr!,
+      );
 
       if (projectQueryError || !projectRow) throw projectQueryError || new Error("Project absent.");
 
-      const [courseQueryResponse, subtasksQueryResponse] = await Promise.all([
-        supabase
-          .from("content")
-          .select("id, title, description, cover_image_url")
-          .eq("id", projectRow.course_id)
-          .maybeSingle(),
-        supabase
-          .from("course_project_subtasks")
-          .select(
-            "id, project_id, title, kind, status, brief, expected_format, credit_reward, display_order, submitted_files, submitted_notes, reviewer_notes",
-          )
-          .eq("project_id", unverifiedProjectIdStr!)
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: true }),
+      const [courseRow, subtaskRows] = await Promise.all([
+        getCourseProjectCourse(projectRow.course_id),
+        listCourseProjectSubtasks(unverifiedProjectIdStr!),
       ]);
 
       return {
         project: projectRow as unknown as CourseProject,
-        course: courseQueryResponse.data as unknown as CourseMetadata | null,
-        subtasks: (subtasksQueryResponse.data as unknown as ProjectSubtask[]) || [],
+        course: courseRow as unknown as CourseMetadata | null,
+        subtasks: (subtaskRows as unknown as ProjectSubtask[]) || [],
       };
     },
   });
