@@ -215,8 +215,7 @@ export function useRemoveTrackItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, track_id: _track_id }: { id: string; track_id: string }) => {
-      const { error } = await supabase.from("learning_track_items").delete().eq("id", id);
-      if (error) throw error;
+      await deleteLearningTrackItem(id);
     },
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["track-items", v.track_id] });
