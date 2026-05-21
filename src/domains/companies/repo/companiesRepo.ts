@@ -377,3 +377,81 @@ export async function listAllCompaniesWithSlug(): Promise<Array<{ id: string; na
   if (error) throw error;
   return (data ?? []) as Array<{ id: string; name: string; slug: string }>;
 }
+
+// ─── Phase 10j.5g: gro10x active-company helpers ──────────────────────────
+export async function getActiveCompanyMembership(
+  userId: string,
+): Promise<{ company_id: string; role: string | null } | null> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("company_id, role")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function getActiveCompanyIdForUser(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return (data?.company_id as string | null) ?? null;
+}
+
+export async function getCompanyGoals(companyId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("companies")
+    .select("goals")
+    .eq("id", companyId)
+    .maybeSingle();
+  return ((data?.goals as string[] | null) ?? []) as string[];
+}
+
+export async function getCompanyCreditPools(
+  companyId: string,
+): Promise<{ balance: number; earnedBalance: number }> {
+  const { data } = await supabase
+    .from("company_credits")
+    .select("balance, earned_balance")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return {
+    balance: Number(data?.balance ?? 0),
+    earnedBalance: Number(data?.earned_balance ?? 0),
+  };
+}
+
+export interface CompanyCreditTxnRow {
+  id: string;
+  amount: number;
+  balance_after: number;
+  transaction_type: string;
+  service_type: string | null;
+  description: string | null;
+  created_at: string;
+}
+
+export async function listCompanyCreditTransactionsSince(
+  companyId: string,
+  sinceIso: string,
+  limit = 200,
+): Promise<CompanyCreditTxnRow[]> {
+  const { data } = await supabase
+    .from("company_credit_transactions")
+    .select("id, amount, balance_after, transaction_type, service_type, description, created_at")
+    .eq("company_id", companyId)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((r: any) => ({
+    ...r,
+    amount: Number(r.amount),
+    balance_after: Number(r.balance_after),
+  })) as CompanyCreditTxnRow[];
+}
