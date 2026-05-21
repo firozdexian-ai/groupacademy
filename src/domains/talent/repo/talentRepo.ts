@@ -719,9 +719,10 @@ export async function getCompanyUnlockedTalents(p_company_id: string): Promise<S
   return new Set(((data as any[]) ?? []).map((r) => (typeof r === "string" ? r : r.get_company_unlocked_talents)));
 }
 
-export async function assignCareerCoach(_talent_id: string): Promise<void> {
-  const { error } = await supabase.rpc("assign_career_coach", { _talent_id });
+export async function assignCareerCoach(_talent_id: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("assign_career_coach", { _talent_id });
   if (error) throw error;
+  return data ? String(data) : null;
 }
 
 export async function getTalentCountryByUserId(user_id: string): Promise<string | null> {
