@@ -228,11 +228,11 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
         deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
       };
 
-      const { error } = jobId
-        ? await supabase.from("jobs").update(payload).eq("id", jobId)
-        : await supabase.from("jobs").insert(payload);
-
-      if (error) throw error;
+      if (jobId) {
+        await updateJob(jobId, payload);
+      } else {
+        await insertJob(payload);
+      }
       toast.success(jobId ? "Infrastructure Updated" : "Deployment Successful");
       onOpenChange(false);
       onSaved?.();
