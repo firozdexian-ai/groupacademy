@@ -147,14 +147,11 @@ export function JobsApplicationsTab() {
         });
         const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
         const reco = data?.recommendation || "";
-        await supabase
-          .from("job_applications")
-          .update({
-            ai_match_score: overall,
-            ai_match_rationale: reco,
-            ai_scored_at: new Date().toISOString(),
-          })
-          .eq("id", a.id);
+        await updateJobApplication(a.id, {
+          ai_match_score: overall,
+          ai_match_rationale: reco,
+          ai_scored_at: new Date().toISOString(),
+        });
         done++;
         toast.loading(`Neural Analysis: ${done}/${unscored.length}...`, { id: tid });
       } catch {
