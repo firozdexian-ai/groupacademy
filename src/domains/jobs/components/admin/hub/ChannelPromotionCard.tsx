@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { listJobChannelPosts, insertJobChannelPost } from "@/domains/jobs/repo/jobsRepo";
 import { generateJobShareCaption } from "@/domains/jobs/api/jobsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,8 +55,8 @@ export function ChannelPromotionCard({ job }: Props) {
 
   useEffect(() => {
     const fetchSyndicationState = async () => {
-      const { data } = await supabase.from("job_channel_posts").select("channel").eq("job_id", job.id);
-      setPosted(new Set((data || []).map((d: any) => d.channel)));
+      const data = await listJobChannelPosts(job.id);
+      setPosted(new Set(data.map((d) => d.channel)));
     };
     fetchSyndicationState();
   }, [job.id]);
@@ -94,14 +95,16 @@ export function ChannelPromotionCard({ job }: Props) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    const { error } = await supabase.from("job_channel_posts").insert({
-      job_id: job.id,
-      channel,
-      posted_by: user?.id || null,
-      caption: captions[channel] || null,
-    } as any);
-
-    if (error) return toast.error("Registry Fault: " + error.message);
+    try {
+      await insertJobChannelPost({
+        job_id: job.id,
+        channel,
+        posted_by: user?.id || null,
+        caption: captions[channel] || null,
+      });
+    } catch (error: any) {
+      return toast.error("Registry Fault: " + error.message);
+    }
 
     setPosted((p) => new Set(p).add(channel));
     toast.success(`Protocol Successful: Syndication logged on ${channel}`);

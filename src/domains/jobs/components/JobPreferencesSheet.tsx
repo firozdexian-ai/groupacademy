@@ -8,7 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveJobLocations } from "@/domains/jobs/repo/jobsRepo";
+import {
+  getTalentJobPreferences,
+  updateTalentJobPreferences,
+} from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import type { Json } from "@/integrations/supabase/types";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
@@ -68,14 +72,7 @@ export function JobPreferencesSheet({
     staleTime: 1000 * 60 * 15,
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("location").eq("is_active", true).limit(300);
-      if (error) throw error;
-
-      const locSet = new Set<string>(["Remote"]);
-      data?.forEach((jobItem) => {
-        if (jobItem.location) locSet.add(jobItem.location.trim());
-      });
-      return Array.from(locSet).slice(0, 15);
+      return await listActiveJobLocations();
     },
   });
 
@@ -88,12 +85,9 @@ export function JobPreferencesSheet({
   const loadRegistryPreferences = async () => {
     if (!talent?.id) return;
     try {
-      const { data, error } = await supabase.from("talents").select("job_preferences").eq("id", talent.id).single();
-
-      if (error) throw error;
-
-      if (data?.job_preferences) {
-        setPreferences(data.job_preferences as unknown as JobPreferences);
+      const prefs = await getTalentJobPreferences(talent.id);
+      if (prefs) {
+        setPreferences(prefs as unknown as JobPreferences);
         trackEvent("match_constraints_loaded_success", { talentId: talent.id });
       }
     } catch (err: any) {
@@ -114,12 +108,7 @@ export function JobPreferencesSheet({
     trackEvent("match_constraints_sync_requested", { talentId: talent.id });
 
     try {
-      const { error } = await supabase
-        .from("talents")
-        .update({ job_preferences: preferences as unknown as Json })
-        .eq("id", talent.id);
-
-      if (error) throw error;
+      await updateTalentJobPreferences(talent.id, preferences as unknown as Json);
 
       trackEvent("match_constraints_sync_success", { talentId: talent.id });
 

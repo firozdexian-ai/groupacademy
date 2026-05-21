@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
+import { insertExternalJobApplication } from "@/domains/jobs/repo/jobsRepo";
+import { findTalentByEmail } from "@/domains/talent/repo/talentRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,8 +134,8 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       setTalentExists(null);
       return;
     }
-    const { data } = await supabase.from("talents").select("id").ilike("email", em.trim()).maybeSingle();
-    setTalentExists(!!data);
+    const found = await findTalentByEmail(em);
+    setTalentExists(!!found);
   };
 
   const handleSave = async () => {
@@ -152,20 +154,14 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error: appErr } = await supabase.from("job_applications").insert({
+      await insertExternalJobApplication({
         job_id: jobId,
         talent_id: talentId as string,
         cv_url: cvUrl || null,
         cover_letter: coverLetter || null,
-        application_status: "submitted",
-        delivery_status: "pending",
-        is_paid: true,
-        source: "external",
         external_notes: externalNotes || null,
         added_by: user?.id || null,
-      } as any);
-
-      if (appErr) throw appErr;
+      });
 
       toast.success("Node Synchronized");
       handleClose(false);

@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import {
+  listActiveJobsLite,
+  findJobIdsBySearch,
+  searchAdminApplications,
+  updateApplicationStatus,
+  updateJobApplication,
+} from "@/domains/jobs/repo/jobsRepo";
+import { findTalentIdsBySearch } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,63 +77,39 @@ export function JobsApplicationsTab() {
   const PAGE_SIZE = 20;
 
   const loadJobs = useCallback(async () => {
-    const { data } = await supabase
-      .from("jobs")
-      .select("id,title,company_name")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    setJobsList((data || []) as any);
+    const data = await listActiveJobsLite(500);
+    setJobsList(data as any);
   }, []);
 
   const loadApps = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from("job_applications").select(
-        `id, job_id, talent_id, application_status, delivery_status, created_at, cv_url, source, ai_match_score, ai_match_rationale, external_notes,
-           jobs (title, company_name),
-           talents (full_name, email, phone)`,
-        { count: "exact" },
-      );
-
-      if (statusFilter !== "all") query = query.eq("application_status", statusFilter as any);
-      if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
-      if (jobFilter !== "all") query = query.eq("job_id", jobFilter);
-
-      // Score-based Neural Filtering
-      if (scoreFilter === "scored") query = query.not("ai_match_score", "is", null);
-      else if (scoreFilter === "unscored") query = query.is("ai_match_score", null);
-      else if (scoreFilter === "strong") query = query.gte("ai_match_score", 80);
-      else if (scoreFilter === "weak") query = query.lt("ai_match_score", 40);
-
-      if (search.trim()) {
-        const safe = sanitizeIlike(search.trim());
-        const [tMatch, jMatch] = await Promise.all([
-          supabase.from("talents").select("id").or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`).limit(200),
-          supabase.from("jobs").select("id").or(`title.ilike.%${safe}%,company_name.ilike.%${safe}%`).limit(200),
+      let talentIds: string[] | undefined;
+      let jobIds: string[] | undefined;
+      const searchActive = !!search.trim();
+      if (searchActive) {
+        const [tIds, jIds] = await Promise.all([
+          findTalentIdsBySearch(search.trim(), 200),
+          findJobIdsBySearch(search.trim(), 200),
         ]);
-        const tIds = (tMatch.data || []).map((t) => t.id);
-        const jIds = (jMatch.data || []).map((j) => j.id);
-        const orParts: string[] = [];
-        if (tIds.length) orParts.push(`talent_id.in.(${tIds.join(",")})`);
-        if (jIds.length) orParts.push(`job_id.in.(${jIds.join(",")})`);
-        if (orParts.length) query = query.or(orParts.join(","));
-        else {
-          setApps([]);
-          setTotalCount(0);
-          setLoading(false);
-          return;
-        }
+        talentIds = tIds;
+        jobIds = jIds;
       }
 
-      if (sortByScore) query = query.order("ai_match_score", { ascending: false, nullsFirst: false });
-      else query = query.order("created_at", { ascending: false });
-
-      const from = (page - 1) * PAGE_SIZE;
-      const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      setApps((data as any) || []);
-      setTotalCount(count || 0);
+      const { rows, count } = await searchAdminApplications({
+        statusFilter,
+        sourceFilter,
+        jobFilter,
+        scoreFilter,
+        sortByScore,
+        page,
+        pageSize: PAGE_SIZE,
+        talentIds,
+        jobIds,
+        searchActive,
+      });
+      setApps(rows as any);
+      setTotalCount(count);
     } catch (err: any) {
       toast.error("Registry Ingestion Fault: " + err.message);
     } finally {
@@ -143,11 +125,11 @@ export function JobsApplicationsTab() {
   }, [loadApps]);
 
   const updateStatus = async (id: string, st: string) => {
-    const { error } = await supabase
-      .from("job_applications")
-      .update({ application_status: st as any })
-      .eq("id", id);
-    if (error) return toast.error("Protocol Fault: " + error.message);
+    try {
+      await updateApplicationStatus(id, st);
+    } catch (error: any) {
+      return toast.error("Protocol Fault: " + error.message);
+    }
     setApps((prev) => prev.map((a) => (a.id === id ? { ...a, application_status: st } : a)));
     toast.success("Status Synchronized");
   };
@@ -166,14 +148,11 @@ export function JobsApplicationsTab() {
         });
         const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
         const reco = data?.recommendation || "";
-        await supabase
-          .from("job_applications")
-          .update({
-            ai_match_score: overall,
-            ai_match_rationale: reco,
-            ai_scored_at: new Date().toISOString(),
-          })
-          .eq("id", a.id);
+        await updateJobApplication(a.id, {
+          ai_match_score: overall,
+          ai_match_rationale: reco,
+          ai_scored_at: new Date().toISOString(),
+        });
         done++;
         toast.loading(`Neural Analysis: ${done}/${unscored.length}...`, { id: tid });
       } catch {

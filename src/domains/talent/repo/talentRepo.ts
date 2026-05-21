@@ -230,3 +230,49 @@ export const talentRepo = {
   insertIntoTable: (table: string, insertData: Record<string, any>) =>
     ((supabase as any).from(table)).insert(insertData),
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Standalone helpers (Phase 10h.3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function findTalentIdsBySearch(search: string, limit = 200): Promise<string[]> {
+  const safe = sanitizeIlike(search);
+  if (!safe) return [];
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id")
+    .or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((t: any) => t.id);
+}
+
+export async function findTalentByEmail(email: string): Promise<{ id: string } | null> {
+  const { data } = await supabase
+    .from("talents")
+    .select("id")
+    .ilike("email", email.trim())
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function getTalentJobPreferences(talentId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("job_preferences")
+    .eq("id", talentId)
+    .single();
+  if (error) throw error;
+  return (data as any)?.job_preferences ?? null;
+}
+
+export async function updateTalentJobPreferences(
+  talentId: string,
+  preferences: any,
+): Promise<void> {
+  const { error } = await supabase
+    .from("talents")
+    .update({ job_preferences: preferences })
+    .eq("id", talentId);
+  if (error) throw error;
+}

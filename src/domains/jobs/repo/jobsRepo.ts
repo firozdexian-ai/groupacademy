@@ -249,3 +249,227 @@ export async function getJobEngagementCounts(
   });
   return stats;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Applications (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listActiveJobsLite(
+  limit = 500,
+): Promise<Array<{ id: string; title: string; company_name: string }>> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id,title,company_name")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any;
+}
+
+export async function findJobIdsBySearch(search: string, limit = 200): Promise<string[]> {
+  const safe = sanitizeIlike(search);
+  if (!safe) return [];
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id")
+    .or(`title.ilike.%${safe}%,company_name.ilike.%${safe}%`)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((j: any) => j.id);
+}
+
+export interface SearchAdminApplicationsOpts {
+  statusFilter?: string;
+  sourceFilter?: string;
+  jobFilter?: string;
+  scoreFilter?: string;
+  sortByScore?: boolean;
+  page: number;
+  pageSize: number;
+  talentIds?: string[];
+  jobIds?: string[];
+  searchActive?: boolean;
+}
+
+export async function searchAdminApplications(
+  opts: SearchAdminApplicationsOpts,
+): Promise<{ rows: any[]; count: number }> {
+  const {
+    statusFilter = "all",
+    sourceFilter = "all",
+    jobFilter = "all",
+    scoreFilter = "all",
+    sortByScore,
+    page,
+    pageSize,
+    talentIds,
+    jobIds,
+    searchActive,
+  } = opts;
+
+  let query = supabase.from("job_applications").select(
+    `id, job_id, talent_id, application_status, delivery_status, created_at, cv_url, source, ai_match_score, ai_match_rationale, external_notes,
+       jobs (title, company_name),
+       talents (full_name, email, phone)`,
+    { count: "exact" },
+  );
+
+  if (statusFilter !== "all") query = query.eq("application_status", statusFilter as any);
+  if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
+  if (jobFilter !== "all") query = query.eq("job_id", jobFilter);
+
+  if (scoreFilter === "scored") query = query.not("ai_match_score", "is", null);
+  else if (scoreFilter === "unscored") query = query.is("ai_match_score", null);
+  else if (scoreFilter === "strong") query = query.gte("ai_match_score", 80);
+  else if (scoreFilter === "weak") query = query.lt("ai_match_score", 40);
+
+  if (searchActive) {
+    const orParts: string[] = [];
+    if (talentIds?.length) orParts.push(`talent_id.in.(${talentIds.join(",")})`);
+    if (jobIds?.length) orParts.push(`job_id.in.(${jobIds.join(",")})`);
+    if (orParts.length) query = query.or(orParts.join(","));
+    else return { rows: [], count: 0 };
+  }
+
+  if (sortByScore) query = query.order("ai_match_score", { ascending: false, nullsFirst: false });
+  else query = query.order("created_at", { ascending: false });
+
+  const from = (page - 1) * pageSize;
+  const { data, count, error } = await query.range(from, from + pageSize - 1);
+  if (error) throw error;
+  return { rows: (data ?? []) as any[], count: count ?? 0 };
+}
+
+export async function updateApplicationStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase
+    .from("job_applications")
+    .update({ application_status: status as any })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function insertExternalJobApplication(payload: {
+  job_id: string;
+  talent_id: string;
+  cv_url: string | null;
+  cover_letter: string | null;
+  external_notes: string | null;
+  added_by: string | null;
+}): Promise<void> {
+  const { error } = await supabase.from("job_applications").insert({
+    ...payload,
+    application_status: "submitted",
+    delivery_status: "pending",
+    is_paid: true,
+    source: "external",
+  } as any);
+  if (error) throw error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Channel promotion
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listJobChannelPosts(jobId: string): Promise<Array<{ channel: string }>> {
+  const { data, error } = await supabase
+    .from("job_channel_posts")
+    .select("channel")
+    .eq("job_id", jobId);
+  if (error) throw error;
+  return (data ?? []) as any;
+}
+
+export async function insertJobChannelPost(payload: {
+  job_id: string;
+  channel: string;
+  posted_by: string | null;
+  caption: string | null;
+}): Promise<void> {
+  const { error } = await supabase.from("job_channel_posts").insert(payload as any);
+  if (error) throw error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Active job locations (talent JobPreferencesSheet)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listActiveJobLocations(limit = 300): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("location")
+    .eq("is_active", true)
+    .limit(limit);
+  if (error) throw error;
+  const locSet = new Set<string>(["Remote"]);
+  (data ?? []).forEach((j: any) => {
+    if (j.location) locSet.add(String(j.location).trim());
+  });
+  return Array.from(locSet).slice(0, 15);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Jobs ATS graph (used by useJobsGraph)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getJobsGraphMaster() {
+  const [jobsRes, appsRes, crmRes, assessRes, inviteRes] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, title, company_id, is_active, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("job_applications")
+      .select("id, job_id, talent_id, status:application_status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from("talent_relationships")
+      .select("id, talent_id, company_id, stage, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("job_assessments")
+      .select("id, job_id, talent_id, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("job_invitations")
+      .select("id, job_id, talent_id, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
+  if (jobsRes.error) throw jobsRes.error;
+  if (appsRes.error) throw appsRes.error;
+  if (crmRes.error) throw crmRes.error;
+  if (assessRes.error) throw assessRes.error;
+  if (inviteRes.error) throw inviteRes.error;
+  return {
+    jobsRaw: jobsRes.data ?? [],
+    applications: appsRes.data ?? [],
+    crmRecords: crmRes.data ?? [],
+    assessments: assessRes.data ?? [],
+    invitations: inviteRes.data ?? [],
+  };
+}
+
+export async function upsertGraphRow(table: string, payload: any): Promise<void> {
+  if (payload?.id) {
+    const { error } = await supabase.from(table as any).update(payload).eq("id", payload.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from(table as any).insert(payload);
+    if (error) throw error;
+  }
+}
+
+export async function deleteGraphRow(table: string, id: string): Promise<void> {
+  const { error } = await supabase.from(table as any).delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateJobApplication(id: string, patch: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("job_applications").update(patch).eq("id", id);
+  if (error) throw error;
+}
