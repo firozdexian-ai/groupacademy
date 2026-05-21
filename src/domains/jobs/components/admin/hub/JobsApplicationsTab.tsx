@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import {
+  listActiveJobsLite,
+  findJobIdsBySearch,
+  searchAdminApplications,
+  updateApplicationStatus,
+} from "@/domains/jobs/repo/jobsRepo";
+import { findTalentIdsBySearch } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
