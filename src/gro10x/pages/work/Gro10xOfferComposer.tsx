@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getApplicationOfferContext } from "@/domains/jobs/repo/jobsRepo";
 import { useCreateOffer, useSendOffer } from "@/hooks/useOffers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
