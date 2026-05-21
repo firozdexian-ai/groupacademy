@@ -167,7 +167,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
           if (Object.keys(companyMap).length > prevLen) stats.companiesCreated++;
         }
 
-        const { error } = await supabase.from(targetTable).insert(insertData as any);
+        const { error } = await talentRepo.insertIntoTable(targetTable, insertData);
         error ? stats.failed++ : stats.imported++;
       }
       setImportProgress(((i + 1) / selected.length) * 100);
