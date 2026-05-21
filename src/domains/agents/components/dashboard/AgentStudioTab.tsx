@@ -110,10 +110,7 @@ export function AgentStudio() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: a }, { data: t }] = await Promise.all([
-      supabase.from("ai_agents").select("*").order("display_order", { ascending: true }),
-      supabase.from("agent_tools").select("*").order("category"),
-    ]);
+    const { agents: a, tools: t } = await getStudioBundle();
     setAgents((a as any) ?? []);
     setTools((t as any) ?? []);
     setLoading(false);
@@ -122,12 +119,14 @@ export function AgentStudio() {
   const handleSave = async (patch: Partial<AgentRow>) => {
     if (!selected) return;
     setSaving(true);
-    const { error } = await supabase.from("ai_agents").update(patch).eq("id", selected.id);
-    setSaving(false);
-    if (error) {
+    try {
+      await updateAiAgent(selected.id, patch);
+    } catch (error: any) {
+      setSaving(false);
       toast.error(error.message);
       return;
     }
+    setSaving(false);
     toast.success("Protocol Synced: Agent updated");
     await load();
     setSelected((s) => (s ? { ...s, ...patch } : s));
