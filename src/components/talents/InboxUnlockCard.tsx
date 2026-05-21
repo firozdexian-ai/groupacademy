@@ -76,8 +76,8 @@ export function InboxUnlockCard() {
     });
 
     try {
-      const { error: rpcMutationError } = await supabase.rpc("unlock_talent_inbox");
-      if (rpcMutationError) throw rpcMutationError;
+      await unlockTalentInbox();
+
 
       // Automated Efficiency: Synchronize cache streams across metrics and token balances instantly
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
