@@ -126,8 +126,11 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
   }
 
   async function setActive(key: string) {
-    const { error } = await supabase.from("ai_agents").update({ active_prompt_variant: key }).eq("id", agent.id);
-    if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    try {
+      await updateAiAgent(agent.id, { active_prompt_variant: key });
+    } catch (error: any) {
+      return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    }
     setActiveVariant(key);
     toast({ title: `Variant ${key} is now live` });
     onSaved?.();
