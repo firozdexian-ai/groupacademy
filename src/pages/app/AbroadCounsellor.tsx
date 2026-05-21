@@ -2,6 +2,8 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveCounsellorByUser, listAbroadApplications } from "@/domains/abroad/repo/abroadRepo";
+import { listUserRoles } from "@/domains/profile/repo/profileRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
