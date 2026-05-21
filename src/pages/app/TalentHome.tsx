@@ -51,13 +51,8 @@ export default function TalentHome() {
     if (!talent?.id) return;
     const fetchSettings = async () => {
       try {
-        const { data, error } = await supabase
-          .from("talent_inbox_settings")
-          .select("boost_until")
-          .eq("talent_id", talent.id)
-          .maybeSingle();
-        if (error) throw error;
-        setBoostUntil((data as any)?.boost_until ?? null);
+        const boostUntilVal = await getTalentBoostUntil(talent.id);
+        setBoostUntil(boostUntilVal);
       } catch (e) {
         await reportAnomaly("BoostStatusFetchFailure", { error: e });
       }
