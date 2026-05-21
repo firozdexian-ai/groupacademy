@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveCompany } from "../hooks/useActiveCompany";
 import { getAgentMeta } from "../lib/agents";
 import { GRO10X_BG, GRO10X_TEXT } from "../lib/tokens";
+import { listPinnedAgentKeys } from "@/domains/agents/repo/agentsRepo";
 
 /**
  * Gro10x Welcome — confirms signup and shows the agents Riya pinned for the
@@ -20,15 +20,9 @@ export default function Gro10xWelcome() {
   useEffect(() => {
     if (!user?.id || !companyId) return;
     let cancelled = false;
-    void supabase
-      .from("gro10x_agent_threads")
-      .select("agent_key")
-      .eq("user_id", user.id)
-      .eq("company_id", companyId)
-      .eq("pinned", true)
-      .then(({ data }) => {
-        if (!cancelled) setPinned((data ?? []).map((r: any) => r.agent_key));
-      });
+    void listPinnedAgentKeys(user.id, companyId).then((keys) => {
+      if (!cancelled) setPinned(keys);
+    });
     return () => {
       cancelled = true;
     };
