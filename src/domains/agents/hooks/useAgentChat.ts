@@ -299,17 +299,19 @@ export function useAgentChat(): UseAgentChatReturn {
 
         // Post-Response Credit Settlement
         if (perResponseCost > 0 && assistantBuffer) {
-          const { data: handshake, error: deductionError } = await supabase.rpc("deduct_credits", {
-            p_amount: perResponseCost,
-            p_service_type: "AI_AGENT_CHAT",
-            p_reference_id: session.id,
-            p_description: `Neural_Node: ${session.agent_key}`,
-            p_talent_id: talent.id,
-          });
-
-          if (deductionError) {
+          let handshake: any = null;
+          try {
+            handshake = await deductCreditsRpc({
+              amount: perResponseCost,
+              serviceType: "AI_AGENT_CHAT",
+              referenceId: session.id,
+              description: `Neural_Node: ${session.agent_key}`,
+              talentId: talent.id,
+            });
+          } catch (deductionError) {
             console.warn("[Digital Workforce] Credit deduction delay/failure", deductionError);
-          } else if (handshake && !(handshake as any).success) {
+          }
+          if (handshake && !(handshake as any).success) {
             toast.error("FISCAL_DEFICIT: Session suspended due to exhausted credits.");
           }
         }
