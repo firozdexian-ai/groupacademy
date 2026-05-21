@@ -33,18 +33,24 @@ export async function insertNotification(payload: Record<string, any>): Promise<
 
 // ─── Overview ─────────────────────────────────────────────────────────────
 export async function getAgentsOverview() {
-  const [agentsRes, channelsRes, toolsRes] = await Promise.all([
+  const [agentsRes, channelsRes, toolsRes, sessionsRes] = await Promise.all([
     supabase.from("ai_agents").select("agent_type,is_active,visibility,total_conversations"),
     supabase.from("agent_channels").select("id", { count: "exact", head: true }),
     supabase.from("agent_tools").select("handler_kind"),
+    supabase
+      .from("agent_chat_sessions")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
   ]);
   if (agentsRes.error) throw agentsRes.error;
   if (channelsRes.error) throw channelsRes.error;
   if (toolsRes.error) throw toolsRes.error;
+  if (sessionsRes.error) throw sessionsRes.error;
   return {
     agents: agentsRes.data ?? [],
     channelCount: channelsRes.count ?? 0,
     tools: toolsRes.data ?? [],
+    sessions7dCount: sessionsRes.count ?? 0,
   };
 }
 
