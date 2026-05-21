@@ -81,6 +81,17 @@ export async function listVCFirmsMin(): Promise<Array<{ id: string; name: string
 }
 
 // ─── Investors ─────────────────────────────────────────────────────────────
+export async function listInvestors(filterFirmId?: string | null): Promise<any[]> {
+  let query = supabase
+    .from("ir_investors")
+    .select("*, vc_firm:ir_vc_firms(id, name)")
+    .order("created_at", { ascending: false });
+  if (filterFirmId && filterFirmId !== "all") query = query.eq("vc_firm_id", filterFirmId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function upsertInvestor(payload: any): Promise<void> {
   return upsertGraphRow("ir_investors", payload);
 }

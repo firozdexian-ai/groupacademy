@@ -22,7 +22,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { listVCFirmsMin, upsertInvestor, deleteInvestor } from "@/domains/ir/repo/irRepo";
+import { listInvestors, listVCFirmsMin, upsertInvestor, deleteInvestor } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import {
   Plus,
@@ -95,20 +95,7 @@ export function InvestorsManager() {
     isRefetching,
   } = useQuery({
     queryKey: ["ir-investors", filterFirmId],
-    queryFn: async () => {
-      let query = supabase
-        .from("ir_investors")
-        .select("*, vc_firm:ir_vc_firms(id, name)")
-        .order("created_at", { ascending: false });
-
-      if (filterFirmId && filterFirmId !== "all") {
-        query = query.eq("vc_firm_id", filterFirmId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Investor[];
-    },
+    queryFn: () => listInvestors(filterFirmId),
   });
 
   // B3 Logic Restoration: High-Fidelity Client-Side Filtering
