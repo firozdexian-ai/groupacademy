@@ -97,11 +97,10 @@ export function TalentPoolTab() {
       toast.success("LinkedIn pitch copied to clipboard");
     }
 
-    await supabase.from("outreach_messages").insert({
+    await talentRepo.logOutreachMessage({
       talent_id: talent.id,
       product,
       channel,
-      sent_at: new Date().toISOString(),
       agent_key: "talent-outreach",
     });
     loadTalents();
