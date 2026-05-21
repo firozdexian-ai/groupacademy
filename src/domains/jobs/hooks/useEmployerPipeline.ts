@@ -91,12 +91,7 @@ export function useEmployerPipeline(opts: { companyId?: string | null; jobId?: s
   const moveMutation = useMutation({
     mutationFn: async ({ applicationId, to }: { applicationId: string; to: PipelineStatus }) => {
       // HUD: ATOMIC_APPLICATION_STATUS_UPDATE
-      const { error: updateError } = await supabase
-        .from("job_applications")
-        .update({ application_status: to })
-        .eq("id", applicationId);
-
-      if (updateError) throw updateError;
+      await updateApplicationStatus(applicationId, to);
 
       // HUD: EDGE_INVOCATION_NOTIFICATION_DISPATCH
       // Hardened tracking logic replaces baseline ignoring of failed email pipelines
