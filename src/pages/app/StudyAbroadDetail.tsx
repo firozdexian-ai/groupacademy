@@ -73,12 +73,13 @@ export default function StudyAbroadDetail() {
     queryKey: ["study-abroad-program", id],
     queryFn: async () => {
       if (!id) throw new Error("Missing program id");
-      const { data, error } = await supabase.from("study_abroad_programs").select("*").eq("id", id).maybeSingle();
-      if (error) {
+      try {
+        const data = await getStudyAbroadProgramById(id);
+        return data as Program | null;
+      } catch (error) {
         await reportAnomaly("ProgramDetailFetchError", { id, error });
         throw error;
       }
-      return data as Program | null;
     },
     enabled: !!id,
   });
