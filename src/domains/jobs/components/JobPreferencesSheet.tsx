@@ -85,12 +85,9 @@ export function JobPreferencesSheet({
   const loadRegistryPreferences = async () => {
     if (!talent?.id) return;
     try {
-      const { data, error } = await supabase.from("talents").select("job_preferences").eq("id", talent.id).single();
-
-      if (error) throw error;
-
-      if (data?.job_preferences) {
-        setPreferences(data.job_preferences as unknown as JobPreferences);
+      const prefs = await getTalentJobPreferences(talent.id);
+      if (prefs) {
+        setPreferences(prefs as unknown as JobPreferences);
         trackEvent("match_constraints_loaded_success", { talentId: talent.id });
       }
     } catch (err: any) {
