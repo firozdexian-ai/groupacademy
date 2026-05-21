@@ -72,13 +72,12 @@ export async function getAbroadGraphMaster() {
 
 // ─── Roadmap intake (talent-facing) ───────────────────────────────────────
 export async function insertRoadmapContactLead(payload: Record<string, any>): Promise<{ error: any | null }> {
-  const { error } = await supabase.from("contacts").insert([payload]);
+  const { error } = await (supabase.from("contacts") as any).insert([payload]);
   return { error };
 }
 
 export async function insertStudyAbroadRoadmap(payload: Record<string, any>): Promise<{ id: string }> {
-  const { data, error } = await supabase
-    .from("study_abroad_roadmaps")
+  const { data, error } = await (supabase.from("study_abroad_roadmaps") as any)
     .insert([payload])
     .select("id")
     .single();
