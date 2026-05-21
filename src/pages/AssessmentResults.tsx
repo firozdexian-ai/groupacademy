@@ -106,13 +106,7 @@ export default function AssessmentResults() {
     queryKey: ["career_assessment", id],
     queryFn: async () => {
       if (!id) throw new Error("Assessment ID is required.");
-      const { data, error } = await supabase
-        .from("career_assessments")
-        .select(`*, profession_categories (name)`)
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await getCareerAssessmentWithCategory(id);
       if (!data) throw new Error("Record not found.");
       return data as unknown as Assessment;
     },
