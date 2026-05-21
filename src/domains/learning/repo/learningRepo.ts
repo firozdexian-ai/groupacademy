@@ -687,7 +687,7 @@ export async function insertEnrollmentRow(payload: {
   status: string;
   payment_amount: number;
 }): Promise<{ error: any }> {
-  const { error } = await supabase.from("enrollments").insert(payload);
+  const { error } = await supabase.from("enrollments").insert(payload as any);
   return { error };
 }
 
