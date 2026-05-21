@@ -71,7 +71,7 @@ export function useAgentChat(): UseAgentChatReturn {
         updatePayload.credits_charged = (Number(session.credits_charged) || 0) + additionalCredits;
       }
 
-      await supabase.from("agent_chat_sessions").update(updatePayload).eq("id", session.id);
+      await updateAgentChatSession(session.id, updatePayload);
     },
     [session],
   );
