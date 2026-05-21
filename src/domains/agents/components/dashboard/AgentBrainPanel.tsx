@@ -148,8 +148,11 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
       return toast({ title: "Prompt too short" });
     }
     const next = { ...(agent.prompt_variants || {}), [key]: newVariantPrompt };
-    const { error } = await supabase.from("ai_agents").update({ prompt_variants: next }).eq("id", agent.id);
-    if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    try {
+      await updateAiAgent(agent.id, { prompt_variants: next });
+    } catch (error: any) {
+      return toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    }
     setNewVariantKey("");
     setNewVariantPrompt("");
     toast({ title: `Variant ${key} added` });
