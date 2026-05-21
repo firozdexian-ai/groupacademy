@@ -185,23 +185,12 @@ function FleetPanel() {
 
   const agentsQ = useQuery({
     queryKey: ["wcc-agents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_agents")
-        .select("id,agent_key,name,company_id,is_template,parent_template_id,is_active,kill_switch,avatar_url,audience")
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as AgentRow[];
-    },
+    queryFn: async () => (await listAiAgentsForFleet()) as AgentRow[],
   });
 
   const companiesQ = useQuery({
     queryKey: ["wcc-companies"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("id,name,slug").order("name");
-      if (error) throw error;
-      return (data ?? []) as CompanyRow[];
-    },
+    queryFn: async () => (await listAllCompaniesWithSlug()) as CompanyRow[],
   });
 
   const companyMap = useMemo(() => new Map((companiesQ.data ?? []).map((c) => [c.id, c])), [companiesQ.data]);
