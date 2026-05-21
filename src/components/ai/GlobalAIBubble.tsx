@@ -6,6 +6,11 @@ import { Sparkles, X, Send, Loader2, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getContentIdBySlug,
+  getAiInstructorName,
+} from "@/domains/learning/repo/learningRepo";
+import { getTalentCareerCoachInstructorId } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { handleAIError } from "@/lib/aiErrorHandler";
 import { toast } from "sonner";
