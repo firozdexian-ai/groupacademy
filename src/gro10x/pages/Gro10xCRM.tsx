@@ -64,24 +64,19 @@ export default function Gro10xCRM() {
     queryKey: ["company-leads", companyId],
     enabled: !!companyId,
     queryFn: async (): Promise<Lead[]> => {
-      const { data } = await supabase
-        .from("company_leads")
-        .select("id,name,email,phone,company_name,title,source,stage,value_usd,notes,next_step,offering_id,created_at")
-        .eq("company_id", companyId!)
-        .order("created_at", { ascending: false });
-      return (data ?? []).map((r: any) => ({ ...r, value_usd: Number(r.value_usd ?? 0) }));
+      const data = await listCompanyLeads(companyId!);
+      return data.map((r: any) => ({ ...r, value_usd: Number(r.value_usd ?? 0) }));
     },
   });
 
   const createLead = useMutation({
     mutationFn: async (payload: { name: string; email: string; company_name: string; source: string; value_usd: number }) => {
-      const { error } = await supabase.from("company_leads").insert({
+      await insertCompanyLead({
         company_id: companyId!,
         created_by: user!.id,
         owner_user_id: user!.id,
         ...payload,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Lead added");
@@ -93,8 +88,7 @@ export default function Gro10xCRM() {
 
   const updateStage = useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Stage }) => {
-      const { error } = await supabase.from("company_leads").update({ stage }).eq("id", id);
-      if (error) throw error;
+      await updateCompanyLead(id, { stage });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["company-leads", companyId] });
