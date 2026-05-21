@@ -182,3 +182,38 @@ export async function getProjectPublicSettings(projectId: string) {
   if (error) throw error;
   return data as { is_public: boolean; slug: string | null; view_count: number | null; share_count: number | null } | null;
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+import { supabase as _ugcSupabase } from "@/integrations/supabase/client";
+
+export async function getCompetitionBySlug(slug: string) {
+  const { data, error } = await _ugcSupabase
+    .from("competitions")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getMyCompetitionSubmission(opts: { competitionId: string; talentId: string }) {
+  const { data, error } = await _ugcSupabase
+    .from("competition_submissions")
+    .select("*")
+    .eq("competition_id", opts.competitionId)
+    .eq("talent_id", opts.talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function upsertCompetitionSubmission(payload: {
+  competition_id: string;
+  talent_id: string;
+  submission_url: string;
+  description: string | null;
+  status: string;
+}): Promise<{ error: any }> {
+  const { error } = await _ugcSupabase.from("competition_submissions").upsert(payload as any);
+  return { error };
+}
