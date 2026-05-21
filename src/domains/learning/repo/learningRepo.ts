@@ -847,3 +847,108 @@ export async function listModuleScenarioPoolForModules(moduleIds: string[]) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+/* ---------------- Instructor CRUD (admin) ---------------- */
+
+export async function listAllInstructors() {
+  const { data, error } = await supabase
+    .from("instructors")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getInstructorById(id: string) {
+  const { data, error } = await supabase
+    .from("instructors")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function insertInstructor(payload: Record<string, unknown>) {
+  const { error } = await supabase.from("instructors").insert([payload as any]);
+  if (error) throw error;
+}
+
+export async function updateInstructor(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase
+    .from("instructors")
+    .update(patch as any)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteInstructor(id: string) {
+  const { error } = await supabase.from("instructors").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function listActiveInstructorsBasic() {
+  const { data, error } = await supabase
+    .from("instructors")
+    .select("id, full_name")
+    .eq("status", "active")
+    .order("full_name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/* ---------------- Sessions (admin lists & CRUD) ---------------- */
+
+export async function listAllSessionsWithRelations() {
+  const { data, error } = await supabase
+    .from("course_sessions")
+    .select(`
+      *,
+      content:content_id ( id, title, slug ),
+      instructors:instructor_id ( id, full_name, profile_image_url )
+    `)
+    .order("scheduled_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertCourseSession(payload: Record<string, unknown>) {
+  const { error } = await supabase.from("course_sessions").insert(payload as any);
+  if (error) throw error;
+}
+
+/* ---------------- Content (admin lists) ---------------- */
+
+export async function listPublishedContentBasic() {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title")
+    .eq("is_published", true)
+    .order("title");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/* ---------------- Students & Enrollments (admin lists) ---------------- */
+
+export async function listStudentsWithEnrollments() {
+  const { data, error } = await supabase
+    .from("students")
+    .select(`*, enrollments(id, status, enrolled_at, content:content_id(title, content_type))`)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listEnrollmentsWithRelations() {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(`
+      *,
+      student:student_id(full_name, student_id),
+      content:content_id(title, content_type, event_date, max_capacity, current_enrollment)
+    `)
+    .order("enrolled_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
