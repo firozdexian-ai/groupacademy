@@ -112,37 +112,29 @@ export function TalentCreditsTab() {
 
   const loadConsumptionTelemetry = useCallback(async () => {
     try {
-      const { data: totalData } = await supabase
-        .from("credit_transactions")
-        .select("amount, service_type")
-        .lt("amount", 0);
-      if (totalData) {
-        const totalConsumed = (totalData as any[]).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        const serviceMap: Record<string, { consumed: number; count: number }> = {};
+      const totalData = await getConsumptionTotals();
+      const totalConsumed = totalData.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      const serviceMap: Record<string, { consumed: number; count: number }> = {};
+      totalData.forEach((t) => {
+        const service = t.service_type || "other";
+        if (!serviceMap[service]) serviceMap[service] = { consumed: 0, count: 0 };
+        serviceMap[service].consumed += Math.abs(t.amount);
+        serviceMap[service].count += 1;
+      });
 
-        (totalData as any[]).forEach((t) => {
-          const service = t.service_type || "other";
-          if (!serviceMap[service]) serviceMap[service] = { consumed: 0, count: 0 };
-          serviceMap[service].consumed += Math.abs(t.amount);
-          serviceMap[service].count += 1;
-        });
+      const now = new Date();
+      const monthlyData = await getMonthlyConsumption(
+        startOfMonth(now).toISOString(),
+        endOfMonth(now).toISOString(),
+      );
 
-        const now = new Date();
-        const { data: monthlyData } = await supabase
-          .from("credit_transactions")
-          .select("amount")
-          .lt("amount", 0)
-          .gte("created_at", startOfMonth(now).toISOString())
-          .lte("created_at", endOfMonth(now).toISOString());
-
-        setConsumptionStats({
-          totalConsumed,
-          monthlyConsumed: (monthlyData as any[])?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0,
-          serviceBreakdown: Object.entries(serviceMap)
-            .map(([service, data]) => ({ service, ...data }))
-            .sort((a, b) => b.consumed - a.consumed),
-        });
-      }
+      setConsumptionStats({
+        totalConsumed,
+        monthlyConsumed: monthlyData.reduce((sum, t) => sum + Math.abs(t.amount), 0),
+        serviceBreakdown: Object.entries(serviceMap)
+          .map(([service, data]) => ({ service, ...data }))
+          .sort((a, b) => b.consumed - a.consumed),
+      });
     } catch (err) {
       console.error("Telemetry Fault:", err);
     }
@@ -152,20 +144,13 @@ export function TalentCreditsTab() {
     setIsLoading(true);
     try {
       if (page === 1 && selectedTab === "balances") {
-        const { data } = await supabase.from("talent_credits").select("balance");
-        setTotalCirculation((data as any[])?.reduce((sum, c) => sum + c.balance, 0) || 0);
+        setTotalCirculation(await getTalentCreditsTotalCirculation());
       }
 
-      let query: any =
+      const query =
         selectedTab === "balances"
-          ? supabase
-              .from("talent_credits")
-              .select(`*, talent:talents(full_name, email)`, { count: "exact" })
-              .order("balance", { ascending: false })
-          : supabase
-              .from("credit_transactions")
-              .select(`*, talent:talents(full_name, email)`, { count: "exact" })
-              .order("created_at", { ascending: false });
+          ? buildListTalentCreditsQuery({ page, pageSize: ITEMS_PER_PAGE })
+          : buildListCreditTransactionsQuery({ page, pageSize: ITEMS_PER_PAGE, typeFilter });
 
       if (selectedTab === "transactions" && typeFilter !== "all") query = query.eq("transaction_type", typeFilter);
 
