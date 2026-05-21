@@ -51,13 +51,9 @@ export function ProfessionalRolesPanel() {
 
   const refresh = async () => {
     const [{ data: cats }, { data: rls }, { data: talents }] = await Promise.all([
-      supabase.from("profession_categories").select("id, name, slug, is_active").order("name"),
-      supabase
-        .from("professional_roles")
-        .select("id, profession_category_id, name, slug, display_order, is_active")
-        .order("display_order")
-        .order("name"),
-      supabase.from("talents").select("profession_category_id, professional_role_id").limit(5000),
+      talentRepo.listProfessionCategoriesLite(),
+      talentRepo.listProfessionalRoles(),
+      talentRepo.listTalentRoleAssignments(),
     ]);
     setCategories((cats ?? []) as Category[]);
     setRoles((rls ?? []) as Role[]);
