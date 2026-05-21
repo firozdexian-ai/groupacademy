@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { getStudentRecordByUserId } from "@/domains/learning/repo/learningRepo";
+import {
+  getStudentRecordByUserId,
+  getContentBySlugWithProfession,
+  listCourseModulesByDisplayOrder,
+  getEnrollmentForActorIds,
+  getActiveAIInstructorByProfessionLine,
+} from "@/domains/learning/repo/learningRepo";
 import { getTalentMiniProfileByUser } from "@/domains/talent/repo/talentRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
@@ -53,15 +58,7 @@ export default function ImmersiveCoursePlayer() {
     refetch: refetchContent,
   } = useQueryWithTimeout({
     queryKey: ["course-content", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("*, profession_categories:profession_line_id(*)")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => getContentBySlugWithProfession(slug!),
     enabled: !!slug,
     timeout: TIMEOUTS.DEFAULT,
   });
@@ -72,15 +69,7 @@ export default function ImmersiveCoursePlayer() {
     error: modulesError,
   } = useQueryWithTimeout({
     queryKey: ["course-modules", content?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_modules")
-        .select("*")
-        .eq("content_id", content!.id)
-        .order("display_order");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: async () => listCourseModulesByDisplayOrder(content!.id),
     enabled: !!content?.id,
     timeout: TIMEOUTS.DEFAULT,
   });
@@ -106,16 +95,7 @@ export default function ImmersiveCoursePlayer() {
     queryKey: ["enrollment", talent?.id, student?.id, content?.id],
     queryFn: async () => {
       const ids = [talent?.id, student?.id].filter(Boolean) as string[];
-      const orFilter = ids.map((id) => `talent_id.eq.${id},student_id.eq.${id}`).join(",");
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("*")
-        .eq("content_id", content!.id)
-        .in("status", ["active", "completed"])
-        .or(orFilter)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      return getEnrollmentForActorIds(content!.id, ids);
     },
     enabled: !!content?.id && (!!talent?.id || !!student?.id),
     timeout: TIMEOUTS.DEFAULT,
@@ -123,15 +103,8 @@ export default function ImmersiveCoursePlayer() {
 
   const { data: aiInstructor } = useQueryWithTimeout({
     queryKey: ["ai-instructor", content?.profession_line_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("ai_instructors")
-        .select("*")
-        .eq("profession_line_id", content!.profession_line_id!)
-        .eq("is_active", true)
-        .maybeSingle();
-      return data;
-    },
+    queryFn: async () =>
+      getActiveAIInstructorByProfessionLine(content!.profession_line_id!),
     enabled: !!content?.profession_line_id,
     timeout: TIMEOUTS.DEFAULT,
   });
