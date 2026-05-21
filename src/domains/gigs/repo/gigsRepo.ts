@@ -308,3 +308,8 @@ export async function acceptGigBid(p_bid_id: string, p_company_id: string) {
   if (error) throw error;
   return data;
 }
+
+export async function rejectMarketplaceBid(id: string): Promise<void> {
+  const { error } = await (supabase as any).from("marketplace_bids").update({ status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}
