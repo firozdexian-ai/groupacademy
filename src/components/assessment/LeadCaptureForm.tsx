@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { insertCareerAssessment } from "@/domains/marketing/repo/marketingRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { z } from "zod";

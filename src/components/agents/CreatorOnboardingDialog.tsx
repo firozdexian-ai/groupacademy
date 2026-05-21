@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { insertAiAgent } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 
