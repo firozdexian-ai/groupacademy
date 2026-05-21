@@ -114,3 +114,43 @@ export async function insertWorkforceMember(payload: Record<string, any>): Promi
   const { error } = await supabase.from("workforce_members").insert(payload as any);
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function findWorkforceInstanceByCluster(clusterGeoId: string): Promise<{ id: string } | null> {
+  const { data } = await supabase
+    .from("workforce_hired_instances")
+    .select("id")
+    .eq("cluster_geo_id", clusterGeoId)
+    .limit(1)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function getActiveWorkforceTemplateByKey(agentKey: string): Promise<{ id: string } | null> {
+  const { data } = await supabase
+    .from("workforce_master_templates")
+    .select("id")
+    .eq("agent_key", agentKey)
+    .eq("is_active", true)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function insertWorkforceInstanceReturningId(payload: {
+  template_id: string;
+  tenant_id: string;
+  cluster_geo_id: string;
+  name_override: string;
+  status: string;
+}): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("workforce_hired_instances")
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error || !data?.id) return null;
+  return data.id as string;
+}

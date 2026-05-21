@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listEnrollmentsForContent,
+  listCourseModulesForContent,
+  listQuizAttemptsForModules,
+  listScenarioRunsForModules,
+  listModuleQuizPoolForModules,
+  listModuleScenarioPoolForModules,
+} from "@/domains/learning/repo/learningRepo";
+import { listTalentNamesByIds } from "@/domains/talent/repo/talentRepo";
 
 export interface ModuleStat {
   id: string;
@@ -60,55 +68,18 @@ export function useCoursePerformance(contentId: string | undefined) {
       setLoading(true);
       setError(null);
       try {
-        const [enrollRes, modulesRes] = await Promise.all([
-          supabase
-            .from("enrollments")
-            .select("id,status,progress,current_module_id,last_accessed_at,enrolled_at,talent_id")
-            .eq("content_id", contentId),
-          supabase
-            .from("course_modules")
-            .select("id,title,display_order")
-            .eq("content_id", contentId)
-            .order("display_order", { ascending: true }),
+        const [enrollments, modules] = await Promise.all([
+          listEnrollmentsForContent(contentId),
+          listCourseModulesForContent(contentId),
         ]);
-        if (enrollRes.error) throw enrollRes.error;
-        if (modulesRes.error) throw modulesRes.error;
-
-        const enrollments = enrollRes.data ?? [];
-        const modules = modulesRes.data ?? [];
         const moduleIds = modules.map((m) => m.id);
 
-        const [quizRes, scenRes, quizPoolRes, scenPoolRes] = await Promise.all([
-          moduleIds.length
-            ? supabase
-                .from("talent_quiz_attempt")
-                .select("id,module_id,score,created_at,talent_id")
-                .in("module_id", moduleIds)
-            : Promise.resolve({ data: [], error: null } as any),
-          moduleIds.length
-            ? supabase
-                .from("talent_scenario_run")
-                .select("id,module_id,evaluation,created_at,talent_id")
-                .in("module_id", moduleIds)
-            : Promise.resolve({ data: [], error: null } as any),
-          moduleIds.length
-            ? supabase
-                .from("module_quiz_pool")
-                .select("module_id,quality_score,times_served")
-                .in("module_id", moduleIds)
-            : Promise.resolve({ data: [], error: null } as any),
-          moduleIds.length
-            ? supabase
-                .from("module_scenario_pool")
-                .select("module_id,quality_score,times_served")
-                .in("module_id", moduleIds)
-            : Promise.resolve({ data: [], error: null } as any),
+        const [quizAttempts, scenarioRuns, quizPool, scenarioPool] = await Promise.all([
+          listQuizAttemptsForModules(moduleIds),
+          listScenarioRunsForModules(moduleIds),
+          listModuleQuizPoolForModules(moduleIds),
+          listModuleScenarioPoolForModules(moduleIds),
         ]);
-
-        const quizAttempts = (quizRes.data ?? []) as any[];
-        const scenarioRuns = (scenRes.data ?? []) as any[];
-        const quizPool = (quizPoolRes.data ?? []) as any[];
-        const scenarioPool = (scenPoolRes.data ?? []) as any[];
 
         // KPIs
         const totalEnrollments = enrollments.length;
@@ -214,11 +185,8 @@ export function useCoursePerformance(contentId: string | undefined) {
         const talentIds = Array.from(new Set(recentRaw.map((r) => r.talent_id)));
         let nameMap = new Map<string, string>();
         if (talentIds.length) {
-          const { data: talents } = await supabase
-            .from("talents")
-            .select("id,full_name")
-            .in("id", talentIds);
-          (talents ?? []).forEach((t: any) => nameMap.set(t.id, t.full_name ?? "Unknown"));
+          const talents = await listTalentNamesByIds(talentIds);
+          talents.forEach((t) => nameMap.set(t.id, t.full_name ?? "Unknown"));
         }
 
         const recent = recentRaw.map((r) => ({

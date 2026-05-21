@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useTalent } from "@/hooks/useTalent";
 import { supabase } from "@/integrations/supabase/client";
+import { findTalentByPhoneExceptId } from "@/domains/talent/repo/talentRepo";
 import { trackOnboardingStep } from "@/lib/onboarding/telemetry";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
@@ -68,14 +69,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
 
     try {
       // Cheap Unique Pre-Check Constraint Boundary Pass ahead of database write updates
-      const { data: existingTalentRowMatch, error: lookupRpcError } = await supabase
-        .from("talents")
-        .select("id")
-        .eq("phone", absoluteConcatenatedFullPhoneStr)
-        .neq("id", talent.id)
-        .maybeSingle();
-
-      if (lookupRpcError) throw lookupRpcError;
+      const existingTalentRowMatch = await findTalentByPhoneExceptId(absoluteConcatenatedFullPhoneStr, talent.id);
 
       if (existingTalentRowMatch) {
         toast.error(

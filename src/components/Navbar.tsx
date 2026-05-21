@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isUserAdmin } from "@/domains/profile/repo/profileRepo";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { Menu, X, Moon, Sun, Zap, ShieldCheck } from "lucide-react";
@@ -56,14 +57,7 @@ export function Navbar() {
     }, AUTH_SYNC_TIMEOUT_MS);
 
     try {
-      const { data: userRolePayloadData, error: roleQueryException } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", targetUserUuidStr)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (roleQueryException) throw roleQueryException;
+      const userRolePayloadData = await isUserAdmin(targetUserUuidStr);
 
       clearTimeout(pipelineTimeoutTrackerId);
 

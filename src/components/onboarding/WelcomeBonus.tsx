@@ -5,6 +5,7 @@ import { Coins, Sparkles, ChevronDown, ChevronUp, Zap, ShieldCheck, ArrowRight, 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { getUpcomingPublishedEvent } from "@/domains/learning/repo/learningRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
@@ -37,21 +38,7 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const boundaryHorizonTwoWeeksOutStr = new Date(Date.now() + 14 * 86400000).toISOString();
-      const { data, error } = await supabase
-        .from("content")
-        .select("title, slug, event_date, event_timezone, price")
-        .in("content_type", ["live_webinar", "batch_class"])
-        .eq("is_published", true)
-        .eq("is_private", false)
-        .gte("event_date", new Date().toISOString())
-        .lte("event_date", boundaryHorizonTwoWeeksOutStr)
-        .order("event_date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
+      return await getUpcomingPublishedEvent(14);
     },
   });
 

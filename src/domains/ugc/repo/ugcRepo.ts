@@ -168,3 +168,17 @@ export async function resolveUgcReport(input: {
     .eq("id", input.id);
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function getProjectPublicSettings(projectId: string) {
+  const { data, error } = await supabase
+    .from("project_public_settings")
+    .select("is_public, slug, view_count, share_count")
+    .eq("project_id", projectId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { is_public: boolean; slug: string | null; view_count: number | null; share_count: number | null } | null;
+}

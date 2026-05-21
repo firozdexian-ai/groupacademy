@@ -228,3 +228,32 @@ export async function upsertAgentReview(input: {
   });
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function createAgentChatSession(payload: {
+  talent_id: string;
+  agent_key: string;
+  messages: unknown[];
+  is_active: boolean;
+  credits_charged: number;
+  session_started_at: string;
+  session_expires_at: string;
+}): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("agent_chat_sessions")
+    .insert(payload as any)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.id ?? null;
+}
+
+export async function updateAgentChatSessionMessages(sessionId: string, messages: unknown[]): Promise<void> {
+  await supabase
+    .from("agent_chat_sessions")
+    .update({ messages: messages as any, updated_at: new Date().toISOString() })
+    .eq("id", sessionId);
+}

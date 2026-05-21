@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfessionCategoriesFull, listProfessionalRolesByCategory } from "@/domains/profile/repo/profileRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTalent } from "@/hooks/useTalent";
@@ -70,13 +71,7 @@ export function ProfessionStep({ onContinue }: ProfessionStepProps) {
 
     const fetchAuthoritativeProfessionCategories = async () => {
       try {
-        const { data, error } = await supabase
-          .from("profession_categories")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("name");
-
-        if (error) throw error;
+        const data = await listActiveProfessionCategoriesFull();
 
         if (isMounted) {
           setCategories(data || []);
@@ -108,14 +103,7 @@ export function ProfessionStep({ onContinue }: ProfessionStepProps) {
 
     const fetchAuthoritativeProfessionalRoles = async () => {
       try {
-        const { data, error } = await supabase
-          .from("professional_roles")
-          .select("id, name, profession_category_id")
-          .eq("profession_category_id", selectedCat)
-          .eq("is_active", true)
-          .order("name");
-
-        if (error) throw error;
+        const data = await listProfessionalRolesByCategory(selectedCat);
 
         if (isMounted) {
           setRoles(data || []);

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listUserRoles } from "@/domains/profile/repo/profileRepo";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, LogIn, ShieldCheck, Zap, AlertCircle } from "lucide-react";
@@ -116,12 +117,7 @@ export function ProtectedRoute({
 
       // Phase 2: Structural Institutional Role Validation Checking
       if (requireAdmin || requireAnyAdminRole) {
-        const { data: userRolesPayloadRows, error: rolesQueryError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", sessionPayload.user.id);
-
-        if (rolesQueryError) throw rolesQueryError;
+        const userRolesPayloadRows = await listUserRoles(sessionPayload.user.id);
 
         const flattenedActiveRolesArray = (userRolesPayloadRows || []).map((roleRowItem) => roleRowItem.role);
         trackEvent("protected_route_clearance_evaluating", {
@@ -308,12 +304,7 @@ export function useUserRole() {
       if (sessionFetchError) throw sessionFetchError;
       if (!session?.user) return null;
 
-      const { data: userRolesPayloadRows, error: rolesQueryError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-
-      if (rolesQueryError) throw rolesQueryError;
+      const userRolesPayloadRows = await listUserRoles(session.user.id);
 
       const roleStringsListArray = (userRolesPayloadRows || []).map((itemRow) => itemRow.role);
 

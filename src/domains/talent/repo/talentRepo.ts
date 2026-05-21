@@ -464,3 +464,109 @@ export async function getTalentCareerCoachInstructorId(talentId: string): Promis
   if (error) throw error;
   return ((data as any)?.career_coach_instructor_id as string | null) ?? null;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function findTalentByPhoneExceptId(phone: string, excludeId: string): Promise<{ id: string } | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("phone", phone)
+    .neq("id", excludeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function resolveTalentEmailByPhoneVariants(variants: string[]): Promise<string | null> {
+  const matchQuery = variants.map((p) => `phone.eq.${p}`).join(",");
+  const { data, error } = await supabase
+    .from("talents")
+    .select("email")
+    .or(matchQuery)
+    .not("email", "is", null)
+    .limit(2);
+  if (error || !data || data.length === 0) return null;
+  if (data.length > 1) {
+    throw new Error("Multiple accounts found for this phone. Please sign in with email.");
+  }
+  return (data[0] as any).email as string | null;
+}
+
+export async function getTalentLifetimeCredits(talentId: string) {
+  const { data, error } = await supabase
+    .from("talent_lifetime_credits" as any)
+    .select("lifetime_volume, lifetime_earned, lifetime_spent, transaction_count")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listNotificationPreferences(talentId: string) {
+  const { data, error } = await supabase
+    .from("notification_preferences")
+    .select("channel, enabled")
+    .eq("talent_id", talentId);
+  if (error) throw error;
+  return (data ?? []) as Array<{ channel: string; enabled: boolean }>;
+}
+
+export async function upsertNotificationPreference(talentId: string, channel: string, enabled: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("notification_preferences")
+    .upsert({ talent_id: talentId, channel, enabled }, { onConflict: "talent_id,channel" });
+  if (error) throw error;
+}
+
+export async function listSavedItemsByTalent(talentId: string) {
+  const { data, error } = await supabase
+    .from("saved_items")
+    .select("id, item_id, item_type, saved_at")
+    .eq("talent_id", talentId)
+    .order("saved_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; item_id: string; item_type: string; saved_at: string }>;
+}
+
+export async function deleteSavedItemRow(talentId: string, itemId: string, itemType: string): Promise<void> {
+  const { error } = await supabase
+    .from("saved_items")
+    .delete()
+    .eq("talent_id", talentId)
+    .eq("item_id", itemId)
+    .eq("item_type", itemType);
+  if (error) throw error;
+}
+
+export async function insertSavedItemRow(talentId: string, itemId: string, itemType: string) {
+  const { data, error } = await supabase
+    .from("saved_items")
+    .insert({ talent_id: talentId, item_id: itemId, item_type: itemType })
+    .select("id, item_id, item_type, saved_at")
+    .single();
+  if (error) throw error;
+  return data as { id: string; item_id: string; item_type: string; saved_at: string };
+}
+
+export async function getTalentUserIdById(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("user_id")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.user_id ?? null;
+}
+
+export async function listTalentNamesByIds(ids: string[]): Promise<Array<{ id: string; full_name: string | null }>> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id, full_name")
+    .in("id", ids);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveTalentEmailByPhoneVariants } from "@/domains/talent/repo/talentRepo";
 import { lovable } from "@/integrations/lovable";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -116,20 +117,7 @@ export const useAuth = (): AuthState => {
   const resolveIdentifier = async (phone: string): Promise<string | null> => {
     const cleanPhone = phone.replace(/[^\d+]/g, "");
     const variants = [cleanPhone, cleanPhone.startsWith("+") ? cleanPhone.substring(1) : `+${cleanPhone}`];
-    const matchQuery = variants.map((p) => `phone.eq.${p}`).join(",");
-
-    const { data, error } = await supabase
-      .from("talents")
-      .select("email")
-      .or(matchQuery)
-      .not("email", "is", null)
-      .limit(2);
-
-    if (error || !data || data.length === 0) return null;
-    if (data.length > 1) {
-      throw new Error("Multiple accounts found for this phone. Please sign in with email.");
-    }
-    return data[0].email;
+    return resolveTalentEmailByPhoneVariants(variants);
   };
 
   const signIn = async (identifier: string, password: string) => {

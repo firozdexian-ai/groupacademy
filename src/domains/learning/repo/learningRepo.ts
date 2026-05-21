@@ -724,3 +724,126 @@ export async function getAiInstructorName(id: string): Promise<string | null> {
   if (error) throw error;
   return ((data as any)?.name as string | null) ?? null;
 }
+
+// -----------------------------------------------------------------------------
+// Phase 10j.3b additions
+// -----------------------------------------------------------------------------
+
+export async function listAssessmentQuestionsForCategory(categoryId: string) {
+  const { data, error } = await supabase
+    .from("assessment_questions")
+    .select("*")
+    .eq("is_active", true)
+    .or(`profession_category_id.is.null,profession_category_id.eq.${categoryId}`)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getUpcomingPublishedEvent(daysAhead = 14) {
+  const horizonIso = new Date(Date.now() + daysAhead * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("content")
+    .select("title, slug, event_date, event_timezone, price")
+    .in("content_type", ["live_webinar", "batch_class"])
+    .eq("is_published", true)
+    .eq("is_private", false)
+    .gte("event_date", new Date().toISOString())
+    .lte("event_date", horizonIso)
+    .order("event_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listTalentSkillMastery(moduleId: string, signal?: AbortSignal) {
+  const { data, error } = await supabase
+    .from("talent_skill_profile")
+    .select("topic_tag, mastery, attempts")
+    .eq("module_id", moduleId)
+    .order("attempts", { ascending: false })
+    .limit(50)
+    .abortSignal(signal!);
+  if (error) throw error;
+  return (data ?? []) as Array<{ topic_tag: string; mastery: number; attempts: number }>;
+}
+
+export async function getInstructorRecentEarningsCount(instructorUserId: string, sinceIso: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("instructor_earnings_ledger" as any)
+    .select("id", { count: "exact", head: true })
+    .eq("instructor_user_id", instructorUserId)
+    .gte("created_at", sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function listContentSlugsByIds(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, slug")
+    .in("id", ids);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; slug: string | null }>;
+}
+
+export async function listEnrollmentsForContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id,status,progress,current_module_id,last_accessed_at,enrolled_at,talent_id")
+    .eq("content_id", contentId);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCourseModulesForContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("id,title,display_order")
+    .eq("content_id", contentId)
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listQuizAttemptsForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [];
+  const { data, error } = await supabase
+    .from("talent_quiz_attempt")
+    .select("id,module_id,score,created_at,talent_id")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listScenarioRunsForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [];
+  const { data, error } = await supabase
+    .from("talent_scenario_run")
+    .select("id,module_id,evaluation,created_at,talent_id")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listModuleQuizPoolForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [];
+  const { data, error } = await supabase
+    .from("module_quiz_pool")
+    .select("module_id,quality_score,times_served")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listModuleScenarioPoolForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [];
+  const { data, error } = await supabase
+    .from("module_scenario_pool")
+    .select("module_id,quality_score,times_served")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

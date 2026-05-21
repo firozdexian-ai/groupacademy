@@ -21,6 +21,18 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listActiveCountries,
+  listActiveCareerStages,
+  searchOnboardingInstitutions,
+  listActiveSchools,
+} from "@/domains/profile/repo/profileRepo";
+import {
+  findWorkforceInstanceByCluster,
+  getActiveWorkforceTemplateByKey,
+  insertWorkforceInstanceReturningId,
+} from "@/domains/workforce/repo/workforceRepo";
+import { patchTalentByUser } from "@/domains/talent/repo/talentRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -116,13 +128,7 @@ export function OnboardingWizard({
     queryKey: ["onboarding-countries"],
     staleTime: 30 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gtm_countries")
-        .select("id, iso2, name")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Country[];
+      return (await listActiveCountries()) as Country[];
     },
   });
 
@@ -131,13 +137,7 @@ export function OnboardingWizard({
     queryKey: ["onboarding-stages"],
     staleTime: 30 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("career_stages")
-        .select("id, name, slug, academy_id")
-        .eq("is_active", true)
-        .order("display_order");
-      if (error) throw error;
-      return (data ?? []) as Stage[];
+      return (await listActiveCareerStages()) as Stage[];
     },
   });
 
@@ -148,31 +148,10 @@ export function OnboardingWizard({
     enabled: step >= 3,
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const q = debouncedInstQuery;
-      const base = () =>
-        supabase
-          .from("institutions")
-          .select("id, name, country")
-          .eq("type", "university")
-          .order("name")
-          .limit(30);
-
-      let query = base();
-      if (q) query = query.ilike("name", `%${q}%`);
-      if (country?.name) query = query.ilike("country", country.name);
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      // Fallback: if no results in selected country, broaden to global.
-      if ((data ?? []).length === 0 && country?.name) {
-        let global = base();
-        if (q) global = global.ilike("name", `%${q}%`);
-        const { data: globalData, error: gErr } = await global;
-        if (gErr) throw gErr;
-        return (globalData ?? []) as Institution[];
-      }
-      return (data ?? []) as Institution[];
+      return (await searchOnboardingInstitutions({
+        query: debouncedInstQuery,
+        countryName: country?.name ?? null,
+      })) as Institution[];
     },
   });
 
@@ -182,15 +161,7 @@ export function OnboardingWizard({
     enabled: step >= 4,
     staleTime: 15 * 60 * 1000,
     queryFn: async () => {
-      let q = supabase
-        .from("schools")
-        .select("id, name, slug, description, icon, academy_id")
-        .eq("is_active", true)
-        .order("display_order");
-      if (stage?.academy_id) q = q.eq("academy_id", stage.academy_id);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as School[];
+      return (await listActiveSchools(stage?.academy_id ?? null)) as School[];
     },
   });
 
@@ -237,38 +208,24 @@ export function OnboardingWizard({
       trackError(rpcErr, { component: "OnboardingWizard", action: "provisionOrGetInstance_rpc_fallback" });
     }
 
-    const { data: existing } = await supabase
-      .from("workforce_hired_instances")
-      .select("id")
-      .eq("cluster_geo_id", institutionName)
-      .limit(1)
-      .maybeSingle();
+    const existing = await findWorkforceInstanceByCluster(institutionName);
     if (existing?.id) return { instance_id: existing.id, created: false };
 
-    const { data: tplRow } = await supabase
-      .from("workforce_master_templates")
-      .select("id")
-      .eq("agent_key", "b2c_campus_ambassador")
-      .eq("is_active", true)
-      .maybeSingle();
+    const tplRow = await getActiveWorkforceTemplateByKey("b2c_campus_ambassador");
 
     const { data: authData } = await supabase.auth.getUser();
     const userId = authData?.user?.id;
     if (!tplRow?.id || !userId) return null;
 
-    const { data: created, error: insertErr } = await supabase
-      .from("workforce_hired_instances")
-      .insert({
-        template_id: tplRow.id,
-        tenant_id: userId,
-        cluster_geo_id: institutionName,
-        name_override: `${institutionName} Campus Ambassador`,
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (insertErr || !created?.id) return null;
-    return { instance_id: created.id, created: true };
+    const createdId = await insertWorkforceInstanceReturningId({
+      template_id: tplRow.id,
+      tenant_id: userId,
+      cluster_geo_id: institutionName,
+      name_override: `${institutionName} Campus Ambassador`,
+      status: "active",
+    });
+    if (!createdId) return null;
+    return { instance_id: createdId, created: true };
   };
 
   const handleNext = async () => {
@@ -313,21 +270,17 @@ export function OnboardingWizard({
       const userId = authData.user.id;
 
       const isFreeform = institution.id.startsWith("freeform:");
-      const { error: updateErr } = await supabase
-        .from("talents")
-        .update({
-          country_id: country.id,
-          country_code: country.iso2,
-          country: country.name,
-          career_stage_id: stage.id,
-          institution_id: isFreeform ? null : institution.id,
-          institution: institution.name,
-          school_id: school.id,
-          onboarding_step: 4,
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
-      if (updateErr) throw updateErr;
+      await patchTalentByUser(userId, {
+        country_id: country.id,
+        country_code: country.iso2,
+        country: country.name,
+        career_stage_id: stage.id,
+        institution_id: isFreeform ? null : institution.id,
+        institution: institution.name,
+        school_id: school.id,
+        onboarding_step: 4,
+        onboarding_completed_at: new Date().toISOString(),
+      });
 
       setSubmittingPhase(`Connecting to ${institution.name} Campus Agent…`);
       const provisioned = await provisionOrGetInstance(institution.name);
