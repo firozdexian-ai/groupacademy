@@ -47,17 +47,7 @@ export default function WebinarLanding() {
     enabled: !!unverifiedRouteSlugStr,
     queryFn: async () => {
       if (!unverifiedRouteSlugStr) return null;
-
-      const { data: extractedContentNode, error: contentHandshakeError } = await supabase
-        .from("content")
-        .select(
-          "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, instructor_name, price",
-        )
-        .eq("slug", unverifiedRouteSlugStr)
-        .eq("is_published", true)
-        .maybeSingle();
-
-      if (contentHandshakeError) throw contentHandshakeError;
+      const extractedContentNode = await getPublicWebinarBySlug(unverifiedRouteSlugStr);
       return extractedContentNode;
     },
   });
