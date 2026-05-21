@@ -384,3 +384,13 @@ export async function cloneAiAgentInstance(payload: Record<string, any>): Promis
   const { error } = await (supabase.from("ai_agents") as any).insert(payload);
   return { error };
 }
+
+export async function listAiAgentInstancesMinimal() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("agent_key,name")
+    .eq("is_template", false)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ agent_key: string; name: string }>;
+}
