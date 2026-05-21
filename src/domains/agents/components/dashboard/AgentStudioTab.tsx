@@ -165,12 +165,13 @@ export function AgentStudio() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This will archive the agent. Linked threads remain intact.")) return;
-    const { error } = await supabase.from("ai_agents").update({ is_active: false }).eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deactivateAiAgent(id);
       toast.success("Agent node archived");
       await load();
       setSelected(null);
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
