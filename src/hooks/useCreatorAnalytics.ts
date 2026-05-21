@@ -1,6 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCreatorScorecard,
+  getCreatorTopPosts,
+  getPostInsights,
+  recordImpressionAsync,
+  recordShare as recordShareRepo,
+} from "@/domains/feed/repo/feedRepo";
 
 /**
  * GroUp Academy: Creator Shell Analytics & Tracking Suite (V5.6.0)
