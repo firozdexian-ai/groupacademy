@@ -35,8 +35,7 @@ const UUID_REGEX_PATTERN = "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 
 async function resolveCourseIdFromSlug(slug: string): Promise<string | null> {
   if (slugIdCache.has(slug)) return slugIdCache.get(slug)!;
-  const { data } = await supabase.from("content").select("id").eq("slug", slug).maybeSingle();
-  const id = (data as any)?.id ?? null;
+  const id = await getContentIdBySlug(slug);
   if (id) slugIdCache.set(slug, id);
   return id;
 }
