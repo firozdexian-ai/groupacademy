@@ -1,66 +1,82 @@
-# Next Course of Action — Finish the Supabase isolation refactor
+## Where we are
 
-Phase 10j.5 is complete: **zero** raw `supabase.from(...)` calls remain anywhere outside `src/domains/` and `src/integrations/` (verified across `src/pages`, `src/components`, `src/hooks`, `src/lib`, `src/gro10x`, `src/platform`).
+Phase **10j.5g is complete**: every `supabase.from()` table query now lives inside the 18 domain repos (`src/domains/*/repo/`). Pages, hooks, and components no longer build raw table queries.
 
-What still leaks the Supabase client outside the repo layer:
+What still leaks past the domain boundary outside repos/integrations:
 
-| Surface | Calls outside `src/domains` | Risk |
+| Surface | Count | Notes |
 |---|---|---|
-| `supabase.rpc(...)` | **67** | Same coupling problem `.from()` had |
-| `supabase.auth.*` | **58** | Scattered session logic |
-| `supabase.storage.*` | **12** | Bucket names duplicated |
-| `supabase.functions.invoke` | 2 | Already mostly wrapped |
-| `supabase.channel(...)` | 0 | Clean |
+| `supabase.rpc(...)` | 84 callsites, 101 distinct functions | Heaviest leakage |
+| `supabase.storage.*` | 27 callsites across 8 buckets | uploads, public URLs, signed URLs |
+| `supabase.auth.*` | 70 callsites | mostly `getUser` / `getSession` |
+| `supabase.functions.invoke` | 2 callsites | already mostly via typed edge wrappers |
+| Direct client imports | 151 files | will shrink as the above migrate |
 
-The plan picks these off in the same incremental, low-risk way as 10j.5.
+The goal of the next three sub-phases is the same architectural rule we just enforced for `from()`: **only repo files and the auth hook may import the supabase client.** Everything else goes through a typed helper.
 
----
+## Phase 10j.5h — RPC consolidation
 
-## Phase 10j.6 — RPC consolidation (recommended next)
+Move all `supabase.rpc(...)` calls into the matching domain repo as a thin typed wrapper. Group RPCs by domain based on naming + current callsite:
 
-Move all 67 `supabase.rpc("...")` calls into typed repo helpers. Same pattern as `.from()` migration.
+```text
+companies/    get_companies_overview, get_industry_rollup, ensure_system_thread,
+              unlock_talent_inbox, boost_profile, assign_career_coach
+finance/      deduct_credits, add_credits, tip_comment
+feed/         hype_content, get_feed_engagement, record_match_event
+messaging/    upsert_direct_thread
+analytics/    track_service_click, track_content_click, track_course_referral_click
+learning/     talent_enroll_track, upcoming_sessions_for_user
+ir/           toggle_project_public
+talent/       talent_marketplace_summary
+... (~101 functions total)
+```
 
-Top hotspots to tackle first:
-- `src/hooks/useCreatorAnalytics.ts` (6)
-- `src/gro10x/pages/work/Gro10xProjects.tsx` (4)
-- `src/pages/app/ReviewerCockpit.tsx` (3)
-- Then sweep remaining single/double-call files in batches of ~15 per sub-phase (10j.6a, 10j.6b, 10j.6c).
+Each repo gets a clearly-named helper, e.g. `companiesRepo.unlockTalentInbox(talentId)` that wraps `supabase.rpc("unlock_talent_inbox", { p_talent_id })` with typed args + return.
 
-Helper convention: one function per RPC, named after the RPC, returning typed data, living in the domain repo that already owns the table family (e.g. `getEmployerPipeline` → `jobsRepo`, `recordDiscoverySignal` → `discoveryRepo`).
+Batch in groups of ~8–10 callsites per sub-batch (5h1, 5h2, …) so each step stays reviewable. Estimated: ~10 sub-batches.
 
-## Phase 10j.7 — Storage consolidation
+## Phase 10j.5i — Storage consolidation
 
-12 `supabase.storage.from(...)` sites → new `src/domains/storage/repo/storageRepo.ts` with helpers like `uploadTalentCv`, `getSignedCvUrl`, `uploadDiscoveryOg`. Centralizing bucket names also reduces the risk of breaking the signed-URL rule for `talent-cvs`.
+Create one storage helper per bucket inside the owning domain repo:
 
-## Phase 10j.8 — Auth wrapper
+```text
+talent/        talent-cvs (signed URLs only), talent-id-docs, cvs (legacy)
+jobs/          job-assets (logos, attachments)
+gigs/          gig-submissions
+profile/       portfolio-uploads
+finance/       payment-proofs
+ir/            ir-data-room
+```
 
-58 `supabase.auth.*` calls → `src/domains/auth/repo/authRepo.ts` exposing `getSession`, `getUser`, `signInWithPassword`, `signInWithOtp`, `signUp`, `signOut`, `updateUser`, `resetPasswordForEmail`, `onAuthStateChange`. Keep `AuthProvider` as the only place that subscribes; everything else calls helpers. Largest payoff: removes the most common reason for non-repo files to import the client at all.
+Helpers exposed: `uploadX(file, path)`, `getXPublicUrl(path)`, `createXSignedUrl(path, ttl)`, `removeX(path)`. Enforces the security memory rule that `talent-cvs` is **signed URLs only**. ~27 callsites → ~1 sub-batch.
 
-## Phase 10j.9 — Lock it in
+## Phase 10j.5j — Auth boundary
 
-1. Add an ESLint `no-restricted-imports` rule forbidding `@/integrations/supabase/client` outside `src/domains/**` and `src/integrations/**`.
-2. CI-equivalent guard: a tiny script that greps `supabase\.(from|rpc|auth|storage|channel)\(` outside `src/domains` and fails on non-zero.
-3. Document the repo-only rule in a short architecture note.
+`useAuth` already wraps most of this. Migrate the remaining 70 callsites:
 
----
+- Replace inline `supabase.auth.getUser()` / `getSession()` in components with the `user` / `session` already available from `useAuth`.
+- For non-React code (helpers, edge wrappers), add a `getCurrentUser()` / `getCurrentSession()` helper in `src/lib/auth.ts` that wraps the supabase client.
+- Leave `signIn*`, `signUp`, `signOut`, `onAuthStateChange` inside the auth hook / sign-in pages — those are legitimately auth-surface code.
+
+## Acceptance
+
+After 5h + 5i + 5j:
+
+- Outside `src/domains/*/repo/`, `src/hooks/useAuth.ts`, `src/lib/auth.ts`, and `src/integrations/supabase/*`, **no file imports the supabase client at all**.
+- A single grep (`grep -rln "@/integrations/supabase/client" src | grep -v <allowed>`) returns zero.
+- This gives us a clean seam to later swap the data layer (server actions, edge-only access, caching) without touching feature code.
 
 ## Technical notes
 
-- Keep helpers thin — one RPC / one query per function, no business logic.
-- Preserve existing return shapes so call sites only swap the import, not the data handling.
-- Use `(supabase as any).rpc(...)` only when the generated types don't include the RPC; add a TODO to regenerate types afterwards.
-- Continue verifying each sub-phase with `rg -c 'supabase\.<api>\(' src | grep -v src/domains`.
+- Wrapper signatures use named-object args (`{ talentId, companyId }`) to avoid positional drift — same pattern as the `from()` repo helpers.
+- RPC wrappers throw on `error` and return `data` typed via `Database["public"]["Functions"][name]["Returns"]`.
+- Storage helpers return `{ path, publicUrl }` or `{ path, signedUrl, expiresAt }` rather than the raw supabase response.
+- No behavior changes — purely structural. Existing TanStack Query keys, RLS, and edge contracts remain identical.
 
-## Suggested order & rough size
+## Suggested order
 
-```text
-10j.6a  RPC — hooks + gro10x (high churn)     ~15 sites
-10j.6b  RPC — app pages                        ~25 sites
-10j.6c  RPC — public + admin + dashboard       ~27 sites
-10j.7   Storage repo + 12 call sites
-10j.8a  Auth repo + AuthProvider migration
-10j.8b  Auth — remaining 50+ call sites
-10j.9   ESLint guard + grep CI script + doc
-```
+1. **10j.5h1–5h10** — RPC migration, domain by domain (start with `companies` + `finance` since they have the most callsites).
+2. **10j.5i** — Storage helpers (single batch).
+3. **10j.5j** — Auth cleanup + final import-boundary lint check.
 
-Say **"continue 10j.6a"** to start the RPC migration with the hooks and gro10x hotspots.
+Say **"continue 10j.5h1"** to start with the companies-domain RPCs.
