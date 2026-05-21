@@ -317,19 +317,13 @@ function LeadDetail({
   const activitiesQuery = useQuery({
     queryKey: ["lead-activities", lead.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("company_lead_activities")
-        .select("id, activity_type, body, created_at")
-        .eq("lead_id", lead.id)
-        .order("created_at", { ascending: false });
-      return data ?? [];
+      return await listCompanyLeadActivities(lead.id);
     },
   });
 
   const updateLead = useMutation({
     mutationFn: async (patch: Partial<Lead>) => {
-      const { error } = await supabase.from("company_leads").update(patch as any).eq("id", lead.id);
-      if (error) throw error;
+      await updateCompanyLead(lead.id, patch as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["company-leads", companyId] });
@@ -339,14 +333,13 @@ function LeadDetail({
 
   const addNote = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("company_lead_activities").insert({
+      await insertCompanyLeadActivity({
         lead_id: lead.id,
         company_id: companyId,
         created_by: userId,
         activity_type: "note",
         body: note,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       setNote("");
