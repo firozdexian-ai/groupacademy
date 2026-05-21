@@ -325,3 +325,24 @@ export async function matchGigsForTalent(talentId: string, limit = 20) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5h5: ranked/hub RPC wrappers ───────────────────────────────
+export async function getRankedGigsForTalent(args: {
+  talentId: string | null;
+  cursor: number | null;
+  limit: number;
+}) {
+  const { data, error } = await supabase.rpc("get_ranked_gigs_for_talent", {
+    _talent_id: args.talentId,
+    _cursor: args.cursor,
+    _limit: args.limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getGigsHubDashboard() {
+  const { data, error } = await supabase.rpc("get_gigs_hub_dashboard");
+  if (error) throw error;
+  return data as any;
+}

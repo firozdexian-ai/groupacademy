@@ -786,3 +786,40 @@ export async function insertJobReturningId(payload: any): Promise<string> {
   if (error) throw error;
   return (data as { id: string } | null)?.id ?? "";
 }
+
+// ─── Phase 10j.5h5: ranked/hub/pipeline RPC wrappers ──────────────────────
+export async function getRankedJobsForTalent(args: {
+  talentId: string;
+  cursor: number | null;
+  limit: number;
+}) {
+  const { data, error } = await supabase.rpc("get_ranked_jobs_for_talent", {
+    _talent_id: args.talentId,
+    _cursor: args.cursor,
+    _limit: args.limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getJobsHubDashboard(talentId: string | null) {
+  const { data, error } = await supabase.rpc("get_jobs_hub_dashboard", {
+    _talent_id: talentId,
+  });
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getEmployerPipelineFull(args: {
+  companyId?: string | null;
+  jobId?: string | null;
+  limit?: number;
+}) {
+  const { data, error } = await supabase.rpc("get_employer_pipeline_full", {
+    p_company_id: args.companyId ?? null,
+    p_job_id: args.jobId ?? null,
+    p_limit: args.limit ?? 500,
+  });
+  if (error) throw error;
+  return (data ?? {}) as any;
+}
