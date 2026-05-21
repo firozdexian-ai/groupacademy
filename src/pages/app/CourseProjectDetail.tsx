@@ -434,15 +434,12 @@ function SubtaskRow({ subtask, isOwner, isLocked, expanded, onToggle, onUpdated 
     const isThreadMountedFlag = { current: true };
 
     try {
-      const { error: updateHandshakeError } = await supabase
-        .from("course_project_subtasks")
-        .update({
-          submitted_files: uploadedFilesCollection as any,
-          submitted_notes: textReviewerNotesInput.trim() || null,
-          submitted_at: uploadedFilesCollection.length ? new Date().toISOString() : null,
-          status: uploadedFilesCollection.length ? "in_review" : "pending",
-        })
-        .eq("id", subtask.id);
+      const { error: updateHandshakeError } = await updateCourseProjectSubtask(subtask.id, {
+        submitted_files: uploadedFilesCollection as any,
+        submitted_notes: textReviewerNotesInput.trim() || null,
+        submitted_at: uploadedFilesCollection.length ? new Date().toISOString() : null,
+        status: uploadedFilesCollection.length ? "in_review" : "pending",
+      });
 
       if (updateHandshakeError) throw updateHandshakeError;
 
