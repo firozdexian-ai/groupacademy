@@ -120,9 +120,7 @@ export function CompanyWhatsAppGroupCard({ companyId, companyName }: Props) {
     mutationKey: ["remove-whatsapp-group"],
     mutationFn: async (id: string): Promise<void> => {
       // HUD: COMMITTING_RECORD_DELETION_TRANSACTION
-      const { error } = await supabase.from("messaging_conversations").delete().eq("id", id);
-
-      if (error) throw error;
+      await deleteMessagingConversation(id);
     },
     onSuccess: () => {
       toast.success("Workspace target references evicted from system arrays.");
