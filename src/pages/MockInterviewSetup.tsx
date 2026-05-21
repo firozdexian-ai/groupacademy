@@ -104,14 +104,7 @@ function MockInterviewSetupContent() {
 
   const checkCooldown = async () => {
     setCheckingCooldown(true);
-    const { data: existing } = await supabase
-      .from("mock_interviews")
-      .select("*")
-      .eq("email", email.toLowerCase().trim())
-      .eq("status", "completed")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const existing = await getLatestCompletedMockInterviewByEmail(email.toLowerCase().trim());
 
     if (existing && new Date(existing.expires_at) > new Date()) {
       setExistingInterview(existing);
