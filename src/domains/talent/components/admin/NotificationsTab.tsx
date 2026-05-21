@@ -59,7 +59,7 @@ export function NotificationsTab() {
   useEffect(() => {
     if (sendDialog && targetType === "single") {
       const fetchFreshTalents = async () => {
-        const { data } = await supabase.from("talents").select("id, full_name, email").order("full_name").limit(200);
+        const { data } = await talentRepo.listTalentsLite(200);
         if (data) setTalents(data);
       };
       fetchFreshTalents();
