@@ -33,24 +33,11 @@ export function HypeEarningsCard() {
       if (!talent?.id) throw new Error("Anonymous context block identifier encountered.");
 
       const sinceTimestamp = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+      const { all, recent } = await getHypeEarnings(talent.id, sinceTimestamp);
 
-      // Aggregate aggregates securely inside the database layer to minimize raw bandwidth payloads
-      const [allHypesQuery, recentHypesQuery] = await Promise.all([
-        supabase.from("instructor_earnings_ledger").select("amount_credits").eq("talent_id", talent.id),
-        supabase
-          .from("instructor_earnings_ledger")
-          .select("amount_credits")
-          .eq("talent_id", talent.id)
-          .gte("created_at", sinceTimestamp),
-      ]);
-
-      if (allHypesQuery.error) throw allHypesQuery.error;
-      if (recentHypesQuery.error) throw recentHypesQuery.error;
-
-      // Calculate localized values adaptively using clean transactional sums
-      const totalCredits = (allHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
-      const last30DaysCredits = (recentHypesQuery.data ?? []).reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
-      const totalHypesReceived = allHypesQuery.data?.length ?? 0;
+      const totalCredits = all.reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
+      const last30DaysCredits = recent.reduce((sum, item) => sum + Number(item.amount_credits ?? 0), 0);
+      const totalHypesReceived = all.length;
 
       return {
         totalCredits,

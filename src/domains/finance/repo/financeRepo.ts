@@ -119,3 +119,54 @@ export function buildListCreditTransactionsQuery(opts: {
   }
   return q.range(from, from + opts.pageSize - 1);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Consumption telemetry
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getConsumptionTotals(): Promise<Array<{ amount: number; service_type: string | null }>> {
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("amount, service_type")
+    .lt("amount", 0);
+  if (error) throw error;
+  return (data ?? []) as any;
+}
+
+export async function getMonthlyConsumption(startIso: string, endIso: string): Promise<Array<{ amount: number }>> {
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("amount")
+    .lt("amount", 0)
+    .gte("created_at", startIso)
+    .lte("created_at", endIso);
+  if (error) throw error;
+  return (data ?? []) as any;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Manual ledger fallback (when add_credits / deduct_credits RPCs unavailable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function manualAdjustTalentCredit(input: {
+  creditId: string;
+  talentId: string;
+  newBalance: number;
+  delta: number;
+  transactionType: "admin_credit" | "admin_debit";
+  description: string;
+}): Promise<void> {
+  const { error: updateError } = await supabase
+    .from("talent_credits")
+    .update({ balance: input.newBalance, updated_at: new Date().toISOString() })
+    .eq("id", input.creditId);
+  if (updateError) throw updateError;
+  const { error: txError } = await (supabase.from("credit_transactions") as any).insert({
+    talent_id: input.talentId,
+    amount: input.delta,
+    transaction_type: input.transactionType,
+    description: input.description,
+    balance_after: input.newBalance,
+  });
+  if (txError) throw txError;
+}

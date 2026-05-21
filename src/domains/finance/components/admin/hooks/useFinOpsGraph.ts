@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getFinOpsGraphMaster,
+  updateWithdrawalStatus as repoUpdateWithdrawalStatus,
+  upsertPaymentConfig,
+} from "@/domains/finance/repo/financeRepo";
 
 // --- Global Type Defs ---
 export interface TalentWallet { id: string; balance: number; earned_balance: number; talent: { full_name: string; email: string }; }
@@ -12,49 +16,24 @@ export interface PayInfraConfig { id: string; provider: string; status: string; 
 export function useFinOpsGraph() {
   const queryClient = useQueryClient();
 
-  // 1. The Master Ledger Query
   const finOpsGraphQuery = useQuery({
     queryKey: ["finops_graph_master"],
     queryFn: async () => {
-      const [
-        talentWalletsRes,
-        companyWalletsRes,
-        invoicesRes,
-        withdrawalsRes,
-        payInfraRes
-      ] = await Promise.all([
-        supabase.from("talent_credits").select("id, balance, earned_balance, talent_id, talent:talents(full_name, email)").order("balance", { ascending: false }).limit(200),
-        supabase.from("company_credits").select("id, balance, earned_balance, company_id, company:companies(name, type)").order("balance", { ascending: false }).limit(200),
-        supabase.from("credit_invoices").select("id, invoice_number, bundle_credits, currency, bundle_price_usd, bundle_price_local, status, payment_method, created_at, talent_id, talent:talents(full_name)").order("created_at", { ascending: false }).limit(300),
-        supabase.from("withdrawal_requests").select("id, talent_id, amount_credits, method, status, payout_details, created_at, talent:talents(full_name, email)").order("created_at", { ascending: false }).limit(300),
-        supabase.from("fin_payment_configs").select("id, provider, status, created_at").order("created_at", { ascending: false }),
-      ]);
+      const master = await getFinOpsGraphMaster();
 
-      // Throw first encountered error
-      if (talentWalletsRes.error) throw talentWalletsRes.error;
-      if (companyWalletsRes.error) throw companyWalletsRes.error;
-      if (invoicesRes.error) throw invoicesRes.error;
-      if (withdrawalsRes.error) throw withdrawalsRes.error;
-      if (payInfraRes.error) throw payInfraRes.error;
-
-      // Map relation fields safely
-      const talentWallets = (talentWalletsRes.data || []).map((w: any) => ({
-        ...w, talent: w.talent || { full_name: "Unknown", email: "" }
+      const talentWallets = (master.talentWallets as any[]).map((w) => ({
+        ...w, talent: w.talent || { full_name: "Unknown", email: "" },
+      }));
+      const companyWallets = (master.companyWallets as any[]).map((w) => ({
+        ...w, company: w.company || { name: "Unknown", type: "Unknown" },
+      }));
+      const creditInvoices = (master.invoices as any[]).map((i) => ({
+        ...i, talent: i.talent || { full_name: "Unknown" },
+      }));
+      const withdrawalRequests = (master.withdrawals as any[]).map((wr) => ({
+        ...wr, talent: wr.talent || { full_name: "Unknown", email: "" },
       }));
 
-      const companyWallets = (companyWalletsRes.data || []).map((w: any) => ({
-        ...w, company: w.company || { name: "Unknown", type: "Unknown" }
-      }));
-
-      const creditInvoices = (invoicesRes.data || []).map((i: any) => ({
-        ...i, talent: i.talent || { full_name: "Unknown" }
-      }));
-
-      const withdrawalRequests = (withdrawalsRes.data || []).map((wr: any) => ({
-        ...wr, talent: wr.talent || { full_name: "Unknown", email: "" }
-      }));
-
-      // Gro10x vs standard companies logic separation
       const gro10xWallets = companyWallets.filter((w: any) => w.company.type === "agent" || w.company.name.toLowerCase().includes("gro10x"));
       const standardCompanyWallets = companyWallets.filter((w: any) => w.company.type !== "agent" && !w.company.name.toLowerCase().includes("gro10x"));
 
@@ -64,20 +43,14 @@ export function useFinOpsGraph() {
         gro10xWallets: gro10xWallets as CompanyWallet[],
         invoices: creditInvoices as CreditInvoice[],
         withdrawals: withdrawalRequests as WithdrawalRequest[],
-        payInfraConfigs: (payInfraRes.data || []) as PayInfraConfig[],
+        payInfraConfigs: (master.payInfraConfigs ?? []) as PayInfraConfig[],
       };
     },
   });
 
-  // 2. Withdrawal Mutation (Approve / Reject)
   const updateWithdrawalStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "completed" | "rejected" | "failed"; notes?: string }) => {
-      const { error } = await supabase.from("withdrawal_requests").update({
-        status,
-        processed_at: new Date().toISOString(),
-        // Admin notes would go here if schema supports it, omitted for safety
-      }).eq("id", id);
-      if (error) throw error;
+      await repoUpdateWithdrawalStatus({ id, status });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["finops_graph_master"] });
@@ -86,16 +59,9 @@ export function useFinOpsGraph() {
     onError: (e: Error) => toast.error(`Status update failed: ${e.message}`),
   });
 
-  // 3. Generic Upsert for Pay Infra
   const upsertPayInfra = useMutation({
     mutationFn: async (payload: any) => {
-      if (payload.id) {
-        const { error } = await supabase.from("fin_payment_configs").update(payload).eq("id", payload.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("fin_payment_configs").insert(payload);
-        if (error) throw error;
-      }
+      await upsertPaymentConfig(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finops_graph_master"] });
@@ -108,7 +74,7 @@ export function useFinOpsGraph() {
     finOpsGraphQuery,
     mutations: {
       updateWithdrawalStatus,
-      upsertPayInfra
-    }
+      upsertPayInfra,
+    },
   };
 }

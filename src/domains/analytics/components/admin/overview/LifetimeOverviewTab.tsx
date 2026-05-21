@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getLifetimeOverviewMaster } from "@/domains/analytics/repo/analyticsRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -76,7 +76,7 @@ export function LifetimeOverviewTab() {
       today.setHours(0, 0, 0, 0);
 
       // F3: Aggregate credit pools (talent + company; gro10x_credits not yet provisioned)
-      const [
+      const {
         talentCount,
         regCount,
         enrollCount,
@@ -90,25 +90,7 @@ export function LifetimeOverviewTab() {
         companyCreds,
         countryStats,
         txTodayResult,
-      ] = await Promise.all([
-        supabase.from("talents").select("*", { count: "exact", head: true }),
-        supabase.from("talents").select("*", { count: "exact", head: true }).not("user_id", "is", null),
-        supabase.from("enrollments").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("enrollments").select("payment_amount"),
-        // Real column is `transaction_type`; commission rows are negative amounts
-        supabase.from("credit_transactions").select("amount").eq("transaction_type", "commission"),
-        supabase.from("career_assessments").select("*", { count: "exact", head: true }),
-        supabase.from("mock_interviews").select("status"),
-        supabase.from("portfolio_requests").select("status"),
-        supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true }),
-        supabase.from("talent_credits").select("balance"),
-        supabase.from("company_credits").select("balance"),
-        supabase.rpc("get_top_countries" as any),
-        supabase
-          .from("credit_transactions")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", today.toISOString()),
-      ]);
+      } = await getLifetimeOverviewMaster(today.toISOString());
 
       const talents = talentCount.count || 0;
       const registered = regCount.count || 0;
