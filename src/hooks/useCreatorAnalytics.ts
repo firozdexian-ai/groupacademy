@@ -72,20 +72,15 @@ export function useCreatorTopPosts(talentId?: string, days: number = 30, limit: 
     enabled: !!talentId,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.rpc("get_creator_top_posts" as any, {
-        _talent_id: talentId,
-        _days: days,
-        _limit: limit,
-      });
-
-      if (error) {
+      try {
+        return await getCreatorTopPosts(talentId!, days, limit);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_creator_top_posts transaction failed.", {
           talentId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data ?? [];
     },
   });
 }
