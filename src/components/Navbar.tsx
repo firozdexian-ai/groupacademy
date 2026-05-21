@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isUserAdmin } from "@/domains/profile/repo/profileRepo";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { Menu, X, Moon, Sun, Zap, ShieldCheck } from "lucide-react";
