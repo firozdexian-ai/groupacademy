@@ -1,92 +1,66 @@
-## Phase 10j — App-level Sweep (pages, hooks, lib, components, contexts)
+# Next Course of Action — Finish the Supabase isolation refactor
 
-**Goal:** Eliminate every remaining raw `supabase.from(...)` call outside `src/domains/*/repo/` so that the ESLint guard (`no raw supabase.from outside repo/`) can be enabled project-wide at the end of the phase.
+Phase 10j.5 is complete: **zero** raw `supabase.from(...)` calls remain anywhere outside `src/domains/` and `src/integrations/` (verified across `src/pages`, `src/components`, `src/hooks`, `src/lib`, `src/gro10x`, `src/platform`).
 
-### Current surface (measured)
+What still leaks the Supabase client outside the repo layer:
 
-- **78 files / 147 call sites** remain across:
-  - `src/pages/**` — 49 files (26 root + 23 `/app`)
-  - `src/hooks/**` — 9 files
-  - `src/components/**` — 9 files
-  - `src/lib/**` — 4 files
-  - `src/gro10x/**` — 5 files (1 hook, 1 component, 2 pages, +Feed)
-  - `src/contexts/TalentContext.tsx`, `src/platform/admin/ui/SimpleAdminRegistry.tsx`
+| Surface | Calls outside `src/domains` | Risk |
+|---|---|---|
+| `supabase.rpc(...)` | **67** | Same coupling problem `.from()` had |
+| `supabase.auth.*` | **58** | Scattered session logic |
+| `supabase.storage.*` | **12** | Bucket names duplicated |
+| `supabase.functions.invoke` | 2 | Already mostly wrapped |
+| `supabase.channel(...)` | 0 | Clean |
 
-All 17 domain repos already exist. Phase 10j is **pure code motion** — no behavior changes, no new schema, no UI work.
+The plan picks these off in the same incremental, low-risk way as 10j.5.
 
-### Execution model
+---
 
-Same pattern as 10g/10h/10i:
-1. For each call site, identify the **owning domain repo** (e.g. `notifications` → talent, `tool_runs` → jobs, `discussion_posts` → learning).
-2. Add a named helper to that repo if missing.
-3. Replace the raw `.from()` call with the repo helper.
-4. Leave `supabase.auth.*`, `supabase.rpc(...)`, `supabase.functions.invoke(...)`, `supabase.channel(...)` untouched.
+## Phase 10j.6 — RPC consolidation (recommended next)
 
-### Sub-phases (sequenced smallest → largest, each independently shippable)
+Move all 67 `supabase.rpc("...")` calls into typed repo helpers. Same pattern as `.from()` migration.
 
-**10j.1 — Shared infrastructure (4 files, 6 sites)**
-- `src/lib/databaseWarmup.ts`, `src/lib/emailNotifications.ts`, `src/lib/finalizePendingOnboarding.ts`, `src/lib/onboarding/telemetry.ts`
-- Move into `talent/profile` repos (onboarding + warmup) and `messaging` repo (notifications).
-- Validates the pattern before touching pages.
+Top hotspots to tackle first:
+- `src/hooks/useCreatorAnalytics.ts` (6)
+- `src/gro10x/pages/work/Gro10xProjects.tsx` (4)
+- `src/pages/app/ReviewerCockpit.tsx` (3)
+- Then sweep remaining single/double-call files in batches of ~15 per sub-phase (10j.6a, 10j.6b, 10j.6c).
 
-**10j.2 — `src/hooks/**` (9 files, ~15 sites)**
-- `useDiscussions` → learning repo (lesson_questions, discussion_posts, submission_reviews)
-- `useNotifications` → talent/messaging repo
-- `useToolRuns` → jobs repo
-- `useOffers`, `useInterviews` → jobs/companies repo
-- `useOnboarding`, `useAccountType`, `useAdminScope` → profile/talent repo
-- `useUnitEconomics` → finance repo
+Helper convention: one function per RPC, named after the RPC, returning typed data, living in the domain repo that already owns the table family (e.g. `getEmployerPipeline` → `jobsRepo`, `recordDiscoverySignal` → `discoveryRepo`).
 
-**10j.3 — `src/components/**` + contexts + platform (12 files, ~14 sites)**
-- 9 leaf components (`AccessCodeDialog`, `LeadCaptureForm`, `AssessStage`, `GlobalAIBubble`, `ReferralCard`, `CompanyWhatsAppGroupCard`, `InboxUnlockCard`, 2 agent dialogs).
-- `contexts/TalentContext.tsx` (3 talents reads) → talent repo.
-- `platform/admin/ui/SimpleAdminRegistry.tsx` (2 sites) — generic CRUD; add tiny `genericAdminRepo` helpers or route via existing graph helpers.
+## Phase 10j.7 — Storage consolidation
 
-**10j.4 — `src/gro10x/**` (5 files, ~10 sites)**
-- `useCompanyOfferings` → companies repo
-- `TelegramTopUpModal` → finance repo
-- `Gro10xCRM`, `Gro10xFeed` → companies/feed repos
-- `useGro10xCompanyId` (1 site already shown in earlier context) → companies repo
+12 `supabase.storage.from(...)` sites → new `src/domains/storage/repo/storageRepo.ts` with helpers like `uploadTalentCv`, `getSignedCvUrl`, `uploadDiscoveryOg`. Centralizing bucket names also reduces the risk of breaking the signed-URL rule for `talent-cvs`.
 
-**10j.5 — `src/pages/**` non-app (26 files, ~50 sites)**
-Grouped by domain to batch-edit:
-- **Learning** (~10 files): QuizManagement, ModuleManagement, ModuleResourcesManager, ContentEdit, SessionEdit, CourseDetail, ImmersiveCoursePlayer, Instructors, LearningReview, AppCourses-adjacent
-- **Marketing/Lead** (~6 files): MockInterviewSetup, SalaryAnalysisSetup, PortfolioRequest, PublicBlogPost, AccessCodeDialog flows
-- **Admin shells** (~5 files): AdminLiveInbox, WorkforceCommandCenter (dashboard/), Dashboard
-- **Misc/public** (~5 files): VerifyCertificate, VerifySkillCredential, etc.
+## Phase 10j.8 — Auth wrapper
 
-**10j.6 — `src/pages/app/**` (23 files, ~50 sites)**
-- **Profile/Talent** (~6): Profile, ProfileVerify, ProfileBuilder, TalentPublicProfile, TalentDirectory, SavedItems, MyResults
-- **Jobs/Apps** (~4): MyApplications, AppPortfolioRequest, AppInterviewSchedule, Withdrawals
-- **Gigs/Marketplace** (~3): MarketplaceGigDetail, MyGigs, NewGigWizard
-- **Abroad** (~3): StudyAbroadDetail, AbroadHub, AbroadApplications
-- **Learning/Instructor** (~4): InstructorReviewQueue, AppMyLearning, AppTrackDetail, AppSessionJoin
-- **Misc** (~3): Notifications, Messages, MessageThread
+58 `supabase.auth.*` calls → `src/domains/auth/repo/authRepo.ts` exposing `getSession`, `getUser`, `signInWithPassword`, `signInWithOtp`, `signUp`, `signOut`, `updateUser`, `resetPasswordForEmail`, `onAuthStateChange`. Keep `AuthProvider` as the only place that subscribes; everything else calls helpers. Largest payoff: removes the most common reason for non-repo files to import the client at all.
 
-**10j.7 — Repo whitelist enforcement (final gate)**
-- Add ESLint rule: `no-restricted-syntax` matching `CallExpression[callee.object.name="supabase"][callee.property.name="from"]` with allowlist for `src/domains/**/repo/**` and `src/integrations/supabase/**`.
-- Wire it into the existing `eslint.config.js`.
-- Run `bun run lint` — must pass with **0** violations.
+## Phase 10j.9 — Lock it in
 
-### Acceptance gates (per sub-phase)
+1. Add an ESLint `no-restricted-imports` rule forbidding `@/integrations/supabase/client` outside `src/domains/**` and `src/integrations/**`.
+2. CI-equivalent guard: a tiny script that greps `supabase\.(from|rpc|auth|storage|channel)\(` outside `src/domains` and fails on non-zero.
+3. Document the repo-only rule in a short architecture note.
 
-- `rg -n "supabase\.from" <scope> --glob '!**/repo/**'` returns **0** in that sub-phase's scope.
-- TypeScript clean (harness runs `tsc --noEmit`).
-- File diff is repo-add + call-site swap only — no JSX, query-key, or toast text changes.
-- Final 10j.7 gate: full project `bun run lint` passes with the new rule.
+---
 
-### Why this ordering
+## Technical notes
 
-- **Smallest first** (lib → hooks → components) so we validate repo gaps before touching the noisy page batch.
-- **Pages last and grouped by domain** so each PR sized commit touches one repo + N call sites, never crossing domains.
-- **ESLint rule last** because it can't be enforced until the codebase is clean — otherwise it blocks the cleanup itself.
+- Keep helpers thin — one RPC / one query per function, no business logic.
+- Preserve existing return shapes so call sites only swap the import, not the data handling.
+- Use `(supabase as any).rpc(...)` only when the generated types don't include the RPC; add a TODO to regenerate types afterwards.
+- Continue verifying each sub-phase with `rg -c 'supabase\.<api>\(' src | grep -v src/domains`.
 
-### Out of scope (Phase 10k+)
+## Suggested order & rough size
 
-- Edge function `.from` calls (different ESLint scope, different review).
-- `supabase.rpc` → typed RPC wrappers (separate phase; already partially done in domain repos).
-- Behavior changes, query consolidation, RLS audits.
+```text
+10j.6a  RPC — hooks + gro10x (high churn)     ~15 sites
+10j.6b  RPC — app pages                        ~25 sites
+10j.6c  RPC — public + admin + dashboard       ~27 sites
+10j.7   Storage repo + 12 call sites
+10j.8a  Auth repo + AuthProvider migration
+10j.8b  Auth — remaining 50+ call sites
+10j.9   ESLint guard + grep CI script + doc
+```
 
-### Recommended start
-
-Begin with **10j.1** (4 files, 6 sites — done in one pass). Then **10j.2** immediately after if it stays clean. The big batches (10j.5 / 10j.6) are best as their own turns so I can verify per-domain.
+Say **"continue 10j.6a"** to start the RPC migration with the hooks and gro10x hotspots.
