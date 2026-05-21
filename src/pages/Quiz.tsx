@@ -76,34 +76,32 @@ export default function Quiz() {
       if (!user) return navigate("/auth");
 
       // 1. Fetch Student Context
-      const { data: student, error: studentError } = await supabase
-        .from("students")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (studentError || !student) throw new Error("Academic Identity Not Found");
+      let student: { id: string } | null = null;
+      try {
+        student = { id: await getStudentIdByUserIdStrict(user.id) };
+      } catch {
+        throw new Error("Academic Identity Not Found");
+      }
       setStudentId(student.id);
 
       // 2. Fetch Course Context
-      const { data: courseData, error: courseError } = await supabase
-        .from("content")
-        .select("*")
-        .eq("slug", slug)
-        .single();
-
-      if (courseError || !courseData) throw new Error("Blueprint Missing");
+      let courseData: any;
+      try {
+        courseData = await getContentBySlugMaybe(slug!);
+      } catch {
+        throw new Error("Blueprint Missing");
+      }
+      if (!courseData) throw new Error("Blueprint Missing");
       if (!courseData.quiz_enabled) return navigate(`/learn/${slug}`);
 
       // 3. Verify Enrollment Integrity
-      const { data: enrollment, error: enrollError } = await supabase
-        .from("enrollments")
-        .select("id, status")
-        .eq("student_id", student.id)
-        .eq("content_id", courseData.id)
-        .single();
-
-      if (enrollError || !enrollment || !["active", "completed"].includes(enrollment.status)) {
+      let enrollment: { id: string; status: string } | null = null;
+      try {
+        enrollment = await getEnrollmentForStudentAndContent(student.id, courseData.id);
+      } catch {
+        return navigate(`/courses/${slug}`);
+      }
+      if (!enrollment || !["active", "completed"].includes(enrollment.status)) {
         return navigate(`/courses/${slug}`);
       }
 
@@ -111,19 +109,15 @@ export default function Quiz() {
       setCourse(courseData);
 
       // 4. Fetch Logic Nodes (Questions)
-      const { data: questionsData } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .eq("content_id", courseData.id)
-        .order("display_order");
-
-      if (questionsData) setQuestions(questionsData);
+      const questionsData = await listQuizQuestionsByContentOrdered(courseData.id);
+      if (questionsData) setQuestions(questionsData as any);
     } catch (error: any) {
       setLoadError(error.message || "Logic Fetch Failed");
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSubmit = async () => {
     const unanswered = questions.filter((q) => !answers[q.id]);
