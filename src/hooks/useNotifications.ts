@@ -87,9 +87,7 @@ export function useNotifications() {
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
       const timestamp = new Date().toISOString();
-      const { error } = await supabase.from("notifications").update({ is_read: true, read_at: timestamp }).eq("id", id);
-
-      if (error) throw error;
+      await markNotificationRead(id, timestamp);
       return { id, timestamp };
     },
     onMutate: async (id) => {
@@ -115,13 +113,7 @@ export function useNotifications() {
     mutationFn: async () => {
       if (!talentId) return;
       const timestamp = new Date().toISOString();
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: timestamp })
-        .eq("talent_id", talentId)
-        .eq("is_read", false);
-
-      if (error) throw error;
+      await markAllNotificationsRead(talentId, timestamp);
       return { timestamp };
     },
     onMutate: async () => {
@@ -144,8 +136,7 @@ export function useNotifications() {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notifications").delete().eq("id", id);
-      if (error) throw error;
+      await repoDeleteNotification(id);
       return id;
     },
     onMutate: async (id) => {

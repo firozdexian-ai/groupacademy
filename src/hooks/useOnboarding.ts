@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateTalentOnboardingStep,
+  getTalentCreditExistence,
+  getTalentDuplicateState,
+  completeTalentOnboarding,
+  deleteAiRecommendationsForTalent,
+} from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { trackDuplicateDetected } from "@/lib/onboarding/telemetry";
@@ -38,11 +45,9 @@ export function useOnboarding() {
   const stepMutation = useMutation({
     mutationFn: async (step: number): Promise<boolean> => {
       if (!talent?.id) return false;
-
-      // HUD: EXECUTING_ONBOARDING_STEP_UPDATE
-      const { error } = await supabase.from("talents").update({ onboarding_step: step }).eq("id", talent.id);
-
-      if (error) {
+      try {
+        await updateTalentOnboardingStep(talent.id, step);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talents onboarding_step write rejected.", error);
         throw error;
       }
@@ -64,56 +69,35 @@ export function useOnboarding() {
       }
 
       // Step 1: Query credit history to prevent welcome bonus duplicate vectors
-      const { data: existingCredits } = await supabase
-        .from("talent_credits")
-        .select("id")
-        .eq("talent_id", talent.id)
-        .maybeSingle();
+      const hasExistingCredits = await getTalentCreditExistence(talent.id);
 
-      // Step 2: Fetch un-cached sybil check profiles (CV validation check step matches)
-      const { data: fresh, error: freshError } = await supabase
-        .from("talents")
-        .select("is_suspected_duplicate, cv_fingerprint")
-        .eq("id", talent.id)
-        .maybeSingle();
-
-      if (freshError) throw freshError;
+      // Step 2: Fetch un-cached sybil check profiles
+      const fresh = await getTalentDuplicateState(talent.id);
 
       const isDuplicate = !!fresh?.is_suspected_duplicate;
       let creditsAwarded = false;
 
-      // Step 3: Conditional validation check for the welcome bonus credit allocation
-      if (!existingCredits && !isDuplicate) {
-        // HUD: EXECUTING_FISCAL_WELCOME_ALLOCATION
+      if (!hasExistingCredits && !isDuplicate) {
         await addCredits(250, "welcome_bonus", "Welcome bonus");
         creditsAwarded = true;
       }
 
       if (isDuplicate) {
-        // HUD: LOGGING_FRAUD_TELEMETRY
         trackDuplicateDetected(talent.id, fresh?.cv_fingerprint ?? null);
       }
 
-      // Step 4: Commit absolute onboarding account milestone parameters
-      const { error: syncError } = await supabase
-        .from("talents")
-        .update({
-          onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 4,
-        })
-        .eq("id", talent.id);
+      // Step 4: Commit onboarding milestone
+      await completeTalentOnboarding(talent.id);
 
-      if (syncError) throw syncError;
-
-      // Step 5: Assign automated career coach via localized rpc
+      // Step 5: Assign automated career coach via rpc
       try {
         await supabase.rpc("assign_career_coach", { _talent_id: talent.id });
       } catch (rpcErr) {
         console.warn("[Digital Workforce] ANOMALY: assign_career_coach rpc execution bypassed.", rpcErr);
       }
 
-      // Step 6: Flush cold user recommendations to prepare clean profile matrices
-      await supabase.from("ai_recommendations").delete().eq("talent_id", talent.id);
+      // Step 6: Flush cold recommendations
+      await deleteAiRecommendationsForTalent(talent.id);
 
       return { success: true, creditsAwarded, duplicate: isDuplicate };
     },

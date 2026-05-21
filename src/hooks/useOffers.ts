@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
+import { insertOffer, updateOfferStatus } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Legal & Offer Finality Suite (V5.6.0)
@@ -52,23 +53,17 @@ export function useCreateOffer() {
       const { data: u, error: authError } = await supabase.auth.getUser();
       if (authError || !u.user) throw new Error("Authentication session required.");
 
-      // HUD: EXECUTING_OFFER_DOCUMENT_INSERT
-      const { data, error } = await supabase
-        .from("offers")
-        .insert({
+      try {
+        return await insertOffer({
           ...input,
           base_amount: input.base_amount ?? 0,
           currency: input.currency ?? "USD",
           created_by: u.user.id,
-        })
-        .select("id")
-        .single();
-
-      if (error) {
+        });
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: offers registry insertion rejected.", error);
         throw error;
       }
-      return data.id;
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["application-hire-state", variables.application_id] });
@@ -86,10 +81,7 @@ export function useSendOffer() {
 
   return useMutation({
     mutationFn: async ({ offerId, applicationId }: { offerId: string; applicationId: string }) => {
-      // HUD: ATOMIC_OFFER_STATUS_SENT_TRANSITION
-      const { error } = await supabase.from("offers").update({ status: "sent" }).eq("id", offerId);
-
-      if (error) throw error;
+      await updateOfferStatus(offerId, "sent");
 
       // HUD: EDGE_NOTIFY_DISPATCH_HANDSHAKE
       try {

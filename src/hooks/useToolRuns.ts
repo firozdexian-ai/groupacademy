@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { insertToolRun, listToolRunsForUser } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: AI Credit Consumption Ledger (V5.6.0)
@@ -43,15 +44,10 @@ export function useToolRuns(limit = 5) {
       const { data: userRes, error: authError } = await supabase.auth.getUser();
       if (authError || !userRes.user) return [];
 
-      // HUD: EXECUTING_LEDGER_RUNS_SELECT_SYNC
-      const { data, error } = await supabase
-        .from("tool_runs")
-        .select("id, tool_key, cost_credits, payload, job_id, created_at")
-        .eq("user_id", userRes.user.id)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
+      let data: any[] = [];
+      try {
+        data = await listToolRunsForUser(userRes.user.id, limit);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: tool_runs collection channel dropped.", error);
         throw error;
       }
@@ -94,17 +90,15 @@ export function useRecordToolRun() {
       const { data: userRes, error: authError } = await supabase.auth.getUser();
       if (authError || !userRes.user) throw new Error("Authentication session required.");
 
-      // HUD: COMMITTING_LEDGER_TRANSACTION_RECORD
-      const { error } = await supabase.from("tool_runs").insert({
-        user_id: userRes.user.id,
-        tool_key: opts.toolKey,
-        cost_credits: opts.costCredits,
-        payload: opts.payload ?? {},
-        job_id: opts.jobId ?? null,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Imprints trace tracking packets for immediate visibility
+      try {
+        await insertToolRun({
+          user_id: userRes.user.id,
+          tool_key: opts.toolKey,
+          cost_credits: opts.costCredits,
+          payload: opts.payload ?? {},
+          job_id: opts.jobId ?? null,
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: tool_runs ledger logging rejected.", {
           toolKey: opts.toolKey,
           costCredits: opts.costCredits,
@@ -128,16 +122,13 @@ export async function recordToolRun(opts: RecordToolRunInput): Promise<void> {
   try {
     const { data: userRes, error: authError } = await supabase.auth.getUser();
     if (authError || !userRes.user) return;
-    const { error } = await supabase.from("tool_runs").insert({
+    await insertToolRun({
       user_id: userRes.user.id,
       tool_key: opts.toolKey,
       cost_credits: opts.costCredits,
       payload: opts.payload ?? {},
       job_id: opts.jobId ?? null,
     });
-    if (error) {
-      console.error("[Digital Workforce] ANOMALY: tool_runs ledger logging rejected.", error);
-    }
   } catch (e) {
     console.error("[Digital Workforce] FAULT: recordToolRun threw.", e);
   }

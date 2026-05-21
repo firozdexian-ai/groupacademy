@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
+import { insertInterview, insertInterviewSlots } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Hiring Workflow & Interview Orchestrator (V5.6.0)
@@ -83,36 +84,29 @@ export function useCreateInterview() {
       const { data: u } = await supabase.auth.getUser();
 
       // Step 1: Create Master Interview Record
-      const { data: iv, error: ivError } = await supabase
-        .from("interviews")
-        .insert({
-          application_id: input.application_id,
-          company_id: input.company_id,
-          talent_id: input.talent_id,
-          mode: input.mode,
-          meeting_link: input.meeting_link ?? null,
-          location: input.location ?? null,
-          note: input.note ?? null,
-          duration_min: input.duration_min,
-          created_by: u.user?.id,
-        })
-        .select("id")
-        .single();
-
-      if (ivError || !iv) throw ivError;
+      const interviewId = await insertInterview({
+        application_id: input.application_id,
+        company_id: input.company_id,
+        talent_id: input.talent_id,
+        mode: input.mode,
+        meeting_link: input.meeting_link ?? null,
+        location: input.location ?? null,
+        note: input.note ?? null,
+        duration_min: input.duration_min,
+        created_by: u.user?.id,
+      });
 
       // Step 2: Ingress Proposed Slots
-      if (input.slots.length) {
-        const { error: slotError } = await supabase.from("interview_slots").insert(
-          input.slots.map((s) => ({
-            interview_id: iv.id,
-            starts_at: s,
-            duration_min: input.duration_min,
-            proposed_by_role: "recruiter",
-          })),
-        );
-        if (slotError) throw slotError;
-      }
+      await insertInterviewSlots(
+        input.slots.map((s) => ({
+          interview_id: interviewId,
+          starts_at: s,
+          duration_min: input.duration_min,
+          proposed_by_role: "recruiter",
+        })),
+      );
+
+      const iv = { id: interviewId };
 
       // Step 3: Trigger Hiring Event Notification
       try {
