@@ -136,31 +136,10 @@ export function OnboardingWizard({
     enabled: step >= 3,
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const q = debouncedInstQuery;
-      const base = () =>
-        supabase
-          .from("institutions")
-          .select("id, name, country")
-          .eq("type", "university")
-          .order("name")
-          .limit(30);
-
-      let query = base();
-      if (q) query = query.ilike("name", `%${q}%`);
-      if (country?.name) query = query.ilike("country", country.name);
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      // Fallback: if no results in selected country, broaden to global.
-      if ((data ?? []).length === 0 && country?.name) {
-        let global = base();
-        if (q) global = global.ilike("name", `%${q}%`);
-        const { data: globalData, error: gErr } = await global;
-        if (gErr) throw gErr;
-        return (globalData ?? []) as Institution[];
-      }
-      return (data ?? []) as Institution[];
+      return (await searchOnboardingInstitutions({
+        query: debouncedInstQuery,
+        countryName: country?.name ?? null,
+      })) as Institution[];
     },
   });
 
@@ -170,15 +149,7 @@ export function OnboardingWizard({
     enabled: step >= 4,
     staleTime: 15 * 60 * 1000,
     queryFn: async () => {
-      let q = supabase
-        .from("schools")
-        .select("id, name, slug, description, icon, academy_id")
-        .eq("is_active", true)
-        .order("display_order");
-      if (stage?.academy_id) q = q.eq("academy_id", stage.academy_id);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as School[];
+      return (await listActiveSchools(stage?.academy_id ?? null)) as School[];
     },
   });
 
