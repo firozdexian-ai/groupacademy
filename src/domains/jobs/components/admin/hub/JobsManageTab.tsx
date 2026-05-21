@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import {
+  listAdminJobs,
+  updateJobsBulk,
+  deleteJobsBulk,
+  updateJob,
+  deleteJob,
+  getJobEngagementCounts,
+} from "@/domains/jobs/repo/jobsRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,52 +98,24 @@ export function JobsManageTab() {
 
   const fetchEngagement = useCallback(async (jobIds: string[]) => {
     if (!jobIds.length) return;
-    const [clicksRes, savesRes, recsRes] = await Promise.all([
-      supabase.from("job_analytics").select("job_id").in("job_id", jobIds),
-      (supabase.from("saved_items") as any).select("item_id").eq("kind", "job").in("item_id", jobIds),
-      supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
-    ]);
-    const stats: Record<string, EngagementData> = {};
-    jobIds.forEach((id) => (stats[id] = { clicks: 0, saves: 0, recommendations: 0 }));
-    ((clicksRes.data ?? []) as any[]).forEach((c) => stats[c.job_id] && stats[c.job_id].clicks++);
-    ((savesRes.data ?? []) as any[]).forEach((s) => stats[s.item_id] && stats[s.item_id].saves++);
-    ((recsRes.data ?? []) as any[]).forEach((r) => stats[r.job_id] && stats[r.job_id].recommendations++);
+    const stats = await getJobEngagementCounts(jobIds);
     setEngagement(stats);
   }, []);
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from("jobs")
-        .select(
+      const { rows, count } = await listAdminJobs({
+        columns:
           "id,title,company_name,location,is_active,is_featured,created_at,application_type,source_platform,deadline",
-          { count: "exact" },
-        )
-        .order("created_at", { ascending: false });
-
-      if (searchQuery) {
-        const safe = sanitizeIlike(searchQuery);
-        query = query.or(`title.ilike.%${safe}%,company_name.ilike.%${safe}%`);
-      }
-
-      if (statusFilter === "active") query = query.eq("is_active", true);
-      else if (statusFilter === "inactive") query = query.eq("is_active", false);
-      else if (statusFilter === "featured") query = query.eq("is_featured", true);
-      else if (statusFilter === "stale") {
-        const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
-        query = query.lt("created_at", sixtyDaysAgo);
-      } else if (statusFilter === "expired") {
-        query = query.not("deadline", "is", null).lt("deadline", new Date().toISOString());
-      }
-
-      const from = (page - 1) * PAGE_SIZE;
-      const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
-
-      if (error) throw error;
-      setJobs((data || []) as Job[]);
+        search: searchQuery,
+        status: statusFilter as any,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      setJobs(rows as Job[]);
       setTotalCount(count || 0);
-      if (data?.length) fetchEngagement(data.map((j) => j.id));
+      if (rows.length) fetchEngagement(rows.map((j: any) => j.id));
     } catch (err: any) {
       toast.error("Registry Ingestion Fault: " + err.message);
     } finally {
