@@ -5,7 +5,12 @@
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listStakeholders,
+  getInstitutionRollups,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/institutions/repo/institutionsRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,40 +99,22 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
   const listQuery = useQuery({
     queryKey: [table],
     queryFn: async (): Promise<StakeholderRow[]> => {
-      const { data, error } = await supabase
-        .from(table as any)
-        .select("*")
-        .order("name", { ascending: true });
-      if (error) throw error;
-      return (data as unknown) as StakeholderRow[];
+      const data = await listStakeholders(table);
+      return data as unknown as StakeholderRow[];
     },
   });
 
   const { data: rollups } = useQuery({
     queryKey: ["institution_rollups_rpc"],
     enabled: table === "institutions",
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_institution_rollups");
-      if (error) throw error;
-      return data?.reduce((acc: any, curr: any) => {
-        acc[curr.institution_id] = curr;
-        return acc;
-      }, {});
-    },
+    queryFn: getInstitutionRollups,
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const finalDraft = { ...draft, type: draft.type || typeOptions[0] };
-      const query = editingRow
-        ? supabase
-            .from(table as any)
-            .update(finalDraft)
-            .eq("id", editingRow.id)
-        : supabase.from(table as any).insert([finalDraft]);
-
-      const { error } = await query;
-      if (error) throw error;
+      const payload = editingRow ? { ...finalDraft, id: editingRow.id } : finalDraft;
+      await upsertGraphRow(table, payload);
     },
     onSuccess: () => {
       toast.success(editingRow ? "Node Recalibrated" : "Node Deployed");
@@ -139,13 +126,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
   });
 
   const purgeMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from(table as any)
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteGraphRow(table, id),
     onSuccess: () => {
       toast.success("Node Purged");
       setPurgeId(null);

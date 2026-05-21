@@ -65,6 +65,15 @@ export async function listStakeholders(table: "institutions" | "partner_organiza
   return (data ?? []) as any[];
 }
 
+export async function getInstitutionRollups(): Promise<Record<string, any>> {
+  const { data, error } = await supabase.rpc("get_institution_rollups" as any);
+  if (error) throw error;
+  return (data ?? []).reduce((acc: any, curr: any) => {
+    acc[curr.institution_id] = curr;
+    return acc;
+  }, {} as Record<string, any>);
+}
+
 // ─── Institution Child Registry helpers ───────────────────────────────────
 export async function listInstitutionsMin(): Promise<Array<{ id: string; name: string }>> {
   const { data, error } = await supabase.from("institutions").select("id,name").order("name");

@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getUgcGraphMaster,
+  upsertUgcVideo,
+  deleteUgcVideo,
+  upsertUgcBlog,
+  deleteUgcBlog,
+  upsertUgcFeedPost,
+  deleteUgcFeedPost,
+  upsertUgcCompetition,
+  deleteUgcCompetition,
+  resolveUgcReport,
+} from "@/domains/ugc/repo/ugcRepo";
 
 export interface UgcVideo {
   id: string;
@@ -72,10 +84,6 @@ export interface UgcDashboard {
   active_comps: number;
 }
 
-const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) ||
-  `entry-${Date.now()}`;
-
 export function useUgcGraph() {
   const queryClient = useQueryClient();
 
@@ -91,47 +99,13 @@ export function useUgcGraph() {
   const ugcGraphQuery = useQuery({
     queryKey: ["ugc_graph_master"],
     queryFn: async () => {
-      const [videosRes, blogsRes, feedRes, compsRes, reportsRes] = await Promise.all([
-        supabase
-          .from("content")
-          .select("id, title, slug, content_type, description, thumbnail_url, youtube_url, is_published, created_at")
-          .eq("content_type", "free_video")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("blog_posts")
-          .select("id, title, slug, excerpt, content, category, featured_image, status, is_featured, author_id, author_name, created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("feed_posts")
-          .select("id, text_content, content_type, author_user_id, author_name, is_active, created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("competitions")
-          .select("id, title, slug, description, category, featured_image, status, start_date, end_date, submission_deadline, prizes, max_participants, created_at")
-          .order("created_at", { ascending: false })
-          .limit(200),
-        supabase
-          .from("content_reports")
-          .select("id, scope, scope_id, reason, status, notes, created_at")
-          .order("created_at", { ascending: false })
-          .limit(200),
-      ]);
-
-      if (videosRes.error) throw videosRes.error;
-      if (blogsRes.error) throw blogsRes.error;
-      if (feedRes.error) throw feedRes.error;
-      if (compsRes.error) throw compsRes.error;
-      if (reportsRes.error) throw reportsRes.error;
-
+      const master = await getUgcGraphMaster();
       return {
-        videos: (videosRes.data ?? []) as unknown as UgcVideo[],
-        blogs: (blogsRes.data ?? []) as unknown as UgcBlog[],
-        feedPosts: (feedRes.data ?? []) as unknown as UgcFeedPost[],
-        competitions: (compsRes.data ?? []) as unknown as UgcCompetition[],
-        reports: (reportsRes.data ?? []) as unknown as UgcReport[],
+        videos: master.videos as unknown as UgcVideo[],
+        blogs: master.blogs as unknown as UgcBlog[],
+        feedPosts: master.feedPosts as unknown as UgcFeedPost[],
+        competitions: master.competitions as unknown as UgcCompetition[],
+        reports: master.reports as unknown as UgcReport[],
       };
     },
   });
@@ -151,132 +125,53 @@ export function useUgcGraph() {
   };
   const fail = (verb: string) => (e: Error) => toast.error(`${verb} failed: ${e.message}`);
 
-  // VIDEOS (content table, filtered to free_video)
   const upsertVideo = useMutation({
-    mutationFn: async (payload: any) => {
-      const row: any = { ...payload, content_type: "free_video" };
-      if (!row.slug && row.title) row.slug = slugify(row.title);
-      if (row.id) {
-        const { id, ...patch } = row;
-        const { error } = await supabase.from("content").update(patch).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("content").insert(row);
-        if (error) throw error;
-      }
-    },
+    mutationFn: (payload: any) => upsertUgcVideo(payload),
     onSuccess: okSync("Video"),
     onError: fail("Video sync"),
   });
   const deleteVideo = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("content").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteUgcVideo(id),
     onSuccess: okPurge("Video"),
     onError: fail("Video purge"),
   });
 
-  // BLOGS
   const upsertBlog = useMutation({
-    mutationFn: async (payload: any) => {
-      const row: any = { ...payload };
-      if (!row.slug && row.title) row.slug = slugify(row.title);
-      if (row.id) {
-        const { id, ...patch } = row;
-        const { error } = await supabase.from("blog_posts").update(patch).eq("id", id);
-        if (error) throw error;
-      } else {
-        if (!row.author_id) {
-          const { data: { user } } = await supabase.auth.getUser();
-          row.author_id = user?.id;
-        }
-        const { error } = await supabase.from("blog_posts").insert(row);
-        if (error) throw error;
-      }
-    },
+    mutationFn: (payload: any) => upsertUgcBlog(payload),
     onSuccess: okSync("Article"),
     onError: fail("Article sync"),
   });
   const deleteBlog = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteUgcBlog(id),
     onSuccess: okPurge("Article"),
     onError: fail("Article purge"),
   });
 
-  // FEED POSTS
   const upsertFeedPost = useMutation({
-    mutationFn: async (payload: any) => {
-      const row: any = { ...payload };
-      if (row.id) {
-        const { id, ...patch } = row;
-        const { error } = await supabase.from("feed_posts").update(patch).eq("id", id);
-        if (error) throw error;
-      } else {
-        if (!row.author_user_id) {
-          const { data: { user } } = await supabase.auth.getUser();
-          row.author_user_id = user?.id;
-          row.author_name = row.author_name || user?.email || "Admin";
-        }
-        if (!row.content_type) row.content_type = "text";
-        const { error } = await supabase.from("feed_posts").insert(row);
-        if (error) throw error;
-      }
-    },
+    mutationFn: (payload: any) => upsertUgcFeedPost(payload),
     onSuccess: okSync("Post"),
     onError: fail("Post sync"),
   });
   const deleteFeedPost = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("feed_posts").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteUgcFeedPost(id),
     onSuccess: okPurge("Post"),
     onError: fail("Post purge"),
   });
 
-  // COMPETITIONS
   const upsertCompetition = useMutation({
-    mutationFn: async (payload: any) => {
-      const row: any = { ...payload };
-      if (!row.slug && row.title) row.slug = slugify(row.title);
-      if (typeof row.prizes === "string" && row.prizes.trim()) {
-        try { row.prizes = JSON.parse(row.prizes); } catch { /* keep string, DB will reject */ }
-      }
-      if (row.id) {
-        const { id, ...patch } = row;
-        const { error } = await supabase.from("competitions").update(patch).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("competitions").insert(row);
-        if (error) throw error;
-      }
-    },
+    mutationFn: (payload: any) => upsertUgcCompetition(payload),
     onSuccess: okSync("Tournament"),
     onError: fail("Tournament sync"),
   });
   const deleteCompetition = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("competitions").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteUgcCompetition(id),
     onSuccess: okPurge("Tournament"),
     onError: fail("Tournament purge"),
   });
 
-  // REPORTS
   const resolveReport = useMutation({
-    mutationFn: async ({ id, status, notes }: { id: string; status: "reviewed" | "dismissed" | "removed"; notes?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("content_reports")
-        .update({ status, notes: notes ?? null, resolved_by: user?.id, resolved_at: new Date().toISOString() } as any)
-        .eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (input: { id: string; status: "reviewed" | "dismissed" | "removed"; notes?: string }) =>
+      resolveUgcReport(input),
     onSuccess: okSync("Report"),
     onError: fail("Report update"),
   });

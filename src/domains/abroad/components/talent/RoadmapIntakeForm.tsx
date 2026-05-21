@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  insertRoadmapContactLead,
+  insertStudyAbroadRoadmap,
+} from "@/domains/abroad/repo/abroadRepo";
 import { generateStudyRoadmap } from "@/domains/abroad/api/abroadApi";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
@@ -90,14 +93,12 @@ export function RoadmapIntakeForm() {
       if (!success) throw new Error("TRANSACTION_FAULT: Ledger deduction denied.");
 
       // HUD: STEP_2_LEAD_REGISTRY_MIRRORING_INSERTION
-      const { error: leadError } = await supabase.from("contacts").insert([
-        {
-          full_name: talent.fullName || "Roadmap_Lead",
-          email: talent.email || "",
-          subject: "SYNC_ADMISSIONS_ROADMAP",
-          message: `Trajectory Request: ${formData.targetCountries.join("|")} | Level: ${formData.degreeLevel}`,
-        },
-      ]);
+      const { error: leadError } = await insertRoadmapContactLead({
+        full_name: talent.fullName || "Roadmap_Lead",
+        email: talent.email || "",
+        subject: "SYNC_ADMISSIONS_ROADMAP",
+        message: `Trajectory Request: ${formData.targetCountries.join("|")} | Level: ${formData.degreeLevel}`,
+      });
       if (leadError) {
         console.warn(
           "[Digital Workforce] WARNING: Non-blocking lead logging exception handled safely.",
@@ -106,25 +107,17 @@ export function RoadmapIntakeForm() {
       }
 
       // HUD: STEP_3_CORE_ROADMAP_RECORD_PERSISTENCE
-      const { data: roadmap, error: insertError } = await supabase
-        .from("study_abroad_roadmaps")
-        .insert([
-          {
-            talent_id: talent.id,
-            email: talent.email,
-            full_name: talent.fullName,
-            target_countries: formData.targetCountries,
-            degree_level: formData.degreeLevel,
-            target_intake: formData.targetIntake,
-            budget_level: formData.budgetLevel,
-            ielts_score: formData.hasTakenIelts ? parseFloat(formData.ieltsScore) : null,
-            status: "pending",
-          },
-        ])
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+      const roadmap = await insertStudyAbroadRoadmap({
+        talent_id: talent.id,
+        email: talent.email,
+        full_name: talent.fullName,
+        target_countries: formData.targetCountries,
+        degree_level: formData.degreeLevel,
+        target_intake: formData.targetIntake,
+        budget_level: formData.budgetLevel,
+        ielts_score: formData.hasTakenIelts ? parseFloat(formData.ieltsScore) : null,
+        status: "pending",
+      });
 
       // HUD: STEP_4_SERVERLESS_EDGE_ORCHESTRATOR_SWARM_INVOCATION
       await generateStudyRoadmap({

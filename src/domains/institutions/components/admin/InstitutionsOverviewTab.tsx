@@ -1,32 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { getInstitutionsOverviewStats } from "@/domains/institutions/repo/institutionsRepo";
 import { Building2, Users, GraduationCap, Trophy, Network, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function InstitutionsOverviewTab() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["institutions-overview-stats"],
-    queryFn: async () => {
-      // Execute parallel count queries to map the Global Graph
-      const [institutions, talents, programs, events] = await Promise.all([
-        supabase.from("institutions").select("*", { count: "exact", head: true }),
-        supabase.from("talents").select("*", { count: "exact", head: true }).not("institution_id", "is", null),
-        supabase
-          .from("study_abroad_programs")
-          .select("*", { count: "exact", head: true })
-          .not("institution_id", "is", null),
-        supabase.from("competitions").select("*", { count: "exact", head: true }).not("institution_id", "is", null),
-      ]);
-
-      return {
-        totalInstitutions: institutions.count || 0,
-        connectedTalents: talents.count || 0,
-        linkedPrograms: programs.count || 0,
-        hostedEvents: events.count || 0,
-      };
-    },
+    queryFn: getInstitutionsOverviewStats,
   });
 
   return (

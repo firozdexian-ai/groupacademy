@@ -5,7 +5,13 @@
  */
 import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listInstitutionsMin,
+  listInstitutionClubsByInstitution,
+  listInstitutionChildRows,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/institutions/repo/institutionsRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,61 +89,27 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
 
   const institutionsQ = useQuery({
     queryKey: ["institutions-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("institutions").select("id,name").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listInstitutionsMin,
   });
 
   const clubsQ = useQuery({
     queryKey: ["clubs-lookup", draft.institution_id],
     enabled: table === "institution_representatives" && !!draft.institution_id,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("institution_clubs")
-        .select("id, name")
-        .eq("institution_id", draft.institution_id);
-      return data ?? [];
-    },
+    queryFn: () => listInstitutionClubsByInstitution(draft.institution_id),
   });
 
   const listQ = useQuery({
     queryKey: [table, instFilter, eventTab],
-    queryFn: async () => {
-      let query = supabase.from(table as any).select("*");
-      if (instFilter !== "all") query = query.eq("institution_id", instFilter);
-
-      if (table === "institution_events") {
-        const now = new Date().toISOString();
-        query =
-          eventTab === "upcoming"
-            ? query.gte("starts_at", now).order("starts_at", { ascending: true })
-            : query.lt("starts_at", now).order("starts_at", { ascending: false });
-      } else {
-        query = query.order("created_at", { ascending: false });
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as any[];
-    },
+    queryFn: () => listInstitutionChildRows({ table, instFilter, eventTab }),
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...draft };
+      const payload: any = { ...draft };
       // B5 Fix: Explicit nullification of club_id via sentinel
       if (payload.club_id === NONE_SENTINEL) payload.club_id = null;
-
-      const query = editingNode
-        ? supabase
-            .from(table as any)
-            .update(payload)
-            .eq("id", editingNode.id)
-        : supabase.from(table as any).insert([payload]);
-      const { error } = await query;
-      if (error) throw error;
+      if (editingNode) payload.id = editingNode.id;
+      await upsertGraphRow(table, payload);
     },
     onSuccess: () => {
       toast.success("Registry Protocol Updated");
@@ -151,10 +123,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
 
   // Restored: actual delete mutation (was reduced to a no-op invalidate)
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from(table as any).delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteGraphRow(table, id),
     onSuccess: () => {
       toast.success("Node Terminated");
       setPurgeId(null);
