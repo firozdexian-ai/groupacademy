@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  markSalaryAnalysisAccessCodeUsed,
+  insertSalaryAnalysis,
+} from "@/domains/marketing/repo/marketingRepo";
 import { useToast } from "@/hooks/use-toast";
 import {
   Upload,
@@ -161,7 +165,7 @@ const SalaryAnalysisSetupContent = () => {
         return;
       }
 
-      await supabase.from("salary_analysis_access_codes").update({ is_used: true }).eq("id", data.id);
+      await markSalaryAnalysisAccessCodeUsed(data.id);
       setCanProceed(true);
       setShowAccessCodeInput(false);
       toast({ title: "Access Authorized." });
@@ -211,7 +215,7 @@ const SalaryAnalysisSetupContent = () => {
       const isValidUUID = (s: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
       const tempId = crypto.randomUUID();
 
-      const { error } = await supabase.from("salary_analyses").insert({
+      const { error } = await insertSalaryAnalysis({
         id: tempId,
         user_id: user?.id || null,
         talent_id: talent?.id || null,

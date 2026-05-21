@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listActiveProfessionCategoriesBasic,
+  countPortfolioRequests,
+  insertPortfolioRequest,
+} from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,12 +82,8 @@ function PortfolioRequestContent() {
   // CTO Logic: Load core metadata and restore draft
   useEffect(() => {
     const init = async () => {
-      const { data: cats } = await supabase
-        .from("profession_categories")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("display_order");
-      const { count } = await supabase.from("portfolio_requests").select("*", { count: "exact", head: true });
+      const cats = await listActiveProfessionCategoriesBasic();
+      const count = await countPortfolioRequests();
       if (cats) setProfessionCategories(cats);
       setPortfolioCount(count || 0);
 
@@ -127,7 +128,7 @@ function PortfolioRequestContent() {
     setIsSubmitting(true);
     try {
       const tempId = crypto.randomUUID();
-      const { error } = await supabase.from("portfolio_requests").insert({
+      const { error } = await insertPortfolioRequest({
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,

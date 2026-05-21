@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { markAssessmentAccessCodeUsed } from "@/domains/marketing/repo/marketingRepo";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProfessionSelector } from "@/components/assessment/ProfessionSelector";
@@ -148,7 +149,7 @@ function CareerAssessmentContent() {
 
       if (error || !codeData) throw new Error("Invalid sequence.");
 
-      await supabase.from("assessment_access_codes").update({ is_used: true }).eq("id", codeData.id);
+      await markAssessmentAccessCodeUsed(codeData.id);
       toast.success("Retake Authorized.");
       setStep("profession");
     } catch (err: any) {

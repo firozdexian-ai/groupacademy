@@ -1308,3 +1308,13 @@ export async function getActiveAIInstructorByProfessionLine(professionLineId: st
   return data as any | null;
 }
 
+
+export async function getCertificateById(id: string) {
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as any;
+}

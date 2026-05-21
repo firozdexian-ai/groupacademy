@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { insertMockInterview } from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -273,7 +274,7 @@ export default function AppMockInterviewSetup() {
       const generatedPayloadNode = functionResponseData.data;
       const targetInterviewIdUUID = crypto.randomUUID();
 
-      const { error: databaseInsertError } = await supabase.from("mock_interviews").insert({
+      const { error: databaseInsertError } = await insertMockInterview({
         id: targetInterviewIdUUID,
         email: candidateEmailState.toLowerCase().trim(),
         full_name: talentProfileNode?.fullName || "",

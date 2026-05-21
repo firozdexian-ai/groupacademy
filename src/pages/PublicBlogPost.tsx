@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { incrementBlogPostViews } from "@/domains/marketing/repo/marketingRepo";
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { useEffect } from "react";
@@ -53,8 +54,7 @@ export default function PublicBlogPost() {
 
   const viewMutation = useMutation({
     mutationFn: async (postId: string) => {
-      const { data } = await supabase.from("blog_posts").select("views").eq("id", postId).single();
-      await supabase.from("blog_posts").update({ views: (data?.views || 0) + 1 }).eq("id", postId);
+      await incrementBlogPostViews(postId);
     },
   });
 

@@ -1,6 +1,11 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  countPortfolioRequests,
+  listActiveProfessionCategoriesWithSlug,
+  insertPortfolioRequest,
+} from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -162,21 +167,21 @@ export default function AppPortfolioRequest() {
 
     const executeParallelRegistryCompilation = async () => {
       try {
-        const [countResponseData, categoriesResponseData] = await Promise.all([
-          supabase.from("portfolio_requests").select("*", { count: "exact", head: true }),
-          supabase.from("profession_categories").select("id, name, slug").eq("is_active", true).order("display_order")
+        const [countResult, categoriesResult] = await Promise.allSettled([
+          countPortfolioRequests(),
+          listActiveProfessionCategoriesWithSlug(),
         ]);
 
         if (!isThreadActive) return;
 
-        if (!countResponseData.error) {
-          setGlobalPortfolioCount(countResponseData.count || 0);
+        if (countResult.status === "fulfilled") {
+          setGlobalPortfolioCount(countResult.value || 0);
         } else {
           setGlobalPortfolioCount(FREE_PORTFOLIO_LIMIT + 1);
         }
 
-        if (!categoriesResponseData.error && categoriesResponseData.data) {
-          setProfessionCategoriesArray(categoriesResponseData.data as unknown as ProfessionCategory[]);
+        if (categoriesResult.status === "fulfilled" && categoriesResult.value) {
+          setProfessionCategoriesArray(categoriesResult.value as unknown as ProfessionCategory[]);
         }
       } catch (fatalHandshakeException) {
         console.error("Dossier Setup Telemetry Disrupted:", fatalHandshakeException);
@@ -276,7 +281,7 @@ export default function AppPortfolioRequest() {
       }
 
       const assignmentUuidKeyStr = crypto.randomUUID();
-      const { error: insertPipelineHandshakeError } = await supabase.from("portfolio_requests").insert({
+      const { error: insertPipelineHandshakeError } = await insertPortfolioRequest({
         full_name: formDataState.fullName.trim(),
         email: formDataState.email.toLowerCase().trim(),
         phone: formDataState.phone.trim(),

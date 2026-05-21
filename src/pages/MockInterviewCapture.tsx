@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getMockInterviewById } from "@/domains/marketing/repo/marketingRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { Navbar } from "@/components/Navbar";
@@ -55,8 +56,7 @@ export default function MockInterviewCapture() {
 
   const loadInterview = async () => {
     try {
-      const { data, error } = await supabase.from("mock_interviews").select("*").eq("id", id).single();
-      if (error) throw error;
+      const data = await getMockInterviewById(id!);
       if (data.status === "completed") {
         navigate(`/mock-interview/results/${id}`, { replace: true });
         return;

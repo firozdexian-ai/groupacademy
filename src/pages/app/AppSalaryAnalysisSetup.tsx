@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { insertSalaryAnalysis } from "@/domains/marketing/repo/marketingRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -223,7 +224,7 @@ export default function AppSalaryAnalysisSetup() {
       if (!isCreditHandshakeSettled) throw new Error("Credit transaction block handshake failure.");
 
       const targetAnalysisIdUUID = crypto.randomUUID();
-      const { error: insertPipelineHandshakeError } = await supabase.from("salary_analyses").insert({
+      const { error: insertPipelineHandshakeError } = await insertSalaryAnalysis({
         id: targetAnalysisIdUUID,
         user_id: userAuthRecord?.id || null,
         talent_id: talentProfileRecord?.id || null,

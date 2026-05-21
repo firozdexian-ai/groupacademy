@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  markMockInterviewAccessCodeUsed,
+  insertMockInterview,
+} from "@/domains/marketing/repo/marketingRepo";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -131,7 +135,7 @@ function MockInterviewSetupContent() {
         .maybeSingle();
 
       if (error || !data) throw new Error("Invalid or expired code.");
-      await supabase.from("mock_interview_access_codes").update({ is_used: true }).eq("id", data.id);
+      await markMockInterviewAccessCodeUsed(data.id);
       setStep("job-description");
     } catch (e: any) {
       toast.error(e.message);
@@ -165,7 +169,7 @@ function MockInterviewSetupContent() {
       });
       const interviewId = crypto.randomUUID();
 
-      const { error: insertError } = await supabase.from("mock_interviews").insert({
+      const { error: insertError } = await insertMockInterview({
         id: interviewId,
         email: email.toLowerCase().trim(),
         full_name: talent?.fullName || "",
