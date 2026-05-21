@@ -124,10 +124,7 @@ export default function MockInterviewQuestions() {
   const saveProgress = useCallback(
     async (newAnswers: Answer[]) => {
       if (!id) return;
-      await supabase
-        .from("mock_interviews")
-        .update({ answers: newAnswers as any })
-        .eq("id", id);
+      await updateMockInterview(id, { answers: newAnswers as any });
     },
     [id],
   );
