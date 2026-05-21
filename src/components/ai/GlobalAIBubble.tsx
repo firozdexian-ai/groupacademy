@@ -96,25 +96,12 @@ export function GlobalAIBubble() {
     enabled: !!talent?.id && !onInstructorRoute,
     staleTime: 10 * 60 * 1000, // 10-minute profile config residency ceiling
     queryFn: async (): Promise<CoachMetadata> => {
-      const { data: profileRow, error: profileError } = await supabase
-        .from("talents")
-        .select("career_coach_instructor_id")
-        .eq("id", talent!.id)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-      const coachId = (profileRow as any)?.career_coach_instructor_id;
+      const coachId = await getTalentCareerCoachInstructorId(talent!.id);
 
       if (coachId) {
-        const { data: instructorRow, error: instructorError } = await supabase
-          .from("ai_instructors")
-          .select("name")
-          .eq("id", coachId)
-          .maybeSingle();
-
-        if (instructorError) throw instructorError;
-        if (instructorRow?.name) {
-          return { agentKey: `instructor:${coachId}`, agentName: String(instructorRow.name) };
+        const instructorName = await getAiInstructorName(coachId);
+        if (instructorName) {
+          return { agentKey: `instructor:${coachId}`, agentName: instructorName };
         }
       }
 
