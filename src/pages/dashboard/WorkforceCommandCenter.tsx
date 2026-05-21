@@ -1,6 +1,19 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  countAiAgentsByTemplateFlag,
+  listAiAgentsForFleet,
+  listAiAgentsCompact,
+  getAiAgentById,
+  cloneAiAgentInstance,
+} from "@/domains/agents/repo/agentsRepo";
+import { listAllCompaniesWithSlug } from "@/domains/companies/repo/companiesRepo";
+import {
+  countActiveWorkforceChannelConnections,
+  countActiveWorkforceRoutingRules,
+  deleteWorkforceRoutingRule,
+} from "@/domains/workforce/repo/workforceRepo";
 import { toast } from "sonner";
 import { useAdminScope } from "@/hooks/useAdminScope";
 import { telegramDiagnostic } from "@/domains/messaging/api/messagingApi";
@@ -127,24 +140,13 @@ function StatusStrip() {
   const { data } = useQuery({
     queryKey: ["wcc-kpis"],
     queryFn: async () => {
-      const [tpl, inst, ch, rt] = await Promise.all([
-        supabase.from("ai_agents").select("id", { count: "exact", head: true }).eq("is_template", true),
-        supabase.from("ai_agents").select("id", { count: "exact", head: true }).eq("is_template", false),
-        (supabase as any)
-          .from("workforce_channel_connections")
-          .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
-        (supabase as any)
-          .from("workforce_routing_rules")
-          .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
+      const [templates, instances, channels, routes] = await Promise.all([
+        countAiAgentsByTemplateFlag(true),
+        countAiAgentsByTemplateFlag(false),
+        countActiveWorkforceChannelConnections(),
+        countActiveWorkforceRoutingRules(),
       ]);
-      return {
-        templates: tpl.count ?? 0,
-        instances: inst.count ?? 0,
-        channels: ch.count ?? 0,
-        routes: rt.count ?? 0,
-      };
+      return { templates, instances, channels, routes };
     },
   });
 
