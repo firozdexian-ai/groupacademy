@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listCompaniesForAgentPicker,
+  listCompanyAgentsFull,
+  listCompanyAgentLeads,
+  insertAiAgent,
+  insertCompanyAgent,
+  updateAiAgentActive,
+  updateCompanyAgentActive,
+  deleteAiAgent,
+  deleteCompanyAgentById,
+} from "@/domains/companies/repo/companiesRepo";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
