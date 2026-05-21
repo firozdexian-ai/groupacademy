@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { getTalentInboxVolume, getTalentInboxUnlocked } from "@/domains/talent/repo/talentRepo";
+import { getTalentInboxVolume, getTalentInboxUnlocked, unlockTalentInbox } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
