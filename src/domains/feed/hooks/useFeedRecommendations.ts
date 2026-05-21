@@ -121,11 +121,8 @@ async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; n
   );
   const authorMeta = new Map<string, { country?: string; profession?: string }>();
   if (authorIds.length > 0) {
-    const { data: authors } = await supabase
-      .from("talents")
-      .select("user_id, country, custom_profession")
-      .in("user_id", authorIds);
-    authors?.forEach((a: any) =>
+    const authors = await getTalentAuthorMeta(authorIds as string[]);
+    authors.forEach((a) =>
       authorMeta.set(a.user_id, { country: a.country, profession: a.custom_profession }),
     );
   }
