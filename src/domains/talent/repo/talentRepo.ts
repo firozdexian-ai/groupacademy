@@ -819,3 +819,13 @@ export async function unlockTalentInbox(): Promise<void> {
   const { error } = await supabase.rpc("unlock_talent_inbox");
   if (error) throw error;
 }
+
+export async function getTalentBoostUntil(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("talent_inbox_settings")
+    .select("boost_until")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.boost_until as string | null) ?? null;
+}
