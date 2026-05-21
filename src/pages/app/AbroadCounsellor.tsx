@@ -2,6 +2,8 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveCounsellorByUser, listAbroadApplications } from "@/domains/abroad/repo/abroadRepo";
+import { listUserRoles } from "@/domains/profile/repo/profileRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -88,23 +90,18 @@ export default function AbroadCounsellor() {
         }
 
         // Trigger parallel database handshakes simultaneously to minimize connection latency waterfall spikes
-        const [counsellorRegistryLookup, rolesRegistryLookup] = await Promise.all([
-          supabase
-            .from("abroad_counsellors")
-            .select("user_id")
-            .eq("user_id", authedUserNode.id)
-            .eq("is_active", true)
-            .maybeSingle(),
-          supabase.from("user_roles").select("role").eq("user_id", authedUserNode.id),
+        const [counsellorRow, rolesList] = await Promise.all([
+          getActiveCounsellorByUser(authedUserNode.id),
+          listUserRoles(authedUserNode.id).catch(() => []),
         ]);
 
         if (!isRequestThreadValid) return;
 
-        const isOperatorPlatformAdmin = (rolesRegistryLookup.data ?? []).some(
+        const isOperatorPlatformAdmin = (rolesList ?? []).some(
           (roleRecord) => roleRecord.role === "admin",
         );
 
-        const isOperatorCounsellorNode = Boolean(counsellorRegistryLookup.data);
+        const isOperatorCounsellorNode = Boolean(counsellorRow);
 
         setAuthorizationState(isOperatorCounsellorNode || isOperatorPlatformAdmin);
       } catch (fatalSecurityPipelineCrash) {
@@ -129,13 +126,8 @@ export default function AbroadCounsellor() {
     queryKey: ["counsellor-applications-matrix"],
     enabled: authorizationState === true,
     queryFn: async (): Promise<AbroadApplication[]> => {
-      const { data: databaseOutputPayload, error: applicationQueryError } = await supabase
-        .from("abroad_applications")
-        .select("id, target_country, intake_term, stage, updated_at, created_at")
-        .order("updated_at", { ascending: false });
-
-      if (applicationQueryError) throw applicationQueryError;
-      return (databaseOutputPayload as unknown as AbroadApplication[]) ?? [];
+      const rows = await listAbroadApplications();
+      return (rows as unknown as AbroadApplication[]) ?? [];
     },
   });
 

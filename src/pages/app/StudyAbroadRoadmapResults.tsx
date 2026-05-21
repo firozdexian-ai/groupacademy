@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudyAbroadRoadmapById } from "@/domains/abroad/repo/abroadRepo";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
@@ -78,9 +78,7 @@ export default function StudyAbroadRoadmapResults() {
 
     const fetchRoadmap = async () => {
       try {
-        const { data, error } = await supabase.from("study_abroad_roadmaps").select("*").eq("id", id).maybeSingle();
-
-        if (error) throw error;
+        const data = await getStudyAbroadRoadmapById(id);
         if (!data) return;
 
         setRoadmap({

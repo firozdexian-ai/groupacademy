@@ -257,3 +257,67 @@ export async function updateAgentChatSessionMessages(sessionId: string, messages
     .update({ messages: messages as any, updated_at: new Date().toISOString() })
     .eq("id", sessionId);
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+export async function getAiAgentByKey(agentKey: string) {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("*")
+    .eq("agent_key", agentKey)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getAiAgentStatsByKey(agentKey: string) {
+  const { data, error } = await supabase
+    .from("ai_agents_with_stats")
+    .select("total_users,total_messages,avg_rating,review_count")
+    .eq("agent_key", agentKey)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listAgentChatSessionsForTalentAgent(opts: {
+  talentId: string;
+  agentKey: string;
+}) {
+  const { data, error } = await supabase
+    .from("agent_chat_sessions")
+    .select("id, messages")
+    .eq("talent_id", opts.talentId)
+    .eq("agent_key", opts.agentKey);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listAgentPayoutRequestsForTalent(talentId: string) {
+  const { data, error } = await supabase
+    .from("agent_payout_requests")
+    .select("*")
+    .eq("talent_id", talentId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listOwnedAiAgentsForTalent(talentId: string) {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("id,name,agent_key,description,marketplace_status,visibility,is_active,total_conversations")
+    .eq("owner_kind", "talent")
+    .eq("owner_id", talentId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listTalentAgentMarketplaceEarnings(talentId: string, limit = 100) {
+  const { data, error } = await supabase
+    .from("agent_marketplace_earnings")
+    .select("id,agent_id,gross_credits,builder_share,platform_share,created_at")
+    .eq("builder_kind", "talent")
+    .eq("builder_id", talentId)
+    .limit(limit);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}

@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getAiAgentByKey,
+  getAiAgentStatsByKey,
+  listAgentChatSessionsForTalentAgent,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { AgentReviewSection } from "@/components/agents/AgentReviewSection";
 import { cn } from "@/lib/utils";
@@ -69,43 +74,37 @@ export default function AgentProfile() {
     const executeParallelProfileLookup = async () => {
       try {
         // Core Step A: Query primary configuration logs simultaneously
-        const [agentQueryPayload, statsQueryPayload] = await Promise.all([
-          supabase.from("ai_agents").select("*").eq("agent_key", unverifiedAgentKeyStr).maybeSingle(),
-          supabase
-            .from("ai_agents_with_stats")
-            .select("total_users,total_messages,avg_rating,review_count")
-            .eq("agent_key", unverifiedAgentKeyStr)
-            .maybeSingle(),
+        const [agentRow, statsRow] = await Promise.all([
+          getAiAgentByKey(unverifiedAgentKeyStr).catch(() => null),
+          getAiAgentStatsByKey(unverifiedAgentKeyStr).catch(() => null),
         ]);
 
         if (!isThreadActiveAndValid) return;
 
-        if (agentQueryPayload.error || !agentQueryPayload.data) {
+        if (!agentRow) {
           setAgentProfileData(null);
           setIsDataResolutionProcessing(false);
           return;
         }
 
-        setAgentProfileData(agentQueryPayload.data as unknown as AgentProfileRecord);
+        setAgentProfileData(agentRow as unknown as AgentProfileRecord);
 
-        if (statsQueryPayload.data) {
-          const statsNodeItem = statsQueryPayload.data;
+        if (statsRow) {
           setTelemetryStatsState({
-            users: Number(statsNodeItem.total_users) || 0,
-            messages: Number(statsNodeItem.total_messages) || 0,
-            rating: Number(statsNodeItem.avg_rating) || 0,
-            reviews: Number(statsNodeItem.review_count) || 0,
+            users: Number(statsRow.total_users) || 0,
+            messages: Number(statsRow.total_messages) || 0,
+            rating: Number(statsRow.avg_rating) || 0,
+            reviews: Number(statsRow.review_count) || 0,
           });
         }
 
         // Core Step B: If student parameter profile matches, verify engagement history parameters
         if (authenticatedTalentNode?.id) {
-          const [sessionHistoryPayload, networkConnectionPayload] = await Promise.all([
-            supabase
-              .from("agent_chat_sessions")
-              .select("id, messages")
-              .eq("talent_id", authenticatedTalentNode.id)
-              .eq("agent_key", unverifiedAgentKeyStr),
+          const [sessionRows, networkConnectionPayload] = await Promise.all([
+            listAgentChatSessionsForTalentAgent({
+              talentId: authenticatedTalentNode.id,
+              agentKey: unverifiedAgentKeyStr,
+            }).catch(() => []),
             supabase.rpc("is_agent_connected", {
               _agent_key: unverifiedAgentKeyStr,
               _talent_id: authenticatedTalentNode.id,
@@ -114,8 +113,8 @@ export default function AgentProfile() {
 
           if (!isThreadActiveAndValid) return;
 
-          const calculatedMessagesVolume = (sessionHistoryPayload.data || []).reduce(
-            (accumulatedTotal, sessionRowItem: any) =>
+          const calculatedMessagesVolume = (sessionRows || []).reduce(
+            (accumulatedTotal: number, sessionRowItem: any) =>
               accumulatedTotal + (Array.isArray(sessionRowItem.messages) ? sessionRowItem.messages.length : 0),
             0,
           );

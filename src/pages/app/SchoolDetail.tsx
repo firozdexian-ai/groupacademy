@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bot, Briefcase, GraduationCap, UserPlus, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getSchoolBySlugWithAcademy,
+  listProfessionCategoriesForSchool,
+  insertInstructorConnectionRequest,
+} from "@/domains/abroad/repo/abroadRepo";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
@@ -61,16 +65,13 @@ export default function SchoolDetail() {
   } = useQuery({
     queryKey: ["school", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("schools")
-        .select("*, academies(name, slug)")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (error) {
+      try {
+        const data = await getSchoolBySlugWithAcademy(slug!);
+        return data as School | null;
+      } catch (error) {
         await reportAnomaly("SchoolFetchError", { slug, error });
         throw error;
       }
-      return data as School | null;
     },
   });
 
@@ -78,17 +79,13 @@ export default function SchoolDetail() {
     queryKey: ["professions", school?.id],
     enabled: !!school?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profession_categories")
-        .select("*, ai_instructors(id, name)")
-        .eq("school_id", school!.id)
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
-      if (error) {
+      try {
+        const data = await listProfessionCategoriesForSchool(school!.id);
+        return (data as unknown as ProfessionLine[]) || [];
+      } catch (error) {
         await reportAnomaly("ProfessionFetchError", { schoolId: school?.id, error });
         throw error;
       }
-      return (data as unknown as ProfessionLine[]) || [];
     },
   });
 
@@ -102,13 +99,13 @@ export default function SchoolDetail() {
     setSubmitting(true);
     try {
       const instructor = getInstructor(openProfession);
-      const { error } = await supabase.from("instructor_connection_requests").insert({
+      const { error } = await insertInstructorConnectionRequest({
         talent_id: talent.id,
         school_id: school.id,
         profession_id: openProfession.id,
         instructor_id: instructor?.id || null,
         message: message.trim() || null,
-      } as any);
+      });
 
       if (error) throw error;
       toast.success("Request synchronized with Digital Workforce.");

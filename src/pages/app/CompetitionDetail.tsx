@@ -1,7 +1,11 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getCompetitionBySlug,
+  getMyCompetitionSubmission,
+  upsertCompetitionSubmission,
+} from "@/domains/ugc/repo/ugcRepo";
 import { useTalent } from "@/contexts/TalentContext";
 import {
   Trophy,
@@ -117,14 +121,8 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
   const { data: competitionChallengeQueryPayload, isLoading: isChallengeCacheResolving } = useQuery({
     queryKey: ["app-competition-specification-detail", activeChallengeSlug],
     queryFn: async (): Promise<CompetitionRecord> => {
-      const { data: dbChallengePayload, error: queryHandshakeError } = await supabase
-        .from("competitions")
-        .select("*")
-        .eq("slug", activeChallengeSlug!)
-        .single();
-
-      if (queryHandshakeError) throw queryHandshakeError;
-      return dbChallengePayload as unknown as CompetitionRecord;
+      const row = await getCompetitionBySlug(activeChallengeSlug!);
+      return row as unknown as CompetitionRecord;
     },
     enabled: !!activeChallengeSlug,
     staleTime: 4 * 60 * 1000,
@@ -136,15 +134,11 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
     queryKey: ["my-competition-submission-node", activeChallengeItem?.id, talentProfileRecord?.id],
     queryFn: async (): Promise<CompetitionSubmission | null> => {
       if (!activeChallengeItem?.id || !talentProfileRecord?.id) return null;
-      const { data: dbSubmissionPayload, error: queryHandshakeError } = await supabase
-        .from("competition_submissions")
-        .select("*")
-        .eq("competition_id", activeChallengeItem.id)
-        .eq("talent_id", talentProfileRecord.id)
-        .maybeSingle();
-
-      if (queryHandshakeError) throw queryHandshakeError;
-      return dbSubmissionPayload as unknown as CompetitionSubmission | null;
+      const row = await getMyCompetitionSubmission({
+        competitionId: activeChallengeItem.id,
+        talentId: talentProfileRecord.id,
+      });
+      return row as unknown as CompetitionSubmission | null;
     },
     enabled: !!activeChallengeItem?.id && !!talentProfileRecord?.id,
   });
@@ -157,7 +151,7 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
       if (!activeChallengeItem || !talentProfileRecord) {
         throw new Error("Authorization signature expired. Authenticate container profile.");
       }
-      const { error: mutationRpcHandshakeError } = await supabase.from("competition_submissions").upsert({
+      const { error: mutationRpcHandshakeError } = await upsertCompetitionSubmission({
         competition_id: activeChallengeItem.id,
         talent_id: talentProfileRecord.id,
         submission_url: textSubmissionUrlInput.trim(),

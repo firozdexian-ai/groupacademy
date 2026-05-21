@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudyAbroadProgramById } from "@/domains/abroad/repo/abroadRepo";
+import { insertContactLog } from "@/domains/marketing/repo/marketingRepo";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
@@ -72,12 +73,13 @@ export default function StudyAbroadDetail() {
     queryKey: ["study-abroad-program", id],
     queryFn: async () => {
       if (!id) throw new Error("Missing program id");
-      const { data, error } = await supabase.from("study_abroad_programs").select("*").eq("id", id).maybeSingle();
-      if (error) {
+      try {
+        const data = await getStudyAbroadProgramById(id);
+        return data as Program | null;
+      } catch (error) {
         await reportAnomaly("ProgramDetailFetchError", { id, error });
         throw error;
       }
-      return data as Program | null;
     },
     enabled: !!id,
   });
@@ -85,14 +87,12 @@ export default function StudyAbroadDetail() {
   const handleExternalClick = async (url: string) => {
     if (talent?.id && program) {
       try {
-        await supabase.from("contacts").insert([
-          {
-            full_name: talent.fullName || "Anonymous",
-            email: talent.email || "unknown",
-            subject: `Interest: ${program.university_name}`,
-            message: `Lead generated for ${program.program_name}.`,
-          },
-        ]);
+        await insertContactLog({
+          full_name: talent.fullName || "Anonymous",
+          email: talent.email || "unknown",
+          subject: `Interest: ${program.university_name}`,
+          message: `Lead generated for ${program.program_name}.`,
+        });
       } catch (e) {
         await reportAnomaly("LeadCaptureFailure", { id: program.id, error: e });
       }
