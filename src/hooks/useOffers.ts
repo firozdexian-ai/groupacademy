@@ -151,13 +151,9 @@ export function useDeclineOffer() {
 
   return useMutation({
     mutationFn: async ({ offerId, note, applicationId }: { offerId: string; note?: string; applicationId: string }) => {
-      // HUD: EXECUTING_RPC_OFFER_DECLINE
-      const { error } = await supabase.rpc("decline_offer", {
-        p_offer_id: offerId,
-        p_note: note ?? null,
-      });
-
-      if (error) {
+      try {
+        await declineOffer(offerId, note ?? null);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: decline_offer transaction rejected by schema rules.", error);
         throw error;
       }
