@@ -63,12 +63,7 @@ export default function PublicJobDetail() {
     if (!id) return;
     void (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", id)
-        .eq("is_active", true)
-        .maybeSingle();
+      const data = await getPublicActiveJobById(id);
       setJob(data as Job | null);
       setLoading(false);
 
