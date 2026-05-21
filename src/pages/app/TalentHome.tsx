@@ -18,7 +18,7 @@ import { useTalentPitches } from "@/domains/profile/hooks/useTalentPitches";
 import { useSkillCredentials } from "@/domains/learning";
 import { computeReadiness } from "@/lib/talentReadiness";
 import { formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { boostProfile } from "@/domains/talent/repo/talentRepo";
 import { toast } from "sonner";
 import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
