@@ -1,7 +1,12 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listTalentRowsForDirectory,
+  listTalentInboxSettingsByIds,
+  listTalentVolumeByIds,
+  listPostHypeRecipientsByIds,
+} from "@/domains/talent/repo/talentRepo";
 import { Search, Sparkles, Rocket, Lock, Unlock, Flame, Briefcase, Building2, MapPin, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,24 +56,14 @@ export default function TalentDirectory() {
     queryKey: ["talent-directory", q, country, openOnly, sortBy],
     queryFn: async () => {
       try {
-        let query = supabase
-          .from("talents")
-          .select("id, full_name, profile_photo_url, custom_profession, country")
-          .not("full_name", "is", null)
-          .limit(60);
-
-        if (q.trim()) query = query.ilike("full_name", `%${q.trim()}%`);
-        if (country !== "all") query = query.eq("country", country);
-
-        const { data, error } = await query;
-        if (error) throw error;
+        const data = await listTalentRowsForDirectory({ q, country, limit: 60 });
 
         // Merge logic with aggregated transaction data
         const ids = (data || []).map((t) => t.id);
         const [s, v, h] = await Promise.all([
-          supabase.from("talent_inbox_settings").select("talent_id, unlocked, boost_until").in("talent_id", ids),
-          supabase.from("v_talent_transaction_volume").select("talent_id, volume").in("talent_id", ids),
-          supabase.from("post_hypes").select("recipient_talent_id").in("recipient_talent_id", ids),
+          listTalentInboxSettingsByIds(ids),
+          listTalentVolumeByIds(ids),
+          listPostHypeRecipientsByIds(ids),
         ]);
 
         // Merge Logic
