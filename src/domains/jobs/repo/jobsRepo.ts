@@ -675,3 +675,21 @@ export async function insertTalentJobApplication(payload: {
     .single();
   return { data, error };
 }
+
+// ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
+export async function listTalentApplicationsWithJob(talentId: string) {
+  const { data, error } = await supabase
+    .from("job_applications")
+    .select(
+      `
+        id, job_id, application_status, created_at, last_status_at,
+        job:jobs(title, company_name, company_logo_url, ai_assessment_enabled),
+        job_assessments(id, status)
+      `,
+    )
+    .eq("talent_id", talentId)
+    .order("last_status_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
