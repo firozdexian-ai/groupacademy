@@ -57,7 +57,7 @@ export function useServiceHistory(talentId?: string | null): UseServiceHistoryRe
       const aggregatedItems: ServiceHistoryItem[] = [];
 
       // MAPPING: Assessment_Artifacts
-      (assessmentsRes.data || []).forEach((a) => {
+      (assessments).forEach((a) => {
         aggregatedItems.push({
           id: String(a.id),
           type: "career_assessment",
@@ -70,7 +70,7 @@ export function useServiceHistory(talentId?: string | null): UseServiceHistoryRe
       });
 
       // MAPPING: Interview_Artifacts
-      (interviewsRes.data || []).forEach((i) => {
+      (interviews).forEach((i) => {
         aggregatedItems.push({
           id: String(i.id),
           type: "mock_interview",
@@ -83,7 +83,7 @@ export function useServiceHistory(talentId?: string | null): UseServiceHistoryRe
       });
 
       // MAPPING: Salary_Artifacts
-      (salaryRes.data || []).forEach((s) => {
+      (salary).forEach((s) => {
         aggregatedItems.push({
           id: String(s.id),
           type: "salary_analysis",
@@ -95,7 +95,7 @@ export function useServiceHistory(talentId?: string | null): UseServiceHistoryRe
       });
 
       // MAPPING: Portfolio_Artifacts
-      (portfolioRes.data || []).forEach((p) => {
+      (portfolio).forEach((p) => {
         aggregatedItems.push({
           id: String(p.id),
           type: "portfolio",
