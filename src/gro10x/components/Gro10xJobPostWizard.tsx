@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGro10xCompanyId } from "../hooks/useGro10xCompanyId";
 import { employerJobsQueryKey } from "../hooks/useEmployerJobsDashboard";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { X, Loader2, Plus, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { getCompanyNameAndLogo } from "@/domains/companies/repo/companiesRepo";
+import { insertJobReturningId } from "@/domains/jobs/repo/jobsRepo";
 
 interface Props {
   open: boolean;
