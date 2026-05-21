@@ -416,7 +416,7 @@ export function JobsManageTab() {
                               className="h-9 w-9 text-destructive hover:bg-destructive/10"
                               onClick={async () => {
                                 if (confirm("Terminate listing node?")) {
-                                  await supabase.from("jobs").delete().eq("id", job.id);
+                                  await deleteJob(job.id);
                                   loadJobs();
                                 }
                               }}
