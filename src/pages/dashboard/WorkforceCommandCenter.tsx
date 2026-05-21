@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   countAiAgentsByTemplateFlag,
   listAiAgentsForFleet,
   listAiAgentsCompact,
+  listAiAgentInstancesMinimal,
   getAiAgentById,
   cloneAiAgentInstance,
 } from "@/domains/agents/repo/agentsRepo";
@@ -13,6 +13,11 @@ import {
   countActiveWorkforceChannelConnections,
   countActiveWorkforceRoutingRules,
   deleteWorkforceRoutingRule,
+  listWorkforceChannelConnections,
+  deleteWorkforceChannelConnection,
+  upsertWorkforceChannelConnection,
+  listWorkforceRoutingRules,
+  upsertWorkforceRoutingRule,
 } from "@/domains/workforce/repo/workforceRepo";
 import { toast } from "sonner";
 import { useAdminScope } from "@/hooks/useAdminScope";
