@@ -6,6 +6,12 @@ import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { CheckCircle2, X, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { companyAgentTools } from "@/domains/agents/api/agentsApi";
+import {
+  getActiveCompanyMembershipWithName,
+  listPendingCompanyPostDrafts,
+} from "@/domains/companies/repo/companiesRepo";
+import { listAudienceFeedPosts, insertFeedPost } from "@/domains/feed/repo/feedRepo";
+import { getTalentMiniProfileByUser } from "@/domains/talent/repo/talentRepo";
 
 interface FeedPost {
   id: string;
