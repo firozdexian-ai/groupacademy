@@ -819,9 +819,3 @@ export async function unlockTalentInbox(): Promise<void> {
   const { error } = await supabase.rpc("unlock_talent_inbox");
   if (error) throw error;
 }
-
-export async function assignCareerCoach(talentId: string): Promise<string | null> {
-  const { data, error } = await supabase.rpc("assign_career_coach", { _talent_id: talentId });
-  if (error) throw error;
-  return data ? String(data) : null;
-}
