@@ -580,3 +580,49 @@ export async function getTalentMiniProfileByUser(userId: string) {
     .maybeSingle();
   return (data as any) ?? null;
 }
+
+// ─── Phase 10j.5d additions ────────────────────────────────────────────────
+export async function listActiveLanguages() {
+  const { data, error } = await supabase
+    .from("languages")
+    .select("code, name, flag_emoji, is_active, display_order")
+    .eq("is_active", true)
+    .order("display_order");
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listMyTalentLanguageLevels() {
+  const { data, error } = await supabase
+    .from("talent_language_levels")
+    .select("language_code, cefr_level, source");
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function getTalentVerificationStatus(id: string): Promise<string> {
+  const { data } = await supabase
+    .from("talents")
+    .select("verification_status")
+    .eq("id", id)
+    .maybeSingle();
+  return ((data as any)?.verification_status as string) || "unverified";
+}
+
+export async function listIdDocStatuses(talentId: string): Promise<Array<{ status: string }>> {
+  const { data, error } = await supabase
+    .from("talent_id_documents")
+    .select("status")
+    .eq("talent_id", talentId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listPayoutAccountPrimaryFlags(talentId: string): Promise<Array<{ is_primary: boolean }>> {
+  const { data, error } = await supabase
+    .from("talent_payout_accounts")
+    .select("is_primary")
+    .eq("talent_id", talentId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
