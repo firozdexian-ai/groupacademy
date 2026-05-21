@@ -77,39 +77,34 @@ export const CourseJSONImporter = () => {
       const generatedSlug = generateSlug(courseData.title);
 
       // 1. Insert the main Course (Content) record
-      const { data: contentRecord, error: contentError } = await supabase
-        .from("content")
-        .insert({
+      let contentRecord: any;
+      try {
+        contentRecord = await insertContent({
           title: courseData.title,
           description: courseData.description,
           content_type: (courseData.content_type as ContentType) || "recorded_course",
           slug: generatedSlug,
-        })
-        .select()
-        .single();
-
-      if (contentError) throw new Error(`Course insertion failed: ${contentError.message}`);
+        });
+      } catch (err: any) {
+        throw new Error(`Course insertion failed: ${err.message}`);
+      }
 
       // 2. Iterate and insert Modules
       for (const mod of courseData.modules) {
-        const { data: moduleRecord, error: moduleError } = await supabase
-          .from("course_modules")
-          .insert({
+        let moduleRecord: any;
+        try {
+          moduleRecord = await insertCourseModule({
             content_id: contentRecord.id,
             title: mod.title,
             stage_order: mod.stage_order,
-          })
-          .select()
-          .single();
-
-        if (moduleError) {
+          });
+        } catch (moduleError: any) {
           console.error("Module error:", moduleError);
           continue; // Skip failed modules but continue pipeline
         }
 
         // 3. Iterate and insert Resources for this Module
         if (mod.resources && mod.resources.length > 0) {
-          // Map to correct display_order column and cast resource_type
           const resourcesToInsert = mod.resources.map((res, index) => ({
             module_id: moduleRecord.id,
             title: res.title,
@@ -117,13 +112,14 @@ export const CourseJSONImporter = () => {
             display_order: index + 1,
           }));
 
-          const { error: resourceError } = await supabase.from("module_resources").insert(resourcesToInsert);
-
-          if (resourceError) {
+          try {
+            await insertModuleResources(resourcesToInsert);
+          } catch (resourceError) {
             console.error("Resource error:", resourceError);
           }
         }
       }
+
 
       toast.success(`Course "${courseData.title}" successfully ingested.`);
       setJson(""); // Clear on success
