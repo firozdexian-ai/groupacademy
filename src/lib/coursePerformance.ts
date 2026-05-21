@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listEnrollmentsForContent,
+  listCourseModulesForContent,
+  listQuizAttemptsForModules,
+  listScenarioRunsForModules,
+  listModuleQuizPoolForModules,
+  listModuleScenarioPoolForModules,
+} from "@/domains/learning/repo/learningRepo";
+import { listTalentNamesByIds } from "@/domains/talent/repo/talentRepo";
 
 export interface ModuleStat {
   id: string;
@@ -177,11 +185,8 @@ export function useCoursePerformance(contentId: string | undefined) {
         const talentIds = Array.from(new Set(recentRaw.map((r) => r.talent_id)));
         let nameMap = new Map<string, string>();
         if (talentIds.length) {
-          const { data: talents } = await supabase
-            .from("talents")
-            .select("id,full_name")
-            .in("id", talentIds);
-          (talents ?? []).forEach((t: any) => nameMap.set(t.id, t.full_name ?? "Unknown"));
+          const talents = await listTalentNamesByIds(talentIds);
+          talents.forEach((t) => nameMap.set(t.id, t.full_name ?? "Unknown"));
         }
 
         const recent = recentRaw.map((r) => ({
