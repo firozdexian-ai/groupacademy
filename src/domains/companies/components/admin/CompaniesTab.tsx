@@ -179,7 +179,7 @@ export function CompaniesTab() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from("contact_outreach").insert({
+      await logContactOutreach({
         company_id: company.id,
         channel: "email",
         message_type: template,
