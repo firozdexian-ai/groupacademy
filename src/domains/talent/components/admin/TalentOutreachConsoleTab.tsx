@@ -53,11 +53,7 @@ export function TalentOutreachConsoleTab() {
 
   // Firoz - Logic to fetch canonical channel
   const loadChannel = async () => {
-    const { data } = await supabase
-      .from("messaging_channels")
-      .select("id, agent_key, status, daily_outreach_cap, hourly_outreach_cap")
-      .eq("agent_key", "talent-outreach")
-      .maybeSingle();
+    const { data } = await talentRepo.getOutreachChannel();
     setChannel(data as Channel | null);
   };
 
