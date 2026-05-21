@@ -85,3 +85,26 @@ export async function getHypeEarnings(talentId: string, sinceIso: string) {
   if (recentHypesQuery.error) throw recentHypesQuery.error;
   return { all: allHypesQuery.data ?? [], recent: recentHypesQuery.data ?? [] };
 }
+
+export async function getTalentAuthorMeta(userIds: string[]) {
+  if (!userIds.length) return [];
+  const { data } = await supabase
+    .from("talents")
+    .select("user_id, country, custom_profession")
+    .in("user_id", userIds);
+  return (data ?? []) as Array<{ user_id: string; country?: string; custom_profession?: string }>;
+}
+
+export async function upsertFeedInteraction(input: {
+  talentId: string;
+  itemId: string;
+  itemType: string;
+  interactionType: string;
+}): Promise<void> {
+  await (supabase.from("feed_interactions") as any).upsert({
+    talent_id: input.talentId,
+    item_id: input.itemId,
+    item_type: input.itemType,
+    interaction_type: input.interactionType,
+  });
+}
