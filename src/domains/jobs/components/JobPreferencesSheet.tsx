@@ -108,12 +108,7 @@ export function JobPreferencesSheet({
     trackEvent("match_constraints_sync_requested", { talentId: talent.id });
 
     try {
-      const { error } = await supabase
-        .from("talents")
-        .update({ job_preferences: preferences as unknown as Json })
-        .eq("id", talent.id);
-
-      if (error) throw error;
+      await updateTalentJobPreferences(talent.id, preferences as unknown as Json);
 
       trackEvent("match_constraints_sync_success", { talentId: talent.id });
 
