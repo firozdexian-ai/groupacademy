@@ -4,8 +4,7 @@
  * Fixes: P3 (Accurate Outreach Count), P2 (Layout Deduplication)
  */
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton } from "@/platform/admin";
