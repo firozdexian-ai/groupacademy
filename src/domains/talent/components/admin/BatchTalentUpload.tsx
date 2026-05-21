@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { batchParseCvs } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,12 +114,9 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
 
   const agentReportToAdmin = async (anomalyCount: number, errorLog: string[]) => {
     try {
-      await (supabase.from("messaging_messages") as any).insert({
-        direction: "inbound",
-        author: "Data Ingestion Agent",
-        body: `CSV Ingestion complete. Flagged ${anomalyCount} anomalies during import. Details: ${errorLog.slice(0, 3).join(" | ")}...`,
-        status: "delivered",
-      });
+      await talentRepo.logAgentMessage(
+        `CSV Ingestion complete. Flagged ${anomalyCount} anomalies during import. Details: ${errorLog.slice(0, 3).join(" | ")}...`,
+      );
     } catch (err) {
       console.warn("Agent reporting deferred: messaging schema not fully linked.");
     }
@@ -186,10 +184,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
 
         for (let i = 0; i < mappedData.length; i += batchSize) {
           const batch = mappedData.slice(i, i + batchSize);
-          const { error } = await supabase.from("talents").upsert(batch, {
-            onConflict: "phone",
-            ignoreDuplicates: true,
-          });
+          const { error } = await talentRepo.upsertTalentsBatch(batch);
 
           if (error) {
             console.error("Batch insert error:", error);
@@ -338,7 +333,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
   const pollBatchProgress = useCallback(
     async (batchId: string) => {
       const pollInterval = setInterval(async () => {
-        const { data: batch } = await supabase.from("batch_uploads").select("*").eq("id", batchId).single();
+        const { data: batch } = await talentRepo.getBatchUpload(batchId);
         if (batch) {
           setCurrentBatch(batch as BatchUpload);
           if (batch.status === "completed" || batch.status === "failed") {

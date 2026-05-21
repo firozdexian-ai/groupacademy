@@ -4,7 +4,7 @@
  * Fixes: B3 (Column Selects), B4 (Standardized Logging)
  */
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { generateOutreachMessage } from "@/domains/talent/api/talentApi";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,7 @@ export function TalentOutreachConsoleTab() {
 
   // Firoz - Logic to fetch canonical channel
   const loadChannel = async () => {
-    const { data } = await supabase
-      .from("messaging_channels")
-      .select("id, agent_key, status, daily_outreach_cap, hourly_outreach_cap")
-      .eq("agent_key", "talent-outreach")
-      .maybeSingle();
+    const { data } = await talentRepo.getOutreachChannel();
     setChannel(data as Channel | null);
   };
 
@@ -65,24 +61,7 @@ export function TalentOutreachConsoleTab() {
   const loadTalents = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase
-        .from("talents")
-        .select(
-          `
-          id, 
-          full_name, 
-          phone, 
-          custom_profession, 
-          profession_categories(name)
-        `,
-        )
-        .not("phone", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (search.trim()) q = q.ilike("full_name", `%${search.trim()}%`);
-
-      const { data, error } = await q;
+      const { data, error } = await talentRepo.listOutreachableTalents(search);
       if (error) throw error;
 
       const formatted = (data ?? []).map((t: any) => ({
@@ -128,7 +107,7 @@ export function TalentOutreachConsoleTab() {
     if (!selectedTalent || !draft.trim()) return;
     setSending(true);
     try {
-      const { error } = await supabase.from("outreach_messages").insert({
+      const { error } = await talentRepo.logOutreachMessage({
         talent_id: selectedTalent.id,
         message_content: draft,
         channel: "whatsapp",

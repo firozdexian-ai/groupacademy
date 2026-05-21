@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin";
@@ -127,29 +126,15 @@ export default function PortfolioRequestsManager() {
     setLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from("portfolio_requests")
-        .select(`*, profession_category:profession_categories(name)`, { count: "exact" })
-        .order("created_at", { ascending: false });
-
-      if (debouncedSearch) {
-        const safe = sanitizeIlike(debouncedSearch);
-        if (safe) {
-          query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
-        }
-      }
-
-      // Filter is now type-safe for Supabase [cite: 7, 16]
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
-
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-      query = query.range(from, to);
-
       const result = await withTimeout(
-        Promise.resolve(query),
+        Promise.resolve(
+          talentRepo.listPortfolioRequests({
+            page,
+            pageSize: ITEMS_PER_PAGE,
+            search: debouncedSearch,
+            statusFilter,
+          }),
+        ),
         TIMEOUTS.DEFAULT,
         "Loading portfolio requests timed out",
       );
@@ -198,7 +183,7 @@ export default function PortfolioRequestsManager() {
             : selectedRequest.portfolio_credentials,
       };
 
-      const { error } = await supabase.from("portfolio_requests").update(updates).eq("id", selectedRequest.id);
+      const { error } = await talentRepo.updatePortfolioRequest(selectedRequest.id, updates);
       if (error) throw error;
 
       toast.success("Request updated successfully");

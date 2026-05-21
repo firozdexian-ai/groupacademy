@@ -4,8 +4,7 @@
  * Fixes: P3 (Accurate Outreach Count), P2 (Layout Deduplication)
  */
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { sanitizeIlike } from "@/lib/supabaseQuery";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton } from "@/platform/admin";
@@ -66,23 +65,13 @@ export function TalentPoolTab() {
   const loadTalents = useCallback(async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from("talents")
-        // P3 Fix: Select outreach_messages count directly to ensure accurate lifetime counting
-        .select(`*, outreach_count:outreach_messages(count)`, { count: "exact" })
-        .order("updated_at", { ascending: false });
-
-      if (searchQuery) {
-        const safe = sanitizeIlike(searchQuery);
-        if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
-      }
-      if (countryFilter !== "all") query = query.eq("country", countryFilter);
-
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count, error } = await query.range(from, from + ITEMS_PER_PAGE - 1);
-
+      const { data, count, error } = await talentRepo.listTalentsForPool({
+        searchQuery,
+        countryFilter,
+        page,
+        pageSize: ITEMS_PER_PAGE,
+      });
       if (error) throw error;
-
       setTalents(data || []);
       setTotalCount(count || 0);
     } catch (err) {
@@ -108,11 +97,10 @@ export function TalentPoolTab() {
       toast.success("LinkedIn pitch copied to clipboard");
     }
 
-    await supabase.from("outreach_messages").insert({
+    await talentRepo.logOutreachMessage({
       talent_id: talent.id,
       product,
       channel,
-      sent_at: new Date().toISOString(),
       agent_key: "talent-outreach",
     });
     loadTalents();

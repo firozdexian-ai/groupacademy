@@ -5,7 +5,7 @@
  * - Shows talent counts so the operator knows where the gaps are
  */
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,13 +51,9 @@ export function ProfessionalRolesPanel() {
 
   const refresh = async () => {
     const [{ data: cats }, { data: rls }, { data: talents }] = await Promise.all([
-      supabase.from("profession_categories").select("id, name, slug, is_active").order("name"),
-      supabase
-        .from("professional_roles")
-        .select("id, profession_category_id, name, slug, display_order, is_active")
-        .order("display_order")
-        .order("name"),
-      supabase.from("talents").select("profession_category_id, professional_role_id").limit(5000),
+      talentRepo.listProfessionCategoriesLite(),
+      talentRepo.listProfessionalRoles(),
+      talentRepo.listTalentRoleAssignments(),
     ]);
     setCategories((cats ?? []) as Category[]);
     setRoles((rls ?? []) as Role[]);
@@ -93,7 +89,7 @@ export function ProfessionalRolesPanel() {
     const name = newRole.trim();
     if (!name || !activeCat) return;
     setSaving(true);
-    const { error } = await supabase.from("professional_roles").insert({
+    const { error } = await talentRepo.insertProfessionalRole({
       profession_category_id: activeCat,
       name,
       slug: slugify(name),
@@ -111,7 +107,7 @@ export function ProfessionalRolesPanel() {
   };
 
   const toggleActive = async (r: Role) => {
-    const { error } = await supabase.from("professional_roles").update({ is_active: !r.is_active }).eq("id", r.id);
+    const { error } = await talentRepo.toggleProfessionalRole(r.id, !r.is_active);
     if (error) toast.error(error.message);
     else {
       toast.success(`${r.name} is now ${!r.is_active ? "active" : "inactive"}`);
@@ -121,7 +117,7 @@ export function ProfessionalRolesPanel() {
 
   const remove = async (r: Role) => {
     if (!confirm(`Delete role "${r.name}"? Talents tagged with it will be untagged.`)) return;
-    const { error } = await supabase.from("professional_roles").delete().eq("id", r.id);
+    const { error } = await talentRepo.deleteProfessionalRole(r.id);
     if (error) toast.error(error.message);
     else {
       toast.success(`Deleted role: ${r.name}`);

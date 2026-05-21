@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,15 +115,10 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
       linkedin_url: data.linkedin_url,
       industry: data.industry,
     };
-    const { data: node, error } = await supabase.from("companies").insert(insertObj).select("id").single();
+    const { data: node, error } = await talentRepo.insertCompany(insertObj);
 
     if (error) {
-      const { data: existing } = await supabase
-        .from("companies")
-        .select("id")
-        .ilike("name", data.name)
-        .limit(1)
-        .single();
+      const { data: existing } = await talentRepo.findCompanyByName(data.name);
       if (existing) {
         map[key] = existing.id;
         return existing.id;
@@ -149,10 +144,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
     const emails = selected.map((r) => r.data.email?.toLowerCase()).filter(Boolean);
 
     // Perform deduplication handshake
-    const { data: existingRecords } = await supabase
-      .from(targetTable)
-      .select("email, linkedin_url")
-      .or(`email.in.(${emails.join(",")})`);
+    const { data: existingRecords } = await talentRepo.findExistingByEmails(targetTable, emails);
 
     const castedExisting = (existingRecords as any[]) || [];
     const emailSet = new Set(castedExisting.map((r) => r.email?.toLowerCase()));
@@ -175,7 +167,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
           if (Object.keys(companyMap).length > prevLen) stats.companiesCreated++;
         }
 
-        const { error } = await supabase.from(targetTable).insert(insertData as any);
+        const { error } = await talentRepo.insertIntoTable(targetTable, insertData);
         error ? stats.failed++ : stats.imported++;
       }
       setImportProgress(((i + 1) / selected.length) * 100);

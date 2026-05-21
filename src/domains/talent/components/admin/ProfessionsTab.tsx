@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,19 +64,14 @@ export function ProfessionsTab() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const results = await withTimeout(
-        Promise.all([
-          supabase.from("academies").select("*").order("display_order"),
-          supabase.from("schools").select("*").order("display_order"),
-          supabase.from("profession_categories").select("*").order("display_order"),
-        ]),
+      const { academies, schools, professionLines } = await withTimeout(
+        talentRepo.listProfessionStructure(),
         TIMEOUTS.DEFAULT,
         "Structural sync timed out",
       );
-
-      setAcademies(results[0].data || []);
-      setSchools(results[1].data || []);
-      setProfessionLines(results[2].data || []);
+      setAcademies(academies as Academy[]);
+      setSchools(schools as School[]);
+      setProfessionLines(professionLines as ProfessionLine[]);
     } catch (error) {
       toast.error("Structural sync failed");
     } finally {
@@ -97,12 +92,11 @@ export function ProfessionsTab() {
     // Convert checkbox
     if ("is_active" in raw) payload.is_active = raw.is_active === "on";
 
-    const tbl = supabase.from(table as any) as any;
-    const query = editingItem?.id
-      ? tbl.update(payload).eq("id", editingItem.id)
-      : tbl.insert(payload);
-
-    const { error } = await query;
+    const { error } = await talentRepo.upsertProfessionRow(
+      table as any,
+      payload,
+      editingItem?.id,
+    );
     if (error) {
       toast.error(error.message);
     } else {

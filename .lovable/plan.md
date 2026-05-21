@@ -1,52 +1,72 @@
-# Phase 10c.2 — Learning Domain: Admin + Talent Component Repo Migration
+# Phase 10d — Talent Domain Repo Extraction
 
-Finishes Phase 10c. Routes the remaining 33 raw `supabase.from(...)` calls inside `src/domains/learning/**` (10 components/hooks) through `learningRepo.ts`, so the only file in the domain that touches `supabase.from(...)` is the repo itself.
+Phase 10c is complete: `src/domains/learning/` is free of raw `supabase.from(...)` calls (only `learningRepo.ts` touches the client). Next domain to clean is **Talent**, which still has 7 hooks in the legacy `src/hooks/` folder and 10 admin components calling the client directly.
+
+## Goals
+
+1. Co-locate all talent data access under `src/domains/talent/`.
+2. Funnel every `supabase.from('talents' | 'talent_*' | 'professions' | …)` call through a new `talentRepo.ts`.
+3. Move the 7 stray talent hooks out of `src/hooks/` into the domain.
+4. Keep behaviour identical — no UI, RLS, or schema changes.
 
 ## Scope
 
-In:
-- 1 talent component: `TracksTab.tsx`
-- 9 admin files: `CourseSessionsManager.tsx`, `LearningProgressTab.tsx`, `LearningModerationTab.tsx`, `CourseJSONImporter.tsx`, `BulkResourceUpload.tsx`, `ContentReadinessChecklist.tsx`, `useLearningGraph.ts`, `BatchContentGenerator.tsx`, `ContentFilters.tsx`
-- Extend `learningRepo.ts` with the missing helpers
+### Repo to create
+`src/domains/talent/repo/talentRepo.ts` — typed helpers grouped by surface:
 
-Out of scope (deferred):
-- Raw `supabase.from(...)` in `src/pages/**` legacy admin/instructor pages (ContentNew/Edit, ModuleManagement, QuizManagement, Quiz, InstructorReviewQueue, CourseDetail, etc.) — covered by a later UI-consolidation pass
-- `src/components/player/stages/AssessStage.tsx`, `GlobalAIBubble.tsx`, `AccessCodeDialog.tsx`, `useDiscussions.ts`
-- Schema/RLS changes, edge contracts, ESLint `NO_RAW_FROM` enforcement (10j)
+- **Admin pool & overview** (`TalentPoolTab`, `TalentOverviewTab`, `CreatorEconomyTab`, `PortfolioRequestsTab`)
+  - `listTalentsForPool(filters)`, `getTalentOverviewStats()`, `listCreatorEconomyRows()`, `listPortfolioRequests()`
+- **Professions & roles** (`ProfessionsTab` x4, `ProfessionalRolesPanel` x5)
+  - `listProfessions`, `upsertProfession`, `deleteProfession`, `listProfessionLevels`, `listProfessionalRoles`, `upsertProfessionalRole`, `deleteProfessionalRole`, `reorderProfessionalRoles`
+- **Importers** (`BatchTalentUpload` x3, `LinkedInJsonUpload` x2)
+  - `bulkInsertTalents`, `findTalentByEmail`, `insertTalentLinkedInPayload`
+- **Notifications & outreach** (`NotificationsTab` x2, `TalentOutreachConsoleTab`)
+  - `listTalentNotifications`, `markNotificationRead`, `listOutreachCampaigns`
 
-## Repo additions (`src/domains/learning/repo/learningRepo.ts`)
+### Hooks to relocate `src/hooks/ → src/domains/talent/hooks/`
+- `useTalent.ts`
+- `useTalentLists.ts` (note: duplicate exists in `domains/profile/hooks/` — investigate and consolidate)
+- `useTalentMirror.ts`
+- `useTalentOutcomeSignal.ts`
+- `useTalentPitches.ts`
+- `useTalentRelationships.ts` (also dup in profile)
+- `useTalentSearch.ts`
 
-| Group | Functions |
-|---|---|
-| Sessions admin | `listCourseSessionsByContent(contentId)`, `listInstructorsLite()`, `deleteCourseSession(id)`, `updateCourseSessionStatus(id, status)`, `bulkInsertCourseSessions(rows)` |
-| Progress admin | `listEnrollmentsFiltered(filters)` (status, content_id, talent_id, range) |
-| Moderation | `listContentReports(limit=100)`, `resolveContentReport(id, status)`, `hideModerationTarget(table, scopeId)` — `table` constrained to `"discussion_posts" \| "discussion_threads" \| "lesson_questions" \| "lesson_answers"` |
-| JSON importer | `insertContent(payload)`, `insertCourseModule(payload)`, `insertModuleResources(rows)` |
-| Bulk uploader | `insertModuleResources(rows)` (shared) |
-| Readiness | `setContentPublished(id, published)` |
-| Talent tracks | `listAcademiesSchoolsReadiness()` — parallel `academies`, `schools`, `school_readiness_v` |
-| Filters | `listProfessionCategoriesAndLevels()` |
-| Batch generator | `listSchoolsLite()`, `listProgramsBySchool(schoolId)`, `listQuizQuestionsByModuleIds(ids)`, `updateContentDraftPayload(table, id, payload)` with `ContentDraftTable` union |
-| Admin graph | `getLearningGraphSlice()` (8 parallel reads), `upsertLearningGraphRow(table, payload)`, `deleteLearningGraphRow(table, id)` with `LearningGraphTable` union (`content`, `enrollments`, `cohorts`, `course_briefs`, `course_engagements`, `course_sessions`, `certificates`, `instructor_payout_requests`) |
+Each hook gets:
+- Raw `supabase.from(...)` rewritten to `talentRepo` calls.
+- New import path: `@/domains/talent/hooks/useX` (with re-export from `src/domains/talent/index.ts`).
+- Codemod sweep of all `@/hooks/useTalent*` imports across the repo.
 
-Conventions match Phase 10c.1: named exports, throws on error, no React.
+### Out of scope (handled in later phases)
+- `domains/profile/hooks/useTalentLists.ts` / `useTalentRelationships.ts` — touched only enough to remove duplication; deeper profile cleanup deferred to **10e (Profile)**.
+- ESLint `NO_RAW_FROM` guard rule — Phase **10j**.
+- RPC-only paths (`get_public_talent_profile`, `score_talent_job_mastery`, etc.) — already clean.
 
-## Refactor pass
+## Execution Order
 
-Each file imports the relevant helpers and replaces every `supabase.from(...)...` chain with a single function call. No UI/behavior changes.
+1. Scaffold `src/domains/talent/repo/talentRepo.ts` + `src/domains/talent/hooks/` dir.
+2. Move + rewrite the 7 hooks; update `src/domains/talent/index.ts` exports.
+3. Codemod imports across `src/**` (sed pass like 10c).
+4. Refactor the 10 admin components to call repo functions.
+5. `tsc --noEmit` + `rg "supabase\.from" src/domains/talent/ src/hooks/useTalent*` → expect only `talentRepo.ts`.
+6. Smoke: Admin → Talent (Pool, Overview, Professions, Roles, Notifications, Creator Economy), Importers, and `/t/:handle` public profile.
 
-## Verification
+## After 10d
 
-- `rg "supabase\\.from\\(" src/domains/learning/` → only `learningRepo.ts`
-- `tsc --noEmit` clean
-- Smoke: admin Learn tabs (Graph, Sessions, Moderation, Progress, Course Briefs, Importer, Bulk Upload, Readiness, Batch Generator, Filters) + `/app/learning` Tracks tab
+- **10e** — Profile domain (`domains/profile/**`, dedup talent-list hooks).
+- **10f** — Companies domain.
+- **10j** — Add ESLint rule `NO_RAW_FROM` to lock in repo-only access across cleaned domains.
 
-## Risks
+Ready to execute — reply to approve and I'll start with the repo scaffold.
 
-- `useLearningGraph` upsert/delete are dynamic-table — keep a narrow `LearningGraphTable` union and `payload: Record<string, unknown>`.
-- `LearningModerationTab` `hideModerationTarget` is dynamic on the scope→table map; encode the allowlist inside the repo.
-- `BatchContentGenerator.updateContentDraftPayload` writes to dynamic table — narrow via `ContentDraftTable` union.
+---
 
-## Next batch after this
+## Phase 10d Status — Done (admin components)
 
-10d — talent (`useTalentSearch`, `useTalentLists`, `useTalentMirror`, `useTalentOutcomeSignal`, `useTalentPitches`, `useTalentRelationships`) + repo extraction in `src/domains/talent/**`.
+Completed:
+- `src/domains/talent/repo/talentRepo.ts` scaffolded with 20+ helpers across pool, notifications, outreach, portfolio requests, professions/roles, creator economy, overview, importers (CSV + LinkedIn JSON).
+- Refactored 10 admin components: ProfessionsTab, ProfessionalRolesPanel, TalentPoolTab, PortfolioRequestsTab, TalentOutreachConsoleTab, NotificationsTab, TalentOverviewTab, CreatorEconomyTab, BatchTalentUpload, LinkedInJsonUpload.
+- Verification: `rg "supabase\.from" src/domains/talent/` returns only `talentRepo.ts`; `tsc --noEmit` is clean.
+
+Deferred from this phase:
+- The 7 `src/hooks/useTalent*.ts` files are already thin re-exports of `src/domains/profile/hooks/useTalent*` — relocation will happen as part of **10e (Profile domain)** so the impls move + dedup together.

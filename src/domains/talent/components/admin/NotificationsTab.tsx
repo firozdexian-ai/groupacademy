@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,19 +39,14 @@ export function NotificationsTab() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count, error } = await supabase
-        .from("notifications")
-        .select(`*, talent:talents(full_name, email)`, { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, from + ITEMS_PER_PAGE - 1);
+      const { data, count, error } = await talentRepo.listNotificationsPage(page, ITEMS_PER_PAGE);
 
       if (error) throw error;
       setNotifications(data || []);
       setTotalCount(count || 0);
 
       // Pre-fetch categories for segmenting
-      const { data: catData } = await supabase.from("profession_categories").select("id, name");
+      const { data: catData } = await talentRepo.listProfessionCategoriesNames();
       if (catData) setCategories(catData);
     } catch (err) {
       toast.error("Transmission log sync failed");
@@ -63,7 +59,7 @@ export function NotificationsTab() {
   useEffect(() => {
     if (sendDialog && targetType === "single") {
       const fetchFreshTalents = async () => {
-        const { data } = await supabase.from("talents").select("id, full_name, email").order("full_name").limit(200);
+        const { data } = await talentRepo.listTalentsLite(200);
         if (data) setTalents(data);
       };
       fetchFreshTalents();
