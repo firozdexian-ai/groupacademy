@@ -1,69 +1,66 @@
-## Phase 10f — Companies Domain Repo Extraction
+# Course to a Stable, Publishable Platform
 
-Following the same pattern used in 10c/10d/10e (Learning, Talent, Profile), this phase establishes a repository layer for the Companies domain and retires the legacy `src/hooks/useCompan*` re-export shims.
+## Where we are
 
-### Goals
-1. Add `src/domains/companies/repo/companiesRepo.ts` as the only `supabase.from(...)` caller in the domain.
-2. Refactor 1 hook + 6 admin components to go through it.
-3. Delete 3 legacy hook shims in `src/hooks/`.
+The Phase 10 work (domain repository extraction) is **~60% done by domain, but it's what's destabilizing the app right now**. Five domains are clean (Learning, Talent, Profile, Companies, Jobs, Gigs partial), but **147 files across 20+ areas still call `supabase.from()` directly**, and during the codemod sweeps some imports and prop contracts drifted — which is why you're seeing tabs render but not function.
 
-### Scope
+No runtime errors are being captured at `/index`, so the breakage is route-specific (admin tabs, agents, IR, marketing, workforce, feed, messaging). We need to **stop refactoring and start verifying** before publishing.
 
-**New repo — `src/domains/companies/repo/companiesRepo.ts`**, typed helpers grouped by surface:
+## The course (3 phases, ~in order of urgency)
 
-- **Companies CRUD** (`CompaniesTab`, `BatchCompanyUpload`, `IndustriesTab`) — `listCompanies`, `searchCompanies`, `upsertCompany`, `updateCompany`, `deleteCompany`, `findCompaniesByDomain`
-- **Contacts** (`ContactsTab`, `BatchCompanyUpload`) — `listContactsForCompany`, `insertContact`, `upsertContactsBatch`, `updateContact`, `deleteContact`
-- **Outreach log** (`CompaniesTab`) — `listContactOutreach`, `countOutreachForCompany`
-- **Company agents** (`CompanyAgentsTab`) — `listAiAgents`, `listCompanyAgents`, `assignAgentToCompany`, `removeCompanyAgent`, `toggleCompanyAgent`
-- **Contact unlocks** (`ContactUnlocksTab`) — `listContactUnlocks`, joined with companies + talents helpers
-- **Followed companies** (`useFollowedCompanies`) — `listFollowedCompanies`, `followCompany`, `unfollowCompany`
+### Phase S1 — Freeze & Triage (stability gate)
 
-Storage (logos, CSV uploads) stays in components — repo only owns table I/O.
+**Goal:** stop introducing churn; produce a definitive list of what's broken.
 
-**Files to refactor** (10 raw `supabase.from` call sites across 7 files):
-- `src/domains/companies/hooks/useFollowedCompanies.ts` (2)
-- `src/domains/companies/components/admin/CompaniesTab.tsx` (4)
-- `src/domains/companies/components/admin/CompanyAgentsTab.tsx` (6)
-- `src/domains/companies/components/admin/ContactsTab.tsx` (2)
-- `src/domains/companies/components/admin/ContactUnlocksTab.tsx` (3)
-- `src/domains/companies/components/admin/IndustriesTab.tsx` (1)
-- `src/domains/companies/components/admin/BatchCompanyUpload.tsx` (3)
+1. **Pause Phase 10g/h/j** (Gigs sweep, Feed/Messaging, ESLint rule). Refactor work is the source of the instability you're seeing.
+2. **Tab-by-tab smoke pass** on the admin shell and the talent app shell — I click through every tab in preview, capture console + network errors, and log each into a triage table (route → symptom → suspected cause → severity).
+3. **Type/build gate** — confirm `tsc --noEmit` is clean across the whole project (the codemods may have left dangling imports the build tolerates but runtime doesn't).
+4. **Deliverable:** a ranked broken-tabs list (blocker / major / minor) you can sign off on before any fixes land.
 
-`useCompaniesWithSignal` and `useCompanyDetail` already route through edge functions / are clean — quick audit only.
+### Phase S2 — Fix to Publishable
 
-**Legacy shims to delete** in `src/hooks/`:
-- `useCompaniesWithSignal.ts` (1-line re-export)
-- `useCompanyDetail.ts` (1-line re-export)
-- `useFollowedCompanies.ts` (1-line re-export)
+**Goal:** every "blocker" and "major" tab works end-to-end. Minor cosmetic issues can ship.
 
-**Codemod**: sed-pass across `src/**` rewriting `@/hooks/useCompaniesWithSignal`, `@/hooks/useCompanyDetail`, `@/hooks/useFollowedCompanies` → `@/domains/companies/hooks/*`.
+Likely fix buckets (confirmed after S1, but based on the refactor history these are the usual suspects):
 
-### Out of scope
-- `src/domains/companies/api/*` (already edge-routed).
-- ESLint `NO_RAW_FROM` rule — Phase 10j.
+- **Import drift** from the `@/hooks/*` → `@/domains/*/hooks/*` codemods (components still importing old paths or named exports that were renamed).
+- **Hook signature changes** where a repo helper returns a slightly different shape than the old inline query.
+- **Missing RLS / auth context** on tabs that used to query directly and now go through a repo that assumes a session.
+- **Edge-function vs repo confusion** in domains where some calls were moved to edge functions and others to repos.
 
-### Execution
-1. Scaffold `src/domains/companies/repo/companiesRepo.ts`.
-2. Rewrite 1 hook + 6 admin components to call repo helpers.
-3. Codemod imports; delete 3 shim files in `src/hooks/`.
-4. Verify: `rg "supabase\.from" src/domains/companies/ src/hooks/useCompan* src/hooks/useFollowedCompanies*` returns only `companiesRepo.ts`; `tsc --noEmit` clean.
-5. Smoke: admin Companies tabs (list, edit, agents, contacts, unlocks, industries), batch upload, talent "Follow Company" toggle.
+I fix top-down by severity, re-smoke after each batch, and stop the moment the blocker+major list is empty. **This is the gate to publish.**
 
-### After 10f
-- **10g** — Gigs domain final sweep (partially done in earlier phases).
-- **10h** — Feed + Messaging domains.
-- **10j** — ESLint `NO_RAW_FROM` rule to lock cleaned domains (Learning, Talent, Profile, Companies, Jobs, Gigs).
+### Phase S3 — Lock-in (post-publish hardening)
 
-Reply to approve and I'll start with the repo scaffold.
----
+Only after S2 ships:
 
-## Phase 10f Status — Done
+1. **Resume Phase 10g** — Gigs sweep (3 files left).
+2. **Phase 10h** — Feed (4 files) + Messaging (3 files).
+3. **Phase 10i** — Sweep the long tail: `pages/app` (23), `domains/agents` (10), `marketing` (9), `ir` (8), `workforce`/`institutions`/`abroad`/`finance` (12 combined).
+4. **Phase 10j** — Turn on the `NO_RAW_FROM` ESLint rule so this can never regress.
 
-Completed:
-- `src/domains/companies/repo/companiesRepo.ts` scaffolded with helpers for companies, contacts, contact_outreach, company_agents, ai_agents (admin views), company_agent_leads, talent_contact_unlocks, talents lookup, and followed_companies.
-- Refactored 7 call sites: `useFollowedCompanies`, `CompaniesTab`, `CompanyAgentsTab`, `ContactsTab`, `ContactUnlocksTab`, `IndustriesTab`, `BatchCompanyUpload`.
-- Codemod swept `@/hooks/useCompaniesWithSignal|useCompanyDetail|useFollowedCompanies` imports to `@/domains/companies/hooks/*`.
-- Deleted 3 legacy shim files in `src/hooks/`.
-- Verification: `rg "supabase\.from" src/domains/companies/` returns only `companiesRepo.ts`.
+Each of S3's phases is small, isolated, and now safe because the smoke harness from S1 exists.
 
-Next: **10g** Gigs domain final sweep.
+## Completion snapshot
+
+| Track | Status |
+|---|---|
+| Domain repo extraction (Learning, Talent, Profile, Companies, Jobs) | Done |
+| Gigs domain repo | ~80% (3 files remain) |
+| Feed / Messaging repo | Not started (7 files) |
+| Long-tail pages & secondary domains | Not started (~75 files) |
+| ESLint lock (`NO_RAW_FROM`) | Not started |
+| **Tab-by-tab stability verification** | **Not started — biggest gap to publish** |
+| Publishable build | **Blocked on S1 + S2** |
+
+So roughly: **architecture refactor ~65% done, but stability verification 0% done** — and stability, not refactor completeness, is what's standing between us and a publishable build.
+
+## Recommendation
+
+Approve **Phase S1 (Freeze & Triage)** first. I'll come back with the broken-tabs list and a concrete S2 fix plan sized against it — no more refactor churn until publish.
+
+## Technical notes
+
+- S1 uses `code--read_session_replay`, `read_console_logs`, `read_network_requests` per route plus a `tsc --noEmit` sweep; no source edits.
+- S2 fixes stay in presentation/hook layer — repo files (`*Repo.ts`) and edge functions are not touched unless a smoke failure points there.
+- S3 follows the exact pattern of 10c–10f (scaffold repo → migrate callers → codemod imports → delete shims → verify), so risk is bounded.
