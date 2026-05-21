@@ -61,24 +61,7 @@ export function TalentOutreachConsoleTab() {
   const loadTalents = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase
-        .from("talents")
-        .select(
-          `
-          id, 
-          full_name, 
-          phone, 
-          custom_profession, 
-          profession_categories(name)
-        `,
-        )
-        .not("phone", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (search.trim()) q = q.ilike("full_name", `%${search.trim()}%`);
-
-      const { data, error } = await q;
+      const { data, error } = await talentRepo.listOutreachableTalents(search);
       if (error) throw error;
 
       const formatted = (data ?? []).map((t: any) => ({
