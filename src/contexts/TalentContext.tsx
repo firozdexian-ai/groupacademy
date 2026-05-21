@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentRowByUserId, updateTalentById } from "@/domains/talent/repo/talentRepo";
 import { User, Session } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
 import { Education, Experience, Skill } from "@/types/common";
@@ -149,12 +149,7 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60 * 1000, // 5-minute profile structural residency baseline
     queryFn: async (): Promise<TalentProfile | null> => {
       // HUD: EXECUTING_PROFILE_REGISTRY_INGRESS_SELECT
-      const { data, error } = await supabase.from("talents").select("*").eq("user_id", user!.id).maybeSingle();
-
-      if (error) {
-        console.error("[Digital Workforce] FAULT: talents identity lookup failed.", error);
-        throw error;
-      }
+      const data = await getTalentRowByUserId(user!.id);
       return data ? mapRowToTalent(data) : null;
     },
   });
