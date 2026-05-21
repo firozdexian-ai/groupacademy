@@ -4,7 +4,11 @@
  * Fixes: S1 (Ownership Move), PII Masking Standardized
  */
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listCompaniesNameSorted,
+  listContactsPaged,
+  upsertContact,
+} from "@/domains/companies/repo/companiesRepo";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,21 +66,13 @@ export function ContactsTab() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // P1: Parallel fetch for companies and contacts
-      const [compRes, contactRes] = await Promise.all([
-        supabase.from("companies").select("id, name").order("name"),
-        supabase
-          .from("contacts")
-          .select("*, company:companies(name)", { count: "exact" })
-          .order("created_at", { ascending: false })
-          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1),
+      const [comps, contactsRes] = await Promise.all([
+        listCompaniesNameSorted(),
+        listContactsPaged({ from: (page - 1) * ITEMS_PER_PAGE, to: page * ITEMS_PER_PAGE - 1 }),
       ]);
-
-      if (compRes.data) setCompanies(compRes.data);
-      if (contactRes.data) {
-        setContacts(contactRes.data);
-        setTotalCount(contactRes.count || 0);
-      }
+      setCompanies(comps);
+      setContacts(contactsRes.rows);
+      setTotalCount(contactsRes.count);
     } catch (error) {
       toast.error("Registry sync fault");
     } finally {
@@ -92,8 +88,7 @@ export function ContactsTab() {
     if (!formData.full_name) return toast.error("Identity required");
     setSaving(true);
     try {
-      const { error } = await supabase.from("contacts").upsert(formData);
-      if (error) throw error;
+      await upsertContact(formData);
       toast.success("Registry synchronized");
       setIsDialogOpen(false);
       loadData();

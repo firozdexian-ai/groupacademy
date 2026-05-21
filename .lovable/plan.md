@@ -1,60 +1,69 @@
-## Phase 10e — Profile Domain Repo Extraction
+## Phase 10f — Companies Domain Repo Extraction
 
-Phase 10d closed out the Talent admin surface. The Profile domain still has scattered raw `supabase.from(...)` calls and several legacy `src/hooks/useTalent*.ts` files that re-export from `domains/profile/hooks/`. This phase cleans both.
+Following the same pattern used in 10c/10d/10e (Learning, Talent, Profile), this phase establishes a repository layer for the Companies domain and retires the legacy `src/hooks/useCompan*` re-export shims.
 
 ### Goals
-1. Add `src/domains/profile/repo/profileRepo.ts` as the only `supabase.from(...)` caller in the domain.
-2. Refactor all profile hooks + talent components to go through it.
-3. Retire the stray `src/hooks/useTalent*.ts` re-export shims by repointing imports to the domain entry.
+1. Add `src/domains/companies/repo/companiesRepo.ts` as the only `supabase.from(...)` caller in the domain.
+2. Refactor 1 hook + 6 admin components to go through it.
+3. Delete 3 legacy hook shims in `src/hooks/`.
 
 ### Scope
 
-**New repo — `src/domains/profile/repo/profileRepo.ts`** with typed helpers grouped by surface:
-- **Profile settings** (`usePublicProfileSettings`) — `getPublicProfileSettings`, `upsertPublicProfileSettings`
-- **Talent lists & relationships** (`useTalentLists`, `useTalentRelationships`) — `listTalentLists`, `createTalentList`, `addTalentToList`, `listTalentRelationships`, `upsertTalentRelationship`
-- **Outbound pitches** (`useTalentPitches`) — `listAgentPitchLog` (keep the realtime channel in the hook)
-- **Uploads & docs** (`IdentityDocsUpload`, `PayoutAccountsManager`, `ProfilePhotoUpload`, `CoverImageUpload`, `CVUploadSection`) — `listIdentityDocs`, `insertIdentityDoc`, `deleteIdentityDoc`, `listPayoutAccounts`, `upsertPayoutAccount`, `updateTalentMedia` (photo/cover/cv URL fields)
+**New repo — `src/domains/companies/repo/companiesRepo.ts`**, typed helpers grouped by surface:
 
-Storage `supabase.storage.from(...)` calls stay in the components — repo only owns table I/O.
+- **Companies CRUD** (`CompaniesTab`, `BatchCompanyUpload`, `IndustriesTab`) — `listCompanies`, `searchCompanies`, `upsertCompany`, `updateCompany`, `deleteCompany`, `findCompaniesByDomain`
+- **Contacts** (`ContactsTab`, `BatchCompanyUpload`) — `listContactsForCompany`, `insertContact`, `upsertContactsBatch`, `updateContact`, `deleteContact`
+- **Outreach log** (`CompaniesTab`) — `listContactOutreach`, `countOutreachForCompany`
+- **Company agents** (`CompanyAgentsTab`) — `listAiAgents`, `listCompanyAgents`, `assignAgentToCompany`, `removeCompanyAgent`, `toggleCompanyAgent`
+- **Contact unlocks** (`ContactUnlocksTab`) — `listContactUnlocks`, joined with companies + talents helpers
+- **Followed companies** (`useFollowedCompanies`) — `listFollowedCompanies`, `followCompany`, `unfollowCompany`
 
-**Hooks already in `domains/profile/hooks/`** — rewrite the 5 with raw `from()` to use the repo. The 2 already-clean hooks (`useTalentMirror`, `useTalentOutcomeSignal`, `useTalentSearch`) get a quick audit, no behavioural change.
+Storage (logos, CSV uploads) stays in components — repo only owns table I/O.
 
-**Legacy shims to remove** in `src/hooks/`:
-- `useTalentLists.ts`, `useTalentMirror.ts`, `useTalentRelationships.ts`, `useTalentSearch.ts`, `useTalentOutcomeSignal.ts`, `useTalentPitches.ts`, `usePublicProfileSettings.ts`
+**Files to refactor** (10 raw `supabase.from` call sites across 7 files):
+- `src/domains/companies/hooks/useFollowedCompanies.ts` (2)
+- `src/domains/companies/components/admin/CompaniesTab.tsx` (4)
+- `src/domains/companies/components/admin/CompanyAgentsTab.tsx` (6)
+- `src/domains/companies/components/admin/ContactsTab.tsx` (2)
+- `src/domains/companies/components/admin/ContactUnlocksTab.tsx` (3)
+- `src/domains/companies/components/admin/IndustriesTab.tsx` (1)
+- `src/domains/companies/components/admin/BatchCompanyUpload.tsx` (3)
 
-`useTalent.ts` stays — it re-exports the `TalentContext`, not a data hook.
+`useCompaniesWithSignal` and `useCompanyDetail` already route through edge functions / are clean — quick audit only.
 
-**Codemod**: sed-pass across `src/**` rewriting `@/hooks/useTalentLists` → `@/domains/profile/hooks/useTalentLists` (and the other 6). Same pattern used in 10c/10d.
+**Legacy shims to delete** in `src/hooks/`:
+- `useCompaniesWithSignal.ts` (1-line re-export)
+- `useCompanyDetail.ts` (1-line re-export)
+- `useFollowedCompanies.ts` (1-line re-export)
+
+**Codemod**: sed-pass across `src/**` rewriting `@/hooks/useCompaniesWithSignal`, `@/hooks/useCompanyDetail`, `@/hooks/useFollowedCompanies` → `@/domains/companies/hooks/*`.
 
 ### Out of scope
-- `TalentContext.tsx` — context layer, separate cleanup phase.
-- Storage bucket access patterns.
+- `src/domains/companies/api/*` (already edge-routed).
 - ESLint `NO_RAW_FROM` rule — Phase 10j.
 
 ### Execution
-1. Scaffold `src/domains/profile/repo/profileRepo.ts`.
-2. Rewrite 5 hooks + 5 upload components to call repo helpers.
-3. Codemod imports; delete 7 shim files in `src/hooks/`.
-4. Update `src/domains/profile/index.ts` exports if needed.
-5. Verify: `rg "supabase\.from" src/domains/profile/ src/hooks/useTalent* src/hooks/usePublicProfileSettings*` returns only `profileRepo.ts`; `tsc --noEmit` clean.
-6. Smoke: Talent profile edit (photo, cover, CV, identity docs, payout), public profile settings, talent lists, pitch feed realtime.
+1. Scaffold `src/domains/companies/repo/companiesRepo.ts`.
+2. Rewrite 1 hook + 6 admin components to call repo helpers.
+3. Codemod imports; delete 3 shim files in `src/hooks/`.
+4. Verify: `rg "supabase\.from" src/domains/companies/ src/hooks/useCompan* src/hooks/useFollowedCompanies*` returns only `companiesRepo.ts`; `tsc --noEmit` clean.
+5. Smoke: admin Companies tabs (list, edit, agents, contacts, unlocks, industries), batch upload, talent "Follow Company" toggle.
 
-### After 10e
-- **10f** — Companies domain repo.
-- **10g** — Gigs/Jobs final sweep (already partially done).
-- **10j** — ESLint `NO_RAW_FROM` rule to lock cleaned domains.
+### After 10f
+- **10g** — Gigs domain final sweep (partially done in earlier phases).
+- **10h** — Feed + Messaging domains.
+- **10j** — ESLint `NO_RAW_FROM` rule to lock cleaned domains (Learning, Talent, Profile, Companies, Jobs, Gigs).
 
 Reply to approve and I'll start with the repo scaffold.
-
 ---
 
-## Phase 10e Status — Done
+## Phase 10f Status — Done
 
 Completed:
-- `src/domains/profile/repo/profileRepo.ts` scaffolded with helpers for public-profile settings, talent lists/members, talent relationships, agent pitch log, identity documents, and payout accounts.
-- Refactored 5 raw-`from()` call sites: `usePublicProfileSettings`, `useTalentLists`, `useTalentRelationships`, `useTalentPitches`, `IdentityDocsUpload`, `PayoutAccountsManager`.
-- Codemod swept all `@/hooks/useTalent*` + `@/hooks/usePublicProfileSettings` imports to `@/domains/profile/hooks/*`.
-- Deleted 7 legacy shim files in `src/hooks/` (kept `useTalent.ts` — context re-export).
-- Verification: `rg "supabase\.from" src/domains/profile/` returns only `profileRepo.ts`; `tsc --noEmit` clean.
+- `src/domains/companies/repo/companiesRepo.ts` scaffolded with helpers for companies, contacts, contact_outreach, company_agents, ai_agents (admin views), company_agent_leads, talent_contact_unlocks, talents lookup, and followed_companies.
+- Refactored 7 call sites: `useFollowedCompanies`, `CompaniesTab`, `CompanyAgentsTab`, `ContactsTab`, `ContactUnlocksTab`, `IndustriesTab`, `BatchCompanyUpload`.
+- Codemod swept `@/hooks/useCompaniesWithSignal|useCompanyDetail|useFollowedCompanies` imports to `@/domains/companies/hooks/*`.
+- Deleted 3 legacy shim files in `src/hooks/`.
+- Verification: `rg "supabase\.from" src/domains/companies/` returns only `companiesRepo.ts`.
 
-Next: **10f** Companies domain.
+Next: **10g** Gigs domain final sweep.

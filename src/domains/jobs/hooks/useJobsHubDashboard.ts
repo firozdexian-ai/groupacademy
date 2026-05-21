@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { JobCardData } from "@/components/jobs/JobCard";
-import type { CompanyWithSignal } from "@/hooks/useCompaniesWithSignal";
+import type { CompanyWithSignal } from "@/domains/companies/hooks/useCompaniesWithSignal";
 import type { CountryWithSignal } from "@/hooks/useCountriesWithSignal";
 import type { RemoteFriendlySummary } from "@/hooks/useRemoteFriendly";
 

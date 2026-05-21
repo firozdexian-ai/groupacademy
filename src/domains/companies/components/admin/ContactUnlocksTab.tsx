@@ -11,6 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // R1 Fix: Critical import restored
 import { Loader2, Search, Lock, TrendingUp, Coins, KeyRound, RefreshCw, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listRecentContactUnlocks,
+  listCompaniesByIds,
+  listTalentEmailsByUserIds,
+} from "@/domains/companies/repo/companiesRepo";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,27 +30,26 @@ export function ContactUnlocksTab() {
     setLoading(true);
     try {
       // A7 Fix: Fetch global aggregates server-side, bypassing the client 500-row limit
-      const [statsRes, ledgerRes] = await Promise.all([
+      const [statsRes, ledgerRows] = await Promise.all([
         supabase.rpc("get_contact_unlocks_summary"),
-        supabase.from("talent_contact_unlocks").select("*").order("created_at", { ascending: false }).limit(500),
+        listRecentContactUnlocks(500),
       ]);
 
       if (statsRes.data) setStats(statsRes.data as any);
 
-      if (ledgerRes.data) {
-        // Enrichment Logic: Mapping raw UUIDs to human-readable identities
-        const companyIds = Array.from(new Set(ledgerRes.data.map((r) => r.company_id).filter(Boolean)));
-        const userIds = Array.from(new Set(ledgerRes.data.map((r) => r.unlocked_by).filter(Boolean)));
+      if (ledgerRows.length) {
+        const companyIds = Array.from(new Set(ledgerRows.map((r: any) => r.company_id).filter(Boolean))) as string[];
+        const userIds = Array.from(new Set(ledgerRows.map((r: any) => r.unlocked_by).filter(Boolean))) as string[];
 
         const [comps, users] = await Promise.all([
-          supabase.from("companies").select("id, name").in("id", companyIds),
-          supabase.from("talents").select("user_id, email").in("user_id", userIds),
+          listCompaniesByIds(companyIds),
+          listTalentEmailsByUserIds(userIds),
         ]);
 
-        const compMap = Object.fromEntries((comps.data || []).map((c) => [c.id, c.name]));
-        const userMap = Object.fromEntries((users.data || []).map((u) => [u.user_id, u.email]));
+        const compMap = Object.fromEntries(comps.map((c) => [c.id, c.name]));
+        const userMap = Object.fromEntries(users.map((u) => [u.user_id, u.email]));
 
-        const enriched = ledgerRes.data.map((r) => ({
+        const enriched = ledgerRows.map((r: any) => ({
           ...r,
           company_name: compMap[r.company_id] || "Independent Entity",
           unlocker_email: r.unlocked_by ? userMap[r.unlocked_by] || "Internal Agent" : "—",

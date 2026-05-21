@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { countCompaniesWithNullIndustry, renameCompanyIndustry } from "@/domains/companies/repo/companiesRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,15 +69,15 @@ export function IndustriesTab() {
     setIsLoading(true);
     try {
       // A3 Fix: Single RPC for aggregates + Parallel head query for unassigned
-      const [rollupRes, unassignedRes] = await Promise.all([
+      const [rollupRes, unassignedCountVal] = await Promise.all([
         supabase.rpc("get_industry_rollup"),
-        supabase.from("companies").select("id", { count: "exact", head: true }).is("industry", null),
+        countCompaniesWithNullIndustry(),
       ]);
 
       if (rollupRes.error) throw rollupRes.error;
 
       setIndustries(rollupRes.data || []);
-      setUnassignedCount(unassignedRes.count || 0);
+      setUnassignedCount(unassignedCountVal);
     } catch (err: any) {
       toast.error("Registry Sync Failed: " + err.message);
     } finally {
@@ -93,12 +94,7 @@ export function IndustriesTab() {
     if (!renameTo.trim() || renameTo === renameFrom) return toast.error("Logic Fault: Invalid identifier");
     setIsRenaming(true);
     try {
-      const { error } = await supabase
-        .from("companies")
-        .update({ industry: renameTo.trim() })
-        .eq("industry", renameFrom);
-
-      if (error) throw error;
+      await renameCompanyIndustry(renameFrom, renameTo.trim());
       toast.success(`Node Recalibrated: "${renameFrom}" → "${renameTo}"`);
       setRenameDialogOpen(false);
       loadRegistry();

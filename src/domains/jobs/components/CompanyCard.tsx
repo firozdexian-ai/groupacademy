@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Heart, MapPin, Briefcase, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CompanyWithSignal } from "@/hooks/useCompaniesWithSignal";
+import type { CompanyWithSignal } from "@/domains/companies/hooks/useCompaniesWithSignal";
 
 interface Props {
   company: CompanyWithSignal;
