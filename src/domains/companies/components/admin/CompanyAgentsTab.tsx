@@ -166,74 +166,44 @@ export function CompanyAgentsManager() {
 
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
     queryKey: ["companies-for-agents"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("id, name, logo_url, industry").order("name");
-      if (error) throw error;
-      return data as Company[];
-    },
+    queryFn: async () => (await listCompaniesForAgentPicker()) as Company[],
   });
 
   const { data: companyAgents = [], isLoading: loadingAgents } = useQuery({
     queryKey: ["company-agents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_agents")
-        .select(
-          `
-          *,
-          ai_agents (*),
-          companies (id, name, logo_url, industry)
-        `,
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as CompanyAgent[];
-    },
+    queryFn: async () => (await listCompanyAgentsFull()) as CompanyAgent[],
   });
 
   const { data: leads = [], isLoading: loadingLeads } = useQuery({
     queryKey: ["company-agent-leads"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_agent_leads")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Lead[];
-    },
+    queryFn: async () => (await listCompanyAgentLeads()) as Lead[],
   });
 
   const createAgentMutation = useMutation({
     mutationFn: async (data: typeof formData & { company_id: string }) => {
       const agentKey = `${data.name.toLowerCase().replace(/\s+/g, "-")}-${selectedCompany.slice(0, 8)}`;
-      const { data: newAgent, error: agentError } = await supabase
-        .from("ai_agents")
-        .insert({
-          agent_key: agentKey,
-          name: data.name,
-          description: data.description,
-          system_prompt: data.system_prompt,
-          expertise_areas: data.expertise_areas
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          category: data.category,
-          credit_cost: data.credit_cost,
-          company_id: data.company_id,
-          agent_type: "company_sponsored",
-          icon: "Building2",
-          color: "text-blue-600",
-          bg_color: "bg-blue-500/10",
-          capabilities: ["text"],
-          is_active: true,
-          is_featured: false,
-        })
-        .select()
-        .single();
+      const newAgent = await insertAiAgent({
+        agent_key: agentKey,
+        name: data.name,
+        description: data.description,
+        system_prompt: data.system_prompt,
+        expertise_areas: data.expertise_areas
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        category: data.category,
+        credit_cost: data.credit_cost,
+        company_id: data.company_id,
+        agent_type: "company_sponsored",
+        icon: "Building2",
+        color: "text-blue-600",
+        bg_color: "bg-blue-500/10",
+        capabilities: ["text"],
+        is_active: true,
+        is_featured: false,
+      });
 
-      if (agentError) throw agentError;
-
-      const { error: linkError } = await supabase.from("company_agents").insert({
+      await insertCompanyAgent({
         agent_id: newAgent.id,
         company_id: data.company_id,
         sponsorship_type: data.sponsorship_type,
@@ -246,8 +216,6 @@ export function CompanyAgentsManager() {
           notification_email: data.lead_notification_email || null,
         },
       });
-
-      if (linkError) throw linkError;
       return newAgent;
     },
     onSuccess: () => {
@@ -268,9 +236,8 @@ export function CompanyAgentsManager() {
       companyAgentId: string;
       isActive: boolean;
     }) => {
-      await supabase.from("ai_agents").update({ is_active: isActive }).eq("id", agentId);
-      const { error } = await supabase.from("company_agents").update({ is_active: isActive }).eq("id", companyAgentId);
-      if (error) throw error;
+      await updateAiAgentActive(agentId, isActive);
+      await updateCompanyAgentActive(companyAgentId, isActive);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-agents"] });
@@ -280,9 +247,8 @@ export function CompanyAgentsManager() {
 
   const deleteAgentMutation = useMutation({
     mutationFn: async ({ agentId, companyAgentId }: { agentId: string; companyAgentId: string }) => {
-      await supabase.from("company_agents").delete().eq("id", companyAgentId);
-      const { error } = await supabase.from("ai_agents").delete().eq("id", agentId);
-      if (error) throw error;
+      await deleteCompanyAgentById(companyAgentId);
+      await deleteAiAgent(agentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-agents"] });
