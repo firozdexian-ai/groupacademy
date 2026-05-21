@@ -40,18 +40,15 @@ export function useSavedItems() {
     staleTime: 30 * 1000, // 30-second cache consistency boundary for user assets
     queryFn: async (): Promise<SavedItem[]> => {
       // HUD: EXECUTING_BOOKMARK_REGISTRY_INGRESS
-      const { data, error } = await supabase
-        .from("saved_items")
-        .select("id, item_id, item_type, saved_at")
-        .eq("talent_id", talentId!)
-        .order("saved_at", { ascending: false });
-
-      if (error) {
+      let data: Array<{ id: string; item_id: string; item_type: string; saved_at: string }> = [];
+      try {
+        data = await listSavedItemsByTalent(talentId!);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: saved_items collection channel dropped.", error);
         throw error;
       }
 
-      return (data || []).map((item) => ({
+      return data.map((item) => ({
         id: item.id,
         item_id: item.item_id,
         item_type: item.item_type as SavedItemType,
@@ -90,28 +87,11 @@ export function useSavedItems() {
 
       if (alreadySaved) {
         // HUD: COMMITTING_BOOKMARK_PURGE_TRANSACTION
-        const { error } = await supabase
-          .from("saved_items")
-          .delete()
-          .eq("talent_id", talentId)
-          .eq("item_id", itemId)
-          .eq("item_type", itemType);
-
-        if (error) throw error;
+        await deleteSavedItemRow(talentId, itemId, itemType);
         return { itemId, itemType, action: "purged" as const };
       } else {
         // HUD: COMMITTING_BOOKMARK_INSERTION_TRANSACTION
-        const { data, error } = await supabase
-          .from("saved_items")
-          .insert({
-            talent_id: talentId,
-            item_id: itemId,
-            item_type: itemType,
-          })
-          .select("id, item_id, item_type, saved_at")
-          .single();
-
-        if (error) throw error;
+        const data = await insertSavedItemRow(talentId, itemId, itemType);
         return {
           item: {
             id: data.id,
