@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { leadHuntMatch } from "@/domains/marketing/api/marketingApi";
+import {
+  listLeadHuntSessionsAndJobs,
+  listLeadHuntMatches,
+  logTalentWelcomeOutreach,
+} from "@/domains/marketing/repo/marketingRepo";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
 import { TalentDetailDialog } from "@/domains/talent/components/admin/TalentDetailDialog";
 import { Button } from "@/components/ui/button";
