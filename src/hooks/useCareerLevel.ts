@@ -30,19 +30,14 @@ export function useCareerLevel() {
         return { lifetime_volume: 0, lifetime_earned: 0, lifetime_spent: 0, transaction_count: 0 };
       }
 
-      // HUD: EXECUTING_LEDGER_VOLUME_FETCH
-      const { data, error } = await supabase
-        .from("talent_lifetime_credits" as any)
-        .select("lifetime_volume, lifetime_earned, lifetime_spent, transaction_count")
-        .eq("talent_id", talent.id)
-        .maybeSingle();
-
-      if (error) {
-        // Digital Workforce Anomaly Sensor: Catch ledger calculation faults or RLS boundary exceptions
+      let data: any = null;
+      try {
+        data = await getTalentLifetimeCredits(talent.id);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: talent_lifetime_credits query failed sync.", {
           talentId: talent.id,
-          error: error.message,
-          code: error.code,
+          error: error?.message,
+          code: error?.code,
         });
         throw error;
       }

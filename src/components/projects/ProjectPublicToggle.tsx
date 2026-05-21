@@ -43,17 +43,8 @@ export function ProjectPublicToggle({ projectId }: ProjectPublicToggleProps) {
   useEffect(() => {
     let isRequestActive = true;
 
-    supabase
-      .from("project_public_settings")
-      .select("is_public, slug, view_count, share_count")
-      .eq("project_id", projectId)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          trackError(error, { component: "ProjectPublicToggle", action: "initial_fetch_settings", projectId });
-          return;
-        }
-
+    getProjectPublicSettings(projectId)
+      .then((data) => {
         if (isRequestActive && isMountedRef.current && data) {
           setPub(!!data.is_public);
           setSlug(data.slug);
@@ -61,6 +52,9 @@ export function ProjectPublicToggle({ projectId }: ProjectPublicToggleProps) {
           setShares(data.share_count ?? 0);
           trackEvent("project_public_settings_loaded", { projectId, isPublic: !!data.is_public });
         }
+      })
+      .catch((error) => {
+        trackError(error, { component: "ProjectPublicToggle", action: "initial_fetch_settings", projectId });
       });
 
     return () => {

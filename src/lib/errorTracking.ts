@@ -5,7 +5,7 @@
  * Version: Launch Candidate · Phase Z0 Hardened
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { insertPlatformEvent } from "@/domains/analytics/repo/analyticsRepo";
 
 export interface ErrorContext {
   component?: string;
@@ -22,19 +22,14 @@ function logPlatformEvent(
   context: ErrorContext | undefined,
   payload: Record<string, unknown>,
 ): void {
-  supabase
-    .from("platform_events")
-    .insert([
-      {
-        event_kind: eventKind,
-        subject_kind: context?.component || "unknown",
-        subject_id: context?.userId || null,
-        payload: { severity, action: context?.action || "unknown", ...payload, ...context },
-      },
-    ])
-    .then(({ error: dbErr }) => {
-      if (dbErr) console.warn("[ErrorTracking] Failed to write platform event:", dbErr.message);
-    });
+  insertPlatformEvent({
+    event_kind: eventKind,
+    subject_kind: context?.component || "unknown",
+    subject_id: (context?.userId as string | undefined) || null,
+    payload: { severity, action: context?.action || "unknown", ...payload, ...context },
+  }).catch((dbErr: any) => {
+    console.warn("[ErrorTracking] Failed to write platform event:", dbErr?.message ?? dbErr);
+  });
 }
 
 /**

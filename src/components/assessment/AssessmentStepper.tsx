@@ -54,14 +54,10 @@ export function AssessmentStepper({ categoryId, categoryName, onComplete, onBack
     staleTime: 5 * 60 * 1000, // 5-minute stability caching protect database aggregate paths
     queryFn: async (): Promise<Question[]> => {
       // HUD: EXECUTING_DIAGNOSTIC_QUESTIONS_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("assessment_questions")
-        .select("*")
-        .eq("is_active", true)
-        .or(`profession_category_id.is.null,profession_category_id.eq.${categoryId}`)
-        .order("display_order");
-
-      if (error) {
+      let data: any[] = [];
+      try {
+        data = await listAssessmentQuestionsForCategory(categoryId);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: assessment_questions collection dropped.", error);
         throw error;
       }

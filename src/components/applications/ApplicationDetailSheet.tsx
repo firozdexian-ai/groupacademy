@@ -102,12 +102,7 @@ export function ApplicationDetailSheet({
       if (!application?.id) throw new Error("TRANSACTION_REJECTED: Context anchor dropped.");
 
       // HUD: COMMITTING_INTERNAL_ASSESSMENT_NOTES_UPDATE
-      const { error } = await supabase
-        .from("job_applications")
-        .update({ external_notes: targetTextPayload.trim() })
-        .eq("id", application.id);
-
-      if (error) throw error;
+      await updateJobApplication(application.id, { external_notes: targetTextPayload.trim() });
     },
     onSuccess: () => {
       toast.success("Internal recruiter notes logged successfully.");

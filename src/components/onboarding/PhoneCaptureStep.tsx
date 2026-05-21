@@ -68,14 +68,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
 
     try {
       // Cheap Unique Pre-Check Constraint Boundary Pass ahead of database write updates
-      const { data: existingTalentRowMatch, error: lookupRpcError } = await supabase
-        .from("talents")
-        .select("id")
-        .eq("phone", absoluteConcatenatedFullPhoneStr)
-        .neq("id", talent.id)
-        .maybeSingle();
-
-      if (lookupRpcError) throw lookupRpcError;
+      const existingTalentRowMatch = await findTalentByPhoneExceptId(absoluteConcatenatedFullPhoneStr, talent.id);
 
       if (existingTalentRowMatch) {
         toast.error(

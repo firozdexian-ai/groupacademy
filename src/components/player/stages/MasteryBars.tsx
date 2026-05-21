@@ -58,16 +58,8 @@ export function MasteryBars({ moduleId, topN = 5 }: MasteryBarsProps) {
     staleTime: 3 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async ({ signal }) => {
-      const { data, error } = await supabase
-        .from("talent_skill_profile")
-        .select("topic_tag, mastery, attempts")
-        .eq("module_id", moduleId)
-        .order("attempts", { ascending: false })
-        .limit(50)
-        .abortSignal(signal); // Abort Request: Automatically cancel raw execution thread if component drops mid-flight
-
-      if (error) throw error;
-      return (data ?? []) as MasteryRow[];
+      const data = await listTalentSkillMastery(moduleId, signal);
+      return data as MasteryRow[];
     },
   });
 

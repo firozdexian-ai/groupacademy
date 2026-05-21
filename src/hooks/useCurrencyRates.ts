@@ -16,24 +16,19 @@ export function useCurrencyRates() {
     staleTime: 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
     queryFn: async (): Promise<CurrencyRate[]> => {
-      // HUD: EXECUTING_CURRENCY_NODE_SELECT
-      const { data, error } = await supabase
-        .from("currency_rates")
-        .select("code, symbol, name, usd_rate, country_codes")
-        .order("code");
-
-      if (error) {
-        // Digital Workforce Anomaly Interceptor:
-        // Stream explicitly signed formatting errors for automated ingestion by Admin Chat.
+      let data: any[] = [];
+      try {
+        data = await listActiveCurrencyRates();
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: currency_rates schema synchronization failure.", {
-          code: error.code,
-          message: error.message,
+          code: error?.code,
+          message: error?.message,
           timestamp: new Date().toISOString(),
         });
         throw error;
       }
 
-      return (data ?? []) as unknown as CurrencyRate[];
+      return data as unknown as CurrencyRate[];
     },
   });
 
