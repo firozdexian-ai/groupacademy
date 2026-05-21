@@ -132,3 +132,31 @@ export async function listAudienceFeedPosts(opts: {
   const { data } = await query;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.6a: creator analytics RPCs ──────────────────────────────────
+export async function getCreatorScorecard(_talent_id: string, _days: number) {
+  const { data, error } = await (supabase as any).rpc("get_creator_scorecard", { _talent_id, _days });
+  if (error) throw error;
+  return data;
+}
+
+export async function getCreatorTopPosts(_talent_id: string, _days: number, _limit: number) {
+  const { data, error } = await (supabase as any).rpc("get_creator_top_posts", { _talent_id, _days, _limit });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getPostInsights(_post_id: string) {
+  const { data, error } = await (supabase as any).rpc("get_post_insights", { _post_id });
+  if (error) throw error;
+  return data;
+}
+
+export async function recordImpressionAsync(_post_id: string, _surface: string) {
+  return (supabase as any).rpc("record_impression", { _post_id, _surface });
+}
+
+export async function recordShare(_post_id: string, _channel: string): Promise<void> {
+  const { error } = await (supabase as any).rpc("record_share", { _post_id, _channel });
+  if (error) throw error;
+}
