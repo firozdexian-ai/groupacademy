@@ -9,12 +9,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Coins, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveCompany } from "../hooks/useActiveCompany";
 import { useCompanyCredits } from "../hooks/useCompanyCredits";
 import { useContactCredits } from "../hooks/useContactCredits";
 import { GRO10X_PANEL } from "../lib/tokens";
+import { getTalentPhotoByUserId } from "@/domains/talent/repo/talentRepo";
 
 export function Gro10xTopBar() {
   const { pathname } = useLocation();
@@ -30,11 +30,7 @@ export function Gro10xTopBar() {
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("talents")
-        .select("full_name, profile_photo_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const data = await getTalentPhotoByUserId(user.id);
       if (cancelled) return;
       setPhoto(data?.profile_photo_url ?? null);
       setInitial(((data?.full_name || user.email || "?") as string).charAt(0).toUpperCase());
