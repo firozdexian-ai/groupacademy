@@ -77,26 +77,12 @@ const getYoutubeThumbnail = (url: string): string | null => {
 };
 
 async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; nextCursor?: string }> {
-  let coursesQuery = supabase.from("content").select("*").eq("is_published", true).limit(PAGE_SIZE_COURSES);
-  let blogsQuery = supabase.from("blog_posts").select("*").eq("status", "published").limit(PAGE_SIZE_BLOGS);
-  let postsQuery = supabase
-    .from("feed_posts")
-    .select("*")
-    .eq("is_active", true)
-    .eq("status", "published")
-    .limit(PAGE_SIZE_POSTS);
-
-  if (olderThan) {
-    coursesQuery = coursesQuery.lt("created_at", olderThan);
-    blogsQuery = blogsQuery.lt("created_at", olderThan);
-    postsQuery = postsQuery.lt("created_at", olderThan);
-  }
-
-  const [coursesRes, blogsRes, postsRes] = await Promise.all([
-    coursesQuery.order("created_at", { ascending: false }),
-    blogsQuery.order("created_at", { ascending: false }),
-    postsQuery.order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
-  ]);
+  const { coursesRes, blogsRes, postsRes } = await fetchFeedRecommendationPage({
+    olderThan,
+    pageSizeCourses: PAGE_SIZE_COURSES,
+    pageSizeBlogs: PAGE_SIZE_BLOGS,
+    pageSizePosts: PAGE_SIZE_POSTS,
+  });
 
   const items: FeedItem[] = [];
 
