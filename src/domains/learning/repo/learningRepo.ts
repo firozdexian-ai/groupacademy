@@ -1329,3 +1329,46 @@ export async function listContentByIdsBasic(ids: string[]) {
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5e: instructor review queue + IELTS access ──────────────────
+export async function listPublishedContentIdsLimit(limit = 50): Promise<string[]> {
+  const { data } = await supabase
+    .from("content")
+    .select("id")
+    .eq("is_published", true)
+    .limit(limit);
+  return ((data as any[]) ?? []).map((c) => c.id as string);
+}
+
+export async function findInstructorIdByEmail(email: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("instructors")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  return (data as any)?.id ?? null;
+}
+
+export async function listContentIdsForInstructor(instructorId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("content_instructors")
+    .select("content_id")
+    .eq("instructor_id", instructorId);
+  return ((data as any[]) ?? []).map((r) => r.content_id as string);
+}
+
+export async function listCourseModuleIdsByContentIds(contentIds: string[]): Promise<string[]> {
+  if (!contentIds.length) return [];
+  const { data } = await supabase
+    .from("course_modules")
+    .select("id")
+    .in("content_id", contentIds);
+  return ((data as any[]) ?? []).map((m) => m.id as string);
+}
+
+export async function insertIeltsResourceAccess(talentId: string, resourceId: string): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("ielts_resource_access")
+    .insert([{ talent_id: talentId, resource_id: resourceId } as any]);
+  return { error };
+}

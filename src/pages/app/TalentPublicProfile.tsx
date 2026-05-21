@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getTalentPublicProfileById,
+  getTalentPublicProfileMeta,
+} from "@/domains/talent/repo/talentRepo";
 import {
   ArrowLeft,
   Lock,
@@ -59,18 +62,12 @@ export default function TalentPublicProfile() {
     queryKey: ["talent-profile", id],
     queryFn: async () => {
       if (!id) throw new Error("Missing ID");
-      const { data, error } = await supabase
-        .from("talents")
-        .select(
-          "id, full_name, profile_photo_url, cover_image_url, custom_profession, country, linkedin_url, portfolio_url, skills",
-        )
-        .eq("id", id)
-        .maybeSingle();
-      if (error) {
+      try {
+        return (await getTalentPublicProfileById(id)) as TalentDetail | null;
+      } catch (error) {
         await reportAnomaly("ProfileFetchFailure", { id, error });
         throw error;
       }
-      return data as TalentDetail | null;
     },
     enabled: !!id,
   });
@@ -78,18 +75,7 @@ export default function TalentPublicProfile() {
   const { data: meta } = useQuery({
     queryKey: ["talent-meta", id],
     enabled: !!id,
-    queryFn: async () => {
-      const [s, v, h] = await Promise.all([
-        supabase.from("talent_inbox_settings").select("unlocked").eq("talent_id", id!).maybeSingle(),
-        supabase.from("v_talent_transaction_volume").select("volume").eq("talent_id", id!).maybeSingle(),
-        supabase.from("post_hypes").select("id", { count: "exact", head: true }).eq("recipient_talent_id", id!),
-      ]);
-      return {
-        unlocked: Boolean(s.data?.unlocked),
-        volume: Number(v.data?.volume || 0),
-        hypeCount: h.count || 0,
-      };
-    },
+    queryFn: () => getTalentPublicProfileMeta(id!),
   });
 
   if (isLoading)

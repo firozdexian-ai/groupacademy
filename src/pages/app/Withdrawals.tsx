@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listMyWithdrawalRequests,
+  listMyTalentPayoutAccounts,
+  insertTalentWithdrawalRequest,
+} from "@/domains/finance/repo/financeRepo";
+import { getTalentVerificationStatus } from "@/domains/talent/repo/talentRepo";
 import { ArrowLeft, Wallet, Coins, Loader2, Clock, CheckCircle2, XCircle, ShieldAlert, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,36 +73,25 @@ export default function Withdrawals() {
     queryKey: ["withdrawal-requests", talent?.id],
     enabled: !!talent?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("withdrawal_requests")
-        .select("*")
-        .eq("talent_id", talent!.id)
-        .order("created_at", { ascending: false });
-      if (error) {
+      try {
+        return (await listMyWithdrawalRequests(talent!.id)) as unknown as WithdrawalRequest[];
+      } catch (error) {
         await reportAnomaly("LedgerFetchFailure", { error });
         throw error;
       }
-      return (data as unknown as WithdrawalRequest[]) || [];
     },
   });
 
   const { data: accounts = [], isLoading: accLoading } = useQuery({
     queryKey: ["payout-accounts", talent?.id],
     enabled: !!talent?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("talent_payout_accounts").select("*").eq("talent_id", talent!.id);
-      if (error) throw error;
-      return (data as unknown as PayoutAccount[]) || [];
-    },
+    queryFn: async () => (await listMyTalentPayoutAccounts(talent!.id)) as unknown as PayoutAccount[],
   });
 
   const { data: talentMeta } = useQuery({
     queryKey: ["talent-verify-status", talent?.id],
     enabled: !!talent?.id,
-    queryFn: async () => {
-      const { data } = await supabase.from("talents").select("verification_status").eq("id", talent!.id).maybeSingle();
-      return data;
-    },
+    queryFn: async () => ({ verification_status: await getTalentVerificationStatus(talent!.id) }),
   });
 
   const earned = Number(earnedBalance || 0);
@@ -114,7 +108,7 @@ export default function Withdrawals() {
       const acct = accounts.find((a) => a.id === accountId);
       if (!acct) throw new Error("Account mismatch.");
 
-      const { error } = await supabase.from("withdrawal_requests").insert({
+      const { error } = await insertTalentWithdrawalRequest({
         talent_id: talent.id,
         amount_credits: amt,
         method: acct.method,

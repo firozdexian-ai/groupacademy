@@ -562,3 +562,9 @@ export async function listJobsByIdsBasic(ids: string[]) {
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5e: job assessment answers update ──────────────────────────
+export async function updateJobAssessment(id: string, patch: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("job_assessments").update(patch).eq("id", id);
+  if (error) throw error;
+}

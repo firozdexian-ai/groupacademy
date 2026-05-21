@@ -2,6 +2,8 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { insertIeltsResourceAccess } from "@/domains/learning/repo/learningRepo";
+import { insertContactLog } from "@/domains/marketing/repo/marketingRepo";
 import {
   Headphones,
   BookOpen,
@@ -120,21 +122,20 @@ export default function IELTSPrep() {
     setIsUnlockingTransactionPending(true);
 
     try {
-      const { error: accessMutationError } = await supabase
-        .from("ielts_resource_access")
-        .insert([{ talent_id: talentProfileRecord.id, resource_id: activeSelectedResource.id }]);
+      const { error: accessMutationError } = await insertIeltsResourceAccess(
+        talentProfileRecord.id,
+        activeSelectedResource.id,
+      );
 
       if (accessMutationError) throw accessMutationError;
 
       // Log telemetry for administrative monitoring of premium resource draws
-      await supabase.from("contacts").insert([
-        {
-          full_name: talentProfileRecord.fullName,
-          email: talentProfileRecord.email,
-          subject: `IELTS Premium Unlock: ${activeSelectedResource.title}`,
-          message: `Talent successfully unlocked premium section: ${activeSelectedResource.section}.`,
-        },
-      ]);
+      await insertContactLog({
+        full_name: talentProfileRecord.fullName,
+        email: talentProfileRecord.email,
+        subject: `IELTS Premium Unlock: ${activeSelectedResource.title}`,
+        message: `Talent successfully unlocked premium section: ${activeSelectedResource.section}.`,
+      });
 
       await tanstackQueryClient.invalidateQueries({ queryKey: ["app-ielts-resource-access-registry"] });
       await refreshBalance();

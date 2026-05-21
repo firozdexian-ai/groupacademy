@@ -445,3 +445,40 @@ export async function listBlogPostsByIds(ids: string[]) {
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5e: results-by-email helpers ────────────────────────────────
+export async function listCareerAssessmentsByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("career_assessments")
+    .select("id, created_at, percentage, readiness_level")
+    .eq("email", email);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listMockInterviewsByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("mock_interviews")
+    .select("id, created_at, selection_percentage, status, job_title")
+    .eq("email", email);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listSalaryAnalysesByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("salary_analyses")
+    .select("id, created_at, status, job_title")
+    .eq("email", email);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listPortfolioRequestsByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("portfolio_requests")
+    .select("id, created_at, status")
+    .eq("email", email);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}

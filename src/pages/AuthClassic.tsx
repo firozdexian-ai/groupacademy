@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { findTalentByPhone } from "@/domains/talent/repo/talentRepo";
 import { PhoneInput } from "@/components/ui/phone-input";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
@@ -106,7 +107,7 @@ const Auth = () => {
     const fullPhone = `${signupData.countryCode}${signupData.phone}`;
 
     try {
-      const { data: existing } = await supabase.from("talents").select("id").eq("phone", fullPhone).maybeSingle();
+      const existing = await findTalentByPhone(fullPhone);
       if (existing) {
         toast.error("An account already uses this phone. Switching to sign in.");
         setActiveTab("login");

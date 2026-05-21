@@ -154,3 +154,25 @@ export async function insertWorkforceInstanceReturningId(payload: {
   if (error || !data?.id) return null;
   return data.id as string;
 }
+
+// ─── Phase 10j.5e: command center counters + rule mgmt ─────────────────────
+export async function countActiveWorkforceChannelConnections(): Promise<number> {
+  const { count } = await (supabase as any)
+    .from("workforce_channel_connections")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true);
+  return count ?? 0;
+}
+
+export async function countActiveWorkforceRoutingRules(): Promise<number> {
+  const { count } = await (supabase as any)
+    .from("workforce_routing_rules")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true);
+  return count ?? 0;
+}
+
+export async function deleteWorkforceRoutingRule(id: string): Promise<void> {
+  const { error } = await (supabase as any).from("workforce_routing_rules").delete().eq("id", id);
+  if (error) throw error;
+}

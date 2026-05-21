@@ -221,3 +221,54 @@ export async function insertGigSubmission(payload: {
   if (error) throw error;
   return data as { id: string };
 }
+
+// ─── Phase 10j.5e: marketplace gigs (talent-facing) ───────────────────────
+export async function getMarketplaceGigById(id: string) {
+  const { data, error } = await supabase
+    .from("marketplace_gigs")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getMyMarketplaceBidForGig(gigId: string, talentId: string) {
+  const { data } = await supabase
+    .from("marketplace_bids")
+    .select("id, status, bid_amount")
+    .eq("gig_id", gigId)
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+export async function listMarketplaceReviewsForGig(gigId: string) {
+  const { data } = await supabase
+    .from("marketplace_reviews")
+    .select("id, rating, comment, created_at, marketplace_contracts!inner(gig_id)")
+    .eq("marketplace_contracts.gig_id", gigId)
+    .order("created_at", { ascending: false });
+  return (data as any[]) ?? [];
+}
+
+export async function insertMarketplaceBid(payload: {
+  gig_id: string;
+  talent_id: string;
+  bid_amount: number;
+  cover_letter: string;
+  estimated_days: number | null;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("marketplace_bids").insert(payload as any);
+  return { error };
+}
+
+export async function insertMarketplaceDeliverable(payload: {
+  contract_id: string;
+  title: string;
+  description: string | null;
+  file_url: string | null;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("marketplace_deliverables").insert(payload as any);
+  return { error };
+}

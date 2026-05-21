@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listJobsByIdsBasic } from "@/domains/jobs/repo/jobsRepo";
+import { listContentByIdsBasic } from "@/domains/learning/repo/learningRepo";
+import { listBlogPostsByIds } from "@/domains/marketing/repo/marketingRepo";
 import { useSavedItems, SavedItemType } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,18 +77,12 @@ export default function SavedItems() {
         const blogIds = savedItems.filter((i) => i.item_type === "blog").map((i) => i.item_id);
 
         const [jobsResult, coursesResult, blogsResult] = await Promise.all([
-          jobIds.length
-            ? supabase.from("jobs").select("id, title, company_name, location").in("id", jobIds)
-            : Promise.resolve({ data: [] }),
-          courseIds.length
-            ? supabase.from("content").select("id, title, slug, thumbnail_url").in("id", courseIds)
-            : Promise.resolve({ data: [] }),
-          blogIds.length
-            ? supabase.from("blog_posts").select("id, title, slug, featured_image").in("id", blogIds)
-            : Promise.resolve({ data: [] }),
+          jobIds.length ? listJobsByIdsBasic(jobIds) : Promise.resolve([] as any[]),
+          courseIds.length ? listContentByIdsBasic(courseIds) : Promise.resolve([] as any[]),
+          blogIds.length ? listBlogPostsByIds(blogIds) : Promise.resolve([] as any[]),
         ]);
 
-        jobsResult.data?.forEach((job: any) => {
+        jobsResult.forEach((job: any) => {
           const saved = savedItems.find((i) => i.item_id === job.id);
           if (saved)
             details.set(`${saved.item_type}-${job.id}`, {
@@ -97,7 +93,7 @@ export default function SavedItems() {
             });
         });
 
-        coursesResult.data?.forEach((c: any) => {
+        coursesResult.forEach((c: any) => {
           const saved = savedItems.find((i) => i.item_id === c.id);
           if (saved)
             details.set(`${saved.item_type}-${c.id}`, {
@@ -108,7 +104,7 @@ export default function SavedItems() {
             });
         });
 
-        blogsResult.data?.forEach((b: any) => {
+        blogsResult.forEach((b: any) => {
           const saved = savedItems.find((i) => i.item_id === b.id);
           if (saved)
             details.set(`${saved.item_type}-${b.id}`, {

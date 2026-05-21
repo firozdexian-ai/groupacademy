@@ -1,6 +1,19 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  countAiAgentsByTemplateFlag,
+  listAiAgentsForFleet,
+  listAiAgentsCompact,
+  getAiAgentById,
+  cloneAiAgentInstance,
+} from "@/domains/agents/repo/agentsRepo";
+import { listAllCompaniesWithSlug } from "@/domains/companies/repo/companiesRepo";
+import {
+  countActiveWorkforceChannelConnections,
+  countActiveWorkforceRoutingRules,
+  deleteWorkforceRoutingRule,
+} from "@/domains/workforce/repo/workforceRepo";
 import { toast } from "sonner";
 import { useAdminScope } from "@/hooks/useAdminScope";
 import { telegramDiagnostic } from "@/domains/messaging/api/messagingApi";
@@ -127,24 +140,13 @@ function StatusStrip() {
   const { data } = useQuery({
     queryKey: ["wcc-kpis"],
     queryFn: async () => {
-      const [tpl, inst, ch, rt] = await Promise.all([
-        supabase.from("ai_agents").select("id", { count: "exact", head: true }).eq("is_template", true),
-        supabase.from("ai_agents").select("id", { count: "exact", head: true }).eq("is_template", false),
-        (supabase as any)
-          .from("workforce_channel_connections")
-          .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
-        (supabase as any)
-          .from("workforce_routing_rules")
-          .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
+      const [templates, instances, channels, routes] = await Promise.all([
+        countAiAgentsByTemplateFlag(true),
+        countAiAgentsByTemplateFlag(false),
+        countActiveWorkforceChannelConnections(),
+        countActiveWorkforceRoutingRules(),
       ]);
-      return {
-        templates: tpl.count ?? 0,
-        instances: inst.count ?? 0,
-        channels: ch.count ?? 0,
-        routes: rt.count ?? 0,
-      };
+      return { templates, instances, channels, routes };
     },
   });
 
@@ -183,23 +185,12 @@ function FleetPanel() {
 
   const agentsQ = useQuery({
     queryKey: ["wcc-agents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_agents")
-        .select("id,agent_key,name,company_id,is_template,parent_template_id,is_active,kill_switch,avatar_url,audience")
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as AgentRow[];
-    },
+    queryFn: async () => (await listAiAgentsForFleet()) as AgentRow[],
   });
 
   const companiesQ = useQuery({
     queryKey: ["wcc-companies"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("id,name,slug").order("name");
-      if (error) throw error;
-      return (data ?? []) as CompanyRow[];
-    },
+    queryFn: async () => (await listAllCompaniesWithSlug()) as CompanyRow[],
   });
 
   const companyMap = useMemo(() => new Map((companiesQ.data ?? []).map((c) => [c.id, c])), [companiesQ.data]);
@@ -330,8 +321,8 @@ function HireDialog({ templates, companies, onClose, onDone }: any) {
       if (!templateId || !companyId) throw new Error("Select a template and company");
 
       // FIX 1: Changed .select("") to .select("*")
-      const { data: tpl, error: e1 } = await supabase.from("ai_agents").select("*").eq("id", templateId).maybeSingle();
-      if (e1 || !tpl) throw new Error(e1?.message ?? "Template not found");
+      const tpl = await getAiAgentById(templateId);
+      if (!tpl) throw new Error("Template not found");
 
       const company = companies.find((c: any) => c.id === companyId);
       const slug =
@@ -344,7 +335,7 @@ function HireDialog({ templates, companies, onClose, onDone }: any) {
       const { id, created_at, updated_at, ...rest } = tpl as any;
       const newAgentKey = `${tpl.agent_key}__${slug}__${Math.random().toString(36).slice(2, 6)}`;
 
-      const { error: e2 } = await supabase.from("ai_agents").insert({
+      const { error: e2 } = await cloneAiAgentInstance({
         ...rest,
         agent_key: newAgentKey,
         name: `${tpl.name} (${company?.name ?? "Client"})`,
@@ -353,7 +344,7 @@ function HireDialog({ templates, companies, onClose, onDone }: any) {
         company_id: companyId,
         owner_kind: "company",
         owner_id: companyId,
-      } as any);
+      });
       if (e2) throw e2;
     },
     onSuccess: () => {

@@ -626,3 +626,82 @@ export async function listPayoutAccountPrimaryFlags(talentId: string): Promise<A
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5e: public profile + directory helpers ──────────────────────
+export async function findTalentByPhone(phone: string): Promise<{ id: string } | null> {
+  const { data } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("phone", phone)
+    .maybeSingle();
+  return (data as { id: string } | null) ?? null;
+}
+
+export async function getTalentPublicProfileById(id: string) {
+  const { data, error } = await supabase
+    .from("talents")
+    .select(
+      "id, full_name, profile_photo_url, cover_image_url, custom_profession, country, linkedin_url, portfolio_url, skills",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getTalentPublicProfileMeta(id: string) {
+  const [s, v, h] = await Promise.all([
+    supabase.from("talent_inbox_settings").select("unlocked").eq("talent_id", id).maybeSingle(),
+    supabase.from("v_talent_transaction_volume").select("volume").eq("talent_id", id).maybeSingle(),
+    supabase.from("post_hypes").select("id", { count: "exact", head: true }).eq("recipient_talent_id", id),
+  ]);
+  return {
+    unlocked: Boolean((s.data as any)?.unlocked),
+    volume: Number((v.data as any)?.volume || 0),
+    hypeCount: h.count || 0,
+  };
+}
+
+export interface TalentDirectoryQuery { q?: string; country?: string; limit?: number; }
+export async function listTalentRowsForDirectory(opts: TalentDirectoryQuery = {}) {
+  let query = supabase
+    .from("talents")
+    .select("id, full_name, profile_photo_url, custom_profession, country")
+    .not("full_name", "is", null)
+    .limit(opts.limit ?? 60);
+  if (opts.q?.trim()) query = query.ilike("full_name", `%${opts.q.trim()}%`);
+  if (opts.country && opts.country !== "all") query = query.eq("country", opts.country);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listTalentInboxSettingsByIds(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("talent_inbox_settings")
+    .select("talent_id, unlocked, boost_until")
+    .in("talent_id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listTalentVolumeByIds(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("v_talent_transaction_volume")
+    .select("talent_id, volume")
+    .in("talent_id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listPostHypeRecipientsByIds(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("post_hypes")
+    .select("recipient_talent_id")
+    .in("recipient_talent_id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}

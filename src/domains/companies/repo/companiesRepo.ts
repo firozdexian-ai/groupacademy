@@ -370,3 +370,10 @@ export async function deleteCompanyOffering(id: string): Promise<void> {
   const { error } = await supabase.from("company_offerings").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5e: full id+name+slug list (WorkforceCommandCenter) ─────────
+export async function listAllCompaniesWithSlug(): Promise<Array<{ id: string; name: string; slug: string }>> {
+  const { data, error } = await supabase.from("companies").select("id,name,slug").order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; slug: string }>;
+}

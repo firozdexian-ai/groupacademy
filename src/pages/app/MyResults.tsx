@@ -1,7 +1,12 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listCareerAssessmentsByEmail,
+  listMockInterviewsByEmail,
+  listSalaryAnalysesByEmail,
+  listPortfolioRequestsByEmail,
+} from "@/domains/marketing/repo/marketingRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,17 +82,18 @@ export default function MyResults() {
       const email = talent!.email!.toLowerCase();
       // Parallelize fetches to reduce waterfall
       const [assessments, interviews, salaries, portfolios] = await Promise.all([
-        supabase.from("career_assessments").select("id, created_at, percentage, readiness_level").eq("email", email),
-        supabase
-          .from("mock_interviews")
-          .select("id, created_at, selection_percentage, status, job_title")
-          .eq("email", email),
-        supabase.from("salary_analyses").select("id, created_at, status, job_title").eq("email", email),
-        supabase.from("portfolio_requests").select("id, created_at, status").eq("email", email),
+        listCareerAssessmentsByEmail(email),
+        listMockInterviewsByEmail(email),
+        listSalaryAnalysesByEmail(email),
+        listPortfolioRequestsByEmail(email),
       ]);
 
+      // Note: salaries/portfolios fetched for future surfacing but not yet rendered.
+      void salaries;
+      void portfolios;
+
       return [
-        ...(assessments.data?.map((a) => ({
+        ...(assessments?.map((a: any) => ({
           id: a.id,
           type: "assessment" as const,
           title: "Career Readiness",
@@ -95,7 +101,7 @@ export default function MyResults() {
           status: a.readiness_level,
           score: a.percentage,
         })) || []),
-        ...(interviews.data?.map((i) => ({
+        ...(interviews?.map((i: any) => ({
           id: i.id,
           type: "interview" as const,
           title: i.job_title || "Mock Interview",

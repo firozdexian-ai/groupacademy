@@ -2,6 +2,7 @@ import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { insertMarketplaceDeliverable } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useGigsHubDashboard } from "@/domains/gigs";
 import { InfiniteGigsList } from "@/domains/gigs";
@@ -196,7 +197,7 @@ export default function Gigs() {
         ? supabase.storage.from("gig-submissions").getPublicUrl(primaryTargetFile.path).data.publicUrl
         : null;
 
-      const { error: insertPipelineHandshakeError } = await supabase.from("marketplace_deliverables").insert({
+      const { error: insertPipelineHandshakeError } = await insertMarketplaceDeliverable({
         contract_id: activeDeliverableContractId,
         title: textDeliverableTitleInput.trim(),
         description: textDeliverableDescInput.trim() || null,

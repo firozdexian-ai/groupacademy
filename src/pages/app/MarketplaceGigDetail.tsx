@@ -1,7 +1,12 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getMarketplaceGigById,
+  getMyMarketplaceBidForGig,
+  listMarketplaceReviewsForGig,
+  insertMarketplaceBid,
+} from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,9 +86,8 @@ export default function MarketplaceGigDetail() {
     queryKey: ["app-marketplace-gig-detail", gigIdStr],
     enabled: !!gigIdStr,
     queryFn: async (): Promise<GigRecord> => {
-      const { data, error } = await supabase.from("marketplace_gigs").select("*").eq("id", gigIdStr!).maybeSingle();
-
-      if (error || !data) throw new Error("Gig registry node unreachable.");
+      const data = await getMarketplaceGigById(gigIdStr!);
+      if (!data) throw new Error("Gig registry node unreachable.");
       return data as unknown as GigRecord;
     },
   });
@@ -92,13 +96,7 @@ export default function MarketplaceGigDetail() {
     queryKey: ["app-talent-marketplace-bid", gigIdStr, talentProfileRecord?.id],
     enabled: !!gigIdStr && !!talentProfileRecord?.id,
     queryFn: async (): Promise<BidRecord | null> => {
-      const { data } = await supabase
-        .from("marketplace_bids")
-        .select("id, status, bid_amount")
-        .eq("gig_id", gigIdStr!)
-        .eq("talent_id", talentProfileRecord!.id)
-        .maybeSingle();
-      return data as unknown as BidRecord | null;
+      return (await getMyMarketplaceBidForGig(gigIdStr!, talentProfileRecord!.id)) as BidRecord | null;
     },
   });
 
@@ -107,13 +105,7 @@ export default function MarketplaceGigDetail() {
     queryKey: ["app-marketplace-gig-reviews", gigIdStr],
     enabled: !!gigIdStr,
     queryFn: async (): Promise<ReviewRecord[]> => {
-      const { data, error } = await supabase
-        .from("marketplace_reviews")
-        .select("id, rating, comment, created_at, marketplace_contracts!inner(gig_id)")
-        .eq("marketplace_contracts.gig_id", gigIdStr!)
-        .order("created_at", { ascending: false });
-
-      return (data as unknown as ReviewRecord[]) ?? [];
+      return (await listMarketplaceReviewsForGig(gigIdStr!)) as ReviewRecord[];
     },
   });
 
@@ -122,7 +114,7 @@ export default function MarketplaceGigDetail() {
     setIsSubmitPending(true);
 
     try {
-      const { error } = await supabase.from("marketplace_bids").insert({
+      const { error } = await insertMarketplaceBid({
         gig_id: gigRecord.id,
         talent_id: talentProfileRecord.id,
         bid_amount: gigRecord.pricing_type === "fixed" ? gigRecord.budget_amount : parseInt(bidAmountInput) || 0,

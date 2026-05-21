@@ -2,6 +2,11 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listOwnedAiAgentsForTalent,
+  listTalentAgentMarketplaceEarnings,
+  listAgentPayoutRequestsForTalent,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,25 +42,16 @@ export default function MyAgents() {
     enabled: !!talent?.id,
     queryFn: async () => {
       const [agents, earnings, payouts, summary] = await Promise.all([
-        supabase
-          .from("ai_agents")
-          .select("id,name,agent_key,description,marketplace_status,visibility,is_active,total_conversations")
-          .eq("owner_kind", "talent")
-          .eq("owner_id", talent!.id),
-        supabase
-          .from("agent_marketplace_earnings")
-          .select("id,agent_id,gross_credits,builder_share,platform_share,created_at")
-          .eq("builder_kind", "talent")
-          .eq("builder_id", talent!.id)
-          .limit(100),
-        supabase.from("agent_payout_requests").select("*").eq("talent_id", talent!.id),
+        listOwnedAiAgentsForTalent(talent!.id),
+        listTalentAgentMarketplaceEarnings(talent!.id, 100),
+        listAgentPayoutRequestsForTalent(talent!.id),
         supabase.rpc("talent_marketplace_summary"),
       ]);
 
       return {
-        agents: agents.data ?? [],
-        earnings: earnings.data ?? [],
-        payouts: payouts.data ?? [],
+        agents: agents ?? [],
+        earnings: earnings ?? [],
+        payouts: payouts ?? [],
         summary: (summary.data as unknown as SummaryRecord) ?? {
           lifetime_earned: 0,
           paid_out: 0,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { pauseMessagingConversationAutoReply } from "@/domains/messaging/repo/messagingRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -122,7 +123,7 @@ export default function AdminMessagingInbox() {
 
   const toggleHumanTakeover = async (paused: boolean) => {
     if (!activeId) return;
-    await supabase.from("messaging_conversations").update({ auto_reply_paused: paused }).eq("id", activeId);
+    await pauseMessagingConversationAutoReply(activeId, paused);
     loadConvs();
   };
 

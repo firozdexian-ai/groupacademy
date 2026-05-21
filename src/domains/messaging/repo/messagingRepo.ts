@@ -72,3 +72,8 @@ export async function deleteMessagingConversation(id: string): Promise<void> {
   const { error } = await supabase.from("messaging_conversations").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5e: pause auto-reply on a single conversation ──────────────
+export async function pauseMessagingConversationAutoReply(id: string, paused: boolean): Promise<void> {
+  await supabase.from("messaging_conversations").update({ auto_reply_paused: paused }).eq("id", id);
+}

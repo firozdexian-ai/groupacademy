@@ -28,3 +28,14 @@ export async function deleteAdminTableRow(table: string, id: string): Promise<vo
   const { error } = await supabase.from(table as any).delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5e: role checks ─────────────────────────────────────────────
+export async function userHasRole(userId: string, role: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", role as any)
+    .maybeSingle();
+  return !!data;
+}

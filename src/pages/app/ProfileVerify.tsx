@@ -7,7 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listIdDocStatuses,
+  listPayoutAccountPrimaryFlags,
+  getTalentVerificationStatus,
+} from "@/domains/talent/repo/talentRepo";
 import { cn } from "@/lib/utils";
 import { IdentityDocsUpload } from "@/components/profile/IdentityDocsUpload";
 import { PayoutAccountsManager } from "@/components/profile/PayoutAccountsManager";
@@ -45,19 +49,16 @@ export default function ProfileVerify() {
     const syncIdentityState = async () => {
       try {
         setIsLoading(true);
-        const [{ data: idDocs, error: idError }, { data: payouts, error: pError }, { data: t, error: tError }] =
-          await Promise.all([
-            supabase.from("talent_id_documents").select("status").eq("talent_id", talent.id),
-            supabase.from("talent_payout_accounts").select("is_primary").eq("talent_id", talent.id),
-            supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle(),
-          ]);
-
-        if (idError || pError || tError) throw new Error("Sync failure");
+        const [idDocs, payouts, verificationStatusVal] = await Promise.all([
+          listIdDocStatuses(talent.id),
+          listPayoutAccountPrimaryFlags(talent.id),
+          getTalentVerificationStatus(talent.id),
+        ]);
 
         setHasIdVerified((idDocs || []).some((d: any) => d.status === "verified"));
         setHasIdPending((idDocs || []).some((d: any) => d.status === "pending"));
         setHasPrimaryPayout((payouts || []).some((p: any) => p.is_primary));
-        setVerificationStatus((t as any)?.verification_status || "unverified");
+        setVerificationStatus(verificationStatusVal || "unverified");
       } catch (e) {
         await reportAnomalyToAdmin("VerificationStateSyncFailure", { error: e });
         toast.error("Failed to sync verification state.");

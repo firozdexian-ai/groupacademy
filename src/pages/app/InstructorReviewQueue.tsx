@@ -1,6 +1,13 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { userHasRole } from "@/domains/admin/repo/adminRepo";
+import {
+  listPublishedContentIdsLimit,
+  findInstructorIdByEmail,
+  listContentIdsForInstructor,
+  listCourseModuleIdsByContentIds,
+} from "@/domains/learning/repo/learningRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,26 +58,22 @@ export default function InstructorReviewQueue() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Authentication credential session expired.");
 
-      const { data: adminRole } = await supabase.from("user_roles")
-        .select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      setIsAdmin(!!adminRole);
+      const adminRole = await userHasRole(user.id, "admin");
+      setIsAdmin(adminRole);
 
       // Fetch managed content IDs
       let contentIds: string[] = [];
       if (adminRole) {
-        const { data: courses } = await supabase.from("content").select("id").eq("is_published", true).limit(50);
-        contentIds = courses?.map((c) => c.id) ?? [];
+        contentIds = await listPublishedContentIdsLimit(50);
       } else {
-        const { data: instructor } = await supabase.from("instructors").select("id").eq("email", user.email ?? "").maybeSingle();
-        if (!instructor) throw new Error("No instructor profile mapped to account.");
-        const { data: contentAccess } = await supabase.from("content_instructors").select("content_id").eq("instructor_id", instructor.id);
-        contentIds = contentAccess?.map((r) => r.content_id) ?? [];
+        const instructorId = await findInstructorIdByEmail(user.email ?? "");
+        if (!instructorId) throw new Error("No instructor profile mapped to account.");
+        contentIds = await listContentIdsForInstructor(instructorId);
       }
 
       if (!contentIds.length) { setDigests([]); return; }
 
-      const { data: modules } = await supabase.from("course_modules").select("id").in("content_id", contentIds);
-      const moduleIds = modules?.map((m) => m.id) ?? [];
+      const moduleIds = await listCourseModuleIdsByContentIds(contentIds);
 
       // Optimize: Parallelize digest calls (capped at 10 for edge function safety)
       const batch = moduleIds.slice(0, 10);

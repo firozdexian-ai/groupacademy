@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { updateJobAssessment } from "@/domains/jobs/repo/jobsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,7 +195,7 @@ export default function JobAssessment() {
 
       const updatedAnswers = { ...answersBufferMap, [questionId]: { type: "voice", storagePath: data.path } };
       setAnswersBufferMap(updatedAnswers);
-      await supabase.from("job_assessments").update({ answers: updatedAnswers }).eq("id", assessment.id);
+      await updateJobAssessment(assessment.id, { answers: updatedAnswers });
       toast.success("Voice response artifact secured.");
     } catch (e) {
       toast.error("Failed to transmit audio asset to repository pipeline.");
@@ -210,14 +211,11 @@ export default function JobAssessment() {
     if (!assessmentRecordState.current) return;
     setIsSubmissionPending(true);
     try {
-      await supabase
-        .from("job_assessments")
-        .update({
-          answers: answersBufferMap,
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", assessmentRecordState.current.id);
+      await updateJobAssessment(assessmentRecordState.current.id, {
+        answers: answersBufferMap,
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      });
 
       await analyzeJobAssessment({ assessmentId: assessmentRecordState.current.id });
       navigateHook(`/app/job-assessment/${assessmentRecordState.current.id}/results`);

@@ -321,3 +321,66 @@ export async function listTalentAgentMarketplaceEarnings(talentId: string, limit
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5e: live inbox + workforce command center ──────────────────
+export async function updateAgentThread(id: string, patch: Record<string, any>): Promise<{ error: any }> {
+  const { error } = await supabase.from("agent_threads").update(patch).eq("id", id);
+  return { error };
+}
+
+export async function bumpAgentThreadLastMessage(id: string): Promise<void> {
+  await supabase
+    .from("agent_threads")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function insertAgentMessage(payload: {
+  thread_id: string;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("agent_messages").insert(payload as any);
+  return { error };
+}
+
+export async function countAiAgentsByTemplateFlag(isTemplate: boolean): Promise<number> {
+  const { count } = await supabase
+    .from("ai_agents")
+    .select("id", { count: "exact", head: true })
+    .eq("is_template", isTemplate);
+  return count ?? 0;
+}
+
+export async function listAiAgentsForFleet() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("id,agent_key,name,company_id,is_template,parent_template_id,is_active,kill_switch,avatar_url,audience")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAiAgentsCompact() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("agent_key,name,is_template")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ agent_key: string; name: string; is_template: boolean }>;
+}
+
+export async function getAiAgentById(id: string) {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function cloneAiAgentInstance(payload: Record<string, any>): Promise<{ error: any }> {
+  const { error } = await (supabase.from("ai_agents") as any).insert(payload);
+  return { error };
+}

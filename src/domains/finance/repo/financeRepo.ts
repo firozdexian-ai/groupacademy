@@ -201,3 +201,33 @@ export async function insertManualPaymentRequest(payload: Record<string, any>): 
   const { error } = await supabase.from("manual_payment_requests").insert(payload as any);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5e: talent-side withdrawal helpers ──────────────────────────
+export async function listMyTalentPayoutAccounts(talentId: string) {
+  const { data, error } = await supabase
+    .from("talent_payout_accounts")
+    .select("*")
+    .eq("talent_id", talentId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function listMyWithdrawalRequests(talentId: string) {
+  const { data, error } = await supabase
+    .from("withdrawal_requests")
+    .select("*")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+export async function insertTalentWithdrawalRequest(payload: {
+  talent_id: string;
+  amount_credits: number;
+  method: string;
+  payout_details: Record<string, unknown>;
+}): Promise<{ error: any }> {
+  const { error } = await supabase.from("withdrawal_requests").insert(payload as any);
+  return { error };
+}
