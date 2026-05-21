@@ -199,8 +199,7 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
       });
 
       // HUD: COMMITTING_PROFILE_CHANGES_TRANSACTION
-      const { error } = await supabase.from("talents").update(updateData).eq("id", talent.id);
-      if (error) throw error;
+      await updateTalentById(talent.id, updateData);
     },
     onMutate: async (patch) => {
       await qc.cancelQueries({ queryKey });
@@ -236,9 +235,8 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
 
       const newServices = [...currentServices, service];
 
-      const { error } = await supabase.from("talents").update({ services_used: newServices }).eq("id", talent.id);
+      await updateTalentById(talent.id, { services_used: newServices });
 
-      if (error) throw error;
       return newServices;
     },
     onMutate: async (service) => {
