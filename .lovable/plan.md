@@ -83,5 +83,7 @@ Progress:
 - ✅ **10j.5h1**: companies/talent/messaging — 7 RPCs, 11 callsites
 - ✅ **10j.5h2**: finance/feed/gigs — 7 RPCs, 7 files
 - ✅ **10j.5h3**: analytics/messaging/learning/ugc/agents — `track_service_click`, `track_content_click`, `track_course_referral_click`, `upsert_direct_thread`, `talent_enroll_track`, `upcoming_sessions_for_user`, `toggle_project_public`, `talent_marketplace_summary` (8 RPCs, 10 callsites)
+- ✅ **10j.5h4**: admin overview — `get_workforce_dashboard`, `get_ugc_dashboard`, `get_global_crm_overview`, `get_creator_economy_leaderboard`, `sweep_expired_connections`, `broadcast_notifications`, `analyst_metrics_bulk`, `get_contact_unlocks_summary` (8 RPCs, 8 callsites)
 
-Say **"continue 10j.5h4"** to proceed with the next batch (admin overview RPCs: `get_workforce_dashboard`, `analyst_metrics_bulk`, `get_global_crm_overview`, `get_creator_economy_leaderboard`, `sweep_expired_connections`, `get_contact_unlocks_summary`, `get_ugc_dashboard`, `broadcast_notifications`).
+Say **"continue 10j.5h5"** to proceed with the next batch (jobs/gigs RPCs: `get_jobs_hub_dashboard`, `get_ranked_jobs_for_talent`, `score_job_match`, `score_talent_job_mastery`, `get_employer_pipeline`, `get_gigs_hub_dashboard`, `get_ranked_gigs_for_talent`, `get_next_best_tool`).
+
