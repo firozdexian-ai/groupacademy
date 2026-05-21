@@ -4,10 +4,34 @@
  * Phase 10d — see .lovable/plan.md.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeIlike } from "@/lib/supabaseQuery";
 
 type ProfessionTable = "academies" | "schools" | "profession_categories";
 
+export interface TalentPoolFilters {
+  searchQuery?: string;
+  countryFilter?: string;
+  page: number;
+  pageSize: number;
+}
+
 export const talentRepo = {
+  // ---------- Pool ----------
+  listTalentsForPool: ({ searchQuery, countryFilter, page, pageSize }: TalentPoolFilters) => {
+    let query = supabase
+      .from("talents")
+      .select(`*, outreach_count:outreach_messages(count)`, { count: "exact" })
+      .order("updated_at", { ascending: false });
+    if (searchQuery) {
+      const safe = sanitizeIlike(searchQuery);
+      if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
+    }
+    if (countryFilter && countryFilter !== "all") query = query.eq("country", countryFilter);
+    const from = (page - 1) * pageSize;
+    return query.range(from, from + pageSize - 1);
+  },
+
+
   // ---------- Professions / Roles ----------
   listProfessionStructure: async () => {
     const [academies, schools, categories] = await Promise.all([
