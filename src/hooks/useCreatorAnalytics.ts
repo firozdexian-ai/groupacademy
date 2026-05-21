@@ -130,7 +130,7 @@ export function useImpressionTracker(postId?: string, surface: string = "feed") 
             seenPosts.add(key);
 
             // Execute the impression collection pipeline cleanly via public schema bounds
-            (supabase.rpc("record_impression" as any, { _post_id: postId, _surface: surface }) as any).then?.((res: any) => {
+            (recordImpressionAsync(postId, surface) as any).then?.((res: any) => {
               if (res?.error) {
                 console.error("[Digital Workforce] ANOMALY: record_impression background tracking failure.", {
                   postId,
