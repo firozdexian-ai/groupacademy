@@ -96,12 +96,7 @@ const SalaryAnalysisSetupContent = () => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const { data, error } = await supabase
-          .from("profession_categories")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("display_order");
-        if (error) throw error;
+        const data = await listActiveProfessionCategoriesBasic();
         if (data) setProfessionCategories(data);
       } catch (e) {
         console.error("Category sync failed:", e);
