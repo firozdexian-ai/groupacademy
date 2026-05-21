@@ -126,13 +126,8 @@ export default function AbroadCounsellor() {
     queryKey: ["counsellor-applications-matrix"],
     enabled: authorizationState === true,
     queryFn: async (): Promise<AbroadApplication[]> => {
-      const { data: databaseOutputPayload, error: applicationQueryError } = await supabase
-        .from("abroad_applications")
-        .select("id, target_country, intake_term, stage, updated_at, created_at")
-        .order("updated_at", { ascending: false });
-
-      if (applicationQueryError) throw applicationQueryError;
-      return (databaseOutputPayload as unknown as AbroadApplication[]) ?? [];
+      const rows = await listAbroadApplications();
+      return (rows as unknown as AbroadApplication[]) ?? [];
     },
   });
 
