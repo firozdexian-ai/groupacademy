@@ -17,12 +17,6 @@ export default function JobsUploadApprovalTab() {
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       await updateJob(id, { is_active });
     },
-
-  const setActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("jobs" as any).update({ is_active }).eq("id", id);
-      if (error) throw error;
-    },
     onSuccess: () => {
       toast.success("Updated");
       qc.invalidateQueries({ queryKey: ["jobs-pending-approval"] });
