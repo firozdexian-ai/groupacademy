@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteAgentMessage } from "@/domains/agents/repo/agentsRepo";
 import { useAdminAgents } from "./useAdminAgents";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -290,7 +291,7 @@ export function useAgentRuntimeThread(
       .reverse()
       .find((m) => m.role === "assistant" && m.id);
     if (trailingAssistant?.id) {
-      await supabase.from("agent_messages").delete().eq("id", trailingAssistant.id);
+      await deleteAgentMessage(trailingAssistant.id);
     }
     setMessages((prev) => {
       const next = [...prev];

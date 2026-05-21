@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   updateAgentChatSession,
   getAgentChatSession,
+  getAgentCreditCost,
   deductCredits,
 } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
@@ -107,8 +108,7 @@ export function useAgentChat(): UseAgentChatReturn {
   const loadSession = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.from("agent_chat_sessions").select("*").eq("id", sessionId).single();
-      if (error) throw error;
+      const data = await getAgentChatSession(sessionId);
 
       const sessionData: AgentSession = {
         ...data,
@@ -118,13 +118,8 @@ export function useAgentChat(): UseAgentChatReturn {
       setSession(sessionData);
       setMessages(sessionData.messages);
 
-      const { data: agentConfig } = await supabase
-        .from("ai_agents")
-        .select("credit_cost")
-        .eq("agent_key", sessionData.agent_key)
-        .maybeSingle();
-
-      if (agentConfig) setPerResponseCost(agentConfig.credit_cost);
+      const cost = await getAgentCreditCost(sessionData.agent_key);
+      if (cost != null) setPerResponseCost(cost);
     } catch (err) {
       console.error("[Digital Workforce] SESSION_INGRESS_FAULT:", err);
     } finally {
