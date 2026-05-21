@@ -160,9 +160,7 @@ export function useUpdateTrack() {
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<LearningTrack> & { id: string }) => {
       const data = (await updateLearningTrack(id, patch)) as LearningTrack;
-
-      if (error) throw error;
-      return data as LearningTrack;
+      return data;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["company-tracks", data.company_id] });
