@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getStudentRecordByUserId,
+  getContentBySlugPublished,
+  findEnrollmentIdForStudentAndContent,
+  insertEnrollmentRow,
+} from "@/domains/learning/repo/learningRepo";
 import { createStudentProfile } from "@/hooks/useAuth";
 import { registrationSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
@@ -99,11 +105,7 @@ const CourseDetail = () => {
       } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
-        const { data: student } = await supabase
-          .from("students")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
+        const student = await getStudentRecordByUserId(session.user.id);
         setStudentProfile(student);
       }
     } catch (e) {
@@ -114,14 +116,13 @@ const CourseDetail = () => {
   const fetchCourse = async () => {
     setLoadingError(null);
     try {
-      const query = supabase.from("content").select("*").eq("slug", slug).eq("is_published", true).maybeSingle();
-      const { data, error } = await withTimeout<any>(
-        Promise.resolve(query),
+      const data = await withTimeout<any>(
+        getContentBySlugPublished(slug!),
         TIMEOUTS.DEFAULT,
         "Network timeout: Course unreachable",
       );
 
-      if (error || !data) throw new Error("Course not found");
+      if (!data) throw new Error("Course not found");
       setCourse(data);
 
       const source = searchParams.get("source");
@@ -132,14 +133,9 @@ const CourseDetail = () => {
         try { await (supabase.rpc as any)("track_course_referral_click", { p_content_id: data.id, p_ref_code: ref }); } catch {}
       }
 
-      if (user) {
-        const { data: enrollment } = await supabase
-          .from("enrollments")
-          .select("id")
-          .eq("student_id", studentProfile?.id)
-          .eq("content_id", data.id)
-          .maybeSingle();
-        setIsEnrolled(!!enrollment);
+      if (user && studentProfile?.id) {
+        const enrollmentId = await findEnrollmentIdForStudentAndContent(studentProfile.id, data.id);
+        setIsEnrolled(!!enrollmentId);
       }
     } catch (err: any) {
       setLoadingError(err.message);
@@ -152,14 +148,12 @@ const CourseDetail = () => {
     if (!studentProfile) return navigate("/app/profile");
     setIsEnrolling(true);
     try {
-      const { error } = await supabase.from("enrollments").insert([
-        {
-          student_id: studentProfile.id,
-          content_id: course?.id,
-          status: course?.price && course.price > 0 ? "pending_payment" : "active",
-          payment_amount: course?.price || 0,
-        },
-      ]);
+      const { error } = await insertEnrollmentRow({
+        student_id: studentProfile.id,
+        content_id: course?.id as string,
+        status: course?.price && course.price > 0 ? "pending_payment" : "active",
+        payment_amount: course?.price || 0,
+      });
       if (error) throw error;
       toast.success("Enrollment Synchronized");
       setIsEnrolled(true);

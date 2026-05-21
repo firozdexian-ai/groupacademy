@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getContentById,
+  listCourseModulesLite,
+  listQuizQuestionsByModuleOrdered,
+  updateContentQuizSettings,
+  deleteQuizQuestionsForModule,
+  insertQuizQuestions,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -81,17 +89,12 @@ export default function QuizManagement() {
   const loadQuizData = async () => {
     setLoading(true);
     try {
-      const { data: c } = await supabase.from("content").select("*").eq("id", contentId).single();
+      const c = await getContentById(contentId!);
       if (!c) throw new Error("Blueprint Missing");
       setCourse(c);
       setPassThreshold(c.pass_threshold || 70);
 
-      const { data: mods } = await supabase
-        .from("course_modules")
-        .select("id, title, display_order")
-        .eq("content_id", contentId)
-        .order("display_order");
-
+      const mods = await listCourseModulesLite(contentId!);
       if (mods && mods.length > 0) {
         setModules(mods);
         setSelectedModuleId(mods[0].id);
@@ -104,8 +107,8 @@ export default function QuizManagement() {
   };
 
   const loadModuleQuestions = async (moduleId: string) => {
-    const { data } = await supabase.from("quiz_questions").select("*").eq("module_id", moduleId).order("display_order");
-    if (data && data.length > 0) setQuestions(data);
+    const data = await listQuizQuestionsByModuleOrdered(moduleId);
+    if (data && data.length > 0) setQuestions(data as any);
     else
       setQuestions([
         {
@@ -151,8 +154,8 @@ export default function QuizManagement() {
     setSaving(true);
     try {
       // Logic Transactional Cycle
-      await supabase.from("content").update({ pass_threshold: passThreshold, quiz_enabled: true }).eq("id", contentId);
-      await supabase.from("quiz_questions").delete().eq("module_id", selectedModuleId);
+      await updateContentQuizSettings(contentId!, passThreshold, true);
+      await deleteQuizQuestionsForModule(selectedModuleId);
 
       const payload = questions.map((q, i) => ({
         content_id: contentId,
@@ -167,8 +170,7 @@ export default function QuizManagement() {
         display_order: i,
       }));
 
-      const { error } = await supabase.from("quiz_questions").insert(payload);
-      if (error) throw error;
+      await insertQuizQuestions(payload);
       toast.success("Logic Nodes Synchronized.");
     } catch (err) {
       toast.error("Database Committal Failed.");
