@@ -12,6 +12,8 @@ import {
   deleteCompany,
   listLatestOutreachForCompanies,
   logContactOutreach,
+  getCompaniesOverview,
+  getIndustryRollup,
 } from "@/domains/companies/repo/companiesRepo";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { Button } from "@/components/ui/button";
