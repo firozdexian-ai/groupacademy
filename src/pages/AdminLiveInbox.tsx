@@ -9,6 +9,11 @@
  */
 import { useEffect, useMemo, useRef, useState, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  updateAgentThread,
+  insertAgentMessage,
+  bumpAgentThreadLastMessage,
+} from "@/domains/agents/repo/agentsRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
