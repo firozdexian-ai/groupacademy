@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { listAgentPitchLog } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
+
 
 /**
  * GroUp Academy: Outbound Engagement Tracker Engine (V5.6.0)
@@ -40,21 +42,14 @@ export function useTalentPitches(limit = 20) {
     enabled: !!talentId,
     staleTime: 15 * 1000, // 15-second visual consistency buffer for live feeds
     queryFn: async (): Promise<TalentPitch[]> => {
-      // HUD: EXECUTING_PITCH_REGISTRY_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("agent_pitch_log")
-        .select("id, company_id, message, phone, dispatched, created_at, companies(name, logo_url)")
-        .eq("talent_id", talentId!)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
+      let rows: any[];
+      try {
+        rows = await listAgentPitchLog(talentId!, limit);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: agent_pitch_log connection channel dropped.", error);
         throw error;
       }
-
-      // Hardened Data Normalization Layer: Sanitizes nested records against relational schema drifts
-      return (data || []).map((row: any) => ({
+      return rows.map((row: any) => ({
         id: String(row.id),
         company_id: String(row.company_id),
         message: String(row.message ?? ""),
