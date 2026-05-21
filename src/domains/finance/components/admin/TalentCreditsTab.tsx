@@ -152,11 +152,8 @@ export function TalentCreditsTab() {
           ? buildListTalentCreditsQuery({ page, pageSize: ITEMS_PER_PAGE })
           : buildListCreditTransactionsQuery({ page, pageSize: ITEMS_PER_PAGE, typeFilter });
 
-      if (selectedTab === "transactions" && typeFilter !== "all") query = query.eq("transaction_type", typeFilter);
-
-      const from = (page - 1) * ITEMS_PER_PAGE;
       const result = await withTimeout(
-        Promise.resolve(query.range(from, from + ITEMS_PER_PAGE - 1)),
+        Promise.resolve(query),
         TIMEOUTS.DEFAULT,
         "Registry Sync Timeout",
       );
