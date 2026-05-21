@@ -58,3 +58,15 @@ Each hook gets:
 - **10j** — Add ESLint rule `NO_RAW_FROM` to lock in repo-only access across cleaned domains.
 
 Ready to execute — reply to approve and I'll start with the repo scaffold.
+
+---
+
+## Phase 10d Status — Done (admin components)
+
+Completed:
+- `src/domains/talent/repo/talentRepo.ts` scaffolded with 20+ helpers across pool, notifications, outreach, portfolio requests, professions/roles, creator economy, overview, importers (CSV + LinkedIn JSON).
+- Refactored 10 admin components: ProfessionsTab, ProfessionalRolesPanel, TalentPoolTab, PortfolioRequestsTab, TalentOutreachConsoleTab, NotificationsTab, TalentOverviewTab, CreatorEconomyTab, BatchTalentUpload, LinkedInJsonUpload.
+- Verification: `rg "supabase\.from" src/domains/talent/` returns only `talentRepo.ts`; `tsc --noEmit` is clean.
+
+Deferred from this phase:
+- The 7 `src/hooks/useTalent*.ts` files are already thin re-exports of `src/domains/profile/hooks/useTalent*` — relocation will happen as part of **10e (Profile domain)** so the impls move + dedup together.
