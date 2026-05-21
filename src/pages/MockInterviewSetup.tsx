@@ -118,13 +118,10 @@ function MockInterviewSetupContent() {
     if (!accessCode.trim()) return toast.error("Verification code required.");
     setValidatingCode(true);
     try {
-      const { data, error } = await supabase
-        .from("mock_interview_access_codes")
-        .select("*")
-        .eq("code", accessCode.trim().toUpperCase())
-        .eq("email", email.toLowerCase().trim())
-        .eq("is_used", false)
-        .maybeSingle();
+      const { data, error } = await getValidMockInterviewAccessCode(
+        accessCode.trim().toUpperCase(),
+        email.toLowerCase().trim(),
+      );
 
       if (error || !data) throw new Error("Invalid or expired code.");
       await markMockInterviewAccessCodeUsed(data.id);
