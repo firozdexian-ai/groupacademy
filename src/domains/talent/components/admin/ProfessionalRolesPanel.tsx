@@ -107,7 +107,7 @@ export function ProfessionalRolesPanel() {
   };
 
   const toggleActive = async (r: Role) => {
-    const { error } = await supabase.from("professional_roles").update({ is_active: !r.is_active }).eq("id", r.id);
+    const { error } = await talentRepo.toggleProfessionalRole(r.id, !r.is_active);
     if (error) toast.error(error.message);
     else {
       toast.success(`${r.name} is now ${!r.is_active ? "active" : "inactive"}`);
