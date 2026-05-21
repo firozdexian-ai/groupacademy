@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
+import { searchTalentsByNameOrEmail, insertWorkforceMember } from "@/domains/workforce/repo/workforceRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -113,12 +114,8 @@ export function WorkforceManager() {
   useEffect(() => {
     if (talentSearch.length < 2) return;
     const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from("talents")
-        .select("id, full_name, email")
-        .or(`full_name.ilike.%${sanitizeIlike(talentSearch)}%,email.ilike.%${sanitizeIlike(talentSearch)}%`)
-        .limit(5);
-      setTalentOptions(data || []);
+      const data = await searchTalentsByNameOrEmail(sanitizeIlike(talentSearch));
+      setTalentOptions(data);
     }, 300);
     return () => clearTimeout(timer);
   }, [talentSearch]);
@@ -133,16 +130,15 @@ export function WorkforceManager() {
       const spec = formData.specialization_type
         ? { type: formData.specialization_type, value: formData.specialization_value }
         : {};
-      const { error } = await supabase.from("workforce_members").insert({
+      await insertWorkforceMember({
         talent_id: selectedTalent.id,
-        role_type: formData.role_type as any,
+        role_type: formData.role_type,
         status: formData.status,
         city: formData.city || null,
         team_id: formData.team_id,
         grade_id: formData.grade_id,
         specialization: spec,
-      } as any);
-      if (error) throw error;
+      });
       toast.success("Identity Deployed to Workforce");
       setShowAddDialog(false);
       fetchMembers();

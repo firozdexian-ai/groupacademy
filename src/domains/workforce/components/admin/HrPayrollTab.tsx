@@ -6,7 +6,11 @@
  */
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getHrPayrollMaster,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/workforce/repo/workforceRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,20 +62,14 @@ export function HrPayrollTab() {
     queryKey: ["hr_payroll"],
     queryFn: async () => {
       // W4 Fix: Accurate Workforce-to-Talent join
-      const [payrollRes, workforceRes] = await Promise.all([
-        supabase.from("hr_payroll_runs").select("*").order("period_end", { ascending: false }),
-        supabase.from("workforce_members").select("user_id, talents(full_name)").eq("status", "active"),
-      ]);
-
-      if (payrollRes.error) throw payrollRes.error;
-      if (workforceRes.error) throw workforceRes.error;
+      const { runs: runsData, workforce } = await getHrPayrollMaster();
 
       const userMap = new Map<string, string>();
-      (workforceRes.data || []).forEach((w: any) => {
+      workforce.forEach((w: any) => {
         if (w.user_id) userMap.set(w.user_id, (w.talents as any)?.full_name || "Unknown Agent");
       });
 
-      const runs = payrollRes.data || [];
+      const runs = runsData;
 
       // W11: Group by Month
       const groupedRuns = runs.reduce((acc: any, run) => {
@@ -85,7 +83,7 @@ export function HrPayrollTab() {
         runs,
         groupedRuns,
         userMap,
-        workforce: workforceRes.data || [],
+        workforce,
         totalDisbursed: runs.filter((r) => r.status === "paid").reduce((s, r) => s + Number(r.total_amount || 0), 0),
         pendingLiability: runs
           .filter((r) => ["pending", "draft"].includes(r.status))
@@ -98,13 +96,7 @@ export function HrPayrollTab() {
     mutationFn: async (payload: any) => {
       const total = Number(payload.base_amount || 0) + Number(payload.incentive_amount || 0);
       const finalPayload = { ...payload, total_amount: total };
-
-      const query = finalPayload.id
-        ? supabase.from("hr_payroll_runs").update(finalPayload).eq("id", finalPayload.id)
-        : supabase.from("hr_payroll_runs").insert([finalPayload]);
-
-      const { error } = await query;
-      if (error) throw error;
+      await upsertGraphRow("hr_payroll_runs", finalPayload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hr_payroll"] });
@@ -268,11 +260,9 @@ export function HrPayrollTab() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() =>
-                                  supabase
-                                    .from("hr_payroll_runs")
-                                    .delete()
-                                    .eq("id", r.id)
-                                    .then(() => qc.invalidateQueries({ queryKey: ["hr_payroll"] }))
+                                  deleteGraphRow("hr_payroll_runs", r.id).then(() =>
+                                    qc.invalidateQueries({ queryKey: ["hr_payroll"] }),
+                                  )
                                 }
                                 className="text-destructive hover:bg-destructive/10"
                               >

@@ -1,12 +1,13 @@
 /**
- * Institutional HR Graph Hook — Phase HR-Z1 Hardened
- * CTO Version: May 2026
- * Fixes: W8 (Hook Factory Anti-pattern), W2 (Headcount Rollups)
- * Purpose: Authoritative source for Org Chart taxonomy and headcount telemetry.
+ * Institutional HR Graph Hook — Phase HR-Z1 Hardened, repo-backed in 10i.2
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getHrGraphMaster,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/workforce/repo/workforceRepo";
 
 export interface HrVertical {
   id: string;
@@ -34,117 +35,58 @@ export interface HrGrade {
 export function useHrGraph() {
   const queryClient = useQueryClient();
 
-  // 1. THE MASTER ORG CHART QUERY (W2 Fix: Validated Rollups)
   const hrGraphQuery = useQuery({
     queryKey: ["hr_internal_graph"],
     queryFn: async () => {
-      const [verticalsRes, functionsRes, teamsRes, gradesRes, workforceRes] = await Promise.all([
-        supabase.from("hr_verticals").select("*").order("name"),
-        supabase.from("hr_functions").select("*").order("name"),
-        supabase.from("hr_teams").select("*").order("name"),
-        supabase.from("hr_grades").select("*").order("level", { ascending: true }),
-        supabase.from("workforce_members").select("id, team_id, grade_id").eq("status", "active"),
-      ]);
+      const master = await getHrGraphMaster();
 
-      if (verticalsRes.error) throw verticalsRes.error;
-      if (functionsRes.error) throw functionsRes.error;
-      if (teamsRes.error) throw teamsRes.error;
-      if (gradesRes.error) throw gradesRes.error;
-
-      // Real-time Headcount Aggregation
       const headcountByTeam: Record<string, number> = {};
       const headcountByGrade: Record<string, number> = {};
-
-      workforceRes.data?.forEach((member: any) => {
+      master.workforce.forEach((member: any) => {
         if (member.team_id) headcountByTeam[member.team_id] = (headcountByTeam[member.team_id] || 0) + 1;
         if (member.grade_id) headcountByGrade[member.grade_id] = (headcountByGrade[member.grade_id] || 0) + 1;
       });
 
       return {
-        verticals: verticalsRes.data as HrVertical[],
-        functions: functionsRes.data as HrFunction[],
-        teams: teamsRes.data as HrTeam[],
-        grades: gradesRes.data as HrGrade[],
+        verticals: master.verticals as HrVertical[],
+        functions: master.functions as HrFunction[],
+        teams: master.teams as HrTeam[],
+        grades: master.grades as HrGrade[],
         headcountByTeam,
         headcountByGrade,
-        totalActiveHeadcount: workforceRes.data?.length || 0,
+        totalActiveHeadcount: master.workforce.length,
       };
     },
   });
 
-  // 2. HARDENED MUTATION PROTOCOLS (W8 Fix: Static Hook Definition)
-
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["hr_internal_graph"] });
 
-  // Vertical Mutations
-  const upsertVertical = useMutation({
-    mutationFn: async (p: Partial<HrVertical>) =>
-      p.id ? supabase.from("hr_verticals").update(p as any).eq("id", p.id) : supabase.from("hr_verticals").insert([p as any]),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Vertical Node Synchronized");
-    },
-  });
-  const deleteVertical = useMutation({
-    mutationFn: async (id: string) => supabase.from("hr_verticals").delete().eq("id", id),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Vertical Node Purged");
-    },
-  });
+  const makeUpsert = (table: string, label: string) =>
+    useMutation({
+      mutationFn: async (p: Record<string, any>) => upsertGraphRow(table, p),
+      onSuccess: () => {
+        invalidate();
+        toast.success(`${label} Synchronized`);
+      },
+    });
+  const makeDelete = (table: string, label: string) =>
+    useMutation({
+      mutationFn: async (id: string) => deleteGraphRow(table, id),
+      onSuccess: () => {
+        invalidate();
+        toast.success(`${label} Purged`);
+      },
+    });
 
-  // Function Mutations
-  const upsertFunction = useMutation({
-    mutationFn: async (p: Partial<HrFunction>) =>
-      p.id ? supabase.from("hr_functions").update(p as any).eq("id", p.id) : supabase.from("hr_functions").insert([p as any]),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Function Node Synchronized");
-    },
-  });
-  const deleteFunction = useMutation({
-    mutationFn: async (id: string) => supabase.from("hr_functions").delete().eq("id", id),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Function Node Purged");
-    },
-  });
+  const upsertVertical = makeUpsert("hr_verticals", "Vertical Node");
+  const deleteVertical = makeDelete("hr_verticals", "Vertical Node");
+  const upsertFunction = makeUpsert("hr_functions", "Function Node");
+  const deleteFunction = makeDelete("hr_functions", "Function Node");
+  const upsertTeam = makeUpsert("hr_teams", "Team Node");
+  const deleteTeam = makeDelete("hr_teams", "Team Node");
+  const upsertGrade = makeUpsert("hr_grades", "Grade Node");
+  const deleteGrade = makeDelete("hr_grades", "Grade Node");
 
-  // Team Mutations
-  const upsertTeam = useMutation({
-    mutationFn: async (p: Partial<HrTeam>) =>
-      p.id ? supabase.from("hr_teams").update(p as any).eq("id", p.id) : supabase.from("hr_teams").insert([p as any]),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Team Node Synchronized");
-    },
-  });
-  const deleteTeam = useMutation({
-    mutationFn: async (id: string) => supabase.from("hr_teams").delete().eq("id", id),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Team Node Purged");
-    },
-  });
-
-  // Grade Mutations
-  const upsertGrade = useMutation({
-    mutationFn: async (p: Partial<HrGrade>) =>
-      p.id ? supabase.from("hr_grades").update(p as any).eq("id", p.id) : supabase.from("hr_grades").insert([p as any]),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Grade Node Synchronized");
-    },
-  });
-  const deleteGrade = useMutation({
-    mutationFn: async (id: string) => supabase.from("hr_grades").delete().eq("id", id),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Grade Node Purged");
-    },
-  });
-
-  // Helper selectors for the Deploy Member UI
   const teamsQuery = { data: hrGraphQuery.data?.teams, isLoading: hrGraphQuery.isLoading };
   const gradesQuery = { data: hrGraphQuery.data?.grades, isLoading: hrGraphQuery.isLoading };
 

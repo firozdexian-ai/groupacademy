@@ -6,7 +6,11 @@
  */
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getHrOnboardingMaster,
+  upsertGraphRow,
+  deleteGraphRow,
+} from "@/domains/workforce/repo/workforceRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,34 +54,20 @@ export function HrOnboardingTab() {
     queryKey: ["hr_onboarding"],
     queryFn: async () => {
       // W4 Fix: Ensure we are joining correctly to pull talent names via user_id link
-      const [tasksRes, workforceRes] = await Promise.all([
-        supabase.from("hr_onboarding_tasks").select("*").order("due_date", { ascending: true }),
-        supabase.from("workforce_members").select("user_id, talent_id, talents(full_name)").eq("status", "active"),
-      ]);
-
-      if (tasksRes.error) throw tasksRes.error;
-      if (workforceRes.error) throw workforceRes.error;
+      const { tasks, workforce } = await getHrOnboardingMaster();
 
       const userMap = new Map<string, string>();
-      (workforceRes.data || []).forEach((w: any) => {
+      workforce.forEach((w: any) => {
         if (w.user_id) userMap.set(w.user_id, w.talents?.full_name || "Unknown Agent");
       });
 
-      return {
-        tasks: (tasksRes.data || []) as any[],
-        userMap,
-        workforce: (workforceRes.data || []) as any[],
-      };
+      return { tasks, userMap, workforce };
     },
   });
 
   const upsertTask = useMutation({
     mutationFn: async (payload: any) => {
-      const query = payload.id
-        ? supabase.from("hr_onboarding_tasks").update(payload).eq("id", payload.id)
-        : supabase.from("hr_onboarding_tasks").insert([payload]);
-      const { error } = await query;
-      if (error) throw error;
+      await upsertGraphRow("hr_onboarding_tasks", payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hr_onboarding"] });
@@ -247,11 +237,9 @@ export function HrOnboardingTab() {
                             variant="ghost"
                             size="icon"
                             onClick={() =>
-                              supabase
-                                .from("hr_onboarding_tasks")
-                                .delete()
-                                .eq("id", t.id)
-                                .then(() => qc.invalidateQueries({ queryKey: ["hr_onboarding"] }))
+                              deleteGraphRow("hr_onboarding_tasks", t.id).then(() =>
+                                qc.invalidateQueries({ queryKey: ["hr_onboarding"] }),
+                              )
                             }
                             className="text-destructive hover:bg-destructive/10"
                           >
