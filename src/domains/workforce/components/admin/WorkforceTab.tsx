@@ -4,9 +4,12 @@
  * Fixes: W1 (Restored Dialogs), W2 (Team/Grade Wiring), W3 (RPC Adoption), W5 (Purged Fragments)
  */
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
-import { searchTalentsByNameOrEmail, insertWorkforceMember } from "@/domains/workforce/repo/workforceRepo";
+import {
+  searchTalentsByNameOrEmail,
+  insertWorkforceMember,
+  getWorkforceDashboard,
+} from "@/domains/workforce/repo/workforceRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,8 +92,8 @@ export function WorkforceManager() {
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("get_workforce_dashboard");
-      if (error) throw error;
+      const data = await getWorkforceDashboard();
+
 
       setMembers(data || []);
       setKpis({

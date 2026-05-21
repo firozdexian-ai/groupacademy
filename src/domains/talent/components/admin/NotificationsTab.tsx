@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { talentRepo } from "@/domains/talent/repo/talentRepo";
+import { talentRepo, broadcastNotifications } from "@/domains/talent/repo/talentRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,15 +79,13 @@ export function NotificationsTab() {
       const { data: user } = await supabase.auth.getUser();
 
       // B7 Fix: Server-side fan-out via optimized RPC
-      const { error } = await supabase.rpc("broadcast_notifications", {
-        p_title: payload.title,
-        p_message: payload.message,
-        p_type: payload.type,
-        p_created_by: user.user?.id,
-        // Optional targeting parameters can be added to the RPC logic here
+      await broadcastNotifications({
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        createdBy: user.user?.id ?? null,
       });
 
-      if (error) throw error;
 
       toast.success("Broadcast deployed to global network");
       setSendDialog(false);

@@ -829,3 +829,47 @@ export async function getTalentBoostUntil(talentId: string): Promise<string | nu
   if (error) throw error;
   return ((data as any)?.boost_until as string | null) ?? null;
 }
+
+// ─── Phase 10j.5h4: admin RPC wrappers ────────────────────────────────────
+export interface GlobalCrmOverview {
+  total_talents?: number;
+  onboarded_count?: number;
+  professions?: Record<string, number>;
+  countries?: Record<string, number>;
+  recent_nodes?: any[];
+}
+
+export async function getGlobalCrmOverview(): Promise<GlobalCrmOverview> {
+  const { data, error } = await supabase.rpc("get_global_crm_overview");
+  if (error) throw error;
+  return (data ?? {}) as unknown as GlobalCrmOverview;
+}
+
+export async function getCreatorEconomyLeaderboard(windowDays = 30): Promise<any[]> {
+  const { data, error } = await supabase.rpc("get_creator_economy_leaderboard", {
+    window_days: windowDays,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function sweepExpiredConnections(): Promise<number> {
+  const { data, error } = await supabase.rpc("sweep_expired_connections");
+  if (error) throw error;
+  return (data ?? 0) as unknown as number;
+}
+
+export async function broadcastNotifications(args: {
+  title: string;
+  message: string;
+  type: string;
+  createdBy?: string | null;
+}): Promise<void> {
+  const { error } = await supabase.rpc("broadcast_notifications", {
+    p_title: args.title,
+    p_message: args.message,
+    p_type: args.type,
+    p_created_by: args.createdBy ?? null,
+  });
+  if (error) throw error;
+}

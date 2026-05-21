@@ -218,3 +218,10 @@ export async function upsertWorkforceRoutingRule(
   const { error } = id ? await q.update(payload).eq("id", id) : await q.insert(payload);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5h4: RPC wrappers ──────────────────────────────────────────
+export async function getWorkforceDashboard(): Promise<any[]> {
+  const { data, error } = await supabase.rpc("get_workforce_dashboard");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

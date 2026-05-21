@@ -5,8 +5,7 @@
  * Restored: Aisha Funnel Telemetry & Triple-Bar Breakdowns
  */
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { talentRepo } from "@/domains/talent/repo/talentRepo";
+import { talentRepo, getGlobalCrmOverview } from "@/domains/talent/repo/talentRepo";
 import {
   Users,
   FileText,
@@ -33,15 +32,8 @@ export function TalentOverviewTab() {
     queryKey: ["global-crm-overview-full-telemetry"],
     queryFn: async () => {
       // P2: High-performance RPC for core aggregates
-      const { data: rawRes, error } = await supabase.rpc("get_global_crm_overview");
-      if (error) throw error;
-      const res = (rawRes ?? {}) as {
-        total_talents?: number;
-        onboarded_count?: number;
-        professions?: Record<string, number>;
-        countries?: Record<string, number>;
-        recent_nodes?: any[];
-      };
+      const res = await getGlobalCrmOverview();
+
 
       // Restore: Aisha Funnel Data (Capturing the conversion flow)
       const aishaCount = (filter?: (q: any) => any) => talentRepo.countAishaConversations(filter);

@@ -102,3 +102,23 @@ export async function trackCourseReferralClick(args: { contentId: string; refCod
   if (error) throw error;
 }
 
+// ─── Phase 10j.5h4: admin analytics RPC wrapper ───────────────────────────
+export interface AnalystMetricPeriod {
+  from: string;
+  to: string;
+  label: string;
+}
+
+export async function analystMetricsBulk(args: {
+  metrics: string[];
+  periods: AnalystMetricPeriod[];
+}): Promise<Array<{ metric: string; period_label: string; value: number }>> {
+  const { data, error } = await supabase.rpc("analyst_metrics_bulk", {
+    metrics: args.metrics,
+    periods: args.periods as any,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+

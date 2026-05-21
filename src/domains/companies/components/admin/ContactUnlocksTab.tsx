@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // R1 Fix: Critical import restored
 import { Loader2, Search, Lock, TrendingUp, Coins, KeyRound, RefreshCw, Mail, Phone } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listRecentContactUnlocks,
   listCompaniesByIds,
   listTalentEmailsByUserIds,
+  getContactUnlocksSummary,
 } from "@/domains/companies/repo/companiesRepo";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -30,12 +30,12 @@ export function ContactUnlocksTab() {
     setLoading(true);
     try {
       // A7 Fix: Fetch global aggregates server-side, bypassing the client 500-row limit
-      const [statsRes, ledgerRows] = await Promise.all([
-        supabase.rpc("get_contact_unlocks_summary"),
+      const [summary, ledgerRows] = await Promise.all([
+        getContactUnlocksSummary(),
         listRecentContactUnlocks(500),
       ]);
 
-      if (statsRes.data) setStats(statsRes.data as any);
+      if (summary) setStats(summary as any);
 
       if (ledgerRows.length) {
         const companyIds = Array.from(new Set(ledgerRows.map((r: any) => r.company_id).filter(Boolean))) as string[];

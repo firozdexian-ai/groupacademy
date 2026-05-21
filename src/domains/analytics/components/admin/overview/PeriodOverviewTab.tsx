@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { analystMetricsBulk } from "@/domains/analytics/repo/analyticsRepo";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
@@ -70,20 +70,20 @@ export function PeriodOverviewTab({ mode }: { mode: PeriodMode }) {
       try {
         // P3: Single bulk RPC call replaces 16 sequential fetches
         const metricKeys = ROWS.map((r) => r.key);
-        const { data, error } = await supabase.rpc("analyst_metrics_bulk", {
-          metrics: metricKeys,
+        const data = await analystMetricsBulk({
+          metrics: metricKeys as unknown as string[],
           periods: [
             { from: cur.from.toISOString(), to: cur.to.toISOString(), label: "current" },
             { from: prev.from.toISOString(), to: prev.to.toISOString(), label: "previous" },
           ],
         });
 
-        if (!error && data) {
+        if (data) {
           // Data expected: array of { metric, period_label, value }
           const curData: Record<string, number> = {};
           const prevData: Record<string, number> = {};
 
-          (data as any[]).forEach((row) => {
+          data.forEach((row) => {
             if (row.period_label === "current") curData[row.metric] = Number(row.value);
             else prevData[row.metric] = Number(row.value);
           });

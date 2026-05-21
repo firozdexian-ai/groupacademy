@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   getUgcGraphMaster,
@@ -12,6 +11,7 @@ import {
   upsertUgcCompetition,
   deleteUgcCompetition,
   resolveUgcReport,
+  getUgcDashboard,
 } from "@/domains/ugc/repo/ugcRepo";
 
 export interface UgcVideo {
@@ -90,9 +90,7 @@ export function useUgcGraph() {
   const dashboardQuery = useQuery({
     queryKey: ["ugc_dashboard"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_ugc_dashboard" as any);
-      if (error) throw error;
-      return data as unknown as UgcDashboard;
+      return (await getUgcDashboard<UgcDashboard>());
     },
   });
 
