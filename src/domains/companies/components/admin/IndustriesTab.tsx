@@ -114,12 +114,7 @@ export function IndustriesTab() {
     try {
       const sources = [...selected].filter((s) => s !== mergeTarget.trim());
       // A4 Fix: Single atomic transaction via RPC
-      const { error } = await supabase.rpc("merge_industries", {
-        p_sources: sources,
-        p_target: mergeTarget.trim(),
-      });
-
-      if (error) throw error;
+      await mergeIndustries(sources, mergeTarget.trim());
 
       toast.success(`Protocol Committed: ${sources.length} sectors fused into "${mergeTarget}"`);
       setMergeDialogOpen(false);
