@@ -103,13 +103,14 @@ export default function TalentDirectory() {
 
   const boost = async () => {
     setBoosting(true);
-    const { error } = await supabase.rpc("boost_profile");
-    setBoosting(false);
-    if (error) {
+    try {
+      await boostProfile();
+      setBoosting(false);
+      toast.success("Profile Pinned.");
+    } catch (error) {
+      setBoosting(false);
       await reportAnomaly("BoostFailure", { error });
       toast.error("Boost operational fault.");
-    } else {
-      toast.success("Profile Pinned.");
     }
   };
 
