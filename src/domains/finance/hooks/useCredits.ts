@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { deductCreditsRpc, addCreditsRpc } from "@/domains/finance/repo/financeRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
