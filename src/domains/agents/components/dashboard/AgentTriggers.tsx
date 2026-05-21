@@ -4,6 +4,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getTriggersBundle,
+  listRecentAgentOutreach,
+  insertAgentTrigger,
+  toggleAgentTrigger,
+  deleteAgentTrigger,
+  updateHeadlessPoolBalance,
+  updateHeadlessPoolMonthlyCap,
+} from "@/domains/agents/repo/agentsRepo";
 import { agentEventDispatcher } from "@/domains/agents/api/agentsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
