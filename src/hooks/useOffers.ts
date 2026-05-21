@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
-import { insertOffer, updateOfferStatus } from "@/domains/jobs/repo/jobsRepo";
+import { insertOffer, updateOfferStatus, acceptOffer, declineOffer } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Legal & Offer Finality Suite (V5.6.0)
