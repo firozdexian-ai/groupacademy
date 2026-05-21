@@ -50,14 +50,13 @@ export function StandaloneMockInterviewCodeGenerator() {
         const code = generateCode();
 
         // Wrap query in native async for standard Promise casting
-        const executeInsertion = async () => {
-          return await supabase.from("mock_interview_access_codes").insert({
+        const executeInsertion = async () =>
+          insertMockInterviewAccessCode({
             code,
             email: email.toLowerCase().trim(),
-            created_by: user?.id,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            createdBy: user?.id,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           });
-        };
 
         const result = (await withTimeout(
           executeInsertion(),
