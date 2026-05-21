@@ -637,3 +637,41 @@ export async function listActiveJobsByCompanyIdShort(companyId: string, limit = 
     .limit(limit);
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5g2: AppJobApplication helpers ─────────────────────────────
+export async function getJobForApplication(jobId: string): Promise<{ data: any; error: any }> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, title, company_name, company_logo_url, application_email, ai_assessment_enabled")
+    .eq("id", jobId)
+    .single();
+  return { data, error };
+}
+
+export async function getExistingTalentApplication(
+  jobId: string,
+  talentId: string,
+): Promise<any | null> {
+  const { data } = await supabase
+    .from("job_applications")
+    .select(`id, job_assessments(id)`)
+    .eq("job_id", jobId)
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export async function insertTalentJobApplication(payload: {
+  job_id: string;
+  talent_id: string;
+  cover_letter: string;
+  cv_url: string | null;
+  delivery_status?: string;
+}): Promise<{ data: any; error: any }> {
+  const { data, error } = await supabase
+    .from("job_applications")
+    .insert({ ...payload, delivery_status: payload.delivery_status ?? "pending" } as any)
+    .select("id")
+    .single();
+  return { data, error };
+}

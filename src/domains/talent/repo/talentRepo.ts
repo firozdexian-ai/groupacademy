@@ -770,3 +770,8 @@ export async function listTalentBasicByUserIds(userIds: string[], limit = 12): P
     .limit(limit);
   return (data ?? []) as any[];
 }
+
+export async function updateTalentCvUrl(talentId: string, cvUrl: string): Promise<{ error: any }> {
+  const { error } = await supabase.from("talents").update({ cv_url: cvUrl }).eq("id", talentId);
+  return { error };
+}
