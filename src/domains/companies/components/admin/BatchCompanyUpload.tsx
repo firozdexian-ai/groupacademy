@@ -132,14 +132,12 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
     };
 
     const companyCache = new Map<string, string>();
-    const { data: existingCompanies } = await supabase.from("companies").select("id, name");
-    existingCompanies?.forEach((c) => companyCache.set(normalizeCompanyName(c.name), c.id));
+    const existingCompanies = await listAllCompanyNames();
+    existingCompanies.forEach((c) => companyCache.set(normalizeCompanyName(c.name), c.id));
 
-    const { data: existingContacts } = await supabase.from("contacts").select("id, email, phone");
-    const contactEmailSet = new Set(existingContacts?.filter((c) => c.email).map((c) => c.email!.toLowerCase()) || []);
-    const contactPhoneSet = new Set(
-      existingContacts?.filter((c) => c.phone).map((c) => c.phone!.replace(/\D/g, "")) || [],
-    );
+    const existingContacts = await listAllContactIdentifiers();
+    const contactEmailSet = new Set(existingContacts.filter((c) => c.email).map((c) => c.email!.toLowerCase()));
+    const contactPhoneSet = new Set(existingContacts.filter((c) => c.phone).map((c) => c.phone!.replace(/\D/g, "")));
 
     const batchSize = 50;
     for (let i = 0; i < parsedData.length; i += batchSize) {
@@ -156,25 +154,20 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
           let companyId = companyCache.get(normalizedName);
 
           if (!companyId) {
-            const { data: newCompany, error: companyError } = await supabase
-              .from("companies")
-              .insert({
+            try {
+              const newCompany = await insertCompany({
                 name: row.companyName,
                 industry: row.industry || null,
                 primary_email: row.email || null,
                 address: row.address || null,
-              })
-              .select("id")
-              .single();
-
-            if (companyError) {
+              });
+              companyId = newCompany.id;
+              companyCache.set(normalizedName, companyId);
+              stats.companiesCreated++;
+            } catch (companyError: any) {
               stats.errors.push(`Row ${row.originalRow}: ${companyError.message}`);
               continue;
             }
-
-            companyId = newCompany.id;
-            companyCache.set(normalizedName, companyId);
-            stats.companiesCreated++;
           } else {
             stats.companiesUpdated++;
           }
@@ -183,21 +176,20 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
           const phoneExists = row.contactPhone && contactPhoneSet.has(row.contactPhone.replace(/\D/g, ""));
 
           if (row.contactName && !emailExists && !phoneExists) {
-            const { error: contactError } = await supabase.from("contacts").insert({
-              company_id: companyId,
-              full_name: row.contactName,
-              email: row.email || null,
-              phone: row.contactPhone || null,
-              whatsapp_number: row.contactPhone || null,
-              source: "batch_import",
-            });
-
-            if (contactError) {
-              stats.errors.push(`Row ${row.originalRow} contact: ${contactError.message}`);
-            } else {
+            try {
+              await insertContact({
+                company_id: companyId,
+                full_name: row.contactName,
+                email: row.email || null,
+                phone: row.contactPhone || null,
+                whatsapp_number: row.contactPhone || null,
+                source: "batch_import",
+              });
               stats.contactsCreated++;
               if (row.email) contactEmailSet.add(row.email.toLowerCase());
               if (row.contactPhone) contactPhoneSet.add(row.contactPhone.replace(/\D/g, ""));
+            } catch (contactError: any) {
+              stats.errors.push(`Row ${row.originalRow} contact: ${contactError.message}`);
             }
           } else if (emailExists || phoneExists) {
             stats.contactsMerged++;
