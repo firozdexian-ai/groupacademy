@@ -38,17 +38,14 @@ export function useJobsHubDashboard(talentId: string | undefined) {
     staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<JobsHubDashboard> => {
       // HUD: EXECUTING_JOBS_HUB_AGGREGATION_SYNC
-      const { data, error } = await supabase.rpc("get_jobs_hub_dashboard", {
-        _talent_id: talentId ?? null,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies RPC bottlenecks or structural mismatches in discovery.
+      let data: any;
+      try {
+        data = await getJobsHubDashboard(talentId ?? null);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_jobs_hub_dashboard RPC handshake failed.", {
           talentId,
-          error: error.message,
-          code: error.code,
+          error: error?.message,
+          code: error?.code,
         });
         throw error;
       }
