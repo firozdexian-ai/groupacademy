@@ -134,10 +134,12 @@ export function CommentList({ postId }: CommentListProps) {
     trackEvent("micro_payout_tipping_triggered", { commentId, amount, senderTalentId: talent.id });
 
     // Execute atomic RPC credit deduction with server-side balance checks
-    const { error } = await supabase.rpc("tip_comment", {
-      _comment_id: commentId,
-      _amount: amount,
-    });
+    let error: any = null;
+    try {
+      await feedApi.tipComment({ _comment_id: commentId, _amount: amount } as any);
+    } catch (e) {
+      error = e;
+    }
 
     if (error) {
       // Escalate ledger execution anomaly immediately via trackError wrapper architecture
