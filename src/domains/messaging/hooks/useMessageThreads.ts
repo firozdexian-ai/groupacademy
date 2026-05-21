@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   resetThreadUnread,
   markThreadNotificationsRead,
+  ensureSystemThread,
 } from "@/domains/messaging/repo/messagingRepo";
 import { useTalent } from "@/hooks/useTalent";
 
