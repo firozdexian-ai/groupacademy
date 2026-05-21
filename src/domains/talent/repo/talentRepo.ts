@@ -807,3 +807,20 @@ export async function getTalentPhotoByUserId(userId: string) {
     .maybeSingle();
   return (data as { full_name: string | null; profile_photo_url: string | null } | null) ?? null;
 }
+
+// ─── Phase 10j.5h1: RPC wrappers ──────────────────────────────────────────
+export async function boostProfile(): Promise<void> {
+  const { error } = await supabase.rpc("boost_profile");
+  if (error) throw error;
+}
+
+export async function unlockTalentInbox(): Promise<void> {
+  const { error } = await supabase.rpc("unlock_talent_inbox");
+  if (error) throw error;
+}
+
+export async function assignCareerCoach(talentId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("assign_career_coach", { _talent_id: talentId });
+  if (error) throw error;
+  return data ? String(data) : null;
+}
