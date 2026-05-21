@@ -1548,3 +1548,19 @@ export async function getPublicWebinarBySlug(slug: string) {
   if (error) throw error;
   return data as any | null;
 }
+
+// ─── Phase 10j.5h3: RPC wrappers ──────────────────────────────────────────
+export async function enrollLearningTrack(trackId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("talent_enroll_track", { p_track_id: trackId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function upcomingSessionsForUser(args: { userId: string; limit: number }) {
+  const { data, error } = await supabase.rpc("upcoming_sessions_for_user", {
+    _user_id: args.userId,
+    _limit: args.limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

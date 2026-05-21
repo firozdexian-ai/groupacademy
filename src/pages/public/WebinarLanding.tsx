@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicWebinarBySlug } from "@/domains/learning/repo/learningRepo";
+import { trackCourseReferralClick } from "@/domains/analytics/repo/analyticsRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,9 +62,9 @@ export default function WebinarLanding() {
 
     const dispatchReferralTelemetrySignal = async () => {
       try {
-        await supabase.rpc("track_course_referral_click", {
-          p_content_id: verifiedWebinarDataRecord.id,
-          p_ref_code: activeTrackingReferralToken,
+        await trackCourseReferralClick({
+          contentId: verifiedWebinarDataRecord.id,
+          refCode: activeTrackingReferralToken,
         });
       } catch (suppressedException) {
         // Shield rendering passes from floating analytics breaks

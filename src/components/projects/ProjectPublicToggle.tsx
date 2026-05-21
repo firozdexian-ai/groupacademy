@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { getProjectPublicSettings } from "@/domains/ugc/repo/ugcRepo";
+import { getProjectPublicSettings, toggleProjectPublic } from "@/domains/ugc/repo/ugcRepo";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,14 +71,10 @@ export function ProjectPublicToggle({ projectId }: ProjectPublicToggleProps) {
 
     try {
       // Execute the RPC visibility update routine via a cryptographically unified endpoint
-      const { data: responseRpcPayload, error: rpcError } = await supabase.rpc("toggle_project_public", {
-        _project_id: projectId,
-        _public: nextVisibilityStateBool,
+      const normalizedRowData = await toggleProjectPublic({
+        projectId,
+        isPublic: nextVisibilityStateBool,
       });
-
-      if (rpcError) throw rpcError;
-
-      const normalizedRowData = responseRpcPayload as unknown as { is_public: boolean; slug: string | null };
 
       // Secondary Microservice Dispatches: Process parallel Edge workers securely inside isolated try blocks
       if (nextVisibilityStateBool) {

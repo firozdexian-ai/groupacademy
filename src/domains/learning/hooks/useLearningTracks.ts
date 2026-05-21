@@ -253,13 +253,14 @@ export function useEnrollTrack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (track_id: string) => {
-      // HUD: ATOMIC_TALENT_FISCAL_ENROLLMENT_RPC
-      const { data, error } = await supabase.rpc("talent_enroll_track", { p_track_id: track_id });
-      if (error) {
+      // HUD: ATOMIC_TALENT_FISCAL_ENROLLMENT_RPC (delegated to learningRepo)
+      const { enrollLearningTrack } = await import("@/domains/learning/repo/learningRepo");
+      try {
+        return await enrollLearningTrack(track_id);
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: talent_enroll_track credit consumption failure.", error);
         throw error;
       }
-      return data as string;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-track-assignments"] });

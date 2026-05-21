@@ -73,3 +73,32 @@ export async function insertPlatformEvent(input: {
   await supabase.from("platform_events").insert(input as any);
 }
 
+// -----------------------------------------------------------------------------
+// Phase 10j.5h3 — public attribution trackers (fire-and-forget; throw on error
+// so callers can decide whether to swallow).
+// -----------------------------------------------------------------------------
+
+export async function trackServiceClick(args: { slug: string; source: string }): Promise<void> {
+  const { error } = await supabase.rpc("track_service_click", {
+    p_slug: args.slug,
+    p_source: args.source,
+  });
+  if (error) throw error;
+}
+
+export async function trackContentClick(args: { contentId: string; source: string }): Promise<void> {
+  const { error } = await supabase.rpc("track_content_click", {
+    p_content_id: args.contentId,
+    p_source: args.source,
+  });
+  if (error) throw error;
+}
+
+export async function trackCourseReferralClick(args: { contentId: string; refCode: string }): Promise<void> {
+  const { error } = await (supabase.rpc as any)("track_course_referral_click", {
+    p_content_id: args.contentId,
+    p_ref_code: args.refCode,
+  });
+  if (error) throw error;
+}
+

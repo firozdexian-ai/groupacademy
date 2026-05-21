@@ -7,6 +7,7 @@ import {
   findEnrollmentIdForStudentAndContent,
   insertEnrollmentRow,
 } from "@/domains/learning/repo/learningRepo";
+import { trackContentClick, trackCourseReferralClick } from "@/domains/analytics/repo/analyticsRepo";
 import { createStudentProfile } from "@/hooks/useAuth";
 import { registrationSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
@@ -127,10 +128,10 @@ const CourseDetail = () => {
 
       const source = searchParams.get("source");
       const ref = searchParams.get("ref");
-      if (source) await supabase.rpc("track_content_click", { p_content_id: data.id, p_source: source });
+      if (source) await trackContentClick({ contentId: data.id, source });
       if (ref) {
         localStorage.setItem("course_ref", ref);
-        try { await (supabase.rpc as any)("track_course_referral_click", { p_content_id: data.id, p_ref_code: ref }); } catch {}
+        try { await trackCourseReferralClick({ contentId: data.id, refCode: ref }); } catch {}
       }
 
       if (user && studentProfile?.id) {

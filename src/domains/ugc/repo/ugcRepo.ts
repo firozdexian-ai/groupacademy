@@ -217,3 +217,13 @@ export async function upsertCompetitionSubmission(payload: {
   const { error } = await supabase.from("competition_submissions").upsert(payload as any);
   return { error };
 }
+
+// ─── Phase 10j.5h3: project public toggle RPC wrapper ─────────────────────
+export async function toggleProjectPublic(args: { projectId: string; isPublic: boolean }) {
+  const { data, error } = await supabase.rpc("toggle_project_public", {
+    _project_id: args.projectId,
+    _public: args.isPublic,
+  });
+  if (error) throw error;
+  return data as unknown as { is_public: boolean; slug: string | null };
+}

@@ -1,11 +1,11 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listOwnedAiAgentsForTalent,
   listTalentAgentMarketplaceEarnings,
   listAgentPayoutRequestsForTalent,
+  getTalentMarketplaceSummary,
 } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,19 +45,14 @@ export default function MyAgents() {
         listOwnedAiAgentsForTalent(talent!.id),
         listTalentAgentMarketplaceEarnings(talent!.id, 100),
         listAgentPayoutRequestsForTalent(talent!.id),
-        supabase.rpc("talent_marketplace_summary"),
+        getTalentMarketplaceSummary(),
       ]);
 
       return {
         agents: agents ?? [],
         earnings: earnings ?? [],
         payouts: payouts ?? [],
-        summary: (summary.data as unknown as SummaryRecord) ?? {
-          lifetime_earned: 0,
-          paid_out: 0,
-          pending_payout: 0,
-          available: 0,
-        },
+        summary: summary as SummaryRecord,
       };
     },
   });

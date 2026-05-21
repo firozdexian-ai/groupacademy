@@ -146,16 +146,10 @@ export function useDirectMessages(threadId: string | undefined) {
  */
 export async function ensureDirectThread(companyId: string, talentId: string): Promise<string | null> {
   try {
-    // HUD: EXECUTING_RPC_THREAD_UPSERT
-    const { data, error } = await supabase.rpc("upsert_direct_thread" as any, {
-      p_company_id: companyId,
-      p_talent_id: talentId,
-    });
-
-    if (error) throw error;
-    return data as string;
+    // HUD: EXECUTING_RPC_THREAD_UPSERT (delegated to messagingRepo)
+    const { upsertDirectThread } = await import("@/domains/messaging/repo/messagingRepo");
+    return await upsertDirectThread({ companyId, talentId });
   } catch (err: any) {
-    // Digital Workforce Failure Sensor capture point
     console.error("[Digital Workforce] ANOMALY: upsert_direct_thread RPC handshake failure.", {
       companyId,
       talentId,

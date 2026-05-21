@@ -422,3 +422,24 @@ export async function listPinnedAgentKeys(userId: string, companyId: string): Pr
     .eq("pinned", true);
   return ((data ?? []) as Array<{ agent_key: string }>).map((r) => r.agent_key);
 }
+
+// ─── Phase 10j.5h3: RPC wrapper ───────────────────────────────────────────
+export interface TalentMarketplaceSummary {
+  lifetime_earned: number;
+  paid_out: number;
+  pending_payout: number;
+  available: number;
+}
+
+export async function getTalentMarketplaceSummary(): Promise<TalentMarketplaceSummary> {
+  const { data, error } = await supabase.rpc("talent_marketplace_summary");
+  if (error) throw error;
+  return (
+    (data as unknown as TalentMarketplaceSummary) ?? {
+      lifetime_earned: 0,
+      paid_out: 0,
+      pending_payout: 0,
+      available: 0,
+    }
+  );
+}

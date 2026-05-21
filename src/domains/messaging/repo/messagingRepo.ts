@@ -144,3 +144,13 @@ export async function ensureSystemThread(talentId: string): Promise<string | nul
   if (error) throw error;
   return data ? String(data) : null;
 }
+
+// ─── Phase 10j.5h3: direct-thread upsert ──────────────────────────────────
+export async function upsertDirectThread(args: { companyId: string; talentId: string }): Promise<string | null> {
+  const { data, error } = await supabase.rpc("upsert_direct_thread" as any, {
+    p_company_id: args.companyId,
+    p_talent_id: args.talentId,
+  });
+  if (error) throw error;
+  return data ? String(data) : null;
+}

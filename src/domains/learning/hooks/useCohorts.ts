@@ -162,20 +162,17 @@ export function useUpcomingSessions(limit = 6) {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase.rpc("upcoming_sessions_for_user", {
-        _user_id: user.id,
-        _limit: limit,
-      });
-
-      if (error) {
+      try {
+        const { upcomingSessionsForUser } = await import("@/domains/learning/repo/learningRepo");
+        return await upcomingSessionsForUser({ userId: user.id, limit });
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: user upcoming_sessions index fault.", {
           userId: user.id,
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return data ?? [];
     },
   });
 }

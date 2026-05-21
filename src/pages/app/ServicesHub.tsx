@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { trackServiceClick } from "@/domains/analytics/repo/analyticsRepo";
 import { Coins, Sparkles, Zap, History, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,8 +91,7 @@ export default function ServicesHub() {
     if (source && serviceSlug) {
       const trackClick = async () => {
         try {
-          const { error } = await supabase.rpc("track_service_click", { p_slug: serviceSlug, p_source: source });
-          if (error) throw error;
+          await trackServiceClick({ slug: serviceSlug, source });
         } catch (err) {
           await reportAnomalyToAdmin("TrackServiceClickFailure", { serviceSlug, error: err });
         }

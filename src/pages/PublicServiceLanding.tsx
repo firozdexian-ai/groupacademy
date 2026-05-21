@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { trackServiceClick } from "@/domains/analytics/repo/analyticsRepo";
 import { Sparkles } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -21,10 +21,7 @@ export default function PublicServiceLanding() {
       if (source && serviceSlug) {
         try {
           // CTO Note: RPC call is fire-and-forget to minimize UX latency
-          await supabase.rpc("track_service_click", {
-            p_slug: serviceSlug,
-            p_source: source,
-          });
+          await trackServiceClick({ slug: serviceSlug, source });
         } catch (err) {
           console.error("Platform Telemetry Handshake Failed:", err);
         }
