@@ -1442,3 +1442,50 @@ export async function listCompanyCourseAssignmentsByCompany(companyId: string): 
   if (error) throw error;
   return data ?? [];
 }
+
+// ─── Phase 10j.5g2: course project + subtasks (CourseProjectDetail) ───────
+export async function getCourseProjectById(id: string): Promise<{ data: any; error: any }> {
+  const { data, error } = await supabase
+    .from("course_projects")
+    .select("id, course_id, status, claimed_by, deadline, total_credit_reward, progress_percent")
+    .eq("id", id)
+    .single();
+  return { data, error };
+}
+
+export async function getCourseProjectCourse(courseId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from("content")
+    .select("id, title, description, cover_image_url")
+    .eq("id", courseId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export async function listCourseProjectSubtasks(projectId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("course_project_subtasks")
+    .select(
+      "id, project_id, title, kind, status, brief, expected_format, credit_reward, display_order, submitted_files, submitted_notes, reviewer_notes",
+    )
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  return (data ?? []) as any[];
+}
+
+export async function submitCourseProject(projectId: string): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("course_projects")
+    .update({ status: "submitted", submitted_at: new Date().toISOString() })
+    .eq("id", projectId);
+  return { error };
+}
+
+export async function updateCourseProjectSubtask(
+  subtaskId: string,
+  patch: Record<string, any>,
+): Promise<{ error: any }> {
+  const { error } = await supabase.from("course_project_subtasks").update(patch).eq("id", subtaskId);
+  return { error };
+}
