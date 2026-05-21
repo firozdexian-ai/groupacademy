@@ -100,25 +100,8 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
     enabled: jobShareIds.length > 0 && !!talentId,
     refetchInterval: 30000, // Sync loop intervals preserved safely
     queryFn: async () => {
-      const countsAccumulator: Record<string, number> = {};
-
       try {
-        // Fetch raw metrics in a single pass using relational .in() matching criteria
-        const { data: bulkClicks, error: clickError } = await supabase
-          .from("job_share_clicks")
-          .select("job_id")
-          .eq("talent_id", talentId)
-          .in("job_id", jobShareIds);
-
-        if (clickError) throw clickError;
-
-        (bulkClicks || []).forEach((row: any) => {
-          if (row?.job_id) {
-            countsAccumulator[row.job_id] = (countsAccumulator[row.job_id] || 0) + 1;
-          }
-        });
-
-        return countsAccumulator;
+        return await getJobShareClickCounts(talentId, jobShareIds);
       } catch (loopErr) {
         trackError(loopErr, {
           component: "MySubmissions",
