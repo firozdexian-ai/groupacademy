@@ -92,6 +92,16 @@ export async function listAgentCreditEvents(sinceIso: string, limit = 10000) {
   return data ?? [];
 }
 
+export async function listRecentAgentOutreach(limit = 20) {
+  const { data, error } = await supabase
+    .from("agent_outreach")
+    .select("id, agent_id, recipient_kind, channel, status, body, credits_charged, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ─── Triggers ─────────────────────────────────────────────────────────────
 export async function getTriggersBundle() {
   const [agentsRes, triggersRes, poolRes] = await Promise.all([
