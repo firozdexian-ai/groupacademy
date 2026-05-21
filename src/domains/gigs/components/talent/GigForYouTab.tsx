@@ -84,11 +84,7 @@ export function GigForYouTab() {
       for (const matchItem of offeredMatches) {
         if (!matchItem?.match_id) continue;
         try {
-          const { error: rpcError } = await supabase.rpc("record_match_event", {
-            _match_id: matchItem.match_id,
-            _event: "view",
-          });
-          if (rpcError) throw rpcError;
+          await recordMatchEvent(matchItem.match_id, "view");
           traceCount++;
         } catch (loopErr) {
           trackError(loopErr, {
