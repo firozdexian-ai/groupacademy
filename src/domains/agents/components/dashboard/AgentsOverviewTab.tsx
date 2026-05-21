@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { getAgentsOverview } from "@/domains/agents/repo/agentsRepo";
 import { Bot, Sparkles, Zap, Plug, Users, Building2, UserPlus, Store, Activity, Cpu } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
