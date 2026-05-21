@@ -125,11 +125,7 @@ export default function MockInterviewResults() {
 
   const loadRecommendedCourses = async (pId: string) => {
     setLoadingCourses(true);
-    const { data } = await supabase
-      .from("content")
-      .select("id, title, slug, estimated_hours, thumbnail_url")
-      .eq("profession_line_id", pId)
-      .limit(3);
+    const data = await listRecommendedCoursesForProfession(pId, 3, false);
     if (data) setRecommendedCourses(data);
     setLoadingCourses(false);
   };
