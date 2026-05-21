@@ -290,12 +290,10 @@ export function JobsManagerLegacyTab() {
       };
 
       if (editingJobId) {
-        const { error } = await supabase.from("jobs").update(payload).eq("id", editingJobId);
-        if (error) throw error;
+        await updateJob(editingJobId, payload);
         toast.success("Job updated");
       } else {
-        const { error } = await supabase.from("jobs").insert(payload);
-        if (error) throw error;
+        await insertJob(payload);
         toast.success("Job created");
       }
 
