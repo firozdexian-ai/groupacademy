@@ -87,14 +87,12 @@ export default function StudyAbroadDetail() {
   const handleExternalClick = async (url: string) => {
     if (talent?.id && program) {
       try {
-        await supabase.from("contacts").insert([
-          {
-            full_name: talent.fullName || "Anonymous",
-            email: talent.email || "unknown",
-            subject: `Interest: ${program.university_name}`,
-            message: `Lead generated for ${program.program_name}.`,
-          },
-        ]);
+        await insertContactLog({
+          full_name: talent.fullName || "Anonymous",
+          email: talent.email || "unknown",
+          subject: `Interest: ${program.university_name}`,
+          message: `Lead generated for ${program.program_name}.`,
+        });
       } catch (e) {
         await reportAnomaly("LeadCaptureFailure", { id: program.id, error: e });
       }
