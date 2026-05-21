@@ -558,3 +558,16 @@ export async function mergeIndustries(sources: string[], target: string): Promis
   const { error } = await supabase.rpc("merge_industries", { p_sources: sources, p_target: target });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5h4: contact-unlocks summary RPC wrapper ───────────────────
+export interface ContactUnlocksSummary {
+  total_unlocks: number;
+  total_credits: number;
+  last_7d: number;
+}
+
+export async function getContactUnlocksSummary(): Promise<ContactUnlocksSummary> {
+  const { data, error } = await supabase.rpc("get_contact_unlocks_summary");
+  if (error) throw error;
+  return (data ?? { total_unlocks: 0, total_credits: 0, last_7d: 0 }) as unknown as ContactUnlocksSummary;
+}

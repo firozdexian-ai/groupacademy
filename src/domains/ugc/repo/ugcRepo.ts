@@ -227,3 +227,10 @@ export async function toggleProjectPublic(args: { projectId: string; isPublic: b
   if (error) throw error;
   return data as unknown as { is_public: boolean; slug: string | null };
 }
+
+// ─── Phase 10j.5h4: UGC dashboard RPC wrapper ─────────────────────────────
+export async function getUgcDashboard<T = any>(): Promise<T> {
+  const { data, error } = await supabase.rpc("get_ugc_dashboard" as any);
+  if (error) throw error;
+  return data as unknown as T;
+}
