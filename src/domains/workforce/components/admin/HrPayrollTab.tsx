@@ -260,11 +260,9 @@ export function HrPayrollTab() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() =>
-                                  supabase
-                                    .from("hr_payroll_runs")
-                                    .delete()
-                                    .eq("id", r.id)
-                                    .then(() => qc.invalidateQueries({ queryKey: ["hr_payroll"] }))
+                                  deleteGraphRow("hr_payroll_runs", r.id).then(() =>
+                                    qc.invalidateQueries({ queryKey: ["hr_payroll"] }),
+                                  )
                                 }
                                 className="text-destructive hover:bg-destructive/10"
                               >
