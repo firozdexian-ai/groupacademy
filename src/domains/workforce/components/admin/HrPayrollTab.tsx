@@ -83,7 +83,7 @@ export function HrPayrollTab() {
         runs,
         groupedRuns,
         userMap,
-        workforce: workforceRes.data || [],
+        workforce,
         totalDisbursed: runs.filter((r) => r.status === "paid").reduce((s, r) => s + Number(r.total_amount || 0), 0),
         pendingLiability: runs
           .filter((r) => ["pending", "draft"].includes(r.status))
