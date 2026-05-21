@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { updateMockInterview } from "@/domains/marketing/repo/marketingRepo";
 import { getMockInterviewById } from "@/domains/marketing/repo/marketingRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
