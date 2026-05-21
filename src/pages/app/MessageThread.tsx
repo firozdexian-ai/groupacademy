@@ -12,6 +12,9 @@ import { ArrowLeft, Bot, Sparkles, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL } from "@/lib/uiTokens";
+import { listTalentSystemFeedNotifications } from "@/domains/talent/repo/talentRepo";
+import { getAgentByKey } from "@/domains/agents/repo/agentsRepo";
+import { getMessageThreadIdByTalentAndAgent } from "@/domains/messaging/repo/messagingRepo";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -66,13 +69,7 @@ export default function MessageThread() {
         const { data: tid } = await supabase.rpc("ensure_system_thread", { _talent_id: talent.id });
         if (tid) markThreadRead(tid as string);
 
-        const { data } = await supabase
-          .from("notifications")
-          .select("id, title, message, link, created_at")
-          .eq("talent_id", talent.id)
-          .order("created_at", { ascending: true })
-          .limit(200);
-
+        const data = await listTalentSystemFeedNotifications(talent.id, 200);
         setSystemNotifications(data ?? []);
         setIsBootstrapping(false);
       };
@@ -80,23 +77,12 @@ export default function MessageThread() {
     } else {
       const loadAgentSession = async () => {
         setIsBootstrapping(true);
-        const { data } = await supabase
-          .from("ai_agents")
-          .select("id, name, agent_key, avatar_url, bg_color")
-          .eq("agent_key", threadKey)
-          .maybeSingle();
-
+        const data = await getAgentByKey(threadKey);
         if (data) setActiveAgent(data as unknown as AgentRecord);
         await startOrResumeSession(threadKey);
 
-        const { data: threadRow } = await supabase
-          .from("message_threads")
-          .select("id")
-          .eq("talent_id", talent.id)
-          .eq("agent_key", threadKey)
-          .maybeSingle();
-
-        if (threadRow?.id) markThreadRead(threadRow.id);
+        const threadId = await getMessageThreadIdByTalentAndAgent(talent.id, threadKey);
+        if (threadId) markThreadRead(threadId);
         setIsBootstrapping(false);
       };
       void loadAgentSession();

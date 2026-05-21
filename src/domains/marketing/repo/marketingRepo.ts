@@ -482,3 +482,28 @@ export async function listPortfolioRequestsByEmail(email: string) {
   if (error) throw error;
   return (data as any[]) ?? [];
 }
+
+// ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
+export async function getLatestCompletedSalaryAnalysisByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("salary_analyses")
+    .select("created_at")
+    .eq("email", email)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return (data ?? []) as Array<{ created_at: string }>;
+}
+
+export async function getValidSalaryAccessCode(code: string, email: string) {
+  const { data, error } = await supabase
+    .from("salary_analysis_access_codes")
+    .select("*")
+    .eq("code", code)
+    .eq("email", email)
+    .eq("is_used", false)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+  return { data: data as { id: string } | null, error };
+}

@@ -400,3 +400,14 @@ export async function incrementAgentConversations(p_agent_key: string): Promise<
   const { error } = await supabase.rpc("increment_agent_conversations", { p_agent_key });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
+export async function getAgentByKey(agentKey: string) {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("id, name, agent_key, avatar_url, bg_color")
+    .eq("agent_key", agentKey)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { id: string; name: string; agent_key: string; avatar_url: string | null; bg_color: string } | null;
+}

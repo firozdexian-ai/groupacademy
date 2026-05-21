@@ -14,6 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   markSalaryAnalysisAccessCodeUsed,
   insertSalaryAnalysis,
+  listActiveProfessionCategoriesBasic,
+  getLatestCompletedSalaryAnalysisByEmail,
+  getValidSalaryAccessCode,
 } from "@/domains/marketing/repo/marketingRepo";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -93,12 +96,7 @@ const SalaryAnalysisSetupContent = () => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const { data, error } = await supabase
-          .from("profession_categories")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("display_order");
-        if (error) throw error;
+        const data = await listActiveProfessionCategoriesBasic();
         if (data) setProfessionCategories(data);
       } catch (e) {
         console.error("Category sync failed:", e);
@@ -117,15 +115,7 @@ const SalaryAnalysisSetupContent = () => {
 
     setIsCheckingEmail(true);
     try {
-      const { data, error } = await supabase
-        .from("salary_analyses")
-        .select("created_at")
-        .eq("email", email.trim().toLowerCase())
-        .eq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
+      const data = await getLatestCompletedSalaryAnalysisByEmail(email.trim().toLowerCase());
 
       if (!data || data.length === 0) {
         setCanProceed(true);
@@ -151,14 +141,10 @@ const SalaryAnalysisSetupContent = () => {
   const validateAccessCode = async () => {
     if (!accessCode.trim()) return;
     try {
-      const { data, error } = await supabase
-        .from("salary_analysis_access_codes")
-        .select("*")
-        .eq("code", accessCode.trim().toUpperCase())
-        .eq("email", email.trim().toLowerCase())
-        .eq("is_used", false)
-        .gt("expires_at", new Date().toISOString())
-        .single();
+      const { data, error } = await getValidSalaryAccessCode(
+        accessCode.trim().toUpperCase(),
+        email.trim().toLowerCase(),
+      );
 
       if (error || !data) {
         toast({ title: "Invalid Protocol", description: "Code is expired or unrecognized.", variant: "destructive" });

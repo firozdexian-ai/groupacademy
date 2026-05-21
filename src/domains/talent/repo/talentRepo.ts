@@ -775,3 +775,15 @@ export async function updateTalentCvUrl(talentId: string, cvUrl: string): Promis
   const { error } = await supabase.from("talents").update({ cv_url: cvUrl }).eq("id", talentId);
   return { error };
 }
+
+// ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
+export async function listTalentSystemFeedNotifications(talentId: string, limit = 200) {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, title, message, link, created_at")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; title: string; message: string | null; link: string | null; created_at: string }>;
+}
