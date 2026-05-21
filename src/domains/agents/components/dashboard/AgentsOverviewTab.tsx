@@ -10,37 +10,28 @@ export function AgentsOverviewTab() {
 
   useEffect(() => {
     (async () => {
-      const [agents, channels, tools, sessions] = await Promise.all([
-        supabase.from("ai_agents").select("agent_type,is_active,visibility,total_conversations"),
-        supabase.from("agent_channels").select("id", { count: "exact", head: true }),
-        supabase.from("agent_tools").select("handler_kind"),
-        supabase
-          .from("agent_chat_sessions")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
-      ]);
-      const a = agents.data ?? [];
+      const { agents, channelCount, tools, sessions7dCount } = await getAgentsOverview();
       const byType: Record<string, number> = {};
       let active = 0;
       let convs = 0;
-      for (const r of a as any[]) {
+      for (const r of agents as any[]) {
         const k = r.agent_type ?? "unknown";
         byType[k] = (byType[k] ?? 0) + 1;
         if (r.is_active) active++;
         convs += r.total_conversations ?? 0;
       }
       const toolsByKind: Record<string, number> = {};
-      for (const t of (tools.data ?? []) as any[]) {
+      for (const t of (tools ?? []) as any[]) {
         toolsByKind[t.handler_kind] = (toolsByKind[t.handler_kind] ?? 0) + 1;
       }
       setStats({
-        totalAgents: a.length,
+        totalAgents: agents.length,
         active,
         byType,
-        channels: channels.count ?? 0,
-        tools: (tools.data ?? []).length,
+        channels: channelCount,
+        tools: (tools ?? []).length,
         toolsByKind,
-        sessions7d: sessions.count ?? 0,
+        sessions7d: sessions7dCount,
         convs,
       });
     })();
