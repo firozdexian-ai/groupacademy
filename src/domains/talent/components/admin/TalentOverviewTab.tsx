@@ -44,12 +44,7 @@ export function TalentOverviewTab() {
       };
 
       // Restore: Aisha Funnel Data (Capturing the conversion flow)
-      const aishaCount = async (filter?: (q: any) => any) => {
-        let q = supabase.from("aisha_conversations").select("id", { head: true, count: "exact" });
-        if (filter) q = filter(q);
-        const { count } = await q;
-        return count ?? 0;
-      };
+      const aishaCount = (filter?: (q: any) => any) => talentRepo.countAishaConversations(filter);
 
       const [started, emailCaptured, completedSignup] = await Promise.all([
         aishaCount(),
