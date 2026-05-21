@@ -110,15 +110,7 @@ function CareerAssessmentContent() {
     setCheckingEmail(true);
 
     try {
-      const { data: existing, error } = await supabase
-        .from("career_assessments")
-        .select("*")
-        .eq("email", email.toLowerCase().trim())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
+      const existing = await getLatestCareerAssessmentByEmail(email.toLowerCase().trim());
 
       if (existing && new Date(existing.expires_at) > new Date()) {
         setExistingAssessment(existing);
