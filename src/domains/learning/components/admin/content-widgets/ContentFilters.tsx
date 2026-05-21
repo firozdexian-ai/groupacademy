@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listProfessionCategoriesAndLevels } from "@/domains/learning/repo/learningRepo";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, Layers, Zap, ArrowDownWideNarrow } from "lucide-react";
 import { cn } from "@/lib/utils";
