@@ -38,18 +38,18 @@ export function useRankedGigs(talentId: string | null | undefined) {
       const { pageParam } = context;
 
       // HUD: EXECUTING_KEYSET_PAGINATED_GIG_INGRESS
-      const { data, error } = await supabase.rpc("get_ranked_gigs_for_talent", {
-        _talent_id: talentId ?? null,
-        _cursor: pageParam,
-        _limit: PAGE_SIZE,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Imprints explicit trace tracking packets
+      let data: any[];
+      try {
+        data = await getRankedGigsForTalent({
+          talentId: talentId ?? null,
+          cursor: pageParam,
+          limit: PAGE_SIZE,
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_ranked_gigs_for_talent RPC lookup failed.", {
           talentId: talentId ?? "ANONYMOUS",
           cursor: pageParam,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
