@@ -540,3 +540,16 @@ export async function getActiveMembershipWithCompanyName(userId: string) {
     .maybeSingle();
   return (data as { role: string; companies: { name: string } | null } | null) ?? null;
 }
+
+// ─── Phase 10j.5h1: RPC wrappers ──────────────────────────────────────────
+export async function getCompaniesOverview() {
+  const { data, error } = await supabase.rpc("get_companies_overview");
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getIndustryRollup() {
+  const { data, error } = await supabase.rpc("get_industry_rollup");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
