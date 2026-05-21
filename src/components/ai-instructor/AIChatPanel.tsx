@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useTutorMasteryContext } from "@/hooks/useTutorMasteryContext";
+import { useTutorMasteryContext } from "@/domains/learning";
 
 /**
  * GroUp Academy: Neural Instructor Interface (V5.6.0)

@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { learnerQuizPool } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useReviewQueue, type ReviewTopic } from "@/hooks/useReviewQueue";
+import { useReviewQueue, type ReviewTopic } from "@/domains/learning";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ModuleScenarioRunner } from "./ModuleScenarioRunner";
 

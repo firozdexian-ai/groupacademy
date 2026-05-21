@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useItemAnalytics, type QuizItemStat, type ScenarioItemStat } from "@/hooks/useItemAnalytics";
+import { useItemAnalytics, type QuizItemStat, type ScenarioItemStat } from "@/domains/learning";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

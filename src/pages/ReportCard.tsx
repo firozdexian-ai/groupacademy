@@ -21,7 +21,7 @@ import { ReportCardTemplate } from "@/components/report/ReportCardTemplate";
 import { CertificatePDFTemplate } from "@/components/certificate/CertificatePDFTemplate";
 import { generateReportCardPDF } from "@/lib/pdfGenerator";
 import { generateCertificatePDF } from "@/lib/certificatePdfGenerator";
-import { useCertificate } from "@/hooks/useCertificate";
+import { useCertificate } from "@/domains/learning";
 import { withTimeout } from "@/hooks/useDataFetch";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ErrorState } from "@/components/ui/error-state";

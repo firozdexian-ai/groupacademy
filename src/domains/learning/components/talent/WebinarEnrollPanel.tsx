@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Calendar, Clock, Users, Coins, MessageCircle, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
-import { useEnrollment } from "@/hooks/useEnrollment";
+import { useEnrollment } from "@/domains/learning";
 import { useTalent } from "@/hooks/useTalent";
 import { formatEventTime, formatEventLocal, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { getCourseCredits } from "@/lib/creditPricing";

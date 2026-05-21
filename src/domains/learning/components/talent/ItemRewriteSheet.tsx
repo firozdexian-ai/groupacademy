@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { AlertTriangle, Sparkles, Check, Languages, ArrowLeft, ArrowRight, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useItemRewrite, type QuizSuggestion, type ScenarioSuggestion } from "@/hooks/useItemRewrite";
-import { useItemTranslate, SUPPORTED_TRANSLATION_LANGS } from "@/hooks/useItemTranslate";
+import { useItemRewrite, type QuizSuggestion, type ScenarioSuggestion } from "@/domains/learning";
+import { useItemTranslate, SUPPORTED_TRANSLATION_LANGS } from "@/domains/learning";
 import { cn } from "@/lib/utils";
 
 interface Props {

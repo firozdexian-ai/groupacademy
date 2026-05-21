@@ -5,7 +5,7 @@ import { Loader2, Radio, ExternalLink, AlertCircle, Inbox, CheckCircle2 } from "
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useMarkAttendance } from "@/hooks/useCohorts";
+import { useMarkAttendance } from "@/domains/learning";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
 

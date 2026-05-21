@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Settings,
 } from "lucide-react";
-import { useInstructorSummary } from "@/hooks/useInstructorWorkspace";
+import { useInstructorSummary } from "@/domains/learning";
 import InstructorEarnings from "./InstructorEarnings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

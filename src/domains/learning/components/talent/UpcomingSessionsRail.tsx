@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Calendar, Radio, Video } from "lucide-react";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
-import { useUpcomingSessions } from "@/hooks/useCohorts";
+import { useUpcomingSessions } from "@/domains/learning";
 import { cn } from "@/lib/utils";
 
 /**
