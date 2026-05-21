@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getJobTitleById } from "@/domains/jobs/repo/jobsRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft } from "lucide-react";
 import { ApplicationKanban } from "@/components/applications/ApplicationKanban";
@@ -15,12 +15,7 @@ export default function Gro10xJobApplicants() {
 
   useEffect(() => {
     if (!jobId) return;
-    void supabase
-      .from("jobs")
-      .select("title")
-      .eq("id", jobId)
-      .maybeSingle()
-      .then(({ data }) => data?.title && setJobTitle(data.title));
+    void getJobTitleById(jobId).then((t) => t && setJobTitle(t));
   }, [jobId]);
 
   if (!user) return null;

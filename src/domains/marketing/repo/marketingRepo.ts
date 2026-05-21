@@ -579,3 +579,14 @@ export async function listActiveProfessionCategoriesAll() {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+export async function listPublicProfessionTracks(limit = 8) {
+  const { data, error } = await supabase
+    .from("profession_categories")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .order("display_order")
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}

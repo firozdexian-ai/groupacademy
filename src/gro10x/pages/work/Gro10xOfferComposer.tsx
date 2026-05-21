@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getApplicationOfferContext } from "@/domains/jobs/repo/jobsRepo";
 import { useCreateOffer, useSendOffer } from "@/hooks/useOffers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,12 +32,7 @@ export default function Gro10xOfferComposer() {
 
   useEffect(() => {
     (async () => {
-      const { data: app } = await supabase
-        .from("job_applications")
-        .select("talent_id, jobs!inner(title, company_id)")
-        .eq("id", applicationId!)
-        .maybeSingle();
-      const a: any = app;
+      const a: any = await getApplicationOfferContext(applicationId!);
       if (a) {
         setCompanyId(a.jobs.company_id);
         setTalentId(a.talent_id);

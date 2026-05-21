@@ -2,6 +2,7 @@ import * as React from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicWebinarBySlug } from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,17 +47,7 @@ export default function WebinarLanding() {
     enabled: !!unverifiedRouteSlugStr,
     queryFn: async () => {
       if (!unverifiedRouteSlugStr) return null;
-
-      const { data: extractedContentNode, error: contentHandshakeError } = await supabase
-        .from("content")
-        .select(
-          "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, instructor_name, price",
-        )
-        .eq("slug", unverifiedRouteSlugStr)
-        .eq("is_published", true)
-        .maybeSingle();
-
-      if (contentHandshakeError) throw contentHandshakeError;
+      const extractedContentNode = await getPublicWebinarBySlug(unverifiedRouteSlugStr);
       return extractedContentNode;
     },
   });

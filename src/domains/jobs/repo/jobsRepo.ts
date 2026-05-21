@@ -746,3 +746,32 @@ export async function searchPublicActiveJobs(
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5g5 ─────────────────────────────────────────────────────────
+export async function getJobTitleById(jobId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("jobs")
+    .select("title")
+    .eq("id", jobId)
+    .maybeSingle();
+  return ((data as any)?.title as string | undefined) ?? null;
+}
+
+export async function listRecentApplicationsWithJobMeta(limit = 200) {
+  const { data, error } = await supabase
+    .from("job_applications")
+    .select("id, talent_id, created_at, jobs:job_id ( title, company_id )")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getApplicationOfferContext(applicationId: string) {
+  const { data } = await supabase
+    .from("job_applications")
+    .select("talent_id, jobs!inner(title, company_id)")
+    .eq("id", applicationId)
+    .maybeSingle();
+  return data as any | null;
+}

@@ -1519,3 +1519,32 @@ export async function listRecommendedCoursesForProfession(
     thumbnail_url: string | null;
   }>;
 }
+
+export async function listPublicCoursesCatalog(limit = 12) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      "id, title, slug, description, cover_image_url, thumbnail_url, content_type, duration_hours, current_enrollment, instructor_name, modules_count",
+    )
+    .eq("is_published", true)
+    .eq("is_private", false)
+    .eq("is_ready", true)
+    .in("content_type", ["recorded_course", "batch_class", "free_video"])
+    .order("current_enrollment", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getPublicWebinarBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, instructor_name, price",
+    )
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}

@@ -4,7 +4,9 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listRecentApplicationsWithJobMeta } from "@/domains/jobs/repo/jobsRepo";
+import { listCompanyShortlistsRecent } from "@/domains/companies/repo/companiesRepo";
+import { listTalentsBasicByIds } from "@/domains/talent/repo/talentRepo";
 import { useActiveCompany } from "../../hooks/useActiveCompany";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../../lib/tokens";
 import { Loader2, MessageSquare, User } from "lucide-react";
@@ -32,11 +34,7 @@ export default function Gro10xTalents() {
       setLoading(true);
 
       // Applicants on this company's jobs
-      const { data: apps } = await supabase
-        .from("job_applications")
-        .select("id, talent_id, created_at, jobs:job_id ( title, company_id )")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const apps = await listRecentApplicationsWithJobMeta(200);
       const filteredApps: any[] = ((apps ?? []) as any[]).filter(
         (a: any) => a?.jobs?.company_id === companyId
       );
@@ -46,12 +44,7 @@ export default function Gro10xTalents() {
       ) as string[];
 
       // Shortlist
-      const { data: short } = await supabase
-        .from("company_talent_shortlists")
-        .select("talent_id, created_at")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const short = await listCompanyShortlistsRecent(companyId, 200);
       const shortIds = Array.from(
         new Set((short ?? []).map((s: any) => s.talent_id).filter(Boolean))
       ) as string[];
@@ -59,10 +52,7 @@ export default function Gro10xTalents() {
       const allIds = Array.from(new Set([...talentIds, ...shortIds]));
       let talentMap: Record<string, any> = {};
       if (allIds.length) {
-        const { data: t } = await supabase
-          .from("talents")
-          .select("id, user_id, full_name, custom_profession, profile_photo_url")
-          .in("id", allIds);
+        const t = await listTalentsBasicByIds(allIds);
         talentMap = Object.fromEntries((t ?? []).map((row: any) => [row.id, row]));
       }
 
