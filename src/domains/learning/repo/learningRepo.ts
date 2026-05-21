@@ -952,3 +952,359 @@ export async function listEnrollmentsWithRelations() {
   if (error) throw error;
   return data ?? [];
 }
+
+/* ---------------- Phase 10j.5b: learning admin pages ---------------- */
+
+// Content row helpers (admin edit/quiz/module pages)
+export async function getContentById(id: string) {
+  const { data, error } = await supabase.from("content").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getContentBasic(id: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("title, content_type")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { title: string; content_type: string } | null;
+}
+
+export async function getContentSlim(id: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { id: string; title: string } | null;
+}
+
+export async function updateContent(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase.from("content").update(patch as any).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateContentQuizSettings(
+  contentId: string,
+  passThreshold: number,
+  quizEnabled = true,
+) {
+  const { error } = await supabase
+    .from("content")
+    .update({ pass_threshold: passThreshold, quiz_enabled: quizEnabled })
+    .eq("id", contentId);
+  if (error) throw error;
+}
+
+export async function getContentBySlugPublished(slug: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function getContentBySlugMaybe(slug: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getContentBySlugWithProfession(slug: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("*, profession_categories:profession_line_id(*)")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function countCourseSessionsForContent(contentId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("course_sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("content_id", contentId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// course_sessions admin CRUD
+export async function getCourseSessionById(id: string) {
+  const { data, error } = await supabase.from("course_sessions").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateCourseSession(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase.from("course_sessions").update(patch as any).eq("id", id);
+  if (error) throw error;
+}
+
+// course_modules admin CRUD
+export async function getCourseModuleById(id: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function listCourseModulesForContentFull(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("id, content_id, title, description, video_url, duration_minutes, display_order, is_preview")
+    .eq("content_id", contentId)
+    .order("display_order", { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCourseModuleSummariesForContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("id, title, description, video_url")
+    .eq("content_id", contentId)
+    .order("order_index", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCourseModulesByDisplayOrder(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("*")
+    .eq("content_id", contentId)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCourseModulesLite(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("id, title, display_order")
+    .eq("content_id", contentId)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function insertCourseModuleReturning(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .insert([payload as any])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateCourseModule(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase.from("course_modules").update(patch as any).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteCourseModule(id: string) {
+  const { error } = await supabase.from("course_modules").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function bulkUpdateCourseModuleOrder(
+  updates: Array<{ id: string; display_order: number }>,
+) {
+  await Promise.all(
+    updates.map((row) =>
+      supabase.from("course_modules").update({ display_order: row.display_order }).eq("id", row.id),
+    ),
+  );
+}
+
+// module_resources helpers
+export async function listModuleResourceLinksForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [] as Array<{ module_id: string; resource_url: string | null }>;
+  const { data, error } = await supabase
+    .from("module_resources")
+    .select("module_id, resource_url")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as Array<{ module_id: string; resource_url: string | null }>;
+}
+
+export async function listModuleResourceModuleIdsForModules(moduleIds: string[]) {
+  if (!moduleIds.length) return [] as Array<{ module_id: string }>;
+  const { data, error } = await supabase
+    .from("module_resources")
+    .select("module_id")
+    .in("module_id", moduleIds);
+  if (error) throw error;
+  return (data ?? []) as Array<{ module_id: string }>;
+}
+
+export async function listModuleResourcesForModule(moduleId: string) {
+  const { data, error } = await supabase
+    .from("module_resources")
+    .select("*")
+    .eq("module_id", moduleId)
+    .order("stage_number", { ascending: true })
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function insertModuleResourceReturning(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from("module_resources")
+    .insert([payload as any])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateModuleResourceReturning(id: string, patch: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from("module_resources")
+    .update(patch as any)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function deleteModuleResourceById(id: string) {
+  const { error } = await supabase.from("module_resources").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function bulkUpdateModuleResourceOrder(
+  updates: Array<{ id: string; display_order: number }>,
+) {
+  await Promise.all(
+    updates.map((row) =>
+      supabase.from("module_resources").update({ display_order: row.display_order }).eq("id", row.id),
+    ),
+  );
+}
+
+// quiz_questions admin
+export async function listQuizQuestionsByModuleOrdered(moduleId: string) {
+  const { data, error } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("module_id", moduleId)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listQuizQuestionsByContentOrdered(contentId: string) {
+  const { data, error } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("content_id", contentId)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function deleteQuizQuestionsForModule(moduleId: string) {
+  const { error } = await supabase.from("quiz_questions").delete().eq("module_id", moduleId);
+  if (error) throw error;
+}
+
+export async function insertQuizQuestions(rows: Record<string, unknown>[]) {
+  if (!rows.length) return;
+  const { error } = await supabase.from("quiz_questions").insert(rows as any);
+  if (error) throw error;
+}
+
+// students / enrollments (learner-facing)
+export async function getStudentRecordByUserId(userId: string) {
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function getStudentIdByUserIdStrict(userId: string) {
+  const { data, error } = await supabase
+    .from("students")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw error;
+  return String((data as any).id);
+}
+
+export async function getEnrollmentForStudentAndContent(studentId: string, contentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id, status")
+    .eq("student_id", studentId)
+    .eq("content_id", contentId)
+    .single();
+  if (error) throw error;
+  return data as { id: string; status: string };
+}
+
+export async function findEnrollmentIdForStudentAndContent(studentId: string, contentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("student_id", studentId)
+    .eq("content_id", contentId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.id as string | null) ?? null;
+}
+
+export async function getEnrollmentForActorIds(contentId: string, actorIds: string[]) {
+  const orFilter = actorIds
+    .filter(Boolean)
+    .map((id) => `talent_id.eq.${id},student_id.eq.${id}`)
+    .join(",");
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("*")
+    .eq("content_id", contentId)
+    .in("status", ["active", "completed"])
+    .or(orFilter)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
+export async function updateEnrollmentRow(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase.from("enrollments").update(patch as any).eq("id", id);
+  if (error) throw error;
+}
+
+// ai_instructors
+export async function getActiveAIInstructorByProfessionLine(professionLineId: string) {
+  const { data, error } = await supabase
+    .from("ai_instructors")
+    .select("*")
+    .eq("profession_line_id", professionLineId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any | null;
+}
+
