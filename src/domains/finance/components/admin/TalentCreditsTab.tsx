@@ -214,20 +214,14 @@ export function TalentCreditsTab() {
       if (rpcError) {
         console.warn("RPC mismatch. Activating manual ledger protocol.", rpcError);
         const newBalance = (talentNode.balance || 0) + finalAmount;
-        const { error: updateError } = await supabase
-          .from("talent_credits")
-          .update({ balance: newBalance, updated_at: new Date().toISOString() })
-          .eq("id", talentNode.id);
-        if (updateError) throw updateError;
-        await supabase
-          .from("credit_transactions")
-          .insert({
-            talent_id: talentNode.talent_id,
-            amount: finalAmount,
-            transaction_type: adjustDialog.type === "add" ? "admin_credit" : "admin_debit",
-            description: adjustReason || `Executive ${adjustDialog.type === "add" ? "credit" : "debit"} handshake`,
-            balance_after: newBalance,
-          });
+        await manualAdjustTalentCredit({
+          creditId: talentNode.id,
+          talentId: talentNode.talent_id,
+          newBalance,
+          delta: finalAmount,
+          transactionType: adjustDialog.type === "add" ? "admin_credit" : "admin_debit",
+          description: adjustReason || `Executive ${adjustDialog.type === "add" ? "credit" : "debit"} handshake`,
+        });
       }
 
       toast.success("Fiscal Registry Updated");
