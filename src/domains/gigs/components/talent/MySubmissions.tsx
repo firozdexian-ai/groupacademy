@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getMyGigSubmissions } from "@/domains/gigs/repo/gigsRepo";
+import { getJobShareClickCounts } from "@/domains/jobs/repo/jobsRepo";
+import { getTalentRefCode } from "@/domains/talent/repo/talentRepo";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -75,17 +77,15 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
     staleTime: 1000 * 60 * 3,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gig_submissions")
-        .select(
-          "id, created_at, status, submission_data, ai_score, ai_feedback, admin_notes, credits_awarded, gigs(title, credit_reward, category)",
-        )
-        .eq("talent_id", talentId)
-        .order("created_at", { ascending: false });
+    queryFn: () => getMyGigSubmissions(talentId),
+  });
 
-      if (error) throw error;
-      return data || [];
-    },
+  // 2. Referral Parameters Synchronization Query Node
+  const { data: talentRefCode } = useQuery({
+    queryKey: ["talent-ref-code", talentId],
+    enabled: !!talentId,
+    staleTime: 1000 * 60 * 10,
+    queryFn: () => getTalentRefCode(talentId),
   });
 
   // 2. Referral Parameters Synchronization Query Node
