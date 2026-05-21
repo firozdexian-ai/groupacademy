@@ -1,6 +1,12 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listPayoutAccounts,
+  insertPayoutAccount,
+  setPayoutAccountPrimary,
+  deletePayoutAccount,
+} from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +18,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Wallet, Star, Trash2, Plus, Loader2, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 
 interface PayoutAccount {
   id: string;
@@ -66,14 +73,7 @@ export function PayoutAccountsManager() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("talent_payout_accounts" as any)
-        .select("*")
-        .eq("talent_id", talent.id)
-        .order("is_primary", { ascending: false })
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
+      const data = await listPayoutAccounts(talent.id);
 
       if (isMountedRef.current) {
         setRows((data as any[]) || []);
@@ -119,15 +119,15 @@ export function PayoutAccountsManager() {
 
       const isFirstAccountNode = rows.length === 0;
 
-      const { error: insertRegistryError } = await supabase.from("talent_payout_accounts" as any).insert({
-        talent_id: talent.id,
-        user_id: uid,
+      await insertPayoutAccount({
+        talentId: talent.id,
+        userId: uid,
         method,
-        account_name: sanitizedAccountName,
-        account_number: sanitizedAccountNumber,
-        bank_name: method === "bank" ? sanitizedBankName || null : null,
-        is_primary: isFirstAccountNode,
-      } as any);
+        accountName: sanitizedAccountName,
+        accountNumber: sanitizedAccountNumber,
+        bankName: method === "bank" ? sanitizedBankName || null : null,
+        isPrimary: isFirstAccountNode,
+      });
 
       if (insertRegistryError) throw insertRegistryError;
 
