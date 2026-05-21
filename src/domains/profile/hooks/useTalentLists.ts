@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listTalentLists as repoListTalentLists,
+  listTalentListMembers,
+  createTalentList,
+  upsertTalentListMember,
+} from "@/domains/profile/repo/profileRepo";
 import { toast } from "sonner";
+
 
 /**
  * GroUp Academy: Enterprise Sourcing & Talent Shortlists Engine (V5.6.0)
@@ -48,20 +55,14 @@ export function useTalentLists(companyId?: string | null) {
     enabled: !!companyId,
     staleTime: 30 * 1000, // 30-second list cache consistency window
     queryFn: async (): Promise<TalentList[]> => {
-      // HUD: EXECUTING_TALENT_LISTS_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("talent_lists")
-        .select("*, talent_list_members(count)")
-        .eq("company_id", companyId!)
-        .order("updated_at", { ascending: false });
-
-      if (error) {
+      let data: any[];
+      try {
+        data = await repoListTalentLists(companyId!);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_lists collection channel dropped.", error);
         throw error;
       }
-
-      // Hardened Data Normalization Layer: Prevents layout breaks from nested aggregation maps
-      return (data || []).map((row: any) => ({
+      return data.map((row: any) => ({
         id: String(row.id),
         company_id: String(row.company_id),
         name: String(row.name ?? "Untitled Procurement List"),
@@ -83,19 +84,14 @@ export function useListMembers(listId?: string | null) {
     queryKey: ["talent-list-members", listId],
     enabled: !!listId,
     queryFn: async (): Promise<ListMember[]> => {
-      // HUD: EXECUTING_LIST_MEMBERS_AGGREGATE_SELECT
-      const { data, error } = await supabase
-        .from("talent_list_members")
-        .select("*, talents(id, full_name, profile_photo_url, custom_profession, country, public_handle)")
-        .eq("list_id", listId!)
-        .order("added_at", { ascending: false });
-
-      if (error) {
+      let data: any[];
+      try {
+        data = await listTalentListMembers(listId!);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_list_members lookup failed.", error);
         throw error;
       }
-
-      return (data || []).map((row: any) => ({
+      return data.map((row: any) => ({
         id: String(row.id),
         list_id: String(row.list_id),
         talent_id: String(row.talent_id),
@@ -130,23 +126,17 @@ export function useCreateTalentList() {
       const { data: u, error: authError } = await supabase.auth.getUser();
       if (authError || !u.user) throw new Error("Authentication session required.");
 
-      // HUD: COMMITTING_TALENT_LIST_RECORD_INSERT
-      const { data, error } = await supabase
-        .from("talent_lists")
-        .insert({
-          company_id: input.companyId,
+      try {
+        return await createTalentList({
+          companyId: input.companyId,
           name: input.name,
           description: input.description ?? null,
-          created_by: u.user.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
+          createdBy: u.user.id,
+        });
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_lists registry insertion rejected.", error);
         throw error;
       }
-      return data;
     },
     onSuccess: (_, variables) => {
       // Target invalidation to protect sibling corporate views from reload thashing
@@ -173,23 +163,18 @@ export function useAddToList() {
       const { data: u, error: authError } = await supabase.auth.getUser();
       if (authError || !u.user) throw new Error("Authentication session required.");
 
-      // HUD: COMMITTING_SHORTLIST_MEMBER_UPSERT_HANDSHAKE
-      const { error } = await supabase.from("talent_list_members").upsert(
-        {
-          list_id: input.listId,
-          talent_id: input.talentId,
-          added_by: u.user.id,
+      try {
+        await upsertTalentListMember({
+          listId: input.listId,
+          talentId: input.talentId,
+          addedBy: u.user.id,
           note: input.note ?? null,
-        },
-        { onConflict: "list_id,talent_id" },
-      );
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Essential for monitoring structural data locks
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: talent_list_members operation rejected.", {
           listId: input.listId,
           talentId: input.talentId,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
