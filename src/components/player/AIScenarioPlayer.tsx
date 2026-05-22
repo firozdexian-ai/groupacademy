@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { aiInstructorChat } from "@/domains/learning/api/learningApi";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb, RefreshCw, Zap, Target, ShieldCheck } from "lucide-react";
