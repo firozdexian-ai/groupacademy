@@ -55,25 +55,21 @@ export function ConnectionRequestDialog({
     let isRequestActive = true;
     if (!open || !recipientId) return;
 
-    supabase
-      .rpc("get_talent_connection_price", { _recipient: recipientId })
-      .then(({ data: balancePricePayload, error: rpcPriceError }: { data: any; error: any }) => {
-        if (rpcPriceError) {
-          trackError(rpcPriceError, {
-            component: "ConnectionRequestDialog",
-            action: "fetch_connection_price",
-            recipientId,
-          });
-          if (isRequestActive && isMountedRef.current) {
-            setPrice(50); // Safe fallback asset parameters standard
-          }
-          return;
-        }
-
+    getTalentConnectionPrice(recipientId)
+      .then((normalizedPriceNum) => {
         if (isRequestActive && isMountedRef.current) {
-          const normalizedPriceNum = Number(balancePricePayload ?? 50);
           setPrice(normalizedPriceNum);
           trackEvent("connection_price_hydrated", { recipientId, computedCost: normalizedPriceNum });
+        }
+      })
+      .catch((rpcPriceError: any) => {
+        trackError(rpcPriceError, {
+          component: "ConnectionRequestDialog",
+          action: "fetch_connection_price",
+          recipientId,
+        });
+        if (isRequestActive && isMountedRef.current) {
+          setPrice(50); // Safe fallback asset parameters standard
         }
       });
 
