@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { uploadTalentCv, createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { batchParseCvs } from "@/domains/talent/api/talentApi";
