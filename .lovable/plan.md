@@ -1,39 +1,31 @@
 
-# Phase A1 — Auth Surface Audit (ready to execute)
+# A1-FIX — Auth surface fixes (independent of later phases)
 
-## Test accounts policy (saving to memory)
-- `gro10xnow@gmail.com` — real admin, never modify
-- `*@gro10x.com` — test accounts, safe to create/delete (e.g. `a1test1@gro10x.com`)
+All 7 P1s from A1 are self-contained UI/routing fixes. No DB migrations, no edge functions, no dependency on A2-A12. Safe to ship now.
 
-## A1 sub-checks (8 items, ~25 min)
+## Fixes
 
-| # | Check | How |
+| # | File | Change |
 |---|---|---|
-| 1.1 | Session persists on refresh | Reload `/dashboard`, confirm still logged in |
-| 1.2 | Logout flow | Click logout → lands on `/`, `/app/*` redirects to `/auth` |
-| 1.3 | Email signup (fresh test acct) | Create `a1test1@gro10x.com`, verify flow + DB row |
-| 1.4 | Email login | Login as the new test acct, check redirect via `resolvePostAuthRoute` |
-| 1.5 | Wrong password | Confirm clear error toast, no silent fail |
-| 1.6 | Google OAuth button | Click, verify redirect URL shape (don't complete external flow) |
-| 1.7 | Forgot password | Submit reset for test acct, confirm email queued, `/reset-password` page loads |
-| 1.8 | AuthCallback OAuth-new-user retry | Read code path, confirm 600ms retry exists for missing talents row |
+| 1 | `src/lib/adminRoles.ts` (new) + `useAccountType.ts` + `ProtectedRoute.tsx` | Single `ADMIN_ROLES = ['admin','super_admin','staff','talent_exec','content_lead']` constant. Both files import it. `requireAdmin` keeps strict `'admin'` check; `requireAnyAdminRole` uses the full list. |
+| 2 | `ProtectedRoute.tsx:129,138,167-170` | Replace techno-babble copy with plain English: `"You don't have access to this area."`, `"Connection timed out"`, `"Sign-in check failed"`. |
+| 3 | `TalentAppShell.tsx:184-187` | Replace inline `supabase.auth.signOut()` with `useAuth().signOut()` so toast + navigation are consistent. |
+| 4 | `ResetPassword.tsx:99` | Wait for account type, then `navigate(resolvePostAuthRoute(accountType) ?? '/app/feed')`. |
+| 5 | `AuthChat.tsx` | Honor `?tab=signup` by seeding the chat flow into signup intent on initialize. Smallest change: pass `initialIntent` from URL to `useAuthChat.initialize()`. |
+| 6 | `useAuth.ts:55` | Friendlier "email not confirmed" copy: `"Please confirm your email — check your inbox for the link."` |
+| 7 | `GoogleSignInButton.tsx:24-41` | Only reset `loading` on focus if `document.visibilityState === 'visible'` AND no redirect navigation is pending (track with a ref set true at click). |
 
-## Backend checks
-- Auth logs for failures during the run
-- `talents` row created for new test acct
-- `user_roles` empty for test acct (no accidental admin)
-- `email_send_log` has recovery email queued
+## P2 deferred
+- talents.country_code "BD" backfill → defer (data, not code)
+- manifest 401 in preview → verify after publish, not fixable in code
+- auth audit log retention → Cloud config, not code
+- AuthClassic "try chat" link wording → cosmetic
 
-## Output
-Append to `.lovable/launch-audit.md`:
-```
-## A1 Auth — 2026-05-22
-- [P0/P1/P2] file:line — issue — fix note
-- [OK] passing checks
-Totals: X bugs, Y warnings, Z OK
-```
+## Verify after build
+- Build passes
+- Open `/auth?tab=signup` → chat starts in signup intent
+- Logout from talent shell → toast + home
+- Open `/reset-password` with stale link → friendly "Link expired" still shows
+- ProtectedRoute renders friendly copy on forced timeout
 
-## Cleanup
-After A1 I'll delete the test account `a1test1@gro10x.com` so the DB stays clean.
-
-Approve → I execute A1 and report back. Then we go A2.
+~30-40 min. After this, proceed to **A2 Onboarding**.
