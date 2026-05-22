@@ -63,11 +63,7 @@ export default function NewGigWizard() {
   const publish = useMutation({
     mutationFn: async () => {
       if (!draft) throw new Error("No draft available");
-      const { data, error } = await supabase.rpc("publish_gig_from_draft", {
-        _draft_id: draft.id,
-      });
-      if (error) throw error;
-      return data as string;
+      return await publishGigFromDraft(draft.id);
     },
     onSuccess: (newId) => {
       toast.success("Gig submitted for review");
