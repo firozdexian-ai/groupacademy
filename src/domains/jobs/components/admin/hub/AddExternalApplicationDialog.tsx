@@ -144,12 +144,11 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
 
     setSaving(true);
     try {
-      const { data: talentId, error: tErr } = await supabase.rpc("get_or_create_talent", {
-        p_email: email.trim() || `${Date.now()}@external.local`,
-        p_full_name: name.trim(),
-        p_phone: phone.trim() || null,
+      const talentId = await getOrCreateTalent({
+        email: email.trim() || `${Date.now()}@external.local`,
+        fullName: name.trim(),
+        phone: phone.trim() || null,
       });
-      if (tErr) throw tErr;
 
       const {
         data: { user },
