@@ -117,10 +117,7 @@ export function IdentityDocsUpload() {
     const dynamicToastTrackerId = toast.loading("Encrypting identity resources over secure bucket nodes...");
 
     try {
-      const { data: sessionPayload, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-
-      const uid = sessionPayload.session?.user.id;
+      const uid = await getCurrentUserId();
       if (!uid) throw new Error("Authentication index token lost. Please log in.");
 
       const front_url = await uploadOne(uid, frontFile, "front");
