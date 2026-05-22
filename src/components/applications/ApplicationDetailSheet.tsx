@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
 import { createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { updateJobApplication } from "@/domains/jobs/repo/jobsRepo";
 import type { PipelineApplication, PipelineStatus } from "@/domains/jobs";
