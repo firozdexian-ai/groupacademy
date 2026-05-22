@@ -274,3 +274,41 @@ export async function addCreditsRpc(args: AddCreditsArgs) {
   if (error) throw error;
   return data as any;
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export interface ApproveInvoiceArgs {
+  invoiceId: string;
+  paymentMethod: string;
+  paymentReference?: string | null;
+  paymentProofUrl: string;
+  adminNotes?: string | null;
+}
+
+export async function approveInvoiceAndDisburse(args: ApproveInvoiceArgs) {
+  const { data, error } = await supabase.rpc("approve_invoice_and_disburse", {
+    p_invoice_id: args.invoiceId,
+    p_payment_method: args.paymentMethod,
+    p_payment_reference: args.paymentReference ?? null,
+    p_payment_proof_url: args.paymentProofUrl,
+    p_admin_notes: args.adminNotes ?? null,
+  });
+  if (error) throw error;
+  return data as { success: boolean; error?: string; credits_added?: number };
+}
+
+export async function cancelInvoice(args: { invoiceId: string; reason?: string | null }): Promise<void> {
+  const { error } = await supabase.rpc("cancel_invoice", {
+    p_invoice_id: args.invoiceId,
+    p_reason: args.reason ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function createCreditInvoice(args: { credits: number; priceUsd: number }) {
+  const { data, error } = await supabase.rpc("create_credit_invoice", {
+    p_bundle_credits: args.credits,
+    p_bundle_price_usd: args.priceUsd,
+  });
+  if (error) throw error;
+  return data as { success: boolean; invoice_number?: string };
+}

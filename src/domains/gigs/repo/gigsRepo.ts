@@ -404,3 +404,58 @@ export async function resolveDispute(args: { disputeId: string; verdict: string;
   });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export async function submitCalibrationAttempt(args: { passed: boolean }) {
+  const { error } = await supabase.rpc("submit_calibration_attempt", {
+    _score: args.passed ? 85 : 60,
+    _answers: {},
+  });
+  if (error) throw error;
+}
+
+export async function claimReviewAssignment<T = any>(assignmentId: string): Promise<T> {
+  const { data, error } = await supabase.rpc("claim_review_assignment", { _assignment_id: assignmentId });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function submitReviewVerdict(args: {
+  assignmentId: string;
+  verdict: string;
+  payload?: Record<string, unknown>;
+  confidence: number;
+  rationale: string;
+}) {
+  const { error } = await supabase.rpc("submit_review_verdict", {
+    _assignment_id: args.assignmentId,
+    _verdict: args.verdict,
+    _payload: (args.payload ?? {}) as any,
+    _confidence: args.confidence,
+    _rationale: args.rationale,
+  });
+  if (error) throw error;
+}
+
+export async function submitMilestoneDeliverables(args: {
+  milestoneId: string;
+  payload: Record<string, unknown>;
+}) {
+  const { error } = await supabase.rpc("submit_milestone_deliverables", {
+    _milestone_id: args.milestoneId,
+    _payload: args.payload as any,
+  });
+  if (error) throw error;
+}
+
+export async function publishGigFromDraft(draftId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("publish_gig_from_draft", { _draft_id: draftId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function getTalentProjectWorkload<T = any>(talentId: string): Promise<T[]> {
+  const { data, error } = await supabase.rpc("get_talent_project_workload", { _talent_id: talentId });
+  if (error) throw error;
+  return ((data as unknown) as T[]) ?? [];
+}

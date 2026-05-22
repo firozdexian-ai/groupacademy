@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createCreditInvoice } from "@/domains/finance/repo/financeRepo";
 import { createCheckout } from "@/domains/finance/api/financeApi";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
@@ -44,14 +45,10 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
     mutationKey: ["sync-whatsapp-invoice-ledger"],
     mutationFn: async (payload: BundlePayload): Promise<string | undefined> => {
       // HUD: STAGING_LOCAL_LEDGER_INVOICE_ROW
-      const { data, error } = await supabase.rpc("create_credit_invoice", {
-        p_bundle_credits: payload.credits,
-        p_bundle_price_usd: payload.price,
+      const result = await createCreditInvoice({
+        credits: payload.credits,
+        priceUsd: payload.price,
       });
-
-      if (error) throw error;
-      
-      const result = data as { success: boolean; invoice_number?: string };
       if (result?.success) {
         return result.invoice_number;
       }

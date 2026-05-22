@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { incrementAccessCodeUse, incrementContentEnrollment } from "@/domains/learning/repo/learningRepo";
 import {
   getActiveAccessCode,
   findStudentIdByUserId,
@@ -169,8 +170,8 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
 
       // PHASE 5: Concurrent Counter Incrementation RPC Passes
       await Promise.allSettled([
-        supabase.rpc("increment_access_code_use" as any, { row_id: accessCodePayloadData.id }),
-        supabase.rpc("increment_content_enrollment" as any, { row_id: contentId }),
+        incrementAccessCodeUse(accessCodePayloadData.id),
+        incrementContentEnrollment(contentId),
       ]);
 
       // Automated Efficiency: Synchronize cache tracking layers to avoid state drift split viewports

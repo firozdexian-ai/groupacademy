@@ -2,6 +2,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { advanceAbroadStage } from "@/domains/abroad/repo/abroadRepo";
 import { getActiveCounsellorByUser, listAbroadApplications } from "@/domains/abroad/repo/abroadRepo";
 import { listUserRoles } from "@/domains/profile/repo/profileRepo";
 import { Card, CardContent } from "@/components/ui/card";
@@ -165,11 +166,10 @@ export default function AbroadCounsellor() {
       applicationIdStr: string;
       targetNextStageKey: Stage;
     }) => {
-      const { error: rpcExecutionHandshakeError } = await supabase.rpc("advance_abroad_stage", {
-        _application_id: applicationIdStr,
-        _next_stage: targetNextStageKey,
+      await advanceAbroadStage({
+        applicationId: applicationIdStr,
+        nextStage: targetNextStageKey,
       });
-      if (rpcExecutionHandshakeError) throw rpcExecutionHandshakeError;
     },
     onSuccess: () => {
       toast.success("Classification state successfully advanced.");

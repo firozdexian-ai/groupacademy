@@ -571,3 +571,19 @@ export async function getContactUnlocksSummary(): Promise<ContactUnlocksSummary>
   if (error) throw error;
   return (data ?? { total_unlocks: 0, total_credits: 0, last_7d: 0 }) as unknown as ContactUnlocksSummary;
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export async function getCompanyDetail<T = any>(companyName: string): Promise<T> {
+  const { data, error } = await supabase.rpc("get_company_detail", { p_company_name: companyName });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function getCompaniesWithSignal<T = any>(args: { country?: string | null; limit: number }): Promise<T> {
+  const { data, error } = await supabase.rpc("get_companies_with_signal", {
+    p_country: args.country ?? null,
+    p_limit: args.limit,
+  });
+  if (error) throw error;
+  return data as T;
+}

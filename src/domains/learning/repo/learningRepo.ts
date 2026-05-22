@@ -1698,3 +1698,20 @@ export async function recomputeContentReadiness(contentId: string) {
   const { error } = await supabase.rpc("recompute_content_readiness", { _content_id: contentId });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export async function getInstructorDashboardV2<T = any>(): Promise<T | null> {
+  const { data, error } = await supabase.rpc("get_instructor_dashboard_v2");
+  if (error) throw error;
+  return (data ?? null) as T | null;
+}
+
+export async function incrementContentEnrollment(rowId: string): Promise<void> {
+  const { error } = await supabase.rpc("increment_content_enrollment" as any, { row_id: rowId });
+  if (error) throw error;
+}
+
+export async function incrementAccessCodeUse(rowId: string): Promise<void> {
+  const { error } = await supabase.rpc("increment_access_code_use" as any, { row_id: rowId });
+  if (error) throw error;
+}

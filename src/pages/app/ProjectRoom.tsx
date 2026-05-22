@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2, Send, Sparkles, ShieldCheck, AlertCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { submitMilestoneDeliverables } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -90,11 +91,10 @@ export default function ProjectRoom() {
   const submitMilestone = async (id: string) => {
     setSubmitting(true);
     try {
-      const { error } = await supabase.rpc("submit_milestone_deliverables", {
-        _milestone_id: id,
-        _payload: { note: submitNote, submitted_by: talent?.id },
+      await submitMilestoneDeliverables({
+        milestoneId: id,
+        payload: { note: submitNote, submitted_by: talent?.id },
       });
-      if (error) throw error;
       toast.success("Deliverables synchronized.");
       setSubmitNote("");
       load();

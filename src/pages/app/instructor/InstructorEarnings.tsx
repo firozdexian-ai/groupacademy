@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { getInstructorDashboardV2 } from "@/domains/learning/repo/learningRepo";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
@@ -100,12 +101,12 @@ export default function InstructorEarnings() {
   const { data: dashboardPayloadData, isLoading: isDashboardResolving } = useQuery<DashboardV2 | null>({
     queryKey: ["instructor-dashboard"],
     queryFn: async (): Promise<DashboardV2 | null> => {
-      const { data: rawRpcPayload, error: rpcHandshakeError } = await supabase.rpc("get_instructor_dashboard_v2");
-      if (rpcHandshakeError) {
+      try {
+        return await getInstructorDashboardV2<DashboardV2>();
+      } catch (rpcHandshakeError: any) {
         toast({ title: "Synchronization Failure", description: rpcHandshakeError.message, variant: "destructive" });
         throw rpcHandshakeError;
       }
-      return (rawRpcPayload as unknown as DashboardV2) ?? null;
     },
   });
 

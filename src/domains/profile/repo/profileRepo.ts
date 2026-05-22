@@ -368,3 +368,21 @@ export async function getTalentOutcomeSignal<T = any>(talentId: string): Promise
   if (error) throw error;
   return (data ?? {}) as T;
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export async function checkCvDuplicate<T = any>(args: { fingerprint: string; selfUserId: string }): Promise<T> {
+  const { data, error } = await supabase.rpc("check_cv_duplicate", {
+    _fingerprint: args.fingerprint,
+    _self_user_id: args.selfUserId,
+  });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function provisionOrGetInstance(args: { clusterGeoId: string; funnel: Record<string, unknown> }) {
+  const { data, error } = await supabase.rpc(
+    "provision_or_get_instance" as never,
+    { _cluster_geo_id: args.clusterGeoId, _funnel: args.funnel } as never,
+  );
+  return { data, error } as { data: any; error: any };
+}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCompanyDetail } from "@/domains/companies/repo/companiesRepo";
 
 /**
  * GroUp Academy: Company Profile Deep Relational Sensor
@@ -31,20 +31,16 @@ export function useCompanyDetail(companyName: string | null) {
         throw new Error("ID_HYDRATION_FAULT: Target company name required.");
       }
 
-      // HUD: EXECUTING_RPC_RELATIONAL_SYNC
-      const { data, error } = await supabase.rpc("get_company_detail", {
-        p_company_name: companyName,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Sensor:
-        // Critical for the Admin Chat Agent to detect database-level technical exceptions.
+      let data: any;
+      try {
+        data = await getCompanyDetail<any>(companyName);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_company_detail failed taxonomy sync.", {
           companyName,
-          error: error.message,
-          code: error.code,
+          error: error?.message,
+          code: error?.code,
         });
-        throw new Error(`REGISTRY_SYNC_FAULT: Failed to pull structural employer records. Code: ${error.code}`);
+        throw new Error(`REGISTRY_SYNC_FAULT: Failed to pull structural employer records. Code: ${error?.code}`);
       }
 
       // Protocol Fallback: Guarantee core layout structure returns to prevent UI shell crashes

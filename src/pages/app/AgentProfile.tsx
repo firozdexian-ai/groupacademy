@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { isAgentConnected, connectAgent } from "@/domains/agents/repo/agentsRepo";
 import {
   getAiAgentByKey,
   getAiAgentStatsByKey,
@@ -105,10 +106,10 @@ export default function AgentProfile() {
               talentId: authenticatedTalentNode.id,
               agentKey: unverifiedAgentKeyStr,
             }).catch(() => []),
-            supabase.rpc("is_agent_connected", {
-              _agent_key: unverifiedAgentKeyStr,
-              _talent_id: authenticatedTalentNode.id,
-            }),
+            isAgentConnected({
+              agentKey: unverifiedAgentKeyStr,
+              talentId: authenticatedTalentNode.id,
+            }).catch(() => false),
           ]);
 
           if (!isThreadActiveAndValid) return;
@@ -120,7 +121,7 @@ export default function AgentProfile() {
           );
 
           setHasSufficientChatFootprint(calculatedMessagesVolume >= 3);
-          setIsUplinkConnected(Boolean(networkConnectionPayload.data));
+          setIsUplinkConnected(Boolean(networkConnectionPayload));
         }
       } catch (fatalHandshakeException) {
         if (isThreadActiveAndValid) setAgentProfileData(null);
@@ -146,13 +147,11 @@ export default function AgentProfile() {
     const numericalConnectionFeeValue = Number(agentProfileData.connection_fee ?? 0);
 
     try {
-      const { error: rpcMutationHandshakeError } = await supabase.rpc("connect_agent", {
-        _agent_key: unverifiedAgentKeyStr,
-        _talent_id: authenticatedTalentNode.id,
-        _fee: numericalConnectionFeeValue,
+      await connectAgent({
+        agentKey: unverifiedAgentKeyStr,
+        talentId: authenticatedTalentNode.id,
+        fee: numericalConnectionFeeValue,
       });
-
-      if (rpcMutationHandshakeError) throw rpcMutationHandshakeError;
 
       setIsUplinkConnected(true);
       executeNavigationHook(`/app/messages/${unverifiedAgentKeyStr}`);

@@ -156,3 +156,14 @@ export async function insertInstructorConnectionRequest(payload: {
   const { error } = await supabase.from("instructor_connection_requests").insert(payload as any);
   return { error };
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+
+
+export async function advanceAbroadStage(args: { applicationId: string; nextStage: string }): Promise<void> {
+  const { error } = await supabase.rpc("advance_abroad_stage", {
+    _application_id: args.applicationId,
+    _next_stage: args.nextStage,
+  });
+  if (error) throw error;
+}

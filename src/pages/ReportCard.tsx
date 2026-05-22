@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { userHasRole } from "@/domains/admin/repo/adminRepo";
 import { getCertificateById } from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,7 +83,7 @@ export default function ReportCard() {
 
       // Permission Logic: Self or Admin
       if (enrollment.student.user_id !== user.id) {
-        const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        const isAdmin = await userHasRole(user.id, "admin");
         if (!isAdmin) throw new Error("Unauthorized: Access Denied to Node");
       }
 
