@@ -95,11 +95,10 @@ export function GigUploader({
         return;
       }
 
-      const { data: sess, error: sessErr } = await supabase.auth.getSession();
-      const uid = sess?.session?.user?.id;
+      const uid = await getCurrentUserId();
 
-      if (sessErr || !uid) {
-        trackError(sessErr || "Unauthenticated storage access attempt intercepted.", {
+      if (!uid) {
+        trackError("Unauthenticated storage access attempt intercepted.", {
           component: "GigUploader",
           action: "security_session_assertion",
         });
