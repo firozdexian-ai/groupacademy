@@ -53,11 +53,11 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
   return (
     <Card className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 select-none sm:select-text antialiased transform-gpu shadow-sm relative overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0">
-        {/* HUD LEVEL 1: SECTION TOP TRACK LABEL */}
+        {/* Header */}
         <div className="flex items-center gap-2 w-full select-none border-b border-emerald-500/10 pb-2">
           <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
           <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground/90 uppercase tracking-wide">
-            Ecosystem Match Reasoning
+            Why you match
           </h3>
           {typeof verifiedMatch.mastery_score === "number" && (
             <Badge
