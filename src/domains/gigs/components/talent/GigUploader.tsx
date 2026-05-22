@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadGigSubmission, removeGigSubmissions } from "@/domains/gigs/repo/gigsRepo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileIcon, ImageIcon, Video, Music, FileText, Loader2, CheckCircle2 } from "lucide-react";
