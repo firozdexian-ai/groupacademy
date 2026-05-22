@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Autonomous Application Deployment Node (ExternalApplicationPrep)
  * CTO Reference: Authoritative interface for external form decryption and response synthesis.
- * Version: Launch Candidate · Phase Z0 Hardened
+ */
  */
 
 interface ExternalApplicationPrepProps {
@@ -244,7 +244,7 @@ export function ExternalApplicationPrep({
         className="sm:max-w-2xl w-[94vw] sm:w-full border border-border/40 bg-background/98 backdrop-blur-xl rounded-2xl shadow-2xl p-0 max-h-[90vh] max-h-[90svh] overflow-y-auto pt-safe pb-safe-bottom transform-gpu selection:bg-primary/20"
         style={{ contentVisibility: "auto" }}
       >
-        {/* HUD: MODAL CONTAINER BRANDING HEADER SECTION */}
+        {/* Header */}
         <div className="p-5 sm:p-6 border-b border-border/20 bg-primary/5 select-none text-left">
           <DialogHeader className="text-left">
             <div className="flex items-center gap-3.5 w-full min-w-0">
@@ -265,7 +265,7 @@ export function ExternalApplicationPrep({
 
         {/* MAIN CONTENT WORKSPACE SECTION */}
         <div className="p-5 sm:p-6 pt-2 space-y-5">
-          {/* VIEW PROTOCOL 1: LOADING_STATE TRACK PANEL */}
+          {/* Loading */}
           {phase === "loading" && !error && (
             <div className="py-8 animate-in scale-in duration-200 select-none w-full">
               <ProcessingCard
@@ -277,7 +277,7 @@ export function ExternalApplicationPrep({
             </div>
           )}
 
-          {/* VIEW PROTOCOL 2: EXCEPTION_ERROR_STATE MODAL CONTAINER */}
+          {/* Error */}
           {error && (
             <div className="text-center py-10 space-y-4 animate-in fade-in duration-300 select-none w-full">
               <div className="w-16 h-16 bg-rose-500/10 rounded-xl border border-rose-500/20 flex items-center justify-center mx-auto shadow-inner animate-bounce">
@@ -303,7 +303,7 @@ export function ExternalApplicationPrep({
             </div>
           )}
 
-          {/* VIEW PROTOCOL 3: FALLBACK_VISION_INGRESS PROMPT DRAW ZONE */}
+          {/* Prompt */}
           {phase === "scrape_failed" && !error && (
             <div className="space-y-5 animate-in slide-in-from-bottom-3 duration-300 text-left w-full">
               <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl shadow-inner relative overflow-hidden select-none">
@@ -401,7 +401,7 @@ export function ExternalApplicationPrep({
             </div>
           )}
 
-          {/* VIEW PROTOCOL 4: RESULTS_HUD NORMALIZED ALIGNMENT PROMPTS */}
+          {/* Results */}
           {phase === "results" && !error && (
             <div className="space-y-5 animate-in slide-in-from-bottom-4 duration-500 text-left w-full min-w-0">
               {answers.length > 0 && (
