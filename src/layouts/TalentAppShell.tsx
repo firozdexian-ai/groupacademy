@@ -106,7 +106,7 @@ export function TalentAppShell() {
   // Notification badge polling
   useEffect(() => {
     if (!talent?.id) return;
-    const fetchInstitutionalAlerts = async () => {
+    const fetchNotificationCount = async () => {
       try {
         const { count } = await supabase
           .from("notifications")
