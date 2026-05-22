@@ -20,6 +20,7 @@ import {
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { RelatedJobs } from "@/domains/jobs/components/RelatedJobs";
+import { JobApplyCTA } from "@/domains/jobs/components/JobApplyCTA";
 import { Footer } from "@/components/Footer";
 import logoIcon from "@/assets/logo-icon.png";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,10 @@ interface Job {
   is_featured: boolean;
   created_at: string;
   source_image_url: string | null;
+  application_type: string;
+  application_url: string | null;
+  application_email: string | null;
+  ai_assessment_enabled: boolean;
 }
 
 const JOB_TYPES: Record<string, string> = {
@@ -339,9 +344,15 @@ export default function PublicJobDetail() {
             {format(new Date(job.deadline), "MMM d")}
           </span>
         )}
-        <Button className="flex-1" size="lg" onClick={goAuthThenApply}>
-          Apply now
-        </Button>
+        <div className="flex-1">
+          <JobApplyCTA
+            job={job}
+            authMode="public"
+            deadlinePassed={deadlineDays != null && deadlineDays < 0}
+            size="lg"
+            className="w-full justify-center"
+          />
+        </div>
       </div>
 
       <Footer />

@@ -58,16 +58,14 @@ interface JobApplicationPayload {
 }
 
 const SUBMISSION_STAGES: SubmissionStage[] = [
-  { progress: 20, message: "Syncing Repository Nodes..." },
-  { progress: 40, message: "Hardening CV Telemetry Node..." },
-  { progress: 60, message: "Generating AI Interview Matrix..." },
-  { progress: 85, message: "Finalizing Registry Handshake..." },
+  { progress: 20, message: "Saving your application..." },
+  { progress: 40, message: "Uploading your CV..." },
+  { progress: 60, message: "Preparing AI interview..." },
+  { progress: 85, message: "Almost done..." },
 ];
 
 /**
- * GroUp Academy: Technical Job Application Transaction Ingress (AppJobApplication)
- * Hardened submission cockpit orchestrating secure cloud CV storage mappings and insulating credit deduction loops.
- * Version: Launch Candidate · Phase Z1 Cryptographic Gate Locked
+ * Job application submission page: CV upload, cover letter, and submit.
  */
 export default function AppJobApplication() {
   const { id: unverifiedJobIdentifierStr } = useParams<{ id: string }>();
@@ -214,7 +212,7 @@ export default function AppJobApplication() {
 
       if (rpcResponsePayload?.enhancedCoverLetter) {
         setCoverLetterInputStr(rpcResponsePayload.enhancedCoverLetter);
-        toast.success("Synthetic context narrative successfully parsed and written.");
+        toast.success("Cover letter generated.");
       }
     } catch (fatalAIEngineException) {
       toast.error("AI composition queues are currently restricted. Re-submit parameter query.");
@@ -361,7 +359,7 @@ export default function AppJobApplication() {
                   className="w-full h-11 px-4 rounded-lg font-bold uppercase text-xs tracking-wider gap-2 shadow-xs transition-transform transform-gpu active:scale-[0.985] cursor-pointer block"
                 >
                   <Brain className="h-4 w-4 stroke-[2.2] shrink-0" />
-                  <span>Initialize Vetting AI Interview</span>
+                  <span>Start AI interview</span>
                 </Button>
               )}
               <Button
@@ -403,7 +401,7 @@ export default function AppJobApplication() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 text-left antialiased block transform-gpu w-full pb-48">
-      {/* HUD LEVEL 1: OVERVIEW COMPLIANCE INTERFACE NAVIGATION BAR */}
+      {/* Top bar */}
       <header className="flex items-center justify-between select-none leading-none w-full shrink-0">
         <div className="flex items-center gap-3.5 min-w-0">
           <Button
@@ -433,7 +431,7 @@ export default function AppJobApplication() {
         </Badge>
       </header>
 
-      {/* HUD LEVEL 2: DETAILED ASSIGNMENT PLACEMENT DATA SNAPSHOT */}
+      {/* Job summary */}
       <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none overflow-hidden block w-full select-none pointer-events-none">
         <CardContent className="p-4 flex items-center gap-3.5 leading-none w-full block">
           <div className="w-12 h-12 rounded-lg bg-background border border-border/40 shadow-inner flex items-center justify-center shrink-0 overflow-hidden">
@@ -454,7 +452,7 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* HUD LEVEL 3: CLOUD CV RECORD UPLOAD PIPELINE TRACK */}
+      {/* CV upload */}
       <Card
         id="cv-upload-anchor-node"
         className={cn(
@@ -543,7 +541,7 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* HUD LEVEL 4: NARRATIVE PROMPT COMPOSER COVER LETTER SYSTEM */}
+      {/* Cover letter */}
       <Card className="rounded-xl border border-border/60 bg-card/10 shadow-none overflow-hidden block w-full">
         <CardHeader className="bg-muted/20 px-4 py-3 border-b border-border/5 flex flex-row items-center justify-between w-full select-none shrink-0 leading-none">
           <CardTitle className="text-[10px] font-mono font-black uppercase tracking-wide flex items-center gap-2 text-foreground/80 leading-none m-0">
@@ -578,7 +576,7 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* HUD LEVEL 5: STICKY ACCOUNTING VALIDATION BAR FOOTER INGRESS */}
+      {/* Sticky submit bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 bg-background/95 backdrop-blur-md border-t border-border/40 z-20 shadow-[0_-12px_40px_rgba(0,0,0,0.05)] select-none pb-[max(env(safe-area-inset-bottom),0.75rem)] animate-in fade-in duration-300">
         <div className="max-w-3xl mx-auto space-y-4 block w-full leading-none">
           <div className="flex justify-between items-end px-1 leading-none w-full block shrink-0 select-none pointer-events-none font-mono tracking-tight">

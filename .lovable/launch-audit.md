@@ -218,3 +218,60 @@ Replaced the `ToolsView` "coming soon" stub with the full consolidated hub descr
 - `useToolRuns`, `useNextBestTool`: removed "Digital Workforce / Phase Z1 / CTO Reference / HUD" jargon from JSDoc + console errors. Auth error string "Authentication session required." → "Please sign in first." Also added `next-best-tool` invalidation on successful tool-run record so Up Next updates immediately.
 
 Next: A5.4 onward per launch audit.
+
+---
+
+## A5.4 — Job Detail Refinement — shipped 2026-05-22
+
+Polished both job detail surfaces (`/app/jobs/:id` and public `/jobs/:id`) to match the A5.1–A5.3 quality bar. Pure UI/copy work — no DB, RPC, or business-logic changes.
+
+**`src/pages/app/AppJobDetail.tsx` — full rewrite (830 → ~470 lines):**
+- Removed all "HUD LEVEL 1..9", "Phase Z1 Integration Stability Locked", "Reconciled AI Competability Alignment Strip" comments.
+- Renamed internals: `compileDeadlineMetadata` → `getDeadlineMeta`, `compileSalaryCurrencyLabel` → `formatSalaryRange`, `jobRecordState` → `job`, `unverifiedJobIdentifierStr` → `jobId`, etc.
+- User-visible copy fixes:
+  - "Evaluate Synthetic Capability Alignment" → "See why you match"
+  - "Excellent Capability Fit / Sufficient Profile Parity / Minimal Alignment Overlap" → "Strong match / Decent match / Light match"
+  - "Quantum Cost: 10 Credits · Unlocks structural gap analysis manifests" → "10 credits · gap analysis + tailored learning suggestions"
+  - "Verify Match" → "Score me"
+  - "Deconstruct Rationale Breakdown" → "See full reasoning"
+  - "LOCALITY: Distributed Node Framework" → plain `MapPin · location` (or "Remote")
+  - "FEATURED RUN" → "Featured"
+  - "Confirm & Proceed to Application / Vetting Closed / Resume Active AI Assessment Task / Inspect Existing Submission Dossier" — all replaced by the new `<JobApplyCTA>` with "Apply now / Resume assessment / View application / Closed".
+  - "AI Interview Telemetry Action Required / dynamic skill mapping exam sequence" → "Finish your AI interview / Complete the short skill assessment".
+  - "Role Core Specification Description" → "About this role"; "Decompress Full Narrative Record" → "Read more"; "Core Technical Competency Requirements" → "Requirements"; "Secondary Preferred Differentiator Vectors" → "Nice to have"; "TRANSMISSION TIMELINE SIGNED" → "Posted {ago}".
+  - "REGISTRY ROW STATE: APPLIED" → "Applied · {status}".
+- Toasts: "Failed to compile profile record mapping index" → "Couldn't load this job"; "Deduction layer rejected. Evaluation requires 10 active credits" → "You need 10 credits to score this match"; "Transaction blocked. Additional balance volume required: 5 Credits" handled inside `JobApplyCTA`/`ExternalApplicationPrep` now.
+
+**New `src/domains/jobs/components/JobApplyCTA.tsx`:**
+- Single unified apply CTA. Branches once on `application_type` (`in_app | link | email`), `existingApplication`, `deadlinePassed`, and `authMode` (`in-app | public`).
+- Public mode → "Sign in to apply" with `safeReturnTo(/app/jobs/:id/apply)` deep-link.
+- Email mode → primary `mailto:` button + secondary copy-email icon.
+- Link mode → opens `ExternalApplicationPrep` sheet.
+- Already-applied → "View application" / "Resume assessment".
+- Used in both the sticky bar of `AppJobDetail` and the public `PublicJobDetail` sticky bar.
+
+**`WhyYouMatchPanel` wired into `AppJobDetail`:**
+- `score-job-match` response includes `verified_match`; stored on `liveScore` state and rendered via existing `<WhyYouMatchPanel verifiedMatch={...} />` below the match-score card.
+- Panel header text humanized: "Ecosystem Match Reasoning" → "Why you match", "Verified Trajectory Credentials" → "Verified credentials", "Demonstrated Knowledge Vectors" → "Skills you've shown", "Strategic Skill Revision Gaps" → "Skills to practice", "Calibrate and reconcile gap markers" → "Practice these skills". "Phase Z0 Hardened" header comment removed.
+
+**`PublicJobDetail.tsx`:**
+- Sticky apply button replaced with `<JobApplyCTA authMode="public" />` (still routes through auth, but uses the unified CTA so future updates propagate to both surfaces).
+- Job interface extended to include `application_type`, `application_url`, `application_email`, `ai_assessment_enabled` (already returned by `getPublicActiveJobById('*')`).
+- Sign-in banner + RelatedJobs + JSON-LD JobPosting + dynamic title/meta — already in place from Phase 3.5; unchanged.
+
+**`AppJobApplication.tsx` jargon scrub:**
+- `SUBMISSION_STAGES` messages: "Syncing Repository Nodes / Hardening CV Telemetry Node / Generating AI Interview Matrix / Finalizing Registry Handshake" → "Saving your application / Uploading your CV / Preparing AI interview / Almost done".
+- "Initialize Vetting AI Interview" → "Start AI interview".
+- "Synthetic context narrative successfully parsed and written" → "Cover letter generated".
+- "HUD LEVEL 1..5" comments → plain section labels.
+- "Phase Z1 Cryptographic Gate Locked" header removed.
+
+**`ExternalApplicationPrep.tsx` jargon scrub:**
+- "Phase Z0 Hardened" header + "HUD: MODAL CONTAINER BRANDING" / "VIEW PROTOCOL 1..4" comments → plain section labels.
+
+**Files:**
+- Created: `src/domains/jobs/components/JobApplyCTA.tsx`
+- Rewritten: `src/pages/app/AppJobDetail.tsx`
+- Edited: `src/pages/PublicJobDetail.tsx`, `src/pages/app/AppJobApplication.tsx`, `src/domains/jobs/components/WhyYouMatchPanel.tsx`, `src/domains/jobs/components/ExternalApplicationPrep.tsx`, `.lovable/launch-audit.md`, `.lovable/plan.md`.
+
+Next: pick A6 (Gigs Hub parity) or A7 (Profile / Talent Mirror polish).

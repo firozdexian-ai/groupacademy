@@ -20,9 +20,8 @@ interface WhyYouMatchPanelProps {
 }
 
 /**
- * GroUp Academy: AI Trajectory Validation Ribbon (WhyYouMatchPanel)
- * CTO Reference: Authoritative panel breaking down credential alignments and skill gaps for tailored optimization.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Why-you-match panel: surfaces verified credentials, mastery topics, and
+ * skill gaps from score-job-match's verified_match payload.
  */
 export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
   // Monitor algorithmic matching panel initialization configurations via telemetry
@@ -54,11 +53,11 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
   return (
     <Card className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 select-none sm:select-text antialiased transform-gpu shadow-sm relative overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0">
-        {/* HUD LEVEL 1: SECTION TOP TRACK LABEL */}
+        {/* Header */}
         <div className="flex items-center gap-2 w-full select-none border-b border-emerald-500/10 pb-2">
           <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
           <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground/90 uppercase tracking-wide">
-            Ecosystem Match Reasoning
+            Why you match
           </h3>
           {typeof verifiedMatch.mastery_score === "number" && (
             <Badge
@@ -70,11 +69,11 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
           )}
         </div>
 
-        {/* HUD LEVEL 2: VERIFIED PORTFOLIO CREDENTIALS SUB-GRID */}
+        {/* Verified credentials */}
         {credentials.length > 0 && (
           <div className="space-y-1 w-full text-left">
             <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 pl-0.5 select-none leading-none">
-              Verified Trajectory Credentials
+              Verified credentials
             </p>
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5 max-w-full">
               {credentials.map((credentialItem, index) => {
@@ -99,11 +98,11 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
           </div>
         )}
 
-        {/* HUD LEVEL 3: KNOWLEDGE TARGET MASTERED SUB-GRID */}
+        {/* Mastered topics */}
         {masteryTopics.length > 0 && (
           <div className="space-y-1 w-full text-left">
             <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 pl-0.5 select-none leading-none">
-              Demonstrated Knowledge Vectors
+              Skills you've shown
             </p>
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5 max-w-full">
               {masteryTopics.slice(0, 6).map((topicItem, index) => {
@@ -126,13 +125,13 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
           </div>
         )}
 
-        {/* HUD LEVEL 4: TALENT REVISION DISPARITY MARKERS GAP LOOP */}
+        {/* Skill gaps */}
         {gaps.length > 0 && (
           <div className="space-y-1.5 pt-1.5 border-t border-emerald-500/10 w-full text-left">
             <div className="flex items-center gap-1.5 select-none leading-none pl-0.5">
               <TrendingDown className="h-3.5 w-3.5 text-amber-500 shrink-0 stroke-[2.2]" />
               <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                Strategic Skill Revision Gaps
+                Skills to practice
               </p>
             </div>
 
@@ -160,7 +159,7 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
                 onClick={handlePracticeNavigationTracking}
                 className="inline-flex items-center gap-1 text-[11px] font-bold tracking-tight text-primary hover:text-primary hover:underline transition-colors mt-0.5 cursor-pointer"
               >
-                <span>Calibrate and reconcile gap markers</span>
+                <span>Practice these skills</span>
                 <ArrowRight className="h-3.5 w-3.5 text-primary stroke-[2.5] animate-in slide-in-from-left-1 duration-300" />
               </Link>
             </div>
