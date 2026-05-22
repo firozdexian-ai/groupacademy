@@ -167,17 +167,9 @@ export function useLessonQuestions(contentId?: string, itemId?: string) {
 
   useEffect(() => {
     if (!contentId) return;
-
-    const ch = supabase
-      .channel(`public:qna:${contentId}:${itemId ?? "all"}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "lesson_answers" }, () => {
-        void qc.invalidateQueries({ queryKey: ["qna", contentId, itemId] });
-      })
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(ch);
-    };
+    return subscribeLessonAnswers(contentId, itemId, () => {
+      void qc.invalidateQueries({ queryKey: ["qna", contentId, itemId] });
+    });
   }, [contentId, itemId, qc]);
 
   return useQuery({
