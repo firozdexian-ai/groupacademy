@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
+import { insertJobInvitation } from "@/domains/jobs/repo/jobsRepo";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 
