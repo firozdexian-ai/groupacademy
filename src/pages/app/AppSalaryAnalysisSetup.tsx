@@ -12,7 +12,7 @@ import { listActiveProfessionCategoriesBasic, insertSalaryAnalysis } from "@/dom
 import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
+
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
