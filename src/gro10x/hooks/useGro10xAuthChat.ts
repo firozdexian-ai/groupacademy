@@ -137,14 +137,12 @@ export function useGro10xAuthChat() {
       try {
         const safeKey = data.email.replace(/[^a-z0-9]/gi, "_") || `anon_${Date.now()}`;
         const path = `gro10x-prelaunch/${safeKey}-${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from("cvs").upload(path, file, {
+        const { publicUrl } = await uploadToBucketPublic("cvs", path, file, {
           upsert: true,
           contentType: file.type || "application/pdf",
         });
-        if (upErr) throw upErr;
 
-        const { data: pub } = supabase.storage.from("cvs").getPublicUrl(path);
-        const cvUrl = pub.publicUrl;
+        const cvUrl = publicUrl;
 
         // Best-effort: parse to extract role + company suggestions
         let suggestion: CVSuggestion = {};

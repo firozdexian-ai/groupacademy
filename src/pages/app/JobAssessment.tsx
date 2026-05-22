@@ -187,13 +187,12 @@ export default function JobAssessment() {
     const storageTargetFilePath = `${assessment.id}/${talentProfileRecord.id}_${questionId}_${Date.now()}.webm`;
 
     try {
-      const { data, error } = await supabase.storage
-        .from("assessment-audio")
-        .upload(storageTargetFilePath, blob, { contentType: "audio/webm", upsert: true });
+      const { path } = await uploadAssessmentAudio(storageTargetFilePath, blob, {
+        contentType: "audio/webm",
+        upsert: true,
+      });
 
-      if (error) throw error;
-
-      const updatedAnswers = { ...answersBufferMap, [questionId]: { type: "voice", storagePath: data.path } };
+      const updatedAnswers = { ...answersBufferMap, [questionId]: { type: "voice", storagePath: path } };
       setAnswersBufferMap(updatedAnswers);
       await updateJobAssessment(assessment.id, { answers: updatedAnswers });
       toast.success("Voice response artifact secured.");

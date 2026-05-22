@@ -131,15 +131,15 @@ export function ApplicationDetailSheet({
 
     try {
       // HUD: REPROVISIONING_TEMPORARY_SIGNED_STORAGE_ACCESS_URL
-      const { data, error } = await supabase.storage
-        .from("talent-cvs")
-        .createSignedUrl(calculatedSignedCvPath, 60 * 60); // 1-hour secure lifecycle boundary token
+      const signedUrl = await createTalentCvSignedUrl(calculatedSignedCvPath, 60 * 60).catch(
+        () => null,
+      );
 
-      if (error || !data?.signedUrl) {
+      if (!signedUrl) {
         throw new Error("STORAGE_CHANNEL_REJECTED: Link authentication handshake failed.");
       }
 
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
     } catch (err: any) {
       console.error("[Digital Workforce] FAULT: Secure CV allocation link dropped.", err.message);
       toast.error("Could not generate authorized CV down-link path.");

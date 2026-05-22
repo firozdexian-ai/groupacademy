@@ -99,10 +99,8 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       let publicUrl = "";
       if (cvFile) {
         const path = `external-applications/${Date.now()}-${cvFile.name}`;
-        const { error: upErr } = await supabase.storage.from("talent-cvs").upload(path, cvFile);
-        if (upErr) throw upErr;
-        const { data } = supabase.storage.from("talent-cvs").getPublicUrl(path);
-        publicUrl = data.publicUrl;
+        await uploadTalentCv(path, cvFile);
+        publicUrl = await createTalentCvSignedUrl(path, 60 * 60 * 24 * 365);
         setCvUrl(publicUrl);
       }
 

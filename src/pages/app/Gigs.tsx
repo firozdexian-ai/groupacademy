@@ -194,7 +194,7 @@ export default function Gigs() {
 
       const primaryTargetFile = uploadedFilesCollection[0];
       const resolvedSecurePublicUrl = primaryTargetFile
-        ? supabase.storage.from("gig-submissions").getPublicUrl(primaryTargetFile.path).data.publicUrl
+        ? getGigSubmissionPublicUrl(primaryTargetFile.path)
         : null;
 
       const { error: insertPipelineHandshakeError } = await insertMarketplaceDeliverable({

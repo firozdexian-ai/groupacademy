@@ -160,19 +160,11 @@ export default function AppSalaryAnalysisSetup() {
 
     try {
       const generatedTargetStoragePath = `salary-cv/${Date.now().toString()}-${targetFileObj.name}`;
-      const { error: storageUploadError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(generatedTargetStoragePath, targetFileObj);
-
-      if (storageUploadError) throw storageUploadError;
-
-      const { data: publicUrlPayloadResponse } = supabase.storage
-        .from("portfolio-uploads")
-        .getPublicUrl(generatedTargetStoragePath);
-      setCvSecureUrlStr(publicUrlPayloadResponse.publicUrl);
+      const { publicUrl } = await uploadPortfolioFile(generatedTargetStoragePath, targetFileObj);
+      setCvSecureUrlStr(publicUrl);
 
       if (talentProfileRecord?.id) {
-        await updateTalent({ cvUrl: publicUrlPayloadResponse.publicUrl });
+        await updateTalent({ cvUrl: publicUrl });
         await refreshTalent();
       }
       toast({ title: "Document Artifact Hashed & Secured" });

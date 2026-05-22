@@ -149,17 +149,13 @@ export function CVUploadSection() {
       const nonCollidingUniqueFileNameStr = `${talent?.id || "node"}-${Date.now()}.${fileExtensionString}`;
       const fullTargetStoragePathStr = `cvs/${nonCollidingUniqueFileNameStr}`;
 
-      const { error: storageUploadRegistryError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fullTargetStoragePathStr, selectedFileNode, { cacheControl: "3600", upsert: true });
-
-      if (storageUploadRegistryError) throw new Error(`Transmission Fault: ${storageUploadRegistryError.message}`);
-
-      const { data: urlPublicPayloadData } = supabase.storage
-        .from("portfolio-uploads")
-        .getPublicUrl(fullTargetStoragePathStr);
-
-      const generatedPublicCvUrlStr = urlPublicPayloadData?.publicUrl;
+      const { publicUrl: generatedPublicCvUrlStr } = await uploadPortfolioFile(
+        fullTargetStoragePathStr,
+        selectedFileNode,
+        { upsert: true },
+      ).catch((e: any) => {
+        throw new Error(`Transmission Fault: ${e.message}`);
+      });
 
       if (!generatedPublicCvUrlStr) {
         throw new Error("Registry Error: Storage bucket failed to compile a public route path.");
