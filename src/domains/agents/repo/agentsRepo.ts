@@ -443,3 +443,22 @@ export async function getTalentMarketplaceSummary(): Promise<TalentMarketplaceSu
     }
   );
 }
+
+// ─── Phase 10j.5h9 ────────────────────────────────────────────────────────
+export async function isAgentConnected(args: { agentKey: string; talentId: string }): Promise<boolean> {
+  const { data, error } = await supabase.rpc("is_agent_connected", {
+    _agent_key: args.agentKey,
+    _talent_id: args.talentId,
+  });
+  if (error) throw error;
+  return !!data;
+}
+
+export async function connectAgent(args: { agentKey: string; talentId: string; fee: number }) {
+  const { error } = await supabase.rpc("connect_agent", {
+    _agent_key: args.agentKey,
+    _talent_id: args.talentId,
+    _fee: args.fee,
+  });
+  if (error) throw error;
+}
