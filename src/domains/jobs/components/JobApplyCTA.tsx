@@ -59,7 +59,7 @@ export function JobApplyCTA({
 
   // Public viewer → route through auth with safe return
   if (authMode === "public") {
-    const returnTo = safeReturnTo(`/app/jobs/${job.id}/apply`);
+    const returnTo = safeReturnTo(`/app/jobs/${job.id}/apply`) ?? `/app/jobs/${job.id}`;
     return (
       <Button
         size={size}
