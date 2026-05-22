@@ -308,9 +308,9 @@ export default function AppJobDetail() {
         payload: { score: edgeFunctionResponseData?.match_score },
       });
 
-      toast.success("Synthetic alignment compatibility calculations complete.");
+      toast.success("Match score ready.");
     } catch (fatalAIEngineException) {
-      toast.error("The system intelligence core failed to interpret parameters. Re-submit query.");
+      toast.error("Couldn't score this job right now. Please try again.");
     } finally {
       setIsScoringMutationPending(false);
     }
@@ -347,7 +347,7 @@ export default function AppJobDetail() {
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success("Secure registration route parameter copied to system buffer.");
+      toast.success("Link copied.");
     }
   }, [jobRecordState]);
 
@@ -382,9 +382,9 @@ export default function AppJobDetail() {
             <AlertCircle className="h-4 w-4 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Record Unassigned</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Job not found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              The targeted career tracking row data parameters are unlisted or have altered visibility layers.
+              This job may have been removed or is no longer visible.
             </p>
           </div>
         </div>
