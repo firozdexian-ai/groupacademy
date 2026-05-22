@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   updateLearningTrack,
   deleteLearningTrackItem,
+  getTrackProgress,
+  orgAssignTrack,
 } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
