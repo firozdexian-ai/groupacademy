@@ -65,7 +65,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
       const existing = await findTalentByPhoneExceptId(fullPhone, talent.id);
       if (existing) {
         toast.error("This phone number is already on another account.", { id: toastId });
-        trackEvent("onboarding_phone_duplicate_intercepted", { fullPhone });
+        trackEvent("onboarding_phone_duplicate", { fullPhone });
         setIsSaving(false);
         return;
       }
@@ -109,7 +109,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
           Add your phone number
         </h2>
         <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 leading-normal max-w-xs mx-auto pt-1.5">
-          We'll use this to alert you about job replies and to send verification codes.
+          We'll use this so employers can reach you about jobs.
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
           disabled={isSaving}
           onValueChange={setPhone}
           onCountryCodeChange={(dialCode, iso) => {
-            trackEvent("onboarding_phone_country_code_altered", { isoCode: iso });
+            trackEvent("onboarding_phone_country_changed", { isoCode: iso });
             setCountryCode(dialCode);
             setCountry(iso);
           }}

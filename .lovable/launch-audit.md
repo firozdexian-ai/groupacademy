@@ -170,3 +170,32 @@ Replaced both remaining "coming soon" stubs (`CompaniesView`, `LocationsView`) w
 - Headers in `useCompaniesWithSignal`, `useCountriesWithSignal`, `useJobsHubDashboard` stripped of "Digital Workforce / Phase Z0 Hardened / REGISTRY_SYNC_FAULT / CTO Reference" noise. Errors now rethrow unchanged.
 
 Next: **A5.3 — Tools tab** (consolidated AI tools hub + tool_runs ledger).
+
+---
+
+## A1 + A2 Re-audit — shipped 2026-05-22
+
+Closed gaps surfaced by a second pass over auth + onboarding.
+
+**A1**
+- ✅ `useAuth.signUp` no longer hardcodes `country: "BD"` / `country_code: "+880"`. Defaults to empty strings; onboarding + PhoneCaptureStep set them from real selection.
+- ✅ Welcome email duplicate removed — `AuthCallback` is now the single sender (covers email + OAuth signups).
+- ✅ `useAuth.signOut` unified destination → `/auth` for everyone (was `/`, which dropped admins/companies on marketing).
+- ✅ `useAuth.resetPassword` neutralized — no longer leaks account existence; toast: "If that email is registered, we've sent a reset link."
+- ✅ New `src/lib/safeReturnTo.ts` validates `?returnTo=` to a same-origin path (`/...`, not `//evil.com`). Wired into `AuthChat`, `AuthClassic`, `AuthCallback`, `Start`.
+- ✅ `AuthChat` completion CTA now routes via `resolvePostAuthRoute(accountType, returnTo)` instead of hardcoded `/app/feed`.
+- ✅ `AuthCallback` retries OAuth `accountType` lookup up to 3× (1.8s budget) instead of one-shot.
+- ✅ `AccountUpgradeModal` rewritten — copy is now "Finish setting up your account" / "We need a couple more details to personalize your experience." Removed all "Infrastructure Upgrade", "deep learning core infrastructure pipelines", "MIGRATION_TERMINAL", "Phase Z0", "CTO Reference" jargon. Added a corner "Sign out" escape hatch.
+
+**A2**
+- ✅ `PhoneCaptureModal` adds a corner "Sign out" link so users blocked at this gate aren't permanently locked out.
+- ✅ `OnboardingWizard` header adds a "Sign out" link (hidden when `preAuth`) so empty lookup data isn't a dead end.
+- ✅ `PhoneCaptureStep` copy drops the false "verification codes" promise (no OTP is sent). New copy: "We'll use this so employers can reach you about jobs."
+- ✅ Telemetry events renamed to plain English: `onboarding_institution_node_selected` → `onboarding_institution_selected`; `onboarding_phone_country_code_altered` → `onboarding_phone_country_changed`; `onboarding_phone_duplicate_intercepted` → `onboarding_phone_duplicate`; `onboarding_wizard_preauth_stashed` → `onboarding_preauth_stashed`.
+- ✅ `OnboardingWizard` JSDoc + section comments scrubbed ("Phase Z0 Hardened", "Multi-Stage Personalization", "Ingress", "HUD HEADER COVER BAR METRIC PLOTS ROW", "ENFORCING_IMMUTABLE_ONBOARDING_GATEWAY_LOCK" all gone).
+- ✅ `App.OnboardingGuard.needsUpgrade` tightened to `!careerStageId` only. Freeform-institution users (legitimately `institution_id = null`) no longer re-trigger the upgrade gate.
+
+Carry-overs / deferred:
+- P1 #13 Company onboarding wizard — out of scope, tracked for A9/Companies group.
+- P2 #10 AuthClassic "Try the chat experience instead" CTA label, #16 verbose submit error, #17 done as part of P1.
+- Long-standing carry-overs unchanged: `country_code = "BD"` admin backfill, manifest preview 401, auth audit log retention check.

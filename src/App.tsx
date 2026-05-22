@@ -226,11 +226,10 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/app/profile-builder" replace />;
   }
 
-  // Legacy upgrade gate: completed onboarding but missing the new reference FKs.
-  const needsUpgrade =
-    !!talent &&
-    !!talent.onboardingCompletedAt &&
-    (!talent.careerStageId || !talent.institutionId);
+  // Legacy upgrade gate: completed onboarding but missing the new career-stage
+  // FK. Institution can legitimately be null (freeform-entered universities)
+  // so we don't gate on it.
+  const needsUpgrade = !!talent && !!talent.onboardingCompletedAt && !talent.careerStageId;
 
   if (needsUpgrade) {
     return (

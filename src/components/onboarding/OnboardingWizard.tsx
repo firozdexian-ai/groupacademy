@@ -10,6 +10,7 @@ import {
   ChevronsUpDown,
   GraduationCap,
   Loader2,
+  LogOut,
   MapPin,
   Sparkles,
   Zap,
@@ -38,6 +39,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { agentRuntime } from "@/domains/agents/api/agentsApi";
+import { useAuth } from "@/hooks/useAuth";
 
 type Country = { id: string; iso2: string; name: string };
 type Stage = { id: string; name: string; slug: string; academy_id: string | null };
@@ -64,9 +66,9 @@ const FUNNEL_KEYS = ["job_id", "ref", "utm_source", "utm_medium", "utm_campaign"
 type ProvisionResult = { instance_id: string; created: boolean };
 
 /**
- * GroUp Academy: Multi-Stage Personalization Onboarding Wizard (OnboardingWizard)
- * An authoritative system layout managing user segmentation, geo clusters, and automated campus agent allocations.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Talent onboarding wizard: 4 steps (country → career stage → university → field).
+ * Writes selections to the talents row, or stashes them to sessionStorage in
+ * `preAuth` mode for finalization after sign-in.
  */
 export function OnboardingWizard({
   onComplete,
@@ -80,12 +82,13 @@ export function OnboardingWizard({
 }) {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { signOut } = useAuth();
   const funnelParamsRef = useRef<FunnelParams>({});
 
-  // 1. Thread Hardening Gate: Protect against asynchronous execution writes over disconnected components
+  // Guard against state writes after unmount during in-flight async work.
   const isMountedRef = useRef<boolean>(true);
 
-  // Capture funnel attributes once on context setup mount pass safely
+  // Capture funnel attributes from the URL once on mount.
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -124,7 +127,7 @@ export function OnboardingWizard({
     return () => clearTimeout(t);
   }, [instQuery]);
 
-  // Step 1 Ingress: Fetch authorized market operational countries
+  // Step 1: load available countries.
   const countriesQ = useQuery({
     queryKey: ["onboarding-countries"],
     staleTime: 30 * 60 * 1000,
@@ -133,7 +136,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 2 Ingress: Fetch structural candidate operational career stages
+  // Step 2: load career stages.
   const stagesQ = useQuery({
     queryKey: ["onboarding-stages"],
     staleTime: 30 * 60 * 1000,
@@ -142,8 +145,8 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 3 Ingress: Server-side institution search.
-  // Country acts as a *soft* filter — if zero matches with country, we re-query globally.
+  // Step 3: institution search. Country is a soft filter — we re-query
+  // globally when there are no matches inside the user's country.
   const institutionsQ = useQuery({
     queryKey: ["onboarding-institutions", country?.name ?? "", debouncedInstQuery],
     enabled: step >= 3,
@@ -156,7 +159,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 4 Ingress: Fetch professional sub-schools mapped via segment classifications
+  // Step 4: load fields/schools for the chosen career stage.
   const schoolsQ = useQuery({
     queryKey: ["onboarding-schools", stage?.academy_id],
     enabled: step >= 4,
@@ -166,7 +169,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Instrument continuous analytical tracking maps over internal server sub-query exceptions
+  // Log any lookup failures.
   useEffect(() => {
     const primaryWizardFetchError = countriesQ.error || stagesQ.error || institutionsQ.error || schoolsQ.error;
     if (primaryWizardFetchError) {
@@ -177,7 +180,7 @@ export function OnboardingWizard({
     }
   }, [countriesQ.error, stagesQ.error, institutionsQ.error, schoolsQ.error]);
 
-  // Reset downstream metrics sequentially when academy clusters drift
+  // Reset the selected field whenever the career stage changes.
   useEffect(() => {
     setSchool(null);
   }, [stage?.academy_id]);
@@ -252,7 +255,7 @@ export function OnboardingWizard({
       } catch {
         /* sessionStorage may be unavailable in privacy mode — ignore. */
       }
-      trackEvent("onboarding_wizard_preauth_stashed");
+      trackEvent("onboarding_preauth_stashed");
       onComplete();
       return;
     }
@@ -342,7 +345,7 @@ export function OnboardingWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background font-sans text-left select-none sm:select-text transform-gpu animate-in fade-in duration-300">
-      {/* HUD HEADER COVER BAR METRIC PLOTS ROW */}
+      {/* Header */}
       <header className="border-b border-border/40 bg-card/90 backdrop-blur-xl shrink-0 select-none w-full">
         <div className="flex items-center justify-between gap-4 px-5 py-4 md:px-8 max-w-7xl mx-auto w-full">
           <div className="flex items-center gap-3.5 min-w-0">
@@ -358,12 +361,25 @@ export function OnboardingWizard({
               </span>
             </div>
           </div>
-          <div className="hidden w-64 md:block select-none leading-none">
-            <Progress value={progress} className="h-2 bg-muted rounded-full shadow-inner" />
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden w-48 lg:w-64 md:block select-none leading-none">
+              <Progress value={progress} className="h-2 bg-muted rounded-full shadow-inner" />
+            </div>
+            {!preAuth && (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-card/80 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* PROGRESS STEPPER DOTS LAYER HEADER */}
+        {/* Step indicator */}
         <div className="flex items-center justify-center gap-5 pb-4 max-w-4xl mx-auto w-full px-4 border-t border-border/5 pt-3.5">
           {STEPS.map((stepConfig, index) => {
             const Icon = stepConfig.icon || MapPin;
@@ -408,7 +424,7 @@ export function OnboardingWizard({
         </div>
       </header>
 
-      {/* HUD CONTAINER BODY SECTION FOR INDIVIDUAL DISPLAY TILES */}
+      {/* Body */}
       <main className="flex-1 overflow-y-auto w-full">
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col p-4 py-8 md:p-8 justify-between">
           <div key={step} className="flex-1 animate-in fade-in slide-in-from-bottom-1 duration-200 w-full">
@@ -525,7 +541,7 @@ export function OnboardingWizard({
                                     key={instItem.id}
                                     value={instItem.name}
                                     onSelect={() => {
-                                      trackEvent("onboarding_institution_node_selected", { name: instItem.name });
+                                      trackEvent("onboarding_institution_selected", { name: instItem.name });
                                       setInstitution(instItem);
                                       setComboOpen(false);
                                     }}
@@ -607,7 +623,7 @@ export function OnboardingWizard({
             </div>
           </div>
 
-          {/* HUD COMMAND TRANSACTION CONFIG NAVIGATION FOOTER ACTIONS STRIP */}
+          {/* Footer */}
           <div className="sticky bottom-0 mt-10 flex items-center justify-between gap-4 rounded-xl border border-border/40 bg-background/95 p-4 shadow-sm backdrop-blur select-none w-full shrink-0">
             <Button
               variant="ghost"

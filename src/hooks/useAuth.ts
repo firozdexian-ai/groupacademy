@@ -6,7 +6,6 @@ import { lovable } from "@/integrations/lovable";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
-import { sendTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 /**
  * Identity & session orchestrator.
@@ -155,8 +154,11 @@ export const useAuth = (): AuthState => {
           data: {
             full_name: fullName,
             phone: phone || "",
-            country: country || "BD",
-            country_code: countryCode || "+880",
+            // Leave country / country_code blank by default — onboarding and
+            // PhoneCaptureStep set these from the user's actual selection
+            // rather than a Bangladesh default.
+            country: country || "",
+            country_code: countryCode || "",
             account_type: "talent",
             referral_code: ref || undefined,
           },
@@ -167,18 +169,8 @@ export const useAuth = (): AuthState => {
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Could not create your account. Please try again.");
 
-      // Email auto-confirmation is enabled — user is signed in immediately.
-      // Fire welcome email once (idempotent via idempotencyKey).
-      const welcomeKey = `ga_welcome_sent_${authData.user.id}`;
-      if (typeof localStorage !== "undefined" && !localStorage.getItem(welcomeKey)) {
-        void sendTransactionalEmail({
-          templateName: "welcome",
-          recipientEmail: email.trim(),
-          idempotencyKey: `welcome-${authData.user.id}`,
-          templateData: { name: (fullName || "Learner").split(" ")[0] || "Learner" },
-        }).catch(() => {});
-        localStorage.setItem(welcomeKey, "1");
-      }
+      // Welcome email is sent once by AuthCallback (covers both email and
+      // OAuth signups) — don't double-fire it here.
       toast.success("Welcome — let's set up your profile.");
       return true;
     } catch (err: any) {
@@ -204,15 +196,22 @@ export const useAuth = (): AuthState => {
   const signOut = async () => {
     await supabase.auth.signOut({ scope: "local" });
     toast.success("Signed out.");
-    navigate("/", { replace: true });
+    // Unified post-signout destination — admins / companies / talents all
+    // land on /auth (not the marketing landing) so re-entry is one tap.
+    navigate("/auth", { replace: true });
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) throw error;
-    toast.success("Password reset link sent.");
+    // Don't leak account existence — always show a neutral confirmation
+    // regardless of whether the email is on file.
+    try {
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } catch {
+      /* swallow — neutral response below */
+    }
+    toast.success("If that email is registered, we've sent a reset link.");
   };
 
   const updatePassword = async (newPassword: string) => {

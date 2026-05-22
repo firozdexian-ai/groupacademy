@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
+import { safeReturnTo } from "@/lib/safeReturnTo";
 import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,7 @@ const Auth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         await finalizePendingOnboarding();
-        const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
+        const dest = resolvePostAuthRoute(accountType, safeReturnTo(searchParams.get("returnTo")));
         if (dest) navigate(dest, { replace: true });
       }
     });

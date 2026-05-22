@@ -1,20 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
+import { safeReturnTo } from "@/lib/safeReturnTo";
 import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 import { sendTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
 const WELCOME_KEY_PREFIX = "ga_welcome_sent_";
+const MAX_ACCOUNT_TYPE_RETRIES = 3;
+const ACCOUNT_TYPE_RETRY_MS = 600;
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { accountType, isLoading: accountTypeLoading } = useAccountType();
-  const [retried, setRetried] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     if (authLoading || accountTypeLoading) return;
@@ -23,10 +27,12 @@ const AuthCallback = () => {
       return;
     }
 
-    // Brand-new OAuth users: talents row may not exist yet — retry once.
-    if (accountType === "unknown" && !retried) {
-      setRetried(true);
-      const t = setTimeout(() => setRetried(false), 600);
+    // Brand-new OAuth users: the talents row is created by a trigger and
+    // may not be visible yet. Poll up to 3× (≈1.8s total) before falling
+    // back to the talent default.
+    if (accountType === "unknown" && retryCountRef.current < MAX_ACCOUNT_TYPE_RETRIES) {
+      retryCountRef.current += 1;
+      const t = setTimeout(() => setRetryTick((n) => n + 1), ACCOUNT_TYPE_RETRY_MS);
       return () => clearTimeout(t);
     }
 
@@ -50,9 +56,10 @@ const AuthCallback = () => {
     // routing. Fire-and-forget — failure shouldn't block sign-in.
     void finalizePendingOnboarding();
 
-    const dest = resolvePostAuthRoute(accountType, params.get("returnTo")) || "/app/feed";
+    const dest =
+      resolvePostAuthRoute(accountType, safeReturnTo(params.get("returnTo"))) || "/app/feed";
     navigate(dest, { replace: true });
-  }, [user, authLoading, accountType, accountTypeLoading, navigate, params, retried]);
+  }, [user, authLoading, accountType, accountTypeLoading, navigate, params, retryTick]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3">
