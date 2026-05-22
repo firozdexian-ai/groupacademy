@@ -218,20 +218,18 @@ export function useInstructorAttendance(sessionId?: string) {
     enabled: !!sessionId,
     staleTime: 10000, // Aggressive 10s caching for active dashboard grids
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("instructor_session_attendance", {
-        _session_id: sessionId!,
-      });
-
-      if (error) {
+      try {
+        return await getInstructorSessionAttendance(sessionId!);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: instructor_session_attendance evaluation error.", {
           sessionId,
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return data ?? [];
     },
+
   });
 }
 
