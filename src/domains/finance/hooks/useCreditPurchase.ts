@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
+import { logMonetizationIntent } from "@/domains/finance/repo/financeRepo";
 
 /**
  * GroUp Academy: Credit Purchase UI Sheet State Orchestrator (V5.5.0)
