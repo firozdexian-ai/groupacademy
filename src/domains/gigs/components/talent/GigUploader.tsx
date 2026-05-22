@@ -120,14 +120,12 @@ export function GigUploader({
 
           trackEvent("gig_uploader_stream_initiated", { fileName: safeName, fileSize: f.size });
 
-          const { error } = await supabase.storage.from("gig-submissions").upload(path, f, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: f.type || "application/octet-stream",
-          });
-          setProgress(Math.round(((i + 1) / files.length) * 100));
-
-          if (error) {
+          try {
+            await uploadGigSubmission(path, f, {
+              upsert: false,
+              contentType: f.type || "application/octet-stream",
+            });
+          } catch (error: any) {
             trackError(error, {
               component: "GigUploader",
               action: "supabase_storage_upload_fault",
@@ -135,8 +133,10 @@ export function GigUploader({
               targetBucket: "gig-submissions",
             });
             toast.error(`Upload failed for asset target: ${f.name}`);
+            setProgress(Math.round(((i + 1) / files.length) * 100));
             continue;
           }
+          setProgress(Math.round(((i + 1) / files.length) * 100));
 
           uploaded.push({
             path,
