@@ -145,7 +145,7 @@ export function TalentAppShell() {
     }
     let cancelled = false;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return;
       const { count } = await supabase
         .from("company_members")
