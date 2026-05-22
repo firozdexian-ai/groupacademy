@@ -48,12 +48,6 @@ export default function TalentPublicProfile() {
   const { talent: me } = useTalent();
   const [dialog, setDialog] = useState(false);
 
-  // Digital Workforce Anomaly Protocol[cite: 6]
-  const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await adminSupportAssistant({ type: "talent_profile_error", event, context });
-  };
-
   const {
     data: t,
     isLoading,
@@ -64,13 +58,14 @@ export default function TalentPublicProfile() {
       if (!id) throw new Error("Missing ID");
       try {
         return (await getTalentPublicProfileById(id)) as TalentDetail | null;
-      } catch (error) {
-        await reportAnomaly("ProfileFetchFailure", { id, error });
-        throw error;
+      } catch (err) {
+        console.error("[TalentPublicProfile] fetch failed", { id, err });
+        throw err;
       }
     },
     enabled: !!id,
   });
+
 
   const { data: meta } = useQuery({
     queryKey: ["talent-meta", id],
