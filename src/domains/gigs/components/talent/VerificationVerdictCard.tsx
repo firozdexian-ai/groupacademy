@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { openVerificationAppeal } from "@/domains/gigs/repo/gigsRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, AlertTriangle, Clock, Loader2, Scale } from "lucide-react";
