@@ -82,3 +82,32 @@ Carry-over P2s tracked: country_code backfill, manifest preview 401, auth audit 
 - ✅ `ProfileBuilder.tsx` copy/error path humanized; renamed `reportAnomalyToAdmin` → `logChatError`
 - ✅ `TalentPublicProfile.tsx` dropped broken `adminSupportAssistant` call (known edge contract drift); friendly error copy
 - ✅ Replaced `reportAnomaly` no-ops in Profile + ProfileEdit with `trackError` from `src/lib/errorTracking.ts`
+
+---
+
+## A2 Onboarding — shipped 2026-05-22
+- ✅ Dead code purge: deleted `WelcomeBonus`, `ServicesTour`, `GoalStep`, `CVUploadStep`, `ProfessionStep`, `useOnboarding` (~2k LOC)
+- ✅ `OnboardingWizard.tsx` rewritten with plain-English step copy (no more "Initialize Trajectory Index" / "Determine Base Geographical Region")
+- ✅ `PhoneCaptureStep.tsx` rewritten: no hardcoded `+880`/`BD` defaults; respects user country
+- ✅ `PhoneCaptureModal.tsx` created — uncloseable dialog gate for talents with completed onboarding but no phone
+- ✅ `App.tsx` `OnboardingGuard`: `needsPhone = !!talent && !!talent.onboardingCompletedAt && !talent.phone` → renders `<PhoneCaptureModal>` until phone captured
+- ✅ `Start.tsx` returning users routed via `resolvePostAuthRoute(accountType, returnTo)` instead of hardcoded `/app/feed`
+
+---
+
+## A4 Talent Landing (Feed + Home + Shell) — shipped 2026-05-22
+- ✅ `TalentHome.tsx` (`/app/me`) rewritten:
+  - Dropped broken `adminSupportAssistant` calls; replaced with `trackError`
+  - Humanized copy: "outreach nodes" → "messages from employers"; "mastery nodes synchronized" → "skills verified"; "You are LIVE on Gro10x" → "You're live on Gro10x"; "Hidden from employers" → "Not yet visible to employers"; "Profile Pinned for 24h." → "Your profile is pinned to the top for 24 hours."; "Boost operational fault." → "Couldn't boost your profile — please try again."
+- ✅ Feed components copy pass (user-visible only):
+  - `HypeBoostSheet`: "Ledger settlement delayed…" → friendly
+  - `FloatingWhatsAppButton`: "Financing nodes are busy…" → friendly
+  - `PostCard`: saved-items error, report toast, `aria-label="More operational options"` → "More options"
+  - `PersonalizedPromptCard`: "Insufficient credit balance…", "Initializing transactional ledger settlement…", "Ledger connection timeout…" → friendly
+  - `ComposePost`: `aria-label="Append tag node"` → "Add tag"; telemetry event `ComposePost:active_editor_session_initialized` → `feed_compose_opened`
+  - `CommentList`: "Sign in required to transfer credit bundles" / "Transferred N credits successfully" → "Sign in to tip credits" / "Tipped N credits."
+- ✅ `TalentAppShell.tsx`: scrubbed "Institutional Navigation Artifacts" / "Real-Time_Notification_Orchestration" / `fetchInstitutionalAlerts` → `fetchNotificationCount`
+- Landing decision: keep `/app` → `/app/feed`; bottom-nav "Home" → `/app/feed` (unchanged). `/app/me` reachable via header avatar/profile menu. Considered adding a dedicated "Me" tab but bottom nav is already at 5 items (Home/Jobs/Learn/Gigs/AI Agents) — defer to A4.5 if needed.
+
+Carry-over (P2, deferred): scrub internal jargon in feed code comments (`Phase Z0`, `Digital Workforce`, `Automated Efficiency`) — not user-facing, no functional impact. Track for a comment-only cleanup pass before launch.
+
