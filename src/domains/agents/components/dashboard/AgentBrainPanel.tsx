@@ -7,7 +7,7 @@
 //     already reads `active_prompt_variant` to select which to send.
 
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { updateAiAgent } from "@/domains/agents/repo/agentsRepo";
 import { agentBlueprint } from "@/domains/agents/api/agentsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
