@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { toast } from "sonner";
 import {
   getReviewerProgramBundle,
   updateReviewerStatus,
+  resolveDispute as resolveDisputeRpc,
 } from "@/domains/gigs/repo/gigsRepo";
 
 export function ReviewerProgramTab() {
