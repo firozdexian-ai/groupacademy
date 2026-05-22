@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCompanyDetail } from "@/domains/companies/repo/companiesRepo";
 
 /**
  * GroUp Academy: Company Profile Deep Relational Sensor
