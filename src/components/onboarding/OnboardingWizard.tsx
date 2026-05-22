@@ -64,9 +64,9 @@ const FUNNEL_KEYS = ["job_id", "ref", "utm_source", "utm_medium", "utm_campaign"
 type ProvisionResult = { instance_id: string; created: boolean };
 
 /**
- * GroUp Academy: Multi-Stage Personalization Onboarding Wizard (OnboardingWizard)
- * An authoritative system layout managing user segmentation, geo clusters, and automated campus agent allocations.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Talent onboarding wizard: 4 steps (country → career stage → university → field).
+ * Writes selections to the talents row, or stashes them to sessionStorage in
+ * `preAuth` mode for finalization after sign-in.
  */
 export function OnboardingWizard({
   onComplete,
@@ -82,10 +82,10 @@ export function OnboardingWizard({
   const queryClient = useQueryClient();
   const funnelParamsRef = useRef<FunnelParams>({});
 
-  // 1. Thread Hardening Gate: Protect against asynchronous execution writes over disconnected components
+  // Guard against state writes after unmount during in-flight async work.
   const isMountedRef = useRef<boolean>(true);
 
-  // Capture funnel attributes once on context setup mount pass safely
+  // Capture funnel attributes from the URL once on mount.
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -124,7 +124,7 @@ export function OnboardingWizard({
     return () => clearTimeout(t);
   }, [instQuery]);
 
-  // Step 1 Ingress: Fetch authorized market operational countries
+  // Step 1: load available countries.
   const countriesQ = useQuery({
     queryKey: ["onboarding-countries"],
     staleTime: 30 * 60 * 1000,
@@ -133,7 +133,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 2 Ingress: Fetch structural candidate operational career stages
+  // Step 2: load career stages.
   const stagesQ = useQuery({
     queryKey: ["onboarding-stages"],
     staleTime: 30 * 60 * 1000,
@@ -142,8 +142,8 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 3 Ingress: Server-side institution search.
-  // Country acts as a *soft* filter — if zero matches with country, we re-query globally.
+  // Step 3: institution search. Country is a soft filter — we re-query
+  // globally when there are no matches inside the user's country.
   const institutionsQ = useQuery({
     queryKey: ["onboarding-institutions", country?.name ?? "", debouncedInstQuery],
     enabled: step >= 3,
@@ -156,7 +156,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Step 4 Ingress: Fetch professional sub-schools mapped via segment classifications
+  // Step 4: load fields/schools for the chosen career stage.
   const schoolsQ = useQuery({
     queryKey: ["onboarding-schools", stage?.academy_id],
     enabled: step >= 4,
@@ -166,7 +166,7 @@ export function OnboardingWizard({
     },
   });
 
-  // Instrument continuous analytical tracking maps over internal server sub-query exceptions
+  // Log any lookup failures.
   useEffect(() => {
     const primaryWizardFetchError = countriesQ.error || stagesQ.error || institutionsQ.error || schoolsQ.error;
     if (primaryWizardFetchError) {
@@ -177,7 +177,7 @@ export function OnboardingWizard({
     }
   }, [countriesQ.error, stagesQ.error, institutionsQ.error, schoolsQ.error]);
 
-  // Reset downstream metrics sequentially when academy clusters drift
+  // Reset the selected field whenever the career stage changes.
   useEffect(() => {
     setSchool(null);
   }, [stage?.academy_id]);
