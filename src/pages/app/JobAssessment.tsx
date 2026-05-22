@@ -12,24 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle,
-  Mic,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  ShieldCheck,
-  Square,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Mic, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { analyzeJobAssessment } from "@/domains/jobs/api/jobsApi";
 
-// =========================================================================
-// DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
-// =========================================================================
 interface QuestionNode {
   id: string;
   type: "mcq" | "voice" | "text";
@@ -52,229 +38,215 @@ interface JobAssessmentRecord {
 }
 
 /**
- * GroUp Academy: Neural Interview Assessment Viewport (JobAssessment)
- * Hardened responsive assessment runner managing hardware stream capture safety and shielding transmission pipelines.
- * Version: Launch Candidate · Phase Z1 Transaction Matrix Sealed
+ * Job AI assessment runner — MCQ + voice + text questions, autosaves each answer.
  */
 export default function JobAssessment() {
-  const { assessmentId: unverifiedAssessmentIdStr } = useParams<{ assessmentId: string }>();
-  const navigateHook = useNavigate();
-  const { talent: talentProfileRecord } = useTalent();
+  const { assessmentId } = useParams<{ assessmentId: string }>();
+  const navigate = useNavigate();
+  const { talent } = useTalent();
 
-  const assessmentRecordState = React.useRef<JobAssessmentRecord | null>(null);
-  const [assessmentData, setAssessmentData] = React.useState<JobAssessmentRecord | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
-  const [isSubmissionPending, setIsSubmissionPending] = React.useState<boolean>(false);
-  const [isStorageUploading, setIsStorageUploading] = React.useState<boolean>(false);
+  const assessmentRef = React.useRef<JobAssessmentRecord | null>(null);
+  const [assessment, setAssessment] = React.useState<JobAssessmentRecord | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [submitting, setSubmitting] = React.useState<boolean>(false);
+  const [uploading, setUploading] = React.useState<boolean>(false);
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState<number>(0);
-  const [answersBufferMap, setAnswersBufferMap] = React.useState<Record<string, any>>({});
+  const [currentIndex, setCurrentIndex] = React.useState<number>(0);
+  const [answers, setAnswers] = React.useState<Record<string, any>>({});
 
-  const [isRecordingEngineActive, setIsRecordingEngineActive] = React.useState<boolean>(false);
-  const [recordingIntervalTime, setRecordingIntervalTime] = React.useState<number>(0);
+  const [recording, setRecording] = React.useState<boolean>(false);
+  const [recordSeconds, setRecordSeconds] = React.useState<number>(0);
 
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const audioStreamReference = React.useRef<MediaStream | null>(null);
-  const timerReference = React.useRef<NodeJS.Timeout | null>(null);
+  const audioStreamRef = React.useRef<MediaStream | null>(null);
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // =========================================================================
-  // LIFECYCLE SECTOR: HARDENED HARDWARE CLEANUP GATES
-  // =========================================================================
   React.useEffect(() => {
     return () => {
-      if (timerReference.current) clearInterval(timerReference.current);
-      if (audioStreamReference.current) {
-        audioStreamReference.current.getTracks().forEach((track) => track.stop());
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
-  const fetchAssessmentHandshake = React.useCallback(async () => {
-    if (!unverifiedAssessmentIdStr) return;
+  const loadAssessment = React.useCallback(async () => {
+    if (!assessmentId) return;
     try {
-      setIsLoading(true);
+      setLoading(true);
       const { data, error } = await supabase
         .from("job_assessments")
         .select("*, jobs (title, company_name)")
-        .eq("id", unverifiedAssessmentIdStr)
+        .eq("id", assessmentId)
         .maybeSingle();
 
-      if (error || !data) throw new Error("Assessment registry lookup failed.");
+      if (error || !data) throw new Error("Couldn't load this assessment.");
 
-      // Normalize dynamic question JSON structures securely
-      const rawQuestions = (data.questions as any) || {};
-      const normalizedQuestions: QuestionNode[] = [
-        ...(rawQuestions.mcq_questions || []).map((q: any) => ({ ...q, type: "mcq" })),
-        ...(rawQuestions.voice_questions || []).map((q: any) => ({ ...q, type: "voice", timeLimit: 120 })),
-        ...(rawQuestions.text_questions || []).map((q: any) => ({ ...q, type: "text" })),
+      const raw = (data.questions as any) || {};
+      const questions: QuestionNode[] = [
+        ...(raw.mcq_questions || []).map((q: any) => ({ ...q, type: "mcq" })),
+        ...(raw.voice_questions || []).map((q: any) => ({ ...q, type: "voice", timeLimit: 120 })),
+        ...(raw.text_questions || []).map((q: any) => ({ ...q, type: "text" })),
       ];
 
-      const finalizedAssessmentData: JobAssessmentRecord = {
+      const finalized: JobAssessmentRecord = {
         ...data,
-        questions: normalizedQuestions,
+        questions,
         answers: data.answers as Record<string, any> | null,
       };
 
-      setAssessmentData(finalizedAssessmentData);
-      assessmentRecordState.current = finalizedAssessmentData;
-      if (data.answers) setAnswersBufferMap(data.answers as Record<string, any>);
+      setAssessment(finalized);
+      assessmentRef.current = finalized;
+      if (data.answers) setAnswers(data.answers as Record<string, any>);
 
       if (data.status === "pending") {
         await supabase
           .from("job_assessments")
           .update({ status: "in_progress", started_at: new Date().toISOString() })
-          .eq("id", unverifiedAssessmentIdStr);
+          .eq("id", assessmentId);
       }
     } catch (e) {
-      toast.error("Failed to load assessment specification registry.");
+      toast.error("Couldn't load this assessment. Please try again.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [unverifiedAssessmentIdStr]);
+  }, [assessmentId]);
 
   React.useEffect(() => {
-    void fetchAssessmentHandshake();
-  }, [fetchAssessmentHandshake]);
+    void loadAssessment();
+  }, [loadAssessment]);
 
-  // =========================================================================
-  // HARDWARE PIPELINE: STREAM MANAGEMENT & STORAGE UPLOADS
-  // =========================================================================
-  const handleStartHardwareRecording = async () => {
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamReference.current = stream;
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      const audioChunks: Blob[] = [];
+      audioStreamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      const chunks: Blob[] = [];
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
       };
-      mediaRecorder.onstop = () => {
-        const finalizedBlob = new Blob(audioChunks, { type: "audio/webm" });
-        uploadAudioAnswerPayload(finalizedBlob);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        uploadAudioAnswer(blob);
       };
 
-      mediaRecorder.start();
-      setIsRecordingEngineActive(true);
-      setRecordingIntervalTime(0);
-      timerReference.current = setInterval(() => {
-        setRecordingIntervalTime((prev) => {
+      recorder.start();
+      setRecording(true);
+      setRecordSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordSeconds((prev) => {
           if (prev >= 120) {
-            stopHardwareRecording();
+            stopRecording();
             return prev;
           }
           return prev + 1;
         });
       }, 1000);
     } catch (e) {
-      toast.error("Microphone hardware channel access refused by security container.");
+      toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };
 
-  const stopHardwareRecording = React.useCallback(() => {
-    if (mediaRecorderRef.current && isRecordingEngineActive) {
+  const stopRecording = React.useCallback(() => {
+    if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop();
-      setIsRecordingEngineActive(false);
-      if (timerReference.current) clearInterval(timerReference.current);
+      setRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [isRecordingEngineActive]);
+  }, [recording]);
 
-  const uploadAudioAnswerPayload = async (blob: Blob) => {
-    if (!assessmentRecordState.current || !talentProfileRecord) return;
-    setIsStorageUploading(true);
-    const assessment = assessmentRecordState.current;
-    const questionId = assessment.questions[currentQuestionIndex].id;
-    const storageTargetFilePath = `${assessment.id}/${talentProfileRecord.id}_${questionId}_${Date.now()}.webm`;
+  const uploadAudioAnswer = async (blob: Blob) => {
+    if (!assessmentRef.current || !talent) return;
+    setUploading(true);
+    const a = assessmentRef.current;
+    const questionId = a.questions[currentIndex].id;
+    const path = `${a.id}/${talent.id}_${questionId}_${Date.now()}.webm`;
 
     try {
-      const { path } = await uploadAssessmentAudio(storageTargetFilePath, blob, {
+      const { path: storedPath } = await uploadAssessmentAudio(path, blob, {
         contentType: "audio/webm",
         upsert: true,
       });
 
-      const updatedAnswers = { ...answersBufferMap, [questionId]: { type: "voice", storagePath: path } };
-      setAnswersBufferMap(updatedAnswers);
-      await updateJobAssessment(assessment.id, { answers: updatedAnswers });
-      toast.success("Voice response artifact secured.");
+      const updated = { ...answers, [questionId]: { type: "voice", storagePath: storedPath } };
+      setAnswers(updated);
+      await updateJobAssessment(a.id, { answers: updated });
+      toast.success("Voice answer saved.");
     } catch (e) {
-      toast.error("Failed to transmit audio asset to repository pipeline.");
+      toast.error("Couldn't upload your voice answer. Please try again.");
     } finally {
-      setIsStorageUploading(false);
+      setUploading(false);
     }
   };
 
-  // =========================================================================
-  // TRANSACTION MUTATION: PROGRESSION AND SUBMISSION PIPELINES
-  // =========================================================================
-  const handleCommitAssessmentSubmission = async () => {
-    if (!assessmentRecordState.current) return;
-    setIsSubmissionPending(true);
+  const submitAssessment = async () => {
+    if (!assessmentRef.current) return;
+    setSubmitting(true);
     try {
-      await updateJobAssessment(assessmentRecordState.current.id, {
-        answers: answersBufferMap,
+      await updateJobAssessment(assessmentRef.current.id, {
+        answers,
         status: "completed",
         completed_at: new Date().toISOString(),
       });
 
-      await analyzeJobAssessment({ assessmentId: assessmentRecordState.current.id });
-      navigateHook(`/app/job-assessment/${assessmentRecordState.current.id}/results`);
+      await analyzeJobAssessment({ assessmentId: assessmentRef.current.id });
+      navigate(`/app/job-assessment/${assessmentRef.current.id}/results`);
     } catch (e) {
-      toast.error("Submission transmission handshake failed.");
+      toast.error("Couldn't submit your assessment. Please try again.");
     } finally {
-      setIsSubmissionPending(false);
+      setSubmitting(false);
     }
   };
 
-  if (isLoading)
+  if (loading)
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
-  if (!assessmentData) return <div className="text-center py-20 text-muted-foreground">Assessment missing.</div>;
+  if (!assessment) return <div className="text-center py-20 text-muted-foreground">Assessment not found.</div>;
 
-  const currentQuestionNode = assessmentData.questions[currentQuestionIndex];
-  const completionProgressNum = ((currentQuestionIndex + 1) / assessmentData.questions.length) * 100;
-  const isFinalStepFlag = currentQuestionIndex === assessmentData.questions.length - 1;
-  const hasUserRespondedFlag = !!answersBufferMap[currentQuestionNode.id];
+  const current = assessment.questions[currentIndex];
+  const progress = ((currentIndex + 1) / assessment.questions.length) * 100;
+  const isLastQuestion = currentIndex === assessment.questions.length - 1;
+  const hasAnswered = !!answers[current.id];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-32 space-y-5 antialiased block transform-gpu w-full">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-32 space-y-5 w-full">
       <header className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => navigateHook(-1)} className="rounded-lg h-9 text-xs">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Exit Assessment
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="rounded-lg h-9 text-xs">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Exit
         </Button>
-        <Badge variant="outline" className="font-mono text-[10px] uppercase h-6 tracking-wide">
-          TASK {currentQuestionIndex + 1} OF {assessmentData.questions.length}
+        <Badge variant="outline" className="text-[10px] uppercase h-6 tracking-wide">
+          Question {currentIndex + 1} of {assessment.questions.length}
         </Badge>
       </header>
 
-      <div className="space-y-1.5 w-full block">
+      <div className="space-y-1.5 w-full">
         <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted-foreground tracking-wide">
-          <span>Execution Vector</span>
-          <span className="font-mono text-primary">{Math.round(completionProgressNum).toString()}%</span>
+          <span>Progress</span>
+          <span className="text-primary tabular-nums">{Math.round(progress)}%</span>
         </div>
-        <Progress value={completionProgressNum} className="h-1.5 rounded-full" />
+        <Progress value={progress} className="h-1.5 rounded-full" />
       </div>
 
-      <Card className="rounded-lg border border-border/60 shadow-none overflow-hidden block w-full">
+      <Card className="rounded-lg border border-border/60 shadow-none overflow-hidden w-full">
         <CardHeader className="p-4 border-b border-border/5 bg-muted/20">
-          <Badge variant="secondary" className="font-mono text-[9px] uppercase tracking-wide w-fit mb-2">
-            {currentQuestionNode.type}
+          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide w-fit mb-2">
+            {current.type === "mcq" ? "Multiple choice" : current.type === "voice" ? "Voice" : "Written"}
           </Badge>
-          <CardTitle className="text-sm sm:text-base font-bold leading-relaxed">
-            {currentQuestionNode.question}
-          </CardTitle>
+          <CardTitle className="text-sm sm:text-base font-bold leading-relaxed">{current.question}</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          {currentQuestionNode.type === "mcq" ? (
+          {current.type === "mcq" ? (
             <RadioGroup
-              value={answersBufferMap[currentQuestionNode.id] || ""}
-              onValueChange={(val) => setAnswersBufferMap((prev) => ({ ...prev, [currentQuestionNode.id]: val }))}
+              value={answers[current.id] || ""}
+              onValueChange={(val) => setAnswers((prev) => ({ ...prev, [current.id]: val }))}
               className="grid gap-2"
             >
-              {currentQuestionNode.options?.map((option, idx) => (
+              {current.options?.map((option, idx) => (
                 <div
                   key={idx}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border/40 hover:bg-muted/50 cursor-pointer"
@@ -286,40 +258,40 @@ export default function JobAssessment() {
                 </div>
               ))}
             </RadioGroup>
-          ) : currentQuestionNode.type === "voice" ? (
+          ) : current.type === "voice" ? (
             <div className="border border-dashed border-border/60 rounded-lg p-6 text-center space-y-4">
-              {isRecordingEngineActive ? (
+              {recording ? (
                 <>
                   <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto animate-pulse">
                     <Mic className="h-6 w-6" />
                   </div>
-                  <div className="font-mono text-xl font-bold">
-                    {Math.floor(recordingIntervalTime / 60)}:{String(recordingIntervalTime % 60).padStart(2, "0")}
+                  <div className="font-mono text-xl font-bold tabular-nums">
+                    {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, "0")}
                   </div>
-                  <Button onClick={stopHardwareRecording} variant="destructive" className="w-full rounded-lg">
-                    Stop Pipeline
+                  <Button onClick={stopRecording} variant="destructive" className="w-full rounded-lg">
+                    Stop recording
                   </Button>
                 </>
-              ) : isStorageUploading ? (
+              ) : uploading ? (
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-              ) : hasUserRespondedFlag ? (
+              ) : hasAnswered ? (
                 <>
                   <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto" />
-                  <Button onClick={handleStartHardwareRecording} variant="outline" className="rounded-lg">
-                    Re-record Channel
+                  <Button onClick={startRecording} variant="outline" className="rounded-lg">
+                    Re-record
                   </Button>
                 </>
               ) : (
-                <Button onClick={handleStartHardwareRecording} className="w-full rounded-lg">
-                  <Mic className="mr-2 h-4 w-4" /> Initialize Audio Capture
+                <Button onClick={startRecording} className="w-full rounded-lg">
+                  <Mic className="mr-2 h-4 w-4" /> Start recording
                 </Button>
               )}
             </div>
           ) : (
             <Textarea
-              value={answersBufferMap[currentQuestionNode.id] || ""}
-              onChange={(e) => setAnswersBufferMap((prev) => ({ ...prev, [currentQuestionNode.id]: e.target.value }))}
-              placeholder="Input your evaluation response parameter string block..."
+              value={answers[current.id] || ""}
+              onChange={(e) => setAnswers((prev) => ({ ...prev, [current.id]: e.target.value }))}
+              placeholder="Type your answer here…"
               className="min-h-[160px] rounded-lg text-sm bg-background/50 border-border/60"
             />
           )}
@@ -330,19 +302,19 @@ export default function JobAssessment() {
         <div className="max-w-2xl mx-auto flex gap-2">
           <Button
             variant="outline"
-            onClick={() => setCurrentQuestionIndex((p) => p - 1)}
-            disabled={currentQuestionIndex === 0}
+            onClick={() => setCurrentIndex((p) => p - 1)}
+            disabled={currentIndex === 0}
             className="rounded-lg h-10 w-full"
           >
             Back
           </Button>
           <Button
-            onClick={isFinalStepFlag ? handleCommitAssessmentSubmission : () => setCurrentQuestionIndex((p) => p + 1)}
-            disabled={isSubmissionPending || !hasUserRespondedFlag}
+            onClick={isLastQuestion ? submitAssessment : () => setCurrentIndex((p) => p + 1)}
+            disabled={submitting || !hasAnswered}
             className="flex-1 rounded-lg h-10"
           >
-            {isFinalStepFlag ? "Submit Assessment Artifacts" : "Next Segment"}
-            {!isFinalStepFlag && <ArrowRight className="ml-2 h-4 w-4" />}
+            {isLastQuestion ? "Submit assessment" : "Next"}
+            {!isLastQuestion && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </div>
       </div>
