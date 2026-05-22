@@ -193,13 +193,10 @@ export function OnboardingWizard({
 
   const provisionOrGetInstance = async (institutionName: string): Promise<ProvisionResult | null> => {
     try {
-      const { data, error } = await supabase.rpc(
-        "provision_or_get_instance" as never,
-        {
-          _cluster_geo_id: institutionName,
-          _funnel: funnelParamsRef.current as unknown as object,
-        } as never,
-      );
+      const { data, error } = await provisionOrGetInstanceRpc({
+        clusterGeoId: institutionName,
+        funnel: funnelParamsRef.current as unknown as Record<string, unknown>,
+      });
       if (!error && data) {
         const id = typeof data === "string" ? data : ((data as { instance_id?: string })?.instance_id ?? null);
         if (id) return { instance_id: id, created: false };
