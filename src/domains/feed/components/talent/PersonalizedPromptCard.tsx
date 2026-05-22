@@ -126,7 +126,7 @@ export function PersonalizedPromptCard() {
       }
 
       setLoading(prompt.type);
-      const toastId = toast.loading(`Initializing transactional ledger settlement for ${prompt.title}…`);
+      const toastId = toast.loading(`Starting ${prompt.title}…`);
 
       try {
         // Enforce upper-case billing mapping keys consistently across the transactional ledger
