@@ -1,4 +1,4 @@
-import { useHype } from "@/hooks/useHype";
+import { useHype } from "@/domains/feed/hooks/useHype";
 
 export type HypeContentType = "post" | "course" | "video" | "blog";
 

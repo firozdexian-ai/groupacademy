@@ -5,7 +5,7 @@ import { MessageCircle, X, Gift, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { markTalentWhatsappBonusClaimed } from "@/domains/talent/repo/talentRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";

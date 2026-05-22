@@ -9,7 +9,7 @@ import {
   assignCareerCoach,
 } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { trackDuplicateDetected } from "@/lib/onboarding/telemetry";
 import { toast } from "sonner";
 

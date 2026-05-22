@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useSavedItems } from "@/hooks/useSavedItems";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { useJobMatchCached } from "@/domains/jobs";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,8 @@ import {
   Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ExternalApplicationPrep } from "@/components/jobs/ExternalApplicationPrep";
-import { RelatedJobs } from "@/components/jobs/RelatedJobs";
+import { ExternalApplicationPrep } from "@/domains/jobs/components/ExternalApplicationPrep";
+import { RelatedJobs } from "@/domains/jobs/components/RelatedJobs";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/lib/constants/jobTypes";
 import { cn } from "@/lib/utils";

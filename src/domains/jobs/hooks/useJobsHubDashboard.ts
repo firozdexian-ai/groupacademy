@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getJobsHubDashboard } from "@/domains/jobs/repo/jobsRepo";
-import type { JobCardData } from "@/components/jobs/JobCard";
+import type { JobCardData } from "@/domains/jobs/components/JobCard";
 import type { CompanyWithSignal } from "@/domains/companies/hooks/useCompaniesWithSignal";
 import type { CountryWithSignal } from "@/hooks/useCountriesWithSignal";
 import type { RemoteFriendlySummary } from "@/hooks/useRemoteFriendly";

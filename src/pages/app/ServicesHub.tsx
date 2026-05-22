@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { ServiceHistoryCard } from "@/components/credits/ServiceHistoryCard";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { ServiceType } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD, META_TEXT } from "@/lib/uiTokens";

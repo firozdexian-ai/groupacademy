@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2, MessageSquare, ShieldAlert, Zap } from "lucide-react";
-import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
-import { useAgentRuntime } from "@/hooks/useAgentRuntime";
-import { useCredits } from "@/hooks/useCredits";
+import { AgentChatDialog } from "@/domains/agents/components/chat/AgentChatDialog";
+import { useAgentRuntime } from "@/domains/agents/hooks/useAgentRuntime";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { toast } from "sonner";
 import { getAgentById } from "@/lib/constants/agents";
 import { useQuery } from "@tanstack/react-query";

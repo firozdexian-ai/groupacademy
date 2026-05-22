@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useTalent } from "@/hooks/useTalent";
 import { trackEvent, trackWarning } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
-import type { FeedFilters as FeedFiltersType, FeedFilterType, FeedScope } from "@/hooks/useFeedRecommendations";
+import type { FeedFilters as FeedFiltersType, FeedFilterType, FeedScope } from "@/domains/feed/hooks/useFeedRecommendations";
 
 /**
  * FeedFilters — single 4-slot row for community scope discovery channels.

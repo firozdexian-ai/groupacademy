@@ -5,7 +5,7 @@ import { FileText, Briefcase, ClipboardCheck, ChevronRight, Sparkles, Loader2, Z
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

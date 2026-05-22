@@ -5,8 +5,8 @@ import { Bot, Search, Sparkles, MessageCircle, Inbox, type LucideIcon } from "lu
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { AgentCard } from "@/components/ai-agents/AgentCard";
-import { AgentFilters, AgentCategory } from "@/components/ai-agents/AgentFilters";
+import { AgentCard } from "@/domains/agents/components/chat/AgentCard";
+import { AgentFilters, AgentCategory } from "@/domains/agents/components/chat/AgentFilters";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";

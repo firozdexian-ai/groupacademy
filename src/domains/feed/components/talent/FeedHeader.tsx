@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Coins, RefreshCw, Trophy } from "lucide-react";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { useTalent } from "@/hooks/useTalent";
 import { useCareerLevel } from "@/hooks/useCareerLevel";
 import { ProfileCardBackdrop } from "./ProfileCardBackdrop";

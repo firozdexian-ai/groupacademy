@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, Zap, ShieldCheck, ChevronLeft, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
-import { AgentMessage } from "@/hooks/useAgentChat";
+import { AgentAvatar } from "@/domains/agents/components/chat/AgentAvatar";
+import { AgentMessage } from "@/domains/agents/hooks/useAgentChat";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 
 /**

@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore } from "date-fns";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { MyInvoicesList } from "@/components/credits/MyInvoicesList";
 import { CreditBalance } from "@/components/credits/CreditBalance";
 import { cn } from "@/lib/utils";

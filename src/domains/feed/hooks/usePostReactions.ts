@@ -3,7 +3,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { deletePostReaction, insertPostReaction } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
-import { useFeedEngagement, patchEngagementCache, EMPTY_REACTIONS, type ReactionType } from "@/hooks/useFeedEngagement";
+import { useFeedEngagement, patchEngagementCache, EMPTY_REACTIONS, type ReactionType } from "@/domains/feed/hooks/useFeedEngagement";
 
 /**
  * GroUp Academy: Social Feed Reaction Engine (V5.6.0)

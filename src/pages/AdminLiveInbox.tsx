@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { ChatBubble } from "@/components/messages/ChatBubble";
+import { ChatBubble } from "@/domains/messaging/components/talent/ChatBubble";
 import { Bot, Send, ShieldCheck, MessageSquare, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";

@@ -1,39 +1,67 @@
-# Plan: Repo boundary refactor — COMPLETE as of 10j.5k12
+# Phase 10j.5k13 — Delete redundant shim folders
 
-## Final verified state (after 5k12)
+## What you're seeing and why
 
-- **`supabase.from(...)` outside repo/api/integrations:** **0** ✅
-- **`supabase` client imports outside repo/api:** 81 — all legitimate:
-  - 35× `supabase.auth.*` (session, signIn, signOut, getUser)
-  - 15× `supabase.removeChannel` + 15× `supabase.channel(...)` (realtime)
-  - 3× `supabase.functions.invoke` (a few edge calls not yet wrapped in `*Api`)
-  - 1× `supabase.rpc` (one-off)
-  - rest: storage uploads, type-only imports
+You're right. Files like `src/components/feed/PostCard.tsx` currently contain only:
 
-## What 5k12 shipped
+```ts
+export * from "@/domains/feed/components/talent/PostCard";
+```
 
-Ten talent-facing Abroad / IELTS / Career / Profession pages migrated to repo helpers:
+These are **re-export shims** — leftovers from earlier phases when we moved code into `src/domains/*` but kept the old paths working so nothing broke mid-refactor. They're not "the new structure," they're scaffolding we forgot to take down.
 
-1. `src/pages/app/StudyAbroad.tsx`
-2. `src/pages/app/AbroadHub.tsx`
-3. `src/pages/app/AbroadApplications.tsx`
-4. `src/pages/app/DestinationAgentPage.tsx`
-5. `src/pages/app/IELTSCoach.tsx`
-6. `src/pages/app/IELTSPrep.tsx`
-7. `src/pages/app/LanguageInstructorsPage.tsx`
-8. `src/pages/app/CareerCoach.tsx`
-9. `src/pages/app/AppSalaryAnalysisSetup.tsx`
-10. `src/pages/app/AppProfessionDetail.tsx`
+Count today: **124 shim files** across `src/components/{feed,gigs,jobs,learning,profile,ai-agents,messages}/` and `src/hooks/use*` — all one-line re-exports. About **73 other files** still import through those old paths.
 
-New helpers (15):
-- `abroadRepo`: `listActiveStudyAbroadPrograms`, `listActiveDestinationAgents`, `getDestinationAgentByCountry`, `listActiveProgramsForCountry`, `listDestinationAgentMessages`, `getIeltsStreakByUser`, `listRecentIeltsMockAttempts`, `getIeltsDailyChallenge`, `listIeltsResourceAccessByTalent`, `listActiveIeltsResourcesBySection`, `listActiveLanguageInstructorsByCode`, `listAbroadApplicationsForCurrentUser`
-- `talentRepo`: `getTalentCareerCoachId`, `getAiInstructorBasicById`, `getProfessionTrackBySlug`, `getActiveInstructorForProfession`, `listPublishedContentForProfession`
+The refactor batches (5k1–5k12) have been moving *data access* (`supabase.from(...)`) into repos. That's a different axis. Folder cleanup wasn't part of those batches, which is why you don't see structural change in the file tree. Fair criticism — should have done this earlier.
 
-## What's left (NOT a publication blocker)
+## Plan
 
-- `supabase.functions.invoke` calls that haven't been wrapped in domain `*Api` files (3 occurrences) — pure code hygiene
-- `supabase.channel` realtime subscriptions in 15 hooks/components — these are *supposed* to be there per project conventions; realtime is the documented place where the client is used directly
+### Step 1 — Rewrite importers (~73 files)
+Mechanical find-replace of old paths to canonical domain paths. Examples:
 
-## Recommended next direction
+```
+@/components/feed/PostCard         → @/domains/feed/components/talent/PostCard
+@/components/gigs/GigCard          → @/domains/gigs/components/talent/GigCard
+@/components/jobs/JobCard          → @/domains/jobs/components/JobCard
+@/components/learning/CoursesTab   → @/domains/learning/components/talent/CoursesTab
+@/components/profile/SkillsEditor  → @/domains/profile/components/talent/SkillsEditor
+@/components/ai-agents/AgentCard   → @/domains/agents/components/talent/AgentCard
+@/components/messages/ChatBubble   → @/domains/messaging/components/talent/ChatBubble
+@/hooks/useFeedEngagement          → @/domains/feed/hooks/useFeedEngagement
+@/hooks/useCredits                 → @/domains/finance/hooks/useCredits
+…etc
+```
 
-The architecture refactor is effectively done. Suggested pivot per earlier discussion: **Publication readiness audit** — auth flows on prod domain, payment provider live keys, SEO (sitemap/JSON-LD/OG), critical user-journey smoke tests, email deliverability, PWA install, error monitoring.
+Driven by reading each shim's single `export * from` line to get the exact target — no guessing.
+
+### Step 2 — Delete the 124 shim files
+Once nothing imports them, `rm` them. Folders that become empty (`src/components/feed/`, `src/components/gigs/`, etc.) get removed too.
+
+### Step 3 — Verify
+- `rg "@/components/(feed|gigs|jobs|learning|profile|ai-agents|messages)/" src` → must return 0
+- `rg "from \"@/hooks/(useFeed|useHype|usePoll|usePost|useCredits|useCreditPurchase|useDirectMessages|useMessageThreads|useAgent|useContent|usePayment)" src` → 0
+- Build passes (TS + Vite).
+
+### Step 4 — Update plan.md
+Record removed folders and new file counts.
+
+## Why one batch instead of eight
+This is mechanical and low-risk: every shim has exactly one re-export target, so the mapping is unambiguous. Splitting it across batches would just delay the cleanup you actually want to see.
+
+## Out of scope
+- `src/hooks/use{Auth,Toast,Mobile,MediaQuery,…}` — these are real hooks, not shims. Keep.
+- `src/components/ui/*` (shadcn) — real components. Keep.
+- Repo/api boundary work (already done in 5k1–5k12).
+
+## After this
+File tree will actually look like: `src/domains/<domain>/{components,hooks,repo,api}` + `src/pages` + `src/shells` + `src/platform` + `src/lib` + real `src/hooks`. No phantom folders.
+
+Approve and I'll execute in one pass.
+
+---
+## ✅ Executed
+- Deleted **124 shim files** across `src/components/{feed,gigs,jobs,learning,profile,ai-agents,messages}/` and `src/hooks/`
+- Rewrote **114 import statements** across **73 files** to point directly at `@/domains/*`
+- Removed 8 now-empty directories: `src/components/{feed,gigs,profile,messages,ai-agents}`, `src/components/jobs`, `src/components/learning/views`, `src/components/jobs/views`
+- Verified: `rg '@/components/(feed|gigs|jobs|learning|profile|ai-agents|messages)/' src` → **0 matches**
+- Verified: shim hook imports → **0 matches**

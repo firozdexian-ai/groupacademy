@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useGro10xThreads } from "../hooks/useGro10xThreads";
-import { useAgentRuntime, type AgentRuntimeContext } from "@/hooks/useAgentRuntime";
+import { useAgentRuntime, type AgentRuntimeContext } from "@/domains/agents/hooks/useAgentRuntime";
 import { getAgentMeta } from "../lib/agents";
 import { GRO10X_PANEL } from "../lib/tokens";
 

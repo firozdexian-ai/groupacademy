@@ -2,12 +2,12 @@ import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useTalent } from "@/hooks/useTalent";
-import { useAgentChat } from "@/hooks/useAgentChat";
-import { useMessageThreads } from "@/hooks/useMessageThreads";
+import { useAgentChat } from "@/domains/agents/hooks/useAgentChat";
+import { useMessageThreads } from "@/domains/messaging/hooks/useMessageThreads";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { ChatBubble } from "@/components/messages/ChatBubble";
+import { ChatBubble } from "@/domains/messaging/components/talent/ChatBubble";
 import { ArrowLeft, Bot, Sparkles, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";

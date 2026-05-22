@@ -30,7 +30,7 @@ import {
   Send,
   ShieldAlert,
 } from "lucide-react";
-import { GigUploader, type UploadedFile } from "@/components/gigs/GigUploader";
+import { GigUploader, type UploadedFile } from "@/domains/gigs/components/talent/GigUploader";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";

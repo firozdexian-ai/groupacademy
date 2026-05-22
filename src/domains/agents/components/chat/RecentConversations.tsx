@@ -3,9 +3,9 @@ import { MessageCircle, ChevronRight, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, isValid } from "date-fns";
-import { AgentSession } from "@/hooks/useAgentChat";
+import { AgentSession } from "@/domains/agents/hooks/useAgentChat";
 import { cn } from "@/lib/utils";
-import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
+import { AgentAvatar } from "@/domains/agents/components/chat/AgentAvatar";
 
 /**
  * GroUp Academy: Neural Session Ledger (V5.6.0)

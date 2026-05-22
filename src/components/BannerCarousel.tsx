@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listActiveBannersForPlacement } from "@/domains/marketing/repo/marketingRepo";
 import { listContentSlugsByIds } from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
-import { BannerLightbox } from "@/components/feed/BannerLightbox";
+import { BannerLightbox } from "@/domains/feed/components/talent/BannerLightbox";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { ChevronLeft, ChevronRight, Loader2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";

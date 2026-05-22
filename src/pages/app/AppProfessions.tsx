@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Target, Zap } from "lucide-react";
-import { TracksTab } from "@/components/learning/TracksTab";
+import { TracksTab } from "@/domains/learning/components/talent/TracksTab";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

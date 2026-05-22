@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getTrendingJobs } from "@/domains/jobs/repo/jobsRepo";
-import type { JobCardData } from "@/components/jobs/JobCard";
+import type { JobCardData } from "@/domains/jobs/components/JobCard";
 
 /**
  * GroUp Academy: Marketplace Velocity & Discovery Engine (V5.6.0)

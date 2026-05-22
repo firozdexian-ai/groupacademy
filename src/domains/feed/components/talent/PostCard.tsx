@@ -12,7 +12,7 @@ import {
 import { PostAuthor } from "./PostAuthor";
 import { PollWidget } from "./PollWidget";
 import { PostActionBar } from "./PostActionBar";
-import { usePollVoting } from "@/hooks/usePollVoting";
+import { usePollVoting } from "@/domains/feed/hooks/usePollVoting";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { useImpressionTracker } from "@/hooks/useCreatorAnalytics";
 import { trackError, trackEvent } from "@/lib/errorTracking";

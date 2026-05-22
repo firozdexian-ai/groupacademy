@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BookOpen, Sparkles } from "lucide-react";
-import { CoursesTab } from "@/components/learning/CoursesTab";
+import { CoursesTab } from "@/domains/learning/components/talent/CoursesTab";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

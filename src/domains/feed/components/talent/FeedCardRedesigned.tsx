@@ -9,8 +9,8 @@ import { HypeButton } from "./HypeButton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import { useSavedItems, SavedItemType } from "@/hooks/useSavedItems";
-import type { HypeContentType } from "@/hooks/useContentHype";
-import type { FeedItem } from "@/hooks/useFeedRecommendations";
+import type { HypeContentType } from "@/domains/feed/hooks/useContentHype";
+import type { FeedItem } from "@/domains/feed/hooks/useFeedRecommendations";
 
 interface FeedCardRedesignedProps {
   item: FeedItem;
