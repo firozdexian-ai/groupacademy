@@ -82,7 +82,7 @@ export default function TalentPublicProfile() {
   if (error || !t)
     return (
       <div className={PAGE_SHELL}>
-        <p className="text-sm">Profile node unreachable.</p>
+        <p className="text-sm">We couldn't load this profile.</p>
       </div>
     );
 
