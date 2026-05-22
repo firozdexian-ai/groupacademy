@@ -90,15 +90,11 @@ export function useTrackProgress(assignmentId: string | undefined) {
     enabled: !!assignmentId,
     staleTime: 30000, // 30s consistency window for active learning sessions
     queryFn: async (): Promise<TrackProgress> => {
-      // HUD: EXECUTING_RPC_TRACK_PROGRESS_CALCULATION
-      const { data, error } = await supabase.rpc("get_track_progress", {
-        p_assignment_id: assignmentId!,
-      });
-      if (error) throw error;
-      return data as unknown as TrackProgress;
+      return await getTrackProgress<TrackProgress>(assignmentId!);
     },
   });
 }
+
 
 export function useCompanyTracks(companyId: string | undefined) {
   return useQuery({
