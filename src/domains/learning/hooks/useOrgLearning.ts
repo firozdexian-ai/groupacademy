@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   getCompanyWallet,
   getOrgLearningHealth,
   getOrgTeamMastery,
   orgAssignTalents,
+  listCompanyCourseAssignments,
+  listCompanyLearningSeats,
 } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
@@ -89,17 +90,13 @@ export function useOrgAssignments(companyId: string | undefined) {
     queryKey: ["org-assignments", companyId],
     enabled: !!companyId,
     queryFn: async (): Promise<OrgAssignment[]> => {
-      const { data, error } = await supabase
-        .from("company_course_assignments")
-        .select("*, content:content_id(id,title), cohort:cohort_id(id,name)")
-        .eq("company_id", companyId!)
-        .order("created_at", { ascending: false });
-
-      if (error) {
+      try {
+        const data = await listCompanyCourseAssignments(companyId!);
+        return (data ?? []) as unknown as OrgAssignment[];
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: company_course_assignments ingress dropped.", error);
         throw error;
       }
-      return (data ?? []) as unknown as OrgAssignment[];
     },
   });
 }
@@ -126,16 +123,13 @@ export function useOrgSeats(companyId: string | undefined) {
     queryKey: ["org-seats", companyId],
     enabled: !!companyId,
     queryFn: async (): Promise<OrgSeat[]> => {
-      const { data, error } = await supabase
-        .from("company_learning_seats")
-        .select("*, content:content_id(id,title)")
-        .eq("company_id", companyId!);
-
-      if (error) {
+      try {
+        const data = await listCompanyLearningSeats(companyId!);
+        return (data ?? []) as unknown as OrgSeat[];
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: company_learning_seats lookup failed.", error);
         throw error;
       }
-      return (data ?? []) as unknown as OrgSeat[];
     },
   });
 }

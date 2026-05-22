@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listIrPipelineInvestors,
+  updateIrInvestorStage,
+  insertIrPipelineEvent,
+  updateIrInvestor,
+} from "@/domains/ir/repo/irRepo";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 
@@ -41,18 +46,8 @@ export function useIRPipeline() {
   const query = useQuery({
     queryKey: PIPELINE_QUERY_KEY,
     queryFn: async (): Promise<PipelineInvestor[]> => {
-      const { data, error } = await (supabase as any)
-        .from("ir_investors")
-        .select(
-          `id, full_name, title, email, vc_firm_id, pipeline_stage, pipeline_position,
-           lead_capability, check_size_min_usd, check_size_max_usd, probability_pct,
-           expected_close_date, stage_changed_at, last_contacted_at,
-           vc_firm:ir_vc_firms(id, name, logo_url)`,
-        )
-        .order("pipeline_position", { ascending: true })
-        .order("stage_changed_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as PipelineInvestor[];
+      const rows = await listIrPipelineInvestors();
+      return rows as PipelineInvestor[];
     },
   });
 
@@ -66,19 +61,12 @@ export function useIRPipeline() {
       const prev = qc.getQueryData<PipelineInvestor[]>(PIPELINE_QUERY_KEY);
       const fromStage = prev?.find((i) => i.id === params.investorId)?.pipeline_stage ?? null;
 
-      const { error } = await (supabase as any)
-        .from("ir_investors")
-        .update({
-          pipeline_stage: params.toStage,
-          pipeline_position: params.toPosition,
-        })
-        .eq("id", params.investorId);
-      if (error) throw error;
+      await updateIrInvestorStage(params.investorId, params.toStage, params.toPosition);
 
       // IR-Z1: restore stage-transition audit trail
       if (fromStage !== params.toStage) {
         const user = await getCurrentUser();
-        await (supabase as any).from("ir_pipeline_events").insert({
+        await insertIrPipelineEvent({
           investor_id: params.investorId,
           from_stage: fromStage,
           to_stage: params.toStage,
@@ -133,11 +121,7 @@ export function useIRPipeline() {
         >
       >;
     }) => {
-      const { error } = await (supabase as any)
-        .from("ir_investors")
-        .update(params.patch)
-        .eq("id", params.investorId);
-      if (error) throw error;
+      await updateIrInvestor(params.investorId, params.patch);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PIPELINE_QUERY_KEY });

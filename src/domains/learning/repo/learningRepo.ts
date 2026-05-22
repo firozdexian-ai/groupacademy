@@ -1829,3 +1829,50 @@ export async function listTalentSkillCredentials(talentId: string): Promise<any[
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5k7 — resource progress / org learning ───────────────────
+export async function getEnrollmentResourceState(
+  enrollmentId: string,
+  moduleId: string,
+): Promise<Record<string, any>> {
+  const { data, error } = await supabase
+    .from("enrollment_stage_progress")
+    .select("resource_state")
+    .eq("enrollment_id", enrollmentId)
+    .eq("module_id", moduleId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.resource_state as Record<string, any>) ?? {};
+}
+
+export async function updateEnrollmentResourceState(
+  enrollmentId: string,
+  moduleId: string,
+  payload: Record<string, any>,
+): Promise<void> {
+  const { error } = await supabase
+    .from("enrollment_stage_progress")
+    .update({ resource_state: payload as any })
+    .eq("enrollment_id", enrollmentId)
+    .eq("module_id", moduleId);
+  if (error) throw error;
+}
+
+export async function listCompanyCourseAssignments(companyId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("company_course_assignments")
+    .select("*, content:content_id(id,title), cohort:cohort_id(id,name)")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listCompanyLearningSeats(companyId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("company_learning_seats")
+    .select("*, content:content_id(id,title)")
+    .eq("company_id", companyId);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

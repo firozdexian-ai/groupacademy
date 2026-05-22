@@ -154,3 +154,46 @@ export async function upsertDirectThread(args: { companyId: string; talentId: st
   if (error) throw error;
   return data ? String(data) : null;
 }
+
+// ─── Phase 10j.5k7 — threads / messages / channels ──────────────────────
+export async function listMessageThreadsByTalent(talentId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("message_threads")
+    .select("*")
+    .eq("talent_id", talentId)
+    .eq("is_archived", false)
+    .order("is_pinned", { ascending: false })
+    .order("last_message_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAiAgentsByKeys(agentKeys: string[]): Promise<any[]> {
+  if (!agentKeys.length) return [];
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("agent_key, name, avatar_url, color")
+    .in("agent_key", agentKeys);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listDirectMessages(threadId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("direct_messages")
+    .select("*")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listMessagingChannelsByAgentKey(agentKey: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("messaging_channels")
+    .select("*")
+    .eq("agent_key", agentKey)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

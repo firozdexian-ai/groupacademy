@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { updateTalentById } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import {
   Dialog,
@@ -131,12 +131,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
         skills: skills.filter((s) => s.trim()) as any,
       };
 
-      const { error: patchRegistryUpdateError } = await supabase
-        .from("talents")
-        .update(compiledNextUpdateData)
-        .eq("id", talent.id);
-
-      if (patchRegistryUpdateError) throw patchRegistryUpdateError;
+      await updateTalentById(talent.id, compiledNextUpdateData);
 
       // Automated Efficiency: Evaporate user cache indexes across dependent panels instantly
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });

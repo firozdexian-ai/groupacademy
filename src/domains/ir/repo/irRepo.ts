@@ -271,3 +271,95 @@ export async function upsertIrMetricsSnapshot(input: Record<string, any> & { sna
   const { error } = await supabase.from("ir_metrics_snapshots").upsert(input, { onConflict: "snapshot_date" });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5k7 — IR composer / pipeline / detail / cohorts ──────────
+export async function listIrEmailCommunications(investorId?: string, limit = 10) {
+  let query = supabase
+    .from("ir_email_communications")
+    .select("id, investor_id, email_type, subject, content, ai_generated, sent_at, status, open_count, click_count, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (investorId) query = query.eq("investor_id", investorId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listIrPipelineInvestors(): Promise<any[]> {
+  const { data, error } = await (supabase as any)
+    .from("ir_investors")
+    .select(
+      `id, full_name, title, email, vc_firm_id, pipeline_stage, pipeline_position,
+       lead_capability, check_size_min_usd, check_size_max_usd, probability_pct,
+       expected_close_date, stage_changed_at, last_contacted_at,
+       vc_firm:ir_vc_firms(id, name, logo_url)`,
+    )
+    .order("pipeline_position", { ascending: true })
+    .order("stage_changed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function updateIrInvestorStage(
+  investorId: string,
+  toStage: string,
+  toPosition: number,
+): Promise<void> {
+  const { error } = await (supabase as any)
+    .from("ir_investors")
+    .update({ pipeline_stage: toStage, pipeline_position: toPosition })
+    .eq("id", investorId);
+  if (error) throw error;
+}
+
+export async function insertIrPipelineEvent(input: {
+  investor_id: string;
+  from_stage: string | null;
+  to_stage: string;
+  changed_by: string | null;
+}): Promise<void> {
+  const { error } = await (supabase as any).from("ir_pipeline_events").insert(input);
+  if (error) throw error;
+}
+
+export async function updateIrInvestor(
+  investorId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await (supabase as any)
+    .from("ir_investors")
+    .update(patch)
+    .eq("id", investorId);
+  if (error) throw error;
+}
+
+export async function getIrInvestorDetail(investorId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from("ir_investors")
+    .select("*, vc_firm:ir_vc_firms(id, name, status)")
+    .eq("id", investorId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listIrInvestorInteractions(investorId: string, limit = 20): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("ir_investor_interactions")
+    .select("*")
+    .eq("investor_id", investorId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listIrRetentionCohorts(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("ir_retention_cohorts")
+    .select("cohort_month, period_index, cohort_size, active_users, retained_revenue_usd, expansion_revenue_usd")
+    .order("cohort_month", { ascending: true })
+    .order("period_index", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

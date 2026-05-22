@@ -6,7 +6,7 @@
  */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listIrRetentionCohorts } from "@/domains/ir/repo/irRepo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -33,13 +33,8 @@ export function CohortRetentionCard() {
   const { data, isLoading } = useQuery({
     queryKey: ["ir-retention-cohorts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_retention_cohorts")
-        .select("cohort_month, period_index, cohort_size, active_users, retained_revenue_usd, expansion_revenue_usd")
-        .order("cohort_month", { ascending: true })
-        .order("period_index", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as CohortRow[];
+      const rows = await listIrRetentionCohorts();
+      return rows as CohortRow[];
     },
   });
 

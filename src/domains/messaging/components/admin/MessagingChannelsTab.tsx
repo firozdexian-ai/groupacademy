@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { updateChannelAutoReply } from "@/domains/messaging/repo/messagingRepo";
+import { updateChannelAutoReply, listMessagingChannelsByAgentKey } from "@/domains/messaging/repo/messagingRepo";
 import { unipileConnect } from "@/domains/messaging/api/messagingApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,13 +49,14 @@ export function MessagingChannelsTab({
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("messaging_channels")
-      .select("*")
-      .eq("agent_key", agentKey)
-      .order("created_at", { ascending: false });
-    setChannels((data ?? []) as Channel[]);
-    setLoading(false);
+    try {
+      const data = await listMessagingChannelsByAgentKey(agentKey);
+      setChannels((data ?? []) as Channel[]);
+    } catch {
+      setChannels([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

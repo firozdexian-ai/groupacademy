@@ -5,6 +5,8 @@ import {
   resetThreadUnread,
   markThreadNotificationsRead,
   ensureSystemThread,
+  listMessageThreadsByTalent,
+  listAiAgentsByKeys,
 } from "@/domains/messaging/repo/messagingRepo";
 import { useTalent } from "@/hooks/useTalent";
 
@@ -50,15 +52,10 @@ export function useMessageThreads() {
       // HUD: INITIALIZING_SYSTEM_THREAD_HANDSHAKE
       await ensureSystemThread(talentId);
 
-      const { data: rows, error } = await supabase
-        .from("message_threads")
-        .select("*")
-        .eq("talent_id", talentId)
-        .eq("is_archived", false)
-        .order("is_pinned", { ascending: false })
-        .order("last_message_at", { ascending: false });
-
-      if (error) {
+      let rows: any[];
+      try {
+        rows = await listMessageThreadsByTalent(talentId);
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: message_threads lookup failed.", error);
         throw error;
       }
@@ -71,12 +68,8 @@ export function useMessageThreads() {
       let agentMeta: Record<string, { name: string; avatar_url: string | null; color: string | null }> = {};
 
       if (agentKeys.length) {
-        const { data: agents } = await supabase
-          .from("ai_agents")
-          .select("agent_key, name, avatar_url, color")
-          .in("agent_key", agentKeys);
-
-        (agents || []).forEach((a) => {
+        const agents = await listAiAgentsByKeys(agentKeys);
+        (agents || []).forEach((a: any) => {
           agentMeta[a.agent_key] = { name: a.name, avatar_url: a.avatar_url, color: a.color };
         });
       }

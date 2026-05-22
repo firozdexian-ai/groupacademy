@@ -1,6 +1,9 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getEnrollmentResourceState,
+  updateEnrollmentResourceState,
+} from "@/domains/learning/repo/learningRepo";
 
 /**
  * GroUp Academy: Video Playback & Progress Sentinel (V5.6.0)
@@ -41,21 +44,14 @@ export function useResourceProgress({ enrollmentId, moduleId }: UseResourceProgr
     staleTime: Infinity, // Rely completely on local buffers and explicit mutations
     queryFn: async () => {
       // HUD: INITIALIZING_RESOURCE_STATE_HYDRATION
-      const { data, error } = await supabase
-        .from("enrollment_stage_progress")
-        .select("resource_state")
-        .eq("enrollment_id", enrollmentId!)
-        .eq("module_id", moduleId!)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        const initialMap = (await getEnrollmentResourceState(enrollmentId!, moduleId!)) as ResourceStateMap;
+        cacheRef.current = initialMap;
+        return initialMap;
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: enrollment_stage_progress json b-tree read dropped.", error);
         throw error;
       }
-
-      const initialMap = (data?.resource_state as ResourceStateMap) || {};
-      cacheRef.current = initialMap;
-      return initialMap;
     },
   });
 
@@ -76,15 +72,7 @@ export function useResourceProgress({ enrollmentId, moduleId }: UseResourceProgr
       if (!enrollmentId || !moduleId) return;
 
       // HUD: EXECUTING_JSONB_DOCUMENT_UPDATE_SYNC
-      const { error } = await supabase
-        .from("enrollment_stage_progress")
-        .update({ resource_state: payload as any })
-        .eq("enrollment_id", enrollmentId)
-        .eq("module_id", moduleId);
-
-      if (error) {
-        throw error;
-      }
+      await updateEnrollmentResourceState(enrollmentId, moduleId, payload);
     },
     onError: (err: any) => {
       // Digital Workforce Anomaly Trigger: Imprints tracing packets for background monitoring agents
