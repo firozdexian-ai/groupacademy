@@ -78,14 +78,8 @@ export function AgentSessionsManager() {
   const loadSessions = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("agent_chat_sessions")
-        .select(`*, talent:talents(full_name, email)`)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (error) throw error;
-      setSessions(data || []);
+      const data = await listRecentAgentChatSessions(200);
+      setSessions(data);
     } catch (error: any) {
       toast.error("Transmission Error: Session registry sync failed.");
     } finally {
