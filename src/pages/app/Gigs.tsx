@@ -2,6 +2,7 @@ import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getGigSubmissionPublicUrl } from "@/domains/gigs/repo/gigsRepo";
 import { insertMarketplaceDeliverable } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useGigsHubDashboard } from "@/domains/gigs";

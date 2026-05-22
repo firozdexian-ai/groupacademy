@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToBucketPublic } from "@/domains/profile/repo/profileRepo";
 import { toast } from "sonner";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 import { PRO_GOALS, type ProGoalKey } from "../lib/tokens";
