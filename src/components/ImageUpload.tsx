@@ -147,11 +147,7 @@ export function ImageUpload({ value, onUpload, onRemove, bucket = "course-covers
     });
 
     try {
-      const { error: storageEvictionRegistryError } = await supabase.storage
-        .from(bucket)
-        .remove([derivedTargetFilePathStr]);
-
-      if (storageEvictionRegistryError) throw storageEvictionRegistryError;
+      await removeFromBucket(bucket, [derivedTargetFilePathStr]);
 
       if (isMountedRef.current) {
         onRemove();
