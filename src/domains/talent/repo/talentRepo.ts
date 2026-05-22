@@ -880,6 +880,13 @@ export async function requestTalentConnection(recipientId: string): Promise<void
   if (error) throw error;
 }
 
+// ─── Phase 10j.5k2: talent connection price ───────────────────────────────
+export async function getTalentConnectionPrice(recipientId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("get_talent_connection_price", { _recipient: recipientId });
+  if (error) throw error;
+  return Number(data ?? 50);
+}
+
 export async function respondTalentConnection(args: { requestId: string; accept: boolean }): Promise<void> {
   const { error } = await supabase.rpc("talent_connection_respond", {
     _request: args.requestId,
