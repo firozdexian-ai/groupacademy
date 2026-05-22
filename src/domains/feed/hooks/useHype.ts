@@ -106,7 +106,7 @@ export function useHype(
 
     let error: any = null;
     try {
-      await feedApi.hypeContent({ _content_type: contentType, _content_id: contentId } as any);
+      await rpcHypeContent({ _content_type: contentType, _content_id: contentId });
     } catch (e) {
       error = e;
     }
