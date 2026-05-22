@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listAdminWithdrawalRequests } from "@/domains/finance/repo/financeRepo";
 import { processWithdrawal as processWithdrawalEdge } from "@/domains/finance/api/financeApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,12 @@ export function WithdrawalsTab() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from("withdrawal_requests" as any)
-      .select("*, talent:talents(full_name, email)")
-      .order("created_at", { ascending: false });
-    setRows((data as any) || []);
-    setLoading(false);
+    try {
+      const data = await listAdminWithdrawalRequests();
+      setRows((data as any) || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {

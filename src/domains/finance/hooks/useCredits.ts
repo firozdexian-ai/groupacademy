@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { deductCreditsRpc, addCreditsRpc } from "@/domains/finance/repo/financeRepo";
+import {
+  deductCreditsRpc,
+  addCreditsRpc,
+  getTalentCreditBalance,
+  listTalentCreditTransactions,
+} from "@/domains/finance/repo/financeRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
@@ -52,17 +56,12 @@ export function useCredits() {
     enabled: !!talent?.id,
     staleTime: 30000, // 30-second ledger consistency window
     queryFn: async (): Promise<CreditBalanceNode> => {
-      const { data, error } = await supabase
-        .from("talent_credits")
-        .select("balance, earned_balance")
-        .eq("talent_id", talent!.id)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        return await getTalentCreditBalance(talent!.id);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_credits wallet node read failure.", error);
         throw error;
       }
-      return data || { balance: 0, earned_balance: 0 };
     },
   });
 
@@ -72,14 +71,10 @@ export function useCredits() {
     enabled: !!talent?.id,
     staleTime: 60000,
     queryFn: async (): Promise<CreditTransaction[]> => {
-      const { data, error } = await supabase
-        .from("credit_transactions")
-        .select("*")
-        .eq("talent_id", talent!.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) {
+      let data: any[];
+      try {
+        data = await listTalentCreditTransactions(talent!.id, 20);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: credit_transactions stream read failure.", error);
         throw error;
       }

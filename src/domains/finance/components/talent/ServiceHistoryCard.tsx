@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentServiceHistorySnapshot } from "@/domains/finance/repo/financeRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -62,33 +62,12 @@ export function ServiceHistoryCard() {
       if (!talent?.id) return [];
 
       // HUD: ATOMIC_PARALLEL_LEDGER_INGRESS_FETCH
-      const [assessmentsRes, interviewsRes, salaryAnalysesRes] = await Promise.all([
-        supabase
-          .from("career_assessments")
-          .select("id, created_at, percentage, readiness_level")
-          .eq("talent_id", talent.id)
-          .order("created_at", { ascending: false })
-          .limit(3),
-        supabase
-          .from("mock_interviews")
-          .select("id, created_at, status, selection_percentage, job_title")
-          .eq("talent_id", talent.id)
-          .eq("status", "completed")
-          .order("created_at", { ascending: false })
-          .limit(3),
-        supabase
-          .from("salary_analyses")
-          .select("id, created_at, status, job_title")
-          .eq("talent_id", talent.id)
-          .eq("status", "completed")
-          .order("created_at", { ascending: false })
-          .limit(3),
-      ]);
+      const { assessments, interviews, salaryAnalyses } = await getTalentServiceHistorySnapshot(talent.id);
 
       const compiledBuffer: ServiceHistoryItem[] = [];
 
       // Safe hydration mapping routines seal data logs defensively
-      assessmentsRes.data?.forEach((a) => {
+      assessments.forEach((a: any) => {
         compiledBuffer.push({
           id: String(a.id),
           type: "career_assessment",
@@ -100,7 +79,7 @@ export function ServiceHistoryCard() {
         });
       });
 
-      interviewsRes.data?.forEach((i) => {
+      interviews.forEach((i: any) => {
         compiledBuffer.push({
           id: String(i.id),
           type: "mock_interview",
@@ -114,7 +93,7 @@ export function ServiceHistoryCard() {
         });
       });
 
-      salaryAnalysesRes.data?.forEach((s) => {
+      salaryAnalyses.forEach((s: any) => {
         compiledBuffer.push({
           id: String(s.id),
           type: "salary_analysis",
