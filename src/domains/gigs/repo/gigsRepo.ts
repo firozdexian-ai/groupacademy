@@ -506,3 +506,55 @@ export async function removeGigSubmissions(paths: string[]): Promise<void> {
   const { error } = await supabase.storage.from("gig-submissions").remove(paths);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5k10: availability + open marketplace gigs + shareable content ────
+export async function getTalentAvailability(talentId: string) {
+  const { data, error } = await supabase
+    .from("talent_availability")
+    .select("talent_id, weekly_capacity_hours, paused_until, notify_via_email")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function upsertTalentAvailability(payload: {
+  talent_id: string;
+  weekly_capacity_hours: number;
+  paused_until: string | null;
+  notify_via_email: boolean;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("talent_availability")
+    .upsert(payload as any, { onConflict: "talent_id" });
+  if (error) throw error;
+}
+
+export async function listMyOpenMarketplaceGigs(userId: string, limit = 20) {
+  const { data } = await supabase
+    .from("marketplace_gigs")
+    .select("id,title,status,total_bids,budget_amount,selected_bid_id")
+    .eq("posted_by", userId)
+    .in("status", ["pending", "approved", "active", "in_progress"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as any[];
+}
+
+export async function listShareableActiveContent() {
+  const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const types = ["recorded_course", "live_webinar", "batch_class"] as const;
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, slug, title, content_type, cover_image_url, credit_cost, price, event_date")
+    .eq("is_published", true)
+    .eq("is_ready", true)
+    .eq("is_private", false)
+    .in("content_type", types as any);
+  if (error) throw error;
+  return ((data as any[]) ?? []).filter((c: any) => {
+    if (c.content_type === "recorded_course") return true;
+    if (!c.event_date) return false;
+    return c.event_date >= cutoff;
+  });
+}

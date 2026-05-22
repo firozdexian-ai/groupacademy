@@ -445,3 +445,16 @@ export async function updatePlatformSettingByKey(key: string, value: string | nu
   if (error) throw error;
 }
 
+
+// ─── Phase 10j.5k10: admin credit invoices list ────────────────────────────
+export async function listAdminCreditInvoices(status?: string | null, limit = 500) {
+  let q = supabase
+    .from("credit_invoices")
+    .select("*, talents:talent_id (full_name, email, phone)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (status && status !== "all") q = q.eq("status", status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

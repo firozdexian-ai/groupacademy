@@ -223,3 +223,53 @@ export async function insertPollVote(input: {
     .insert({ post_id: input.postId, talent_id: input.talentId, option_id: input.optionId });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5k10: top hyped + post comments ─────────────────────────
+export async function listTopHypedPostsWeek(limit = 5) {
+  const { data: topRows, error: topError } = await supabase
+    .from("v_top_hyped_posts_week" as any)
+    .select("post_id, hypes_week")
+    .limit(limit);
+  if (topError) throw topError;
+  const postIds = ((topRows as any[]) ?? []).map((t) => t.post_id).filter(Boolean);
+  if (!postIds.length) return [];
+  const { data: contentRows, error: contentError } = await supabase
+    .from("feed_posts")
+    .select("id, text_content, talents(full_name)")
+    .in("id", postIds);
+  if (contentError) throw contentError;
+  const buf = new Map(((contentRows as any[]) ?? []).map((r: any) => [r.id, r]));
+  return ((topRows as any[]) ?? []).map((r: any) => {
+    const p = buf.get(r.post_id);
+    return {
+      post_id: r.post_id,
+      hypes_week: Number(r.hypes_week || 0),
+      preview: p?.text_content?.slice(0, 80) ?? null,
+      author_name: p?.talents?.full_name ?? "Academy Member",
+    };
+  });
+}
+
+export async function listPostComments(postId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("post_comments")
+    .select(
+      "id, body, created_at, tip_count, tip_credits, author_talent_id, talents:author_talent_id(full_name, profile_photo_url)",
+    )
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function insertPostComment(input: {
+  postId: string;
+  authorTalentId: string;
+  body: string;
+}): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("post_comments")
+    .insert({ post_id: input.postId, author_talent_id: input.authorTalentId, body: input.body } as any);
+  return { error };
+}
