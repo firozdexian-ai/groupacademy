@@ -109,12 +109,12 @@ export function ProfileCompletenessGate({ talent }: Props) {
 
           <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
             <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground/90 leading-tight">
-              Unlock Predictive AI Matching
+              Complete your profile for better matches
             </h3>
             <p className="text-[11px] font-medium text-muted-foreground/80 mt-1 leading-normal select-text selection:bg-primary/15 tracking-tight">
-              Your profile data is{" "}
-              <span className="font-bold text-primary tabular-nums">{completionPercentage}% complete</span>. Fully
-              customized profiles radically accelerate candidate recommendation scores.
+              Your profile is{" "}
+              <span className="font-bold text-primary tabular-nums">{completionPercentage}% complete</span>. Filling
+              the rest helps us recommend stronger job matches.
             </p>
           </div>
         </div>

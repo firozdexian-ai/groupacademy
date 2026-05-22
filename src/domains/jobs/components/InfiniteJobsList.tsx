@@ -105,8 +105,8 @@ export function InfiniteJobsList({ talentId }: Props) {
         <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center mb-3 shadow-inner border border-primary/5">
           <Sparkles className="h-5 w-5 text-primary/60 animate-pulse" />
         </div>
-        <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 italic tracking-tight max-w-xs mx-auto">
-          Complete your professional profile configuration tracks to unlock matched employment fields.
+        <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 tracking-tight max-w-xs mx-auto">
+          No matching jobs yet. Complete your profile to unlock personalized matches.
         </p>
       </div>
     );
@@ -151,18 +151,18 @@ export function InfiniteJobsList({ talentId }: Props) {
         );
       })}
 
-      {/* Keyset Pagination Observer Sentinel Target Node */}
+      {/* Sentinel for infinite scroll */}
       <div ref={sentinelRef} className="h-10 flex items-center justify-center select-none w-full pt-1">
         {isFetchingNextPage ? (
           <div className="flex items-center justify-center text-[11px] font-bold text-muted-foreground/70 tracking-wide animate-pulse">
             <Loader2 className="h-3.5 w-3.5 animate-spin mr-2 text-primary stroke-[2.5]" />
-            <span>Compiling subsequent timeline updates…</span>
+            <span>Loading more jobs…</span>
           </div>
         ) : (
           !hasNextPage &&
           items.length > 6 && (
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/40 italic select-none animate-in fade-in duration-300">
-              &mdash; Platform Career Stream Fully Synchronized &mdash;
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/40 select-none animate-in fade-in duration-300">
+              — You're all caught up —
             </p>
           )
         )}
