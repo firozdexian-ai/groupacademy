@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { rejectGigSubmission, awardGigCredits } from "@/domains/jobs/repo/jobsRepo";
+import {
+  rejectGigSubmission,
+  awardGigCredits,
+  listPendingJobSubmissions,
+} from "@/domains/jobs/repo/jobsRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,16 +24,7 @@ export function PendingJobSubmissions() {
   // FETCH PROTOCOL: Filter for pending job-category gigs
   const { data, isLoading } = useQuery({
     queryKey: ["pending-job-submissions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gig_submissions")
-        .select("*, gigs!inner(title, category, credit_reward), talents(full_name, email)")
-        .eq("status", "pending")
-        .eq("gigs.category", "job_posting")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => listPendingJobSubmissions(),
   });
 
   const handleReview = (sub: any) => {

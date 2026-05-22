@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listSalaryAnalysisLeads } from "@/domains/marketing/repo/marketingRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
@@ -81,35 +81,14 @@ export const SalaryAnalysisLeadsManager = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Wrap query in native async for standard Promise behavior
-      const fetchLeads = async () => {
-        return await supabase
-          .from("salary_analyses")
-          .select(
-            `
-            id,
-            full_name,
-            email,
-            phone,
-            job_title,
-            company_name,
-            status,
-            ai_analysis,
-            created_at,
-            profession_category:profession_categories(name)
-          `,
-          )
-          .order("created_at", { ascending: false });
-      };
+      // Execute via platform timeout protocol
+      const leadsData = (await withTimeout(
+        listSalaryAnalysisLeads(),
+        TIMEOUTS.DEFAULT,
+        "Loading salary analysis leads timed out",
+      )) as any[];
 
-      // 2. Execute via platform timeout protocol
-      const result = (await withTimeout(fetchLeads(), TIMEOUTS.DEFAULT, "Loading salary analysis leads timed out")) as {
-        data: any[] | null;
-        error: any;
-      };
-
-      if (result.error) throw result.error;
-      setLeads(result.data || []);
+      setLeads(leadsData || []);
     } catch (err: any) {
       console.error("Telemetry Fault:", err);
       setError(err.message || "Failed to load leads");

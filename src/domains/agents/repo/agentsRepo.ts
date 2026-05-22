@@ -524,3 +524,81 @@ export async function listAgentKnowledgeSources(agentId: string) {
   return (data ?? []) as any[];
 }
 
+
+// ─── Phase 10j.5k9: admin agents dashboards ───────────────────────────────
+export async function listAdminAgentBasics() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select(
+      "agent_key, name, description, icon, color, display_order, personality_traits, sample_conversations",
+    )
+    .eq("agent_type", "admin")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+const MARKETPLACE_FIELDS =
+  "id, name, agent_key, description, system_prompt, category, audience, agent_level, connection_fee, message_credit_cost, allowed_tools, owner_kind, owner_id, marketplace_status, created_at";
+
+export async function listAgentsByMarketplaceStatus(
+  status: string | string[],
+  opts: { limit?: number; orderBy?: string; ascending?: boolean } = {},
+) {
+  let q = supabase.from("ai_agents").select(MARKETPLACE_FIELDS);
+  q = Array.isArray(status) ? q.in("marketplace_status", status) : q.eq("marketplace_status", status);
+  q = q.order(opts.orderBy ?? "created_at", { ascending: opts.ascending ?? true });
+  if (opts.limit) q = q.limit(opts.limit);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAllAgentsOrdered() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("*")
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAgentChatSessionKeys(limit = 10000) {
+  const { data, error } = await supabase
+    .from("agent_chat_sessions")
+    .select("agent_key, is_active")
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<{ agent_key: string; is_active: boolean | null }>;
+}
+
+export async function listRecentAgentOutreachAdmin(limit = 200) {
+  const { data, error } = await supabase
+    .from("agent_outreach_admin_v" as any)
+    .select(
+      "id, agent_key, agent_name, event_kind, channel, status, recipient_kind, recipient_id, body, credits_charged, error_message, external_message_id, created_at",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function countAgentOutreachDedupeSince(sinceIso: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("agent_outreach_dedupe" as any)
+    .select("*", { count: "exact", head: true })
+    .gte("sent_at", sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function countPlatformEventsSince(sinceIso: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("platform_events")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}

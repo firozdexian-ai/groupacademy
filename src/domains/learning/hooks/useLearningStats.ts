@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listActiveTalentEnrollmentsWithModules,
+  countCompletedEnrollments,
+  listRecentLearningActivity,
+} from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 
 /**
@@ -117,38 +121,10 @@ export function useLearningStats(): LearningStats {
     staleTime: 45000, // 45s analytics hydration window
     queryFn: async (): Promise<ActiveEnrollment[]> => {
       // HUD: CORE_SINGLE_ROUNDTRIP_RELATIONAL_SELECT
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select(
-          `
-          id,
-          status,
-          progress,
-          current_module_id,
-          last_accessed_at,
-          content:content_id (
-            id,
-            title,
-            slug,
-            thumbnail_url,
-            content_type,
-            modules_count,
-            estimated_hours,
-            modules:course_modules (
-              id,
-              title,
-              display_order,
-              estimated_time_minutes
-            )
-          )
-        `,
-        )
-        .eq("talent_id", talent!.id)
-        .in("status", ["active", "pending_payment"])
-        .order("last_accessed_at", { ascending: false, nullsFirst: false })
-        .limit(10);
-
-      if (error) {
+      let data: any[];
+      try {
+        data = await listActiveTalentEnrollmentsWithModules(talent!.id, 10);
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: Failed to compile unified enrollment analytics schema.", error);
         throw error;
       }
@@ -193,17 +169,12 @@ export function useLearningStats(): LearningStats {
     enabled: !!talent?.id,
     staleTime: 60000,
     queryFn: async (): Promise<number> => {
-      const { count, error } = await supabase
-        .from("enrollments")
-        .select("*", { count: "exact", head: true })
-        .eq("talent_id", talent!.id)
-        .eq("status", "completed");
-
-      if (error) {
+      try {
+        return await countCompletedEnrollments(talent!.id);
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: Completed courses aggregation check failed.", error);
         throw error;
       }
-      return count || 0;
     },
   });
 
@@ -215,18 +186,13 @@ export function useLearningStats(): LearningStats {
     enabled: !!talent?.id,
     staleTime: 30000,
     queryFn: async (): Promise<LearningActivity[]> => {
-      const { data, error } = await supabase
-        .from("learning_activity")
-        .select("activity_date, minutes_learned, modules_completed, stages_completed")
-        .eq("talent_id", talent!.id)
-        .order("activity_date", { ascending: false })
-        .limit(30);
-
-      if (error) {
+      try {
+        const data = await listRecentLearningActivity(talent!.id, 30);
+        return data as LearningActivity[];
+      } catch (error) {
         console.error("[Digital Workforce] ANOMALY: Learning activity ledger fetch dropped.", error);
         throw error;
       }
-      return data as LearningActivity[];
     },
   });
 

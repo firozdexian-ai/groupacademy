@@ -27,3 +27,41 @@ Migrated 8 files in Finance, Gigs, and Talent domains from direct `supabase.from
 - All 8 files now have zero `supabase` client imports.
 
 Say **continue 10j.5k9** to run the next batch (~10 files, recommend admin-side gigs/learning/jobs UI clusters).
+
+## Phase 10j.5k9 — Repository Boundary Hardening (Batch 9) ✅
+
+Migrated 10 files in Agents, Jobs, Marketing, Gigs, Learning, and Feed domains from direct `supabase.from()` chains to repo helpers.
+
+### Added repo helpers
+- `agentsRepo.listAdminAgentBasics()`
+- `agentsRepo.listAgentsByMarketplaceStatus(status, opts)`
+- `agentsRepo.listAllAgentsOrdered()`
+- `agentsRepo.listAgentChatSessionKeys(limit)`
+- `agentsRepo.listRecentAgentOutreachAdmin(limit)`
+- `agentsRepo.countAgentOutreachDedupeSince(sinceIso)`
+- `agentsRepo.countPlatformEventsSince(sinceIso)`
+- `jobsRepo.listPendingJobSubmissions()`
+- `jobsRepo.listRelatedJobsByCompany/ByLocation/Featured`
+- `marketingRepo.listSalaryAnalysisLeads()`
+- `learningRepo.listActiveTalentEnrollmentsWithModules`
+- `learningRepo.countCompletedEnrollments`
+- `learningRepo.listRecentLearningActivity`
+- `feedRepo.insertPollVote`
+
+### Refactored files
+- `domains/agents/hooks/admin/useAdminAgents.ts`
+- `domains/agents/components/dashboard/AgentMarketplaceTab.tsx`
+- `domains/agents/components/dashboard/AgentsRegistryTab.tsx`
+- `domains/agents/components/dashboard/AgentOutreachTab.tsx`
+- `domains/jobs/components/admin/hub/PendingJobSubmissions.tsx`
+- `domains/marketing/components/admin/leads/SalaryAnalysisLeadsManager.tsx`
+- `domains/gigs/components/talent/CVUploadGigForm.tsx` — reuses `insertGigSubmission`
+- `domains/jobs/components/RelatedJobs.tsx`
+- `domains/learning/hooks/useLearningStats.ts`
+- `domains/feed/hooks/usePollVoting.ts`
+
+### Boundary metric
+- Files with direct `.from()` outside repos/api: **93 → 83** (–10)
+- All 10 refactored files now have zero `supabase` client imports.
+
+Say **continue 10j.5k10** to run the next batch.

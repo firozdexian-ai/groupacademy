@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { insertPollVote } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedEngagement, patchEngagementCache } from "@/hooks/useFeedEngagement";
@@ -64,11 +64,7 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
       if (!talent?.id) throw new Error("AUTH_REQUIRED");
 
       // HUD: EXECUTING_POLL_VOTE_INSERTION
-      const { error } = await supabase
-        .from("poll_votes")
-        .insert({ post_id: postId, talent_id: talent.id, option_id: optionId });
-
-      if (error) throw error;
+      await insertPollVote({ postId, talentId: talent.id, optionId });
     },
     onMutate: async (optionId) => {
       if (!talent?.id) return;

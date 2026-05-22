@@ -211,3 +211,15 @@ export async function listActiveQuickActionAgents() {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5k9: poll votes ────────────────────────────────────────────
+export async function insertPollVote(input: {
+  postId: string;
+  talentId: string;
+  optionId: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("poll_votes")
+    .insert({ post_id: input.postId, talent_id: input.talentId, option_id: input.optionId });
+  if (error) throw error;
+}

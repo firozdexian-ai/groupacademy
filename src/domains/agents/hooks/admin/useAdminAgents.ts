@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Bot, type LucideIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listAdminAgentBasics } from "@/domains/agents/repo/agentsRepo";
 import { ADMIN_AGENTS_BY_KEY, type AdminAgent } from "@/lib/adminAgents";
 import {
   Sparkles,
@@ -96,15 +96,7 @@ export function useAdminAgents() {
   return useQuery({
     queryKey: ["admin-agents"],
     queryFn: async (): Promise<AdminAgent[]> => {
-      const { data, error } = await supabase
-        .from("ai_agents")
-        .select(
-          "agent_key, name, description, icon, color, display_order, personality_traits, sample_conversations",
-        )
-        .eq("agent_type", "admin")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
-      if (error) throw error;
+      const data = await listAdminAgentBasics();
       return (data as AiAgentRow[]).map(rowToAgent);
     },
     staleTime: 5 * 60 * 1000,

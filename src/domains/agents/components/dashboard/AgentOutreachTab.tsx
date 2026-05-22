@@ -5,7 +5,11 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listRecentAgentOutreachAdmin,
+  countAgentOutreachDedupeSince,
+  countPlatformEventsSince,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,15 +63,8 @@ export function AgentOutreachManager() {
   } = useQuery({
     queryKey: ["agent-outreach-admin", "recent"],
     queryFn: async (): Promise<OutreachRow[]> => {
-      const { data, error } = await supabase
-        .from("agent_outreach_admin_v")
-        .select(
-          "id, agent_key, agent_name, event_kind, channel, status, recipient_kind, recipient_id, body, credits_charged, error_message, external_message_id, created_at",
-        )
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as OutreachRow[];
+      const rows = await listRecentAgentOutreachAdmin(200);
+      return rows as OutreachRow[];
     },
     refetchInterval: 15000,
     staleTime: 10000,
@@ -77,12 +74,7 @@ export function AgentOutreachManager() {
     queryKey: ["agent-outreach-dedupe", "24h"],
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count, error } = await supabase
-        .from("agent_outreach_dedupe")
-        .select("*", { count: "exact", head: true })
-        .gte("sent_at", since);
-      if (error) throw error;
-      return count ?? 0;
+      return await countAgentOutreachDedupeSince(since);
     },
     refetchInterval: 30000,
   });
@@ -91,12 +83,8 @@ export function AgentOutreachManager() {
     queryKey: ["platform-events", "5m"],
     queryFn: async () => {
       const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count, error } = await supabase
-        .from("platform_events")
-        .select("*", { count: "exact", head: true })
-        .gte("created_at", since);
-      if (error) throw error;
-      return Math.round(((count ?? 0) / 5) * 10) / 10;
+      const count = await countPlatformEventsSince(since);
+      return Math.round((count / 5) * 10) / 10;
     },
     refetchInterval: 15000,
   });

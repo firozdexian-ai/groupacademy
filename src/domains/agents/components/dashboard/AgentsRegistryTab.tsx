@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toggleAiAgentActive } from "@/domains/agents/repo/agentsRepo";
+import {
+  toggleAiAgentActive,
+  updateAiAgent,
+  listAllAgentsOrdered,
+  listAgentChatSessionKeys,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,24 +70,14 @@ export function AIAgentsManager() {
   const loadAgents = async () => {
     setIsLoading(true);
     try {
-      const { data: agentsData, error: agentsError } = await supabase
-        .from("ai_agents")
-        .select("*")
-        .order("display_order", { ascending: true });
+      const agentsData = await listAllAgentsOrdered();
+      setAgents(agentsData as AIAgent[]);
 
-      if (agentsError) throw agentsError;
-      setAgents(agentsData || []);
-
-      // CTO FIX: Added .limit(10000) to prevent the silent 1,000 row truncation bug
-      const { data: sessionsData, error: sessionsError } = await supabase
-        .from("agent_chat_sessions")
-        .select("agent_key, is_active")
-        .limit(10000);
-
-      if (sessionsError) throw sessionsError;
+      // CTO FIX: limit(10000) to prevent silent 1,000-row truncation bug
+      const sessionsData = await listAgentChatSessionKeys(10000);
 
       const statsMap: Record<string, AgentStats> = {};
-      (sessionsData || []).forEach((session) => {
+      sessionsData.forEach((session) => {
         if (!statsMap[session.agent_key]) {
           statsMap[session.agent_key] = {
             agent_key: session.agent_key,
@@ -122,12 +116,10 @@ export function AIAgentsManager() {
     if (!editingAgent) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("ai_agents")
-        .update({ system_prompt: editedPrompt, description: editedDescription })
-        .eq("id", editingAgent.id);
-
-      if (error) throw error;
+      await updateAiAgent(editingAgent.id, {
+        system_prompt: editedPrompt,
+        description: editedDescription,
+      });
       setAgents((prev) =>
         prev.map((a) =>
           a.id === editingAgent.id ? { ...a, system_prompt: editedPrompt, description: editedDescription } : a,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
+import { insertGigSubmission } from "@/domains/gigs/repo/gigsRepo";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
 import { generateOutreachMessage } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
@@ -148,28 +148,22 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
     const toastId = toast.loading("Registering submission records into ledger...");
 
     try {
-      const { data: inserted, error: insertError } = await supabase
-        .from("gig_submissions")
-        .insert({
-          gig_id: gig.id,
-          talent_id: talentId,
-          status: "pending",
-          submission_data: {
-            cv_document: cvUrl,
-            lead_profile: {
-              name: parsedData?.full_name || parsedData?.name,
-              phone: parsedData?.phone || parsedData?.contact?.phone,
-              email: parsedData?.email || parsedData?.contact?.email,
-              profession: parsedData?.profession_category,
-            },
-            generated_outreach: outreachMessage,
-            meta: { engine: "gemini-2.0-flash-exp", timestamp: new Date().toISOString() },
+      const inserted = await insertGigSubmission({
+        gig_id: gig.id,
+        talent_id: talentId,
+        status: "pending",
+        submission_data: {
+          cv_document: cvUrl,
+          lead_profile: {
+            name: parsedData?.full_name || parsedData?.name,
+            phone: parsedData?.phone || parsedData?.contact?.phone,
+            email: parsedData?.email || parsedData?.contact?.email,
+            profession: parsedData?.profession_category,
           },
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+          generated_outreach: outreachMessage,
+          meta: { engine: "gemini-2.0-flash-exp", timestamp: new Date().toISOString() },
+        },
+      });
 
       // Dynamically load automated verification scripts inside sandboxed container
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");

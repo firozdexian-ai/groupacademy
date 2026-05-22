@@ -590,3 +590,16 @@ export async function listPublicProfessionTracks(limit = 8) {
   if (error) throw error;
   return data || [];
 }
+
+// ─── Phase 10j.5k9: salary analysis leads ────────────────────────────────
+export async function listSalaryAnalysisLeads() {
+  const { data, error } = await supabase
+    .from("salary_analyses")
+    .select(
+      `id, full_name, email, phone, job_title, company_name, status, ai_analysis, created_at,
+       profession_category:profession_categories(name)`,
+    )
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

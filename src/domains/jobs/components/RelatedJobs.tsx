@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listRelatedJobsByCompany,
+  listRelatedJobsByLocation,
+  listRelatedJobsFeatured,
+} from "@/domains/jobs/repo/jobsRepo";
 import { JobCard, type JobCardData } from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -47,21 +51,10 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
       const trajectoryBuffer: JobCardData[] = [];
       const filterRegistry = new Set<string>([currentJobId]);
 
-      const baseFields =
-        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency";
-
       // PHASE 1: Institutional Core Sync (Same Company)
-      const { data: institutionalNodes, error: instError } = await supabase
-        .from("jobs")
-        .select(baseFields)
-        .ilike("company_name", companyName.trim())
-        .neq("id", currentJobId)
-        .eq("is_active", true)
-        .limit(3);
+      const institutionalNodes = await listRelatedJobsByCompany(companyName, currentJobId, 3);
 
-      if (instError) throw instError;
-
-      if (institutionalNodes?.length) {
+      if (institutionalNodes.length) {
         institutionalNodes.forEach((node) => {
           trajectoryBuffer.push(node as unknown as JobCardData);
           filterRegistry.add(node.id);
@@ -75,23 +68,14 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
         const quota = 6 - trajectoryBuffer.length;
         const exclusionArray = Array.from(filterRegistry);
 
-        // Optimization: Use array operations instead of iterative .neq loops
-        const { data: geographicNodes, error: geoError } = await supabase
-          .from("jobs")
-          .select(baseFields)
-          .ilike("location", `%${targetCountry.trim()}%`)
-          .eq("is_active", true)
-          .not("id", "in", `(${exclusionArray.join(",")})`)
-          .limit(quota);
+        const geographicNodes = await listRelatedJobsByLocation(targetCountry, exclusionArray, quota);
 
-        if (geoError) throw geoError;
-
-        if (geographicNodes?.length) {
+        if (geographicNodes.length) {
           geographicNodes.forEach((node) => {
             trajectoryBuffer.push(node as unknown as JobCardData);
             filterRegistry.add(node.id);
           });
-          if (!institutionalNodes?.length) {
+          if (!institutionalNodes.length) {
             setSectionTitle(`Regional_Sync: ${targetCountry.trim().toUpperCase()}`);
           }
         }
@@ -102,20 +86,11 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
         const fallbackQuota = 6 - trajectoryBuffer.length;
         const exclusionArray = Array.from(filterRegistry);
 
-        const { data: featuredNodes, error: fallbackError } = await supabase
-          .from("jobs")
-          .select(baseFields)
-          .eq("is_featured", true)
-          .eq("is_active", true)
-          .not("id", "in", `(${exclusionArray.join(",")})`)
-          .order("created_at", { ascending: false })
-          .limit(fallbackQuota);
+        const featuredNodes = await listRelatedJobsFeatured(exclusionArray, fallbackQuota);
 
-        if (fallbackError) throw fallbackError;
-
-        if (featuredNodes?.length) {
+        if (featuredNodes.length) {
           featuredNodes.forEach((node) => trajectoryBuffer.push(node as unknown as JobCardData));
-          if (!institutionalNodes?.length && !targetCountry) {
+          if (!institutionalNodes.length && !targetCountry) {
             setSectionTitle("Strategic_Deployments");
           }
         }

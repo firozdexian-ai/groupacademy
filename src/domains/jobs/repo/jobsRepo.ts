@@ -993,3 +993,55 @@ export async function insertJobInvitation(args: {
   if (error) throw error;
   return data as { id: string };
 }
+
+// ─── Phase 10j.5k9: pending submissions + related jobs ────────────────────
+export async function listPendingJobSubmissions() {
+  const { data, error } = await supabase
+    .from("gig_submissions")
+    .select("*, gigs!inner(title, category, credit_reward), talents(full_name, email)")
+    .eq("status", "pending")
+    .eq("gigs.category", "job_posting")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+const RELATED_JOB_FIELDS =
+  "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency";
+
+export async function listRelatedJobsByCompany(companyName: string, excludeId: string, limit = 3) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(RELATED_JOB_FIELDS)
+    .ilike("company_name", companyName.trim())
+    .neq("id", excludeId)
+    .eq("is_active", true)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listRelatedJobsByLocation(country: string, excludeIds: string[], limit = 6) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(RELATED_JOB_FIELDS)
+    .ilike("location", `%${country.trim()}%`)
+    .eq("is_active", true)
+    .not("id", "in", `(${excludeIds.join(",")})`)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listRelatedJobsFeatured(excludeIds: string[], limit = 6) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(RELATED_JOB_FIELDS)
+    .eq("is_featured", true)
+    .eq("is_active", true)
+    .not("id", "in", `(${excludeIds.join(",")})`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

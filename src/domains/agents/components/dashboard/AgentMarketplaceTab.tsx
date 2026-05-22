@@ -3,8 +3,11 @@
 // (marketplace_status='pending'). Admins review and approve/reject here.
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { updateAiAgent, insertNotification } from "@/domains/agents/repo/agentsRepo";
+import {
+  updateAiAgent,
+  insertNotification,
+  listAgentsByMarketplaceStatus,
+} from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,24 +46,15 @@ export function AgentMarketplaceReview() {
   async function load() {
     setLoading(true);
     const [p, r] = await Promise.all([
-      supabase
-        .from("ai_agents")
-        .select(
-          "id, name, agent_key, description, system_prompt, category, audience, agent_level, connection_fee, message_credit_cost, allowed_tools, owner_kind, owner_id, marketplace_status, created_at",
-        )
-        .eq("marketplace_status", "pending")
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("ai_agents")
-        .select(
-          "id, name, agent_key, description, system_prompt, category, audience, agent_level, connection_fee, message_credit_cost, allowed_tools, owner_kind, owner_id, marketplace_status, created_at",
-        )
-        .in("marketplace_status", ["approved", "rejected"])
-        .order("updated_at", { ascending: false })
-        .limit(10),
+      listAgentsByMarketplaceStatus("pending", { orderBy: "created_at", ascending: true }),
+      listAgentsByMarketplaceStatus(["approved", "rejected"], {
+        orderBy: "updated_at",
+        ascending: false,
+        limit: 10,
+      }),
     ]);
-    setPending((p.data || []) as PendingAgent[]);
-    setRecent((r.data || []) as PendingAgent[]);
+    setPending(p as PendingAgent[]);
+    setRecent(r as PendingAgent[]);
     setLoading(false);
   }
 
