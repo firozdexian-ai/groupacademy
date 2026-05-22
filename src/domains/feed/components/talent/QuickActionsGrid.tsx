@@ -25,9 +25,8 @@ interface QuickAgent {
 const VISIBLE_LIMIT = 4;
 
 /**
- * Premium, performance-hardened Agentic Action Grid Dashboard.
- * Built according to GroUp Academy Phase Z0 highly professional SAAS UI specifications,
- * featuring real-time caching parameters and centralized telemetry tracing boundaries.
+ * Quick Actions Grid — personalized shortcuts to the user's most-used AI agents.
+ * Shows the top active agents plus a "More" tile that opens the full agent sheet.
  */
 export function QuickActionsGrid() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export function QuickActionsGrid() {
   const { talent } = useTalent();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Trace rendering impressions securely under Automated Efficiency rules
+  // Track render impressions for personalization analytics
   useEffect(() => {
     if (talent?.id) {
       trackEvent("QuickActionsGrid:mounted", { talentId: talent.id });
