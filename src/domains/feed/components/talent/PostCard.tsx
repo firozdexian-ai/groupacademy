@@ -179,7 +179,7 @@ export function PostCard({ post }: PostCardProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
-                  aria-label="More operational options"
+                  aria-label="More options"
                 >
                   <MoreHorizontal className="h-4 w-4 stroke-[2.2]" />
                 </button>
