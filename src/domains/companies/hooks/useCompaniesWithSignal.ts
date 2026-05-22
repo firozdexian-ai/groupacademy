@@ -18,13 +18,13 @@ export function useCompaniesWithSignal(country?: string | null, limit = 100) {
         const data = await getCompaniesWithSignal<CompanyWithSignal[]>({ country: country ?? null, limit });
         return (data as CompanyWithSignal[]) || [];
       } catch (error: any) {
-        console.error("[Digital Workforce] FAULT: get_companies_with_signal failed sync.", {
-          countryFilter: country ?? "GLOBAL_NODE",
-          limitValue: limit,
+        console.error("[companies] get_companies_with_signal failed", {
+          country: country ?? null,
+          limit,
           error: error?.message,
           code: error?.code,
         });
-        throw new Error(`REGISTRY_SYNC_FAULT: Failed to resolve employer market telemetry. Code: ${error?.code}`);
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000,

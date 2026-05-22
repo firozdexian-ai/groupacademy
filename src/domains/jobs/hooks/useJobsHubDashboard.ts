@@ -6,10 +6,8 @@ import type { CountryWithSignal } from "@/hooks/useCountriesWithSignal";
 import type { RemoteFriendlySummary } from "@/hooks/useRemoteFriendly";
 
 /**
- * GroUp Academy: Jobs Marketplace Aggregator (V5.6.0)
- * CTO Reference: Authoritative single-trip dashboard sensor for /app/jobs discovery.
- * Architecture: Digital Workforce enabled - logs marketplace sync faults to Admin OS.
- * Phase: Z0 Code Freeze Hardened (May 2026).
+ * Single-RPC dashboard fetch for /app/jobs discovery.
+ * Returns trending jobs, in-field jobs, top companies, top countries, remote summary, and type counts.
  */
 
 export interface JobsHubDashboard {
@@ -28,21 +26,18 @@ const EMPTY_REMOTE: RemoteFriendlySummary = {
 };
 
 /**
- * Fetches a consolidated marketplace snapshot.
- * Replaces legacy waterfall hooks to maximize conversion velocity.
+ * Fetches a consolidated jobs hub snapshot in a single round-trip.
  */
 export function useJobsHubDashboard(talentId: string | undefined) {
   return useQuery({
     queryKey: ["jobs-hub-dashboard", talentId ?? null],
-    // Performance Baseline: 3-minute stability caching for hub discovery
     staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<JobsHubDashboard> => {
-      // HUD: EXECUTING_JOBS_HUB_AGGREGATION_SYNC
       let data: any;
       try {
         data = await getJobsHubDashboard(talentId ?? null);
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: get_jobs_hub_dashboard RPC handshake failed.", {
+        console.error("[jobs-hub] get_jobs_hub_dashboard failed", {
           talentId,
           error: error?.message,
           code: error?.code,
@@ -50,8 +45,6 @@ export function useJobsHubDashboard(talentId: string | undefined) {
         throw error;
       }
 
-      // Hardened Data Normalization:
-      // Protects downstream UI components from 'undefined' property access.
       const d = (data as Partial<JobsHubDashboard>) || {};
 
       return {

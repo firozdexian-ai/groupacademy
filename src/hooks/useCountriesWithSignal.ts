@@ -2,10 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCountriesWithSignal } from "@/domains/jobs/repo/jobsRepo";
 
 /**
- * GroUp Academy: Geographic Market Intelligence Hook
- * CTO Reference: Authoritative sensor for international job market signaling.
- * Architecture: Digital Workforce enabled - anomaly monitoring on aggregation drops.
- * Phase: Z0 Code Freeze Hardened.
+ * Geographic job market signal — country-level counts, top cities, and top employers.
  */
 
 export interface CountryWithSignal {
@@ -19,19 +16,18 @@ export interface CountryWithSignal {
 export function useCountriesWithSignal(limit = 50) {
   return useQuery({
     queryKey: ["countries-signal-global", limit],
-    // Performance Baseline: Enforce 5-minute stability caching to safeguard compute budgets
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<CountryWithSignal[]> => {
       try {
         const data = await getCountriesWithSignal(limit);
         return (data ?? []) as CountryWithSignal[];
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: get_countries_with_signal query failed sync.", {
-          limitSetting: limit,
+        console.error("[countries] get_countries_with_signal failed", {
+          limit,
           error: error?.message,
           code: error?.code,
         });
-        throw new Error(`REGISTRY_SYNC_FAULT: Failed to pull geographic signal metrics. Code: ${error?.code}`);
+        throw error;
       }
     },
   });
