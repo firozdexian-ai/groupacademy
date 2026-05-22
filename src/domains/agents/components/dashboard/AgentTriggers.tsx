@@ -3,7 +3,6 @@
 // that funds those headless conversations.
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   getTriggersBundle,
   listRecentAgentOutreach,

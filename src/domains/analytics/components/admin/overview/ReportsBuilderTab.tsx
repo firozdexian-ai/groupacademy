@@ -8,7 +8,6 @@ import { Sparkles, Loader2, FileBarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { adminReportBuilder } from "@/domains/analytics/api/analyticsApi";
 import { toast } from "@/hooks/use-toast";
 import {

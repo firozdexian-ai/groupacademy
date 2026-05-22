@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { supabase } from "@/integrations/supabase/client";
 import { listTalentSkillMastery } from "@/domains/learning/repo/learningRepo";
 import { Brain, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";

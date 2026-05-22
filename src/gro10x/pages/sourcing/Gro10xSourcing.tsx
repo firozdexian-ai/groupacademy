@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Bookmark, UserPlus, MapPin, Award, Loader2, Lock, Mail, Phone, Linkedin, Wallet, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useTalentSearch, type TalentSearchRow } from "@/domains/profile/hooks/useTalentSearch";
 import { useActiveCompany } from "@/gro10x/hooks/useActiveCompany";
 import { useUpsertRelationship } from "@/domains/profile/hooks/useTalentRelationships";

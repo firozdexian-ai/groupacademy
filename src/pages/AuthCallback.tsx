@@ -4,7 +4,6 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
-import { supabase } from "@/integrations/supabase/client";
 import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 import { sendTransactionalEmail } from "@/domains/messaging/api/messagingApi";
 
