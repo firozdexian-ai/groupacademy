@@ -88,21 +88,9 @@ export function useThread(threadId?: string) {
 
   useEffect(() => {
     if (!threadId) return;
-
-    const ch = supabase
-      .channel(`public:thread:${threadId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "discussion_posts", filter: `thread_id=eq.${threadId}` },
-        () => {
-          void qc.invalidateQueries({ queryKey: ["thread", threadId] });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(ch);
-    };
+    return subscribeDiscussionPostsForThread(threadId, () => {
+      void qc.invalidateQueries({ queryKey: ["thread", threadId] });
+    });
   }, [threadId, qc]);
 
   return useQuery({
