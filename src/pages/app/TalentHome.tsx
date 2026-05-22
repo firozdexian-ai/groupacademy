@@ -126,6 +126,9 @@ export default function TalentHome() {
           </div>
         )}
 
+        {/* Quick actions — personalized AI agent shortcuts */}
+        <QuickActionsGrid />
+
         {/* Pitches */}
         <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4`}>
           <div className="flex items-center justify-between mb-3">
