@@ -1803,3 +1803,29 @@ export function subscribeLessonAnswers(
     void supabase.removeChannel(ch);
   };
 }
+
+// ─── Phase 10j.5k5: enrollment lookup + skill-credentials ────────────────
+export async function findTalentEnrollment(
+  contentId: string,
+  talentId: string,
+): Promise<{ id: string; status: string; enrolled_at: string; progress: number } | null> {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id, status, enrolled_at, progress")
+    .eq("content_id", contentId)
+    .or(`talent_id.eq.${talentId},student_id.eq.${talentId}`)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function listTalentSkillCredentials(talentId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("skill_credentials")
+    .select("*, content:content_id(title, slug)")
+    .eq("talent_id", talentId)
+    .is("revoked_at", null)
+    .order("issued_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listTalentApplicationHistory } from "@/domains/jobs/repo/jobsRepo";
 import { useTalent } from "@/hooks/useTalent";
 
 /**
@@ -30,35 +30,18 @@ export function useApplicationHistory() {
       if (!talent?.id) return [];
 
       // HUD: NEURAL_RELATIONAL_SYNC
-      const { data, error: fetchError } = await supabase
-        .from("job_applications")
-        .select(
-          `
-          id,
-          job_id,
-          application_status,
-          delivery_status,
-          created_at,
-          is_paid,
-          jobs:job_id (
-            title,
-            company_name
-          )
-        `,
-        )
-        .eq("talent_id", talent.id)
-        .order("created_at", { ascending: false })
-        .limit(20); // Expanded from 10 to 20 for May 2026 depth requirements
-
-      if (fetchError) {
-        // Digital Workforce Sensor: Report sync fault for Agent coaching
+      let data: any[];
+      try {
+        data = await listTalentApplicationHistory(talent.id, 20);
+      } catch (fetchError: any) {
         console.error("[Digital Workforce] FAULT: LEDGER_SYNC_FAULT", {
           talentId: talent.id,
-          error: fetchError.message,
-          code: fetchError.code,
+          error: fetchError?.message,
+          code: fetchError?.code,
         });
         throw new Error("REGISTRY_FAULT: Failed to load application history.");
       }
+
 
       // HUD: REGISTRY_MAPPING_PROTOCOL
       return (data || []).map((app: any) => ({

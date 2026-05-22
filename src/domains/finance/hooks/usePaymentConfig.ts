@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getPaymentConfigSettings } from "@/domains/finance/repo/financeRepo";
 
 /**
  * GroUp Academy: Fiscal Gateway Orchestrator (V5.6.0)
@@ -30,20 +30,10 @@ export function usePaymentConfig() {
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<PaymentConfig> => {
       // HUD: FETCH_INSTITUTIONAL_SETTINGS_REGISTRY
-      const { data: settings, error } = await supabase
-        .from("platform_settings")
-        .select("key, value")
-        .in("key", [
-          "payment_gateway",
-          "stripe_publishable_key",
-          "stripe_mode",
-          "currency",
-          "whatsapp_purchase_enabled",
-        ]);
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Essential for monitoring fiscal pipeline accessibility.
+      let settings: Array<{ key: string; value: string }>;
+      try {
+        settings = await getPaymentConfigSettings();
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: platform_settings ingress failure.", error);
         throw error;
       }

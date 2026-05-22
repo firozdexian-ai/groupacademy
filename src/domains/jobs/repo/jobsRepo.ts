@@ -939,3 +939,57 @@ export async function createTalentCvSignedUrl(path: string, expiresInSeconds = 3
   if (error) throw error;
   return data.signedUrl;
 }
+
+// ─── Phase 10j.5k5: job_applications / job_invitations hook-backing ──────
+export interface CachedJobMatchRow {
+  ai_match_score: number | null;
+  ai_match_rationale: string | null;
+  ai_scored_at: string | null;
+}
+
+export async function getCachedJobMatchScore(
+  jobId: string,
+  talentId: string,
+): Promise<CachedJobMatchRow | null> {
+  const { data, error } = await supabase
+    .from("job_applications")
+    .select("ai_match_score, ai_match_rationale, ai_scored_at")
+    .eq("job_id", jobId)
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as CachedJobMatchRow | null) ?? null;
+}
+
+export async function listTalentApplicationHistory(
+  talentId: string,
+  limit = 20,
+): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("job_applications")
+    .select(
+      `id, job_id, application_status, delivery_status, created_at, is_paid,
+       jobs:job_id (title, company_name)`,
+    )
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function insertJobInvitation(args: {
+  job_id: string;
+  company_id: string;
+  talent_id: string;
+  note: string | null;
+  invited_by: string;
+}): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from("job_invitations")
+    .insert(args)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data as { id: string };
+}

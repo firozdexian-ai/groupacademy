@@ -336,3 +336,30 @@ export async function createPaymentProofSignedUrl(path: string, expiresInSeconds
   if (error) throw error;
   return data.signedUrl;
 }
+
+// ─── Phase 10j.5k5: platform payment-config settings ─────────────────────
+export async function getPaymentConfigSettings(): Promise<Array<{ key: string; value: string }>> {
+  const { data, error } = await supabase
+    .from("platform_settings")
+    .select("key, value")
+    .in("key", [
+      "payment_gateway",
+      "stripe_publishable_key",
+      "stripe_mode",
+      "currency",
+      "whatsapp_purchase_enabled",
+    ]);
+  if (error) throw error;
+  return (data ?? []) as Array<{ key: string; value: string }>;
+}
+
+// ─── Phase 10j.5k5: monetization intent telemetry ────────────────────────
+export async function logMonetizationIntent(userId: string, surface: string): Promise<void> {
+  await (supabase as any)
+    .from("platform_events")
+    .insert({
+      event_type: "monetization_intent_detected",
+      user_id: userId,
+      metadata: { surface, timestamp: new Date().toISOString() },
+    });
+}

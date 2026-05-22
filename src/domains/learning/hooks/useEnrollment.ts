@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { enrollInContent } from "@/domains/learning/repo/learningRepo";
+import { findTalentEnrollment } from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 
@@ -51,22 +51,17 @@ export function useEnrollment(contentId: string | undefined) {
     staleTime: 2 * 60 * 1000, // 2-minute baseline consistency window
     queryFn: async (): Promise<EnrollmentNode | null> => {
       // HUD: EXECUTING_CANONICAL_ENROLLMENT_LOOKUP
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("id, status, enrolled_at, progress")
-        .eq("content_id", contentId!)
-        .or(`talent_id.eq.${talent!.id},student_id.eq.${talent!.id}`)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        const data = await findTalentEnrollment(contentId!, talent!.id);
+        return (data as unknown as EnrollmentNode | null) ?? null;
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: enrollments table selection evaluation error.", {
           talentId: talent?.id,
           contentId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-      return data as unknown as EnrollmentNode | null;
     },
   });
 

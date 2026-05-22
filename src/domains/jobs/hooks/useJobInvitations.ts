@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
+import { insertJobInvitation } from "@/domains/jobs/repo/jobsRepo";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
 
@@ -32,22 +32,20 @@ export function useInviteToApply() {
       if (!user) throw new Error("AUTH_REQUIRED: Please sign in to invite talent.");
 
       // HUD: EXECUTING_JOB_INVITATION_INSERT
-      const { data, error } = await supabase
-        .from("job_invitations")
-        .insert({
+      let data: { id: string };
+      try {
+        data = await insertJobInvitation({
           job_id: input.job_id,
           company_id: input.company_id,
           talent_id: input.talent_id,
           note: input.note ?? null,
           invited_by: user.id,
-        })
-        .select("id")
-        .single();
-
-      if (error) {
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: job_invitations insert failed.", error);
         throw error;
       }
+
 
       // HUD: EDGE_INVOCATION_NOTIFICATION_HANDSHAKE
       try {
