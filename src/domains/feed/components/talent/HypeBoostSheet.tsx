@@ -75,7 +75,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
       });
 
 
-      toast.error("Ledger settlement delayed. Please verify your credit balance.");
+      toast.error("Couldn't boost the post. Please check your credit balance and try again.");
     } finally {
       setBusy(false);
     }

@@ -34,12 +34,10 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Maintain profile state logging boundaries under Automated Efficiency protocols
   useEffect(() => {
     if (talent?.id) {
-      trackEvent("ComposePost:active_editor_session_initialized", {
+      trackEvent("feed_compose_opened", {
         talentId: talent.id,
-        professionTier: talent.customProfession || "unassigned",
       });
     }
   }, [talent]);
@@ -269,7 +267,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                             ? "text-muted-foreground/30 cursor-not-allowed"
                             : "text-muted-foreground hover:text-primary hover:bg-muted/50",
                         )}
-                        aria-label="Append tag node"
+                        aria-label="Add tag"
                       >
                         <Hash className="h-4 w-4" />
                       </button>

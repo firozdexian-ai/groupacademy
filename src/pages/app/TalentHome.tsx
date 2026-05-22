@@ -8,8 +8,6 @@ import {
   ChevronRight,
   Award,
   Eye,
-  Rocket,
-  Loader2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -17,13 +15,11 @@ import { useTalent } from "@/hooks/useTalent";
 import { useTalentPitches } from "@/domains/profile/hooks/useTalentPitches";
 import { useSkillCredentials } from "@/domains/learning";
 import { computeReadiness } from "@/lib/talentReadiness";
-import { formatDistanceToNow } from "date-fns";
 import { boostProfile, getTalentBoostUntil } from "@/domains/talent/repo/talentRepo";
 import { toast } from "sonner";
 import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib/tokens";
-import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
+import { trackError } from "@/lib/errorTracking";
 
-// Production Data Contracts[cite: 8]
 interface Pitch {
   id: string;
   company_name: string | null;
@@ -41,12 +37,6 @@ export default function TalentHome() {
   const [boosting, setBoosting] = useState(false);
   const [boostUntil, setBoostUntil] = useState<string | null>(null);
 
-  // Digital Workforce Anomaly Reporting[cite: 6]
-  const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
-    await adminSupportAssistant({ type: "talent_home_error", event, context });
-  };
-
   useEffect(() => {
     if (!talent?.id) return;
     const fetchSettings = async () => {
@@ -54,7 +44,7 @@ export default function TalentHome() {
         const boostUntilVal = await getTalentBoostUntil(talent.id);
         setBoostUntil(boostUntilVal);
       } catch (e) {
-        await reportAnomaly("BoostStatusFetchFailure", { error: e });
+        trackError(e, { area: "TalentHome", event: "boost_status_fetch" });
       }
     };
     fetchSettings();
@@ -68,11 +58,11 @@ export default function TalentHome() {
     setBoosting(true);
     try {
       await boostProfile();
-      toast.success("Profile Pinned for 24h.");
+      toast.success("Your profile is pinned to the top for 24 hours.");
       setBoostUntil(new Date(Date.now() + 86400000).toISOString());
     } catch (e) {
-      await reportAnomaly("BoostActionFailure", { error: e });
-      toast.error("Boost operational fault.");
+      trackError(e, { area: "TalentHome", event: "boost_action" });
+      toast.error("Couldn't boost your profile — please try again.");
     } finally {
       setBoosting(false);
     }
@@ -96,9 +86,9 @@ export default function TalentHome() {
                 <CheckCircle2 className="h-4 w-4 text-[#10D576]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-semibold">You are LIVE on Gro10x</h2>
+                <h2 className="text-sm font-semibold">You're live on Gro10x</h2>
                 <p className={`text-[11px] ${GRO10X_MUTED} mt-0.5`}>
-                  Employers are currently matching against your node.
+                  Employers can find your profile and reach out.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
@@ -107,7 +97,7 @@ export default function TalentHome() {
                     className="h-8 text-xs gap-1.5"
                     onClick={() => navigate(`/t/${talent?.id}`)}
                   >
-                    <Eye className="h-3.5 w-3.5" /> Preview
+                    <Eye className="h-3.5 w-3.5" /> Preview my profile
                   </Button>
                 </div>
               </div>
@@ -120,7 +110,7 @@ export default function TalentHome() {
                 <AlertTriangle className="h-4 w-4 text-amber-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-semibold">Hidden from employers</h2>
+                <h2 className="text-sm font-semibold">Not yet visible to employers</h2>
                 <p className={`text-[11px] ${GRO10X_MUTED} mt-0.5`}>
                   Add {readiness.missing.map((m) => m.label).join(", ")} to go live.
                 </p>
@@ -145,7 +135,9 @@ export default function TalentHome() {
               <div>
                 <h2 className="text-sm font-semibold">Employer pitches</h2>
                 <p className={`text-[11px] ${GRO10X_MUTED}`}>
-                  {pitchesLoading ? "Checking..." : `${dispatchedCount} outreach nodes`}
+                  {pitchesLoading
+                    ? "Checking…"
+                    : `${dispatchedCount} ${dispatchedCount === 1 ? "message" : "messages"} from employers`}
                 </p>
               </div>
             </div>
@@ -175,7 +167,11 @@ export default function TalentHome() {
           </div>
           <div className="flex-1 text-left">
             <p className="text-sm font-semibold">Verified skills</p>
-            <p className={`text-[11px] ${GRO10X_MUTED}`}>{credentials.length} mastery nodes synchronized</p>
+            <p className={`text-[11px] ${GRO10X_MUTED}`}>
+              {credsLoading
+                ? "Loading…"
+                : `${credentials.length} ${credentials.length === 1 ? "skill" : "skills"} verified`}
+            </p>
           </div>
           <ChevronRight className="h-4 w-4 text-slate-500" />
         </button>

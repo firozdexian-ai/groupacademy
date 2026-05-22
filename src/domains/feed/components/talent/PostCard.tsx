@@ -127,7 +127,7 @@ export function PostCard({ post }: PostCardProps) {
         action: "handleSaveToggle_fault",
         postId: post.id,
       });
-      toast.error("Couldn't update your saved items layout registry.");
+      toast.error("Couldn't update saved items. Please try again.");
     }
   };
 
@@ -149,7 +149,7 @@ export function PostCard({ post }: PostCardProps) {
 
   const handleReportAction = () => {
     trackEvent("feed_post_reported_by_user", { postId: post.id });
-    toast.info("Content flagged. Platform moderators have been notified.");
+    toast.info("Reported. Our moderators will review this post.");
   };
 
   const trackerRef = useImpressionTracker(post.id, "feed");
@@ -179,7 +179,7 @@ export function PostCard({ post }: PostCardProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
-                  aria-label="More operational options"
+                  aria-label="More options"
                 >
                   <MoreHorizontal className="h-4 w-4 stroke-[2.2]" />
                 </button>

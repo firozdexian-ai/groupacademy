@@ -121,12 +121,12 @@ export function PersonalizedPromptCard() {
     // Check transaction conditions for credit-gated ecosystem endpoints
     if (prompt.cost) {
       if (balance < prompt.cost) {
-        toast.error(`Insufficient credit balance. This service requires ${prompt.cost} credits.`);
+        toast.error(`Not enough credits — this needs ${prompt.cost} credits.`);
         return;
       }
 
       setLoading(prompt.type);
-      const toastId = toast.loading(`Initializing transactional ledger settlement for ${prompt.title}…`);
+      const toastId = toast.loading(`Starting ${prompt.title}…`);
 
       try {
         // Enforce upper-case billing mapping keys consistently across the transactional ledger
@@ -142,7 +142,7 @@ export function PersonalizedPromptCard() {
           // Automated Efficiency: Invalidate target balance keys across system layouts dynamically
           queryClient.invalidateQueries({ queryKey: ["credits-balance"] });
 
-          toast.success(`${prompt.title} service unlocked successfully`, { id: toastId });
+          toast.success(`${prompt.title} unlocked.`, { id: toastId });
           navigate(prompt.path);
         } else {
           throw new Error("Ecosystem credits execution function declined the wallet mutation request.");
@@ -158,7 +158,7 @@ export function PersonalizedPromptCard() {
           talentId: talent?.id,
         });
 
-        toast.error("Ledger connection timeout. Please verify your balance tokens.", { id: toastId });
+        toast.error("Couldn't process that — please check your balance and try again.", { id: toastId });
       } finally {
         setLoading(null);
       }

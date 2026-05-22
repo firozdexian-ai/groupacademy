@@ -1,94 +1,89 @@
-# Phase A3 — Talent Profile
+# Phase A4 — Talent landing: Feed + Home + Shell
 
-## What I found
+Following the master plan: small sub-phases, each independently shippable. Same lens as A1–A3: P0 broken, P1 polish/copy/jargon, P2 defer.
 
-Profile surface = 4 live pages + 1 chat onboarding.
+## Surfaces in scope
 
-| Route | File | Role | State |
-|---|---|---|---|
-| `/app/profile` | `Profile.tsx` (276 LOC) | Read view | **Half-built** + jargon |
-| `/app/profile/edit` | `ProfileEdit.tsx` (287 LOC) | Edit form | **Broken** + jargon |
-| `/app/profile-builder` | `ProfileBuilder.tsx` (186 LOC) | Aisha post-auth chat | Works; minor polish |
-| `/app/profile/verify` | `ProfileVerify.tsx` (219 LOC) | KYC / payout | Works; jargon to scan |
-| `/app/t/:handle` (public) | `TalentPublicProfile.tsx` (164 LOC) | Public view | Works; jargon to scan |
+| Route | File | Role |
+|---|---|---|
+| `/app` → `/app/feed` | `App.tsx` redirect | Default landing |
+| `/app/feed` | `Feed.tsx` + `src/domains/feed/components/talent/*` (~28 components) | Social feed |
+| `/app/me` | `TalentHome.tsx` | Talent dashboard (readiness, pitches, credentials) |
+| `TalentAppShell.tsx` | Layout | Header, bottom nav, notifications |
+| `OnboardingGuard` | `App.tsx` | Gate wrapping shell |
 
-### P0 — `ProfileEdit` is functionally broken
+Out of scope (deferred to their own phases): JobsHub, LearningHub, AbroadHub, AdminShell, AIAgents.
 
-1. **No `useEffect` to hydrate `formData` / `skills` / `experience` / `education` / `languages` / `achievements` / `profilePhotoUrl` / `coverImageUrl` / `cvUrl` from `talent`.** Opening edit shows empty form; saving wipes the user's existing data.
-2. Only **two fields** are actually rendered (`fullName`, `phone`). Everything else (customProfession, currentStatus, institution, fieldOfStudy, linkedinUrl, portfolioUrl, skills, experience, education, languages, achievements) is collected in state and saved, but **never has an input** in the JSX. Editors exist (`SkillsEditor`, `ExperienceEditor`, `EducationEditor`) but are imported and not mounted.
-3. Hardcoded `countryCode: "+880"`, `country: "BD"` defaults — violates Global Product Standard.
+## Preliminary findings (static read)
 
-### P0 — `Profile.tsx` is half-built
+### P0 candidates
+- `TalentHome.tsx:24,45-48,57,74` still calls `adminSupportAssistant({ type: "talent_home_error", ... })` — same broken edge contract we ripped out of `TalentPublicProfile` in A3. Each error path silently logs to a dead endpoint. → swap to `trackError` like A3.
+- `App.tsx:501` hardcodes `/app/feed` as the post-login landing. A returning talent who has never posted lands on an empty feed — `TalentHome` (`/app/me`) is the more meaningful "dashboard" but is hidden. → decide canonical landing: keep Feed (social default) but ensure Home is one tap away in bottom nav (currently it isn't — nav goes Home→Feed).
 
-4. Only renders **AI Summary** card + `PublicProfileSettings`. Experience / Education / Skills / Achievements / Languages are dropped behind a `{/* Similar pattern for Experience and other sections... */}` comment. User sees a profile page with no resume content.
-5. `useTalent()` hydrates `country/countryCode` but they're never shown (no location chip, no contact row). `email`, `phone`, `linkedinUrl`, `portfolioUrl` also missing from render.
+### P1 candidates (copy / jargon — same theme as A1–A3)
+- `TalentHome.tsx`:
+  - "Employers are currently matching against your node." → "Employers can find and contact you."
+  - "outreach nodes" → "messages from employers"
+  - "mastery nodes synchronized" → "verified skills"
+  - "Profile Pinned for 24h." / "Boost operational fault." → "Your profile is pinned to the top for 24 hours." / "Couldn't boost your profile — please try again."
+- `ComposePost.tsx:23-25,40` doc comment + telemetry event name reference "Digital Workforce", "Phase Z0", "Automated Efficiency protocols". Replace tracking event name with plain `compose_opened` and clean the doc.
+- `FeedHeader`, `FeedFilters`, `FeedCardRedesigned` likely have similar jargon — full pass needed.
+- `TalentAppShell.tsx:64-66,106` comments reference "Institutional User Experience Perimeter" / "PHASE: Real-Time_Notification_Orchestration" — internal but worth scrubbing for consistency.
 
-### P1 — Copy is corporate techno-babble across all 4 pages
-
-Examples to humanize:
-- "Identity List" / "Verified Logic Sync v2.6" / "CANDIDATE_EXPLORER" / "Recalibrate" / "AI Summary" → "My profile" / "Verified" / job title fallback / "Edit" / "About"
-- "Identity ledger synchronized." / "Sync failed. Admin agents notified." → "Profile saved." / "Couldn't save — please try again."
-- "Neural synthesis complete." / "Synthesis failed. Admin support alerted." → "Updated with AI." / "AI rewrite failed — please try again."
-- "Syncing List Node..." → "Loading your profile…"
-- ProfileEdit: "Identity Frame" / "Environmental Banner" / "Logic Artifact Ingestion (CV)" / "Authorize CV Ingestion" / "Active List Artifact" / "Verified Payload" / "Entity Name" / "Pending Sync" / "Finalize Sync" / "Discard" / "CV artifacts integrated." / "Extraction error. Admin alerted." → "Profile photo" / "Cover image" / "Upload your CV" / "Upload CV (PDF or Word)" / "CV uploaded" / pill removed / "Full name" / "Unsaved changes" / "Save changes" / "Cancel" / "We pulled your info from the CV." / "Couldn't read that CV — try a different file."
-- ProfileBuilder: header sub "Profile Concierge" is fine; minor handoff toast / errors to plain English.
-
-### P1 — Other
-
-6. `useTalentPitches` is exported from `src/domains/profile` index but never imported anywhere (not in the 4 pages). Dead export — verify and drop.
-7. `Profile.tsx` `reportAnomaly` and `ProfileEdit.tsx` `reportAnomaly` are no-ops with `console.error`/`warn`. Replace with `errorTracking` helper (already in repo) or drop.
-8. `Profile.tsx` "Recalibrate" button + Settings icon both go to `/app/profile/edit` — redundant. Keep one (Edit).
-9. `ProfileEdit.tsx` discards on Cancel without confirming `isDirty` — silent data loss.
+### P1 — Functional checks to verify with live walkthrough
+- `useFeedRecommendations` (263 LOC): confirm pagination + refresh + interest signal mutations work; check empty/error state copy.
+- Hype + comment realtime path (memory: Agentic Feed Notifications) — confirm `feed_posts` and `post_comments` channels subscribe & unsubscribe cleanly; no double-handlers on remount.
+- Quick Actions Grid (memory: Dynamic Personalized Quick Actions Grid) — `QuickActionsGrid.tsx` exists in feed components; verify it's actually mounted somewhere and personalized data loads.
+- Bottom nav active state for `/app/me` and `/app/feed` (Shell line 199-200 only handles `/app/feed`).
 
 ### P2 (defer)
-- `TalentPublicProfile.tsx` invokes `adminSupportAssistant` which has body-shape drift (per `.lovable/known-edge-contract-drift.md`). Drop the call.
-- `ProfileVerify.tsx` `reportAnomaly` cleanup.
+- Feed performance (virtualized list, image lazy-load) — track separately.
+- `TalentHome` widget expansion (recent applications, saved jobs, upcoming sessions) — feature work, not audit.
+- Onboarding-to-Feed transition animation.
 
-## Sub-phases (small, independently shippable)
+## Sub-phases
 
-### A3-FIX-1 — Fix `ProfileEdit` (P0, ~60 min)
-1. Add `useEffect([talent])` that hydrates every state field from `talent` (and uses `talent.country` / `talent.countryCode` instead of `+880`/`BD` fallback).
-2. Render the missing fields inside the existing `Card` block:
-   - About: `customProfession`, `currentStatus` (textarea)
-   - Education: `institution`, `fieldOfStudy`
-   - Links: `linkedinUrl`, `portfolioUrl`
-   - Lists: mount `<SkillsEditor>`, `<ExperienceEditor>`, `<EducationEditor>` (each already accepts value + onChange)
-   - Languages + Achievements: simple add/remove repeater (same pattern as old `ProfileSectionEditor`).
-3. Humanize copy (table above).
-4. Add `if (isDirty) confirm()` on Cancel + on back nav.
+### A4-FIX-1 — `TalentHome` cleanup (P0+P1, ~30 min)
+- Drop `adminSupportAssistant` import + calls; replace with `trackError`.
+- Humanize all copy ("node", "mastery", "operational fault", "Hidden from employers" → friendlier).
+- Verify boost mutation + readiness rendering still work.
 
-### A3-FIX-2 — Fix `Profile` read view (P0, ~30 min)
-1. Replace the dropped `{/* Similar pattern… */}` comment with real cards: About, Experience, Education, Skills, Languages, Achievements. Each pulls from `talent` and shows the same `SectionHeader` + an empty-state CTA "Add your X" → opens `ProfileSectionEditor`.
-2. Add a contact strip below the avatar: country flag + name, email, phone, LinkedIn, portfolio (only when present).
-3. Humanize all copy.
-4. Drop the redundant "Recalibrate" button — keep only the Settings → Edit action.
+### A4-FIX-2 — Feed copy + jargon pass (P1, ~30 min)
+- Walk every file in `src/domains/feed/components/talent/` for "node / synthesis / digital workforce / phase / protocol / telemetry / nodes synchronized".
+- Replace tracking event names (`active_editor_session_initialized` etc.) with plain snake_case.
+- Empty/error states: "Nothing here yet…" already OK; check others.
 
-### A3-FIX-3 — Copy pass on `ProfileBuilder` / `ProfileVerify` / `TalentPublicProfile` (P1, ~20 min)
-Scan each for residual jargon strings (anomaly toasts, header copy) and humanize. No logic changes.
+### A4-FIX-3 — Shell + nav polish (P1, ~20 min)
+- Scrub `TalentAppShell` comments and any user-visible jargon strings.
+- Confirm bottom-nav active-state logic covers `/app/me` and `/app/feed` correctly; consider adding `/app/me` to bottom nav (or keeping Home → Feed and adding a dedicated "Me" slot).
+- Verify notification bell badge count + mark-as-read still work.
 
-### A3-FIX-4 — Cleanup (P1, ~10 min)
-- Replace `reportAnomaly` no-ops in Profile + ProfileEdit with `trackError(...)` from `src/lib/errorTracking.ts` (or drop).
-- Drop `useTalentPitches` re-export from `src/domains/profile/index.ts` if confirmed unused (rg -l confirms).
-- Drop the `adminSupportAssistant` invoke in `TalentPublicProfile.tsx` (known broken contract).
+### A4-FIX-4 — Landing decision (P1, ~10 min)
+Pick one:
+- Keep `/app` → `/app/feed` (current) and ensure `/app/me` is reachable in 1 tap.
+- Switch `/app` → `/app/me` for returning users and `/app/feed` for first-time.
+- Recommend keeping Feed default + adding a "Home" / readiness chip in `FeedHeader` that deep-links to `/app/me`.
 
-### A3-FIX-5 — Verification
-- Test account `something@gro10x.com`:
-  - Sign in → Aisha → finish → land on `/app/feed`.
-  - Open `/app/profile` → all sections render with placeholders.
-  - Edit → fill fields → save → values persist on re-open.
-  - Upload CV → fields auto-fill from parsed CV.
-  - Cancel with unsaved changes → confirm dialog fires.
-- Admin `gro10xnow@gmail.com` unaffected (admin shell).
+### A4-FIX-5 — Verification
+- `gro10xnow@gmail.com` (admin): `/app/feed` and `/app/me` reachable without RBAC bounce.
+- Fresh test `*@gro10x.com`: sign up → finish onboarding → land on `/app/feed`; tap Home → `/app/me` shows readiness card with empty pitches; create a post → appears in feed; hype it; comment; refresh.
+- Check console for residual `adminSupportAssistant` / `Digital Workforce` log noise.
+
+### A4-AUDIT-BACKFILL
+- Add the missing `## A2 Onboarding — shipped` block to `.lovable/launch-audit.md` (mirror A1/A3 format) so the audit log is complete before we push deeper into the master plan.
+- Add `## A4 Talent Landing — audit + shipped` block once A4-FIX-1..4 ship.
 
 ## Order & dependencies
 
-A3-FIX-1 → A3-FIX-2 (independent but read view should match edit) → A3-FIX-3 → A3-FIX-4 → A3-FIX-5.
+A4-AUDIT-BACKFILL (write A2 entry) → A4-FIX-1 → A4-FIX-2 → A4-FIX-3 → A4-FIX-4 → A4-FIX-5. Each ships and is verified before the next.
 
-Each phase ships and is verified before the next, matching the "small steps" preference.
+## Out of scope (later phases)
 
-## Out of scope (defer to later phases)
+- **A5 — Jobs Hub** (`/app/jobs`, JobsHub + tools tab + InfiniteJobsList + match scoring) — biggest single surface, deserves its own pass.
+- **A6 — Learning Hub** (`/app/learning`, review queue, certificates).
+- **A7 — Gigs / Projects / Reviewer** (`/app/gigs`, `/app/projects`, `/app/reviewer`).
+- **A8 — Abroad + IELTS** (`/app/abroad/*`).
+- **A9 — Admin shell** (`/dashboard/*`, 16 groups per memory index).
+- **A10 — Public surfaces** (`/jobs/:id`, `/t/:handle`, `/projects/*`, `/c/:slug/*`, marketing site).
 
-- New profile-strength scoring rules (`ProfileCompletionMeter` logic untouched).
-- Public profile redesign per LinkedIn-style memory — already shipped at v2; we only humanize copy here.
-- KYC flow rewrite — `ProfileVerify` only gets a copy scan.
-- Backend column changes / new tables.
+That is the launch master plan after A4.

@@ -86,8 +86,7 @@ export function FloatingWhatsAppButton({ showPrompt = true }: FloatingWhatsAppBu
       });
 
 
-      // Maintain automated efficiency focus by keeping channel navigation open for user conversions
-      toast.error("Financing nodes are busy, but connecting you to channels...", { id: toastId });
+      toast.error("Couldn't apply the bonus right now — opening WhatsApp so you can reach support.", { id: toastId });
       window.open(whatsappUrl, "_blank");
     } finally {
       setIsProcessing(false);

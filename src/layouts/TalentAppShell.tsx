@@ -86,7 +86,7 @@ export function TalentAppShell() {
   const [isContentLead, setIsContentLead] = useState(false);
   const credits = useCreditPurchase();
 
-  // HUD: Institutional Navigation Artifacts
+  // Bottom nav items
   const desktopNavItems: NavItem[] = [
     { label: "Home", icon: Home, path: "/app/feed" },
     { label: "Jobs", icon: Briefcase, path: "/app/jobs" },
@@ -103,10 +103,10 @@ export function TalentAppShell() {
     { label: "AI Agents", icon: Bot, path: "/app/agents" },
   ];
 
-  // PHASE: Real-Time_Notification_Orchestration
+  // Notification badge polling
   useEffect(() => {
     if (!talent?.id) return;
-    const fetchInstitutionalAlerts = async () => {
+    const fetchNotificationCount = async () => {
       try {
         const { count } = await supabase
           .from("notifications")
@@ -121,7 +121,7 @@ export function TalentAppShell() {
         console.error("ALERT_SYNC_FAULT", err);
       }
     };
-    fetchInstitutionalAlerts();
+    fetchNotificationCount();
 
     const channel = supabase
       .channel("notification-count")
@@ -129,7 +129,7 @@ export function TalentAppShell() {
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `talent_id=eq.${talent.id}` },
         () => {
-          fetchInstitutionalAlerts();
+          fetchNotificationCount();
         },
       )
       .subscribe();
