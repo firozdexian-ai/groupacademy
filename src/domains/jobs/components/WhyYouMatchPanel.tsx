@@ -159,7 +159,7 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
                 onClick={handlePracticeNavigationTracking}
                 className="inline-flex items-center gap-1 text-[11px] font-bold tracking-tight text-primary hover:text-primary hover:underline transition-colors mt-0.5 cursor-pointer"
               >
-                <span>Calibrate and reconcile gap markers</span>
+                <span>Practice these skills</span>
                 <ArrowRight className="h-3.5 w-3.5 text-primary stroke-[2.5] animate-in slide-in-from-left-1 duration-300" />
               </Link>
             </div>
