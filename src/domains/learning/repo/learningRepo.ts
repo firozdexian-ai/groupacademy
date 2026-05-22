@@ -1761,3 +1761,45 @@ export async function uploadAssessmentAudio(
   if (error) throw error;
   return { path };
 }
+
+// -----------------------------------------------------------------------------
+// Realtime helpers (Phase 10j.5k1) — discussion + Q&A CDC subscriptions
+// -----------------------------------------------------------------------------
+
+export function subscribeDiscussionPostsForCohort(cohortId: string, onChange: () => void): () => void {
+  const ch = supabase
+    .channel(`public:threads:${cohortId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "discussion_posts" }, () => onChange())
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
+
+export function subscribeDiscussionPostsForThread(threadId: string, onChange: () => void): () => void {
+  const ch = supabase
+    .channel(`public:thread:${threadId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "discussion_posts", filter: `thread_id=eq.${threadId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
+
+export function subscribeLessonAnswers(
+  contentId: string,
+  itemId: string | undefined,
+  onChange: () => void,
+): () => void {
+  const ch = supabase
+    .channel(`public:qna:${contentId}:${itemId ?? "all"}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "lesson_answers" }, () => onChange())
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
