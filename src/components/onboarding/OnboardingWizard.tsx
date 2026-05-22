@@ -53,9 +53,9 @@ type School = {
 
 const STEPS = [
   { id: 1, label: "Country", icon: MapPin },
-  { id: 2, label: "Career Stage", icon: Briefcase },
-  { id: 3, label: "Alma Mater", icon: GraduationCap },
-  { id: 4, label: "Profession", icon: Building2 },
+  { id: 2, label: "Career stage", icon: Briefcase },
+  { id: 3, label: "University", icon: GraduationCap },
+  { id: 4, label: "Field", icon: Building2 },
 ];
 
 type FunnelParams = Record<string, string>;
@@ -262,9 +262,9 @@ export function OnboardingWizard({
     trackEvent("onboarding_wizard_submission_started");
 
     try {
-      setSubmittingPhase("Saving your profile parameters…");
+      setSubmittingPhase("Saving…");
       const { data: authData, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !authData?.user?.id) throw new Error("Authentication index token lost. Please log in.");
+      if (authErr || !authData?.user?.id) throw new Error("You're signed out. Please sign in again.");
       const userId = authData.user.id;
 
       const isFreeform = institution.id.startsWith("freeform:");
@@ -280,11 +280,11 @@ export function OnboardingWizard({
         onboarding_completed_at: new Date().toISOString(),
       });
 
-      setSubmittingPhase(`Connecting to ${institution.name} Campus Agent…`);
+      setSubmittingPhase(`Connecting you to ${institution.name}…`);
       const provisioned = await provisionOrGetInstance(institution.name);
 
       if (provisioned?.instance_id) {
-        setSubmittingPhase("Almost ready…");
+        setSubmittingPhase("Almost done…");
         try {
           await agentRuntime({
             instance_id: provisioned.instance_id,
@@ -308,8 +308,8 @@ export function OnboardingWizard({
       if (elapsed < 600) await new Promise((r) => setTimeout(r, 600 - elapsed));
 
       if (isMountedRef.current) {
-        toast.success(`Connected to ${institution.name} AI Campus Ambassador`, {
-          description: `Your ${school.name} specialization pathway is configured and live.`,
+        toast.success(`You're connected to ${institution.name}`, {
+          description: `Your ${school.name} workspace is ready.`,
           icon: <Sparkles className="h-4 w-4 text-blue-500 stroke-[2.2]" />,
         });
 
@@ -329,8 +329,8 @@ export function OnboardingWizard({
         action: "commit_final_onboarding_wizard_data_api",
       });
 
-      toast.error("Ecosystem sync error: Setup execution timed out.", {
-        description: "Please attempt confirmation again — your chosen options remain active.",
+      toast.error("Something went wrong setting up your profile.", {
+        description: "Please try again — your choices are saved.",
       });
     } finally {
       if (isMountedRef.current) {
@@ -350,11 +350,11 @@ export function OnboardingWizard({
               <Zap className="h-5 w-5 fill-primary/10 text-primary stroke-[2.2] animate-pulse" />
             </div>
             <div className="min-w-0 flex flex-col justify-center leading-none">
-              <h1 className="text-sm font-bold text-foreground/90 uppercase tracking-wide leading-none">
-                Initialize Trajectory Index
+              <h1 className="text-sm font-bold text-foreground/90 tracking-wide leading-none">
+                Set up your profile
               </h1>
               <span className="text-[11px] font-bold text-muted-foreground/60 block leading-none pt-1">
-                Stage {step} of {STEPS.length} &bull; {STEPS[step - 1].label} Analysis
+                Step {step} of {STEPS.length} &bull; {STEPS[step - 1].label}
               </span>
             </div>
           </div>
@@ -414,29 +414,29 @@ export function OnboardingWizard({
           <div key={step} className="flex-1 animate-in fade-in slide-in-from-bottom-1 duration-200 w-full">
             {step === 1 && (
               <SectionHeader
-                title="Determine Base Geographical Region"
-                subtitle="We match dynamic localized criteria indices, local baseline compensations, and regional operational academies based on your country parameters."
+                title="Where are you based?"
+                subtitle="We'll show jobs, salaries, and opportunities near you."
               />
             )}
             {step === 2 && (
               <SectionHeader
-                title="Identify Professional Persona Tier"
-                subtitle="Calibrate target experience curves so we can route alignment matrices to the correct organizational cluster and customized AI counselor."
+                title="Where are you in your career?"
+                subtitle="Pick the stage that fits you best."
               />
             )}
             {step === 3 && (
               <SectionHeader
-                title="Specify Academic Institutional Core"
-                subtitle="Synchronize your workspace ledger configuration to activate localized peer connections, network circles, and campus ambassador lines."
+                title="Where did you study?"
+                subtitle="Connect with peers and your campus community."
               />
             )}
             {step === 4 && (
               <SectionHeader
-                title="Target Specific Specialization Sub-School"
+                title="What's your field?"
                 subtitle={
                   stage?.academy_id
-                    ? `Curated specific instructional tracks optimized for ${stage?.name} candidate metrics.`
-                    : "Select the authoritative professional discipline matching your immediate path projection."
+                    ? `Tracks tailored for ${stage?.name} talent.`
+                    : "Choose the path that fits you best."
                 }
               />
             )}
@@ -455,7 +455,7 @@ export function OnboardingWizard({
                     />
                   ))}
                   {!countriesQ.isLoading && (countriesQ.data ?? []).length === 0 && (
-                    <EmptyState message="No baseline geographical clusters registered inside the active database map grid rows." />
+                    <EmptyState message="No countries available right now." />
                   )}
                 </CardGrid>
               )}
@@ -468,7 +468,7 @@ export function OnboardingWizard({
                       selected={stage?.id === stageItem.id}
                       onClick={() => setStage(stageItem)}
                       title={stageItem.name}
-                      subtitle={stageItem.academy_id ? "Institutional Track Mapped" : "General Horizon Mapping"}
+                      subtitle={stageItem.academy_id ? "Tailored track available" : "General path"}
                       icon={<Briefcase className="h-4.5 w-4.5 text-primary stroke-[2.2]" />}
                     />
                   ))}
@@ -487,7 +487,7 @@ export function OnboardingWizard({
                         className="h-14 w-full justify-between rounded-xl border border-border/40 bg-background px-4 text-left text-sm font-bold tracking-tight shadow-sm hover:bg-muted/10 outline-none focus:ring-1 focus:ring-ring select-none"
                       >
                         <span className={cn("truncate text-ellipsis", !institution && "text-muted-foreground/50")}>
-                          {institution?.name ?? "Search academic university ledger matrix…"}
+                          {institution?.name ?? "Search your university…"}
                         </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground/50 stroke-[2.2]" />
                       </Button>
@@ -578,9 +578,8 @@ export function OnboardingWizard({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  <p className="mt-3.5 text-center text-[11px] font-semibold text-muted-foreground/50 italic leading-normal select-none">
-                    Can&apos;t trace your absolute cluster node? Match closest approximate operational index bounds
-                    &mdash; profile maps remain variable later.
+                  <p className="mt-3.5 text-center text-[11px] font-semibold text-muted-foreground/50 leading-normal select-none">
+                    Can&apos;t find your university? Add it &mdash; you can change this later.
                   </p>
                 </div>
               )}
@@ -601,7 +600,7 @@ export function OnboardingWizard({
                     />
                   ))}
                   {!schoolsQ.isLoading && (schoolsQ.data ?? []).length === 0 && (
-                    <EmptyState message="No vocational sub-school structures mapped for this active academy pipeline group allocation." />
+                    <EmptyState message="No fields available for this track yet." />
                   )}
                 </CardGrid>
               )}
@@ -628,8 +627,8 @@ export function OnboardingWizard({
             {submitting ? (
               <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground/80 tabular-nums animate-pulse pl-1 flex-1 justify-end truncate">
                 <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5] shrink-0" />
-                <span className="truncate text-ellipsis block italic">
-                  {submittingPhase || `Connecting you to the ${institution?.name || "Target Cluster"} Campus Hub…`}
+                <span className="truncate text-ellipsis block">
+                  {submittingPhase || `Connecting you to ${institution?.name || "your campus"}…`}
                 </span>
               </div>
             ) : (
@@ -639,7 +638,7 @@ export function OnboardingWizard({
                 disabled={!canAdvance}
                 className="rounded-xl h-9 px-4 font-extrabold uppercase text-[10px] tracking-wider gap-1 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
               >
-                <span>{step === 4 ? "Finalize Synchronization & Link" : "Continue Ingress"}</span>
+                <span>{step === 4 ? "Finish" : "Continue"}</span>
                 <ArrowRight className="ml-1 h-4 w-4 shrink-0 stroke-[2.5]" />
               </Button>
             )}
@@ -653,10 +652,10 @@ export function OnboardingWizard({
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="text-center select-none w-full leading-none mb-2">
-      <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground/90 uppercase tracking-wide leading-none">
+      <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground/90 leading-none">
         {title}
       </h2>
-      <p className="mt-2 text-[11px] font-semibold text-muted-foreground/70 leading-normal max-w-xl mx-auto italic">
+      <p className="mt-2 text-[11px] font-semibold text-muted-foreground/70 leading-normal max-w-xl mx-auto">
         {subtitle}
       </p>
     </div>
