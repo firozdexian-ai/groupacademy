@@ -361,8 +361,21 @@ export function OnboardingWizard({
               </span>
             </div>
           </div>
-          <div className="hidden w-64 md:block select-none leading-none">
-            <Progress value={progress} className="h-2 bg-muted rounded-full shadow-inner" />
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden w-48 lg:w-64 md:block select-none leading-none">
+              <Progress value={progress} className="h-2 bg-muted rounded-full shadow-inner" />
+            </div>
+            {!preAuth && (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-card/80 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            )}
           </div>
         </div>
 
