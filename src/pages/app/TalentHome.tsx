@@ -19,6 +19,7 @@ import { boostProfile, getTalentBoostUntil } from "@/domains/talent/repo/talentR
 import { toast } from "sonner";
 import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { trackError } from "@/lib/errorTracking";
+import { QuickActionsGrid } from "@/domains/feed/components/talent/QuickActionsGrid";
 
 interface Pitch {
   id: string;
@@ -124,6 +125,9 @@ export default function TalentHome() {
             </div>
           </div>
         )}
+
+        {/* Quick actions — personalized AI agent shortcuts */}
+        <QuickActionsGrid />
 
         {/* Pitches */}
         <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4`}>

@@ -111,3 +111,15 @@ Carry-over P2s tracked: country_code backfill, manifest preview 401, auth audit 
 
 Carry-over (P2, deferred): scrub internal jargon in feed code comments (`Phase Z0`, `Digital Workforce`, `Automated Efficiency`) — not user-facing, no functional impact. Track for a comment-only cleanup pass before launch.
 
+
+---
+
+## A4 Closeout — shipped 2026-05-22 (re-audit gaps)
+Re-audit revealed 3 gaps that have now been closed:
+- ✅ **G1 — `/app/me` wired into shell:** added "My Dashboard" item with `Home` icon to the profile dropdown in `TalentAppShell.tsx` (above "Settings & Privacy"). `TalentHome` is now reachable in 2 taps from any talent surface.
+- ✅ **G2 — `QuickActionsGrid` mounted:** previously orphaned (zero imports). Now rendered on `TalentHome` between the readiness card and pitches block — matches `mem://ux/dynamic-personalized-quick-actions-grid` intent. Also scrubbed jargon JSDoc/comments in the component itself ("Phase Z0", "Automated Efficiency").
+- ✅ **G3 — `FloatingWhatsAppButton` error string:** replaced `"Credit wallet ledger mutation failed to settle cleanly."` with `"Couldn't apply the welcome credit bonus. Please try again."`
+
+A4 is now complete. Carry-over (P2, deferred to pre-launch sweep): ~30 feed files still contain non-user-visible jargon in code comments and `console.error` strings. Zero user impact, low value to fix now, high merge-conflict risk against ongoing phase work.
+
+Ready for **A5 — Jobs Hub**.

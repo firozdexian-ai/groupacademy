@@ -70,7 +70,7 @@ export function FloatingWhatsAppButton({ showPrompt = true }: FloatingWhatsAppBu
         toast.success(`Welcome bonus secured! +${bonusAmount} credits added to your wallet`, { id: toastId });
         trackEvent("FloatingWhatsAppButton:bonus_claim_completed", { talentId: talent.id, amount: bonusAmount });
       } else {
-        throw new Error("Credit wallet ledger mutation failed to settle cleanly.");
+        throw new Error("Couldn't apply the welcome credit bonus. Please try again.");
       }
 
       window.open(whatsappUrl, "_blank");
