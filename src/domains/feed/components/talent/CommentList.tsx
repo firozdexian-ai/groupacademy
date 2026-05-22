@@ -110,7 +110,7 @@ export function CommentList({ postId }: CommentListProps) {
   // 4. Fractional Credit Economy Tipping Handler with Digital Workforce monitoring
   const handleTipComment = async (commentId: string, amount: number) => {
     if (!talent?.id) {
-      toast.error("Sign in required to transfer credit bundles");
+      toast.error("Sign in to tip credits");
       return;
     }
 
