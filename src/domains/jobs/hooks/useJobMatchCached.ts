@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCachedJobMatchScore } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: AI Match Cache Sensor (V5.6.0)
