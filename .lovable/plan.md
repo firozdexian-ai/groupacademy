@@ -57,3 +57,11 @@ This is mechanical and low-risk: every shim has exactly one re-export target, so
 File tree will actually look like: `src/domains/<domain>/{components,hooks,repo,api}` + `src/pages` + `src/shells` + `src/platform` + `src/lib` + real `src/hooks`. No phantom folders.
 
 Approve and I'll execute in one pass.
+
+---
+## ✅ Executed
+- Deleted **124 shim files** across `src/components/{feed,gigs,jobs,learning,profile,ai-agents,messages}/` and `src/hooks/`
+- Rewrote **114 import statements** across **73 files** to point directly at `@/domains/*`
+- Removed 8 now-empty directories: `src/components/{feed,gigs,profile,messages,ai-agents}`, `src/components/jobs`, `src/components/learning/views`, `src/components/jobs/views`
+- Verified: `rg '@/components/(feed|gigs|jobs|learning|profile|ai-agents|messages)/' src` → **0 matches**
+- Verified: shim hook imports → **0 matches**
