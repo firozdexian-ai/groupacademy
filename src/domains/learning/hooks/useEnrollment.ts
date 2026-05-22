@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { enrollInContent } from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 
