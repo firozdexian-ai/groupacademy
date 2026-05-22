@@ -1,91 +1,94 @@
-# Phase A2 — Onboarding
+# Phase A3 — Talent Profile
 
 ## What I found
 
-Onboarding has **one** live surface (`OnboardingWizard`) and a lot of unused code.
+Profile surface = 4 live pages + 1 chat onboarding.
 
-**Live:**
-- `src/pages/Start.tsx` → `<OnboardingWizard preAuth />` (pre-signup country/stage/uni/profession)
-- `src/components/auth/AccountUpgradeModal.tsx` → `<OnboardingWizard />` (post-auth, writes directly)
-- `src/lib/finalizePendingOnboarding.ts` → applies pre-auth stash after sign-in (already wired in `AuthChat`, `AuthClassic`, `AuthCallback`) ✅
+| Route | File | Role | State |
+|---|---|---|---|
+| `/app/profile` | `Profile.tsx` (276 LOC) | Read view | **Half-built** + jargon |
+| `/app/profile/edit` | `ProfileEdit.tsx` (287 LOC) | Edit form | **Broken** + jargon |
+| `/app/profile-builder` | `ProfileBuilder.tsx` (186 LOC) | Aisha post-auth chat | Works; minor polish |
+| `/app/profile/verify` | `ProfileVerify.tsx` (219 LOC) | KYC / payout | Works; jargon to scan |
+| `/app/t/:handle` (public) | `TalentPublicProfile.tsx` (164 LOC) | Public view | Works; jargon to scan |
 
-**Dead code (not imported anywhere):**
-- `PhoneCaptureStep.tsx` (180 LOC) — yet memory says **mandatory global phone is required**
-- `WelcomeBonus.tsx` (270 LOC) — 250-credit animation never shown
-- `ServicesTour.tsx`, `GoalStep.tsx`, `CVUploadStep.tsx`, `ProfessionStep.tsx` (~1300 LOC)
-- `src/hooks/useOnboarding.ts` (136 LOC) — only declares itself
+### P0 — `ProfileEdit` is functionally broken
 
-**Issues across the live wizard:**
-1. **Copy is corporate techno-babble end-to-end.** Every visible string: "Initialize Trajectory Index", "Determine Base Geographical Region", "Continue Ingress", "Finalize Synchronization & Link", "Ecosystem sync error", "Synchronize your workspace ledger configuration", error toasts, loading phases — all unreadable to a normal user.
-2. **Phone is never captured.** Mandatory-phone memory is violated for Google OAuth signups. `PhoneCaptureStep` exists but is orphaned.
-3. **Defaults `+880` / `BD`** in PhoneCaptureStep — violates Global Product Standard.
-4. **`Start.tsx` hard-codes `returnTo=/app/feed`** — company / admin signups land on talent feed.
-5. **No "already completed onboarding" guard** in `AccountUpgradeModal` invocation path (verify).
+1. **No `useEffect` to hydrate `formData` / `skills` / `experience` / `education` / `languages` / `achievements` / `profilePhotoUrl` / `coverImageUrl` / `cvUrl` from `talent`.** Opening edit shows empty form; saving wipes the user's existing data.
+2. Only **two fields** are actually rendered (`fullName`, `phone`). Everything else (customProfession, currentStatus, institution, fieldOfStudy, linkedinUrl, portfolioUrl, skills, experience, education, languages, achievements) is collected in state and saved, but **never has an input** in the JSX. Editors exist (`SkillsEditor`, `ExperienceEditor`, `EducationEditor`) but are imported and not mounted.
+3. Hardcoded `countryCode: "+880"`, `country: "BD"` defaults — violates Global Product Standard.
 
-## Sub-phases (each small, independently shippable)
+### P0 — `Profile.tsx` is half-built
 
-### A2-FIX-1 — Dead-code triage (10 min, no risk)
-Decide per file (recommend: **delete all six orphans + `useOnboarding`**; resurrect `PhoneCaptureStep` in A2-FIX-3 from git/this file's last known good).
-- Delete: `WelcomeBonus.tsx`, `ServicesTour.tsx`, `GoalStep.tsx`, `CVUploadStep.tsx`, `ProfessionStep.tsx`, `hooks/useOnboarding.ts`
-- Keep `PhoneCaptureStep.tsx` (needed for A2-FIX-3) but rewrite in that phase
-- Verify build still passes
+4. Only renders **AI Summary** card + `PublicProfileSettings`. Experience / Education / Skills / Achievements / Languages are dropped behind a `{/* Similar pattern for Experience and other sections... */}` comment. User sees a profile page with no resume content.
+5. `useTalent()` hydrates `country/countryCode` but they're never shown (no location chip, no contact row). `email`, `phone`, `linkedinUrl`, `portfolioUrl` also missing from render.
 
-### A2-FIX-2 — Humanize `OnboardingWizard` copy (~30 min)
-File: `src/components/onboarding/OnboardingWizard.tsx` only. Pure string changes, no logic.
+### P1 — Copy is corporate techno-babble across all 4 pages
 
-| Where | From | To |
-|---|---|---|
-| Header title | "INITIALIZE TRAJECTORY INDEX" | "Set up your profile" |
-| Step subtitle | "Stage X of Y · Country Analysis" | "Step X of Y · Country" |
-| Step 1 header | "Determine Base Geographical Region" | "Where are you based?" |
-| Step 1 sub | "We match dynamic localized criteria…" | "We'll show jobs, salaries, and opportunities near you." |
-| Step 2 header | "Identify Professional Persona Tier" | "Where are you in your career?" |
-| Step 2 sub | "Calibrate target experience curves…" | "Pick the stage that fits you best." |
-| Step 3 header | "Specify Academic Institutional Core" | "Where did you study?" |
-| Step 3 sub | "Synchronize your workspace ledger…" | "Connect with peers and your campus community." |
-| Step 3 placeholder | "Search academic university ledger matrix…" | "Search your university…" |
-| Step 3 empty | "No match. Try a shorter name…" | (keep — already fine) |
-| Step 3 footer | "Can't trace your absolute cluster node?…" | "Can't find your university? Add it — you can change this later." |
-| Step 4 header | "Target Specific Specialization Sub-School" | "What's your field?" |
-| Step 4 sub (no academy) | "Select the authoritative professional discipline…" | "Choose the path that fits you best." |
-| Step 4 sub (academy) | "Curated specific instructional tracks…" | "Tracks tailored for {stage} talent." |
-| Back btn | "Back" | "Back" (keep) |
-| Continue btn | "CONTINUE INGRESS" | "Continue" |
-| Final btn | "Finalize Synchronization & Link" | "Finish" |
-| Loading phases | "Saving your profile parameters…" / "Connecting to {x} Campus Agent…" / "Almost ready…" | "Saving…" / "Connecting you to {x}…" / "Almost done…" |
-| Success toast | "Connected to {x} AI Campus Ambassador" / "Your {school} specialization pathway is configured and live." | "You're connected to {x}" / "Your {school} workspace is ready." |
-| Error toast | "Ecosystem sync error: Setup execution timed out." / "Please attempt confirmation again…" | "Something went wrong setting up your profile." / "Please try again — your choices are saved." |
-| Empty country | "No baseline geographical clusters registered…" | "No countries available right now." |
-| Empty schools | "No vocational sub-school structures mapped…" | "No fields available for this track yet." |
+Examples to humanize:
+- "Identity List" / "Verified Logic Sync v2.6" / "CANDIDATE_EXPLORER" / "Recalibrate" / "AI Summary" → "My profile" / "Verified" / job title fallback / "Edit" / "About"
+- "Identity ledger synchronized." / "Sync failed. Admin agents notified." → "Profile saved." / "Couldn't save — please try again."
+- "Neural synthesis complete." / "Synthesis failed. Admin support alerted." → "Updated with AI." / "AI rewrite failed — please try again."
+- "Syncing List Node..." → "Loading your profile…"
+- ProfileEdit: "Identity Frame" / "Environmental Banner" / "Logic Artifact Ingestion (CV)" / "Authorize CV Ingestion" / "Active List Artifact" / "Verified Payload" / "Entity Name" / "Pending Sync" / "Finalize Sync" / "Discard" / "CV artifacts integrated." / "Extraction error. Admin alerted." → "Profile photo" / "Cover image" / "Upload your CV" / "Upload CV (PDF or Word)" / "CV uploaded" / pill removed / "Full name" / "Unsaved changes" / "Save changes" / "Cancel" / "We pulled your info from the CV." / "Couldn't read that CV — try a different file."
+- ProfileBuilder: header sub "Profile Concierge" is fine; minor handoff toast / errors to plain English.
 
-Also fix the duplicate `tracking-tight tracking-wide` Tailwind classes while we're in there.
+### P1 — Other
 
-### A2-FIX-3 — Mandatory phone capture (~45 min)
-1. Rewrite `PhoneCaptureStep.tsx`:
-   - Remove `+880` / `BD` default; default to the country selected in the wizard (passed via prop) or empty.
-   - Replace all copy: header → "Add your phone number", sub → "We'll use this to alert you about job replies and verification codes.", button → "Continue", loading → "Saving…", duplicate error → "This phone number is already on another account.", generic error → "Couldn't save your phone — please try again."
-2. Wire it into the post-auth onboarding gate:
-   - In `AccountUpgradeModal` (or a new `<OnboardingGate>` wrapping `OnboardingWizard`), after wizard's `onComplete`, check `talent.phone` — if empty, show `PhoneCaptureStep` before closing.
-   - For OAuth users whose talents row was created without a phone, same gate triggers on first app load if `onboardingCompletedAt` set but `phone` null.
-3. Add cheap guard so users with completed onboarding + phone never see the modal again.
+6. `useTalentPitches` is exported from `src/domains/profile` index but never imported anywhere (not in the 4 pages). Dead export — verify and drop.
+7. `Profile.tsx` `reportAnomaly` and `ProfileEdit.tsx` `reportAnomaly` are no-ops with `console.error`/`warn`. Replace with `errorTracking` helper (already in repo) or drop.
+8. `Profile.tsx` "Recalibrate" button + Settings icon both go to `/app/profile/edit` — redundant. Keep one (Edit).
+9. `ProfileEdit.tsx` discards on Cancel without confirming `isDirty` — silent data loss.
 
-### A2-FIX-4 — `Start.tsx` post-auth routing (~10 min)
-Replace the hard-coded `returnTo=/app/feed` with `resolvePostAuthRoute(accountType) ?? "/app/feed"` so company / admin signups land on their correct workspace.
+### P2 (defer)
+- `TalentPublicProfile.tsx` invokes `adminSupportAssistant` which has body-shape drift (per `.lovable/known-edge-contract-drift.md`). Drop the call.
+- `ProfileVerify.tsx` `reportAnomaly` cleanup.
 
-### A2-FIX-5 — Verification pass
-- Log in as `something@gro10x.com` (new test account) → walk full Start → /auth → onboarding → phone capture → land on `/app/feed`.
-- Sign in via Google (separate test account) → confirm phone capture gate fires.
-- Re-open `AccountUpgradeModal` for a user who already onboarded → modal does not reappear.
-- `gro10xnow@gmail.com` → `/start` should still bounce straight to `/dashboard` (admin route).
+## Sub-phases (small, independently shippable)
+
+### A3-FIX-1 — Fix `ProfileEdit` (P0, ~60 min)
+1. Add `useEffect([talent])` that hydrates every state field from `talent` (and uses `talent.country` / `talent.countryCode` instead of `+880`/`BD` fallback).
+2. Render the missing fields inside the existing `Card` block:
+   - About: `customProfession`, `currentStatus` (textarea)
+   - Education: `institution`, `fieldOfStudy`
+   - Links: `linkedinUrl`, `portfolioUrl`
+   - Lists: mount `<SkillsEditor>`, `<ExperienceEditor>`, `<EducationEditor>` (each already accepts value + onChange)
+   - Languages + Achievements: simple add/remove repeater (same pattern as old `ProfileSectionEditor`).
+3. Humanize copy (table above).
+4. Add `if (isDirty) confirm()` on Cancel + on back nav.
+
+### A3-FIX-2 — Fix `Profile` read view (P0, ~30 min)
+1. Replace the dropped `{/* Similar pattern… */}` comment with real cards: About, Experience, Education, Skills, Languages, Achievements. Each pulls from `talent` and shows the same `SectionHeader` + an empty-state CTA "Add your X" → opens `ProfileSectionEditor`.
+2. Add a contact strip below the avatar: country flag + name, email, phone, LinkedIn, portfolio (only when present).
+3. Humanize all copy.
+4. Drop the redundant "Recalibrate" button — keep only the Settings → Edit action.
+
+### A3-FIX-3 — Copy pass on `ProfileBuilder` / `ProfileVerify` / `TalentPublicProfile` (P1, ~20 min)
+Scan each for residual jargon strings (anomaly toasts, header copy) and humanize. No logic changes.
+
+### A3-FIX-4 — Cleanup (P1, ~10 min)
+- Replace `reportAnomaly` no-ops in Profile + ProfileEdit with `trackError(...)` from `src/lib/errorTracking.ts` (or drop).
+- Drop `useTalentPitches` re-export from `src/domains/profile/index.ts` if confirmed unused (rg -l confirms).
+- Drop the `adminSupportAssistant` invoke in `TalentPublicProfile.tsx` (known broken contract).
+
+### A3-FIX-5 — Verification
+- Test account `something@gro10x.com`:
+  - Sign in → Aisha → finish → land on `/app/feed`.
+  - Open `/app/profile` → all sections render with placeholders.
+  - Edit → fill fields → save → values persist on re-open.
+  - Upload CV → fields auto-fill from parsed CV.
+  - Cancel with unsaved changes → confirm dialog fires.
+- Admin `gro10xnow@gmail.com` unaffected (admin shell).
 
 ## Order & dependencies
 
-A2-FIX-1 → A2-FIX-2 → A2-FIX-4 (independent, parallel-safe after 1) → A2-FIX-3 (needs PhoneCaptureStep kept by 1) → A2-FIX-5.
+A3-FIX-1 → A3-FIX-2 (independent but read view should match edit) → A3-FIX-3 → A3-FIX-4 → A3-FIX-5.
 
-Each phase ships and we verify before moving to the next, matching the user's "small steps, no big mistakes" preference.
+Each phase ships and is verified before the next, matching the "small steps" preference.
 
-## Out of scope (defer)
+## Out of scope (defer to later phases)
 
-- WelcomeBonus / ServicesTour / GoalStep / CVUploadStep / ProfessionStep resurrection — none are referenced; if you want them later we'll spec them as a separate phase.
-- Backfill of existing `talents` rows with `country_code='BD'` → P2, separate DB migration phase.
-- AuthClassic / AuthChat copy polish — covered later (A3 or in `auth` polish bundle).
+- New profile-strength scoring rules (`ProfileCompletionMeter` logic untouched).
+- Public profile redesign per LinkedIn-style memory — already shipped at v2; we only humanize copy here.
+- KYC flow rewrite — `ProfileVerify` only gets a copy scan.
+- Backend column changes / new tables.
