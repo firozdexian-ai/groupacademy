@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { countJobsByType } from "@/domains/jobs/repo/jobsRepo";
 
 /**
  * GroUp Academy: Market Liquidity Sensor (V5.6.0)
