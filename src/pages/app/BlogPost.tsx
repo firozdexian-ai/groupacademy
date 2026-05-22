@@ -74,10 +74,7 @@ export default function BlogPost() {
 
     const commitAtomicViewIncrementMutation = async () => {
       try {
-        await supabase
-          .from("blog_posts")
-          .update({ views: fallbackViewsCountInt + 1 })
-          .eq("id", targetPostIdUUID);
+        await updateBlogPostViewsAbsolute(targetPostIdUUID, fallbackViewsCountInt + 1);
       } catch (suppressedMutationException) {
         // Suppress analytic tracing failures safely from core component threads
       }
