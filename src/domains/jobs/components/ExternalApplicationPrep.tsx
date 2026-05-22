@@ -82,12 +82,9 @@ export function ExternalApplicationPrep({
 
   const callEdgeFunction = useCallback(
     async (payload: Record<string, unknown>) => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        trackError(sessionError || "Unauthenticated session token check intercepted.", {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        trackError("Unauthenticated session token check intercepted.", {
           component: "ExternalApplicationPrep",
           action: "security_context_assertion",
         });
@@ -103,7 +100,7 @@ export function ExternalApplicationPrep({
           signal: abortControllerInstance.signal,
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify(payload),
