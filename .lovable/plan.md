@@ -58,3 +58,20 @@ Whatever's left in `src/pages/` + stray `src/components/` files
 - I will report accurate counts each turn (no domain-only undercount)
 
 Reply **continue 10j.5k11** to start.
+
+## Phase 10j.5k11 — Repo migration batch (10 pages) ✅
+
+Targeted public + auth-adjacent pages (first batch outside `src/domains/`).
+
+### Added repo helpers
+- `marketingRepo`: `listPublishedBlogPosts`, `listPublishedBlogPostCards`, `getPublishedBlogPostBySlug`, `getPublishedBlogPostDetailBySlug`, `updateBlogPostViewsAbsolute`, `listLatestPublishedBlogPostsLite`, `getSalaryAnalysisWithCategory`, `listPublishedCoursesByProfession`, `listPortfolioRequestsByEmailFull`
+- `learningRepo`: `getEnrollmentWithStudentAndContent`, `getLatestQuizAttemptByEnrollment`, `getSkillCredentialByVerifyCode`, `getCertificateByVerifyCode`
+
+### Refactored files
+- `pages/PublicBlog.tsx`, `pages/PublicBlogPost.tsx`, `pages/VerifyCertificate.tsx`, `pages/VerifySkillCredential.tsx`, `pages/PortfolioStatus.tsx`, `pages/Index.tsx`, `pages/ReportCard.tsx`, `pages/SalaryAnalysisResults.tsx`, `pages/app/Blog.tsx`, `pages/app/BlogPost.tsx`
+
+### Boundary metric (verified, multi-line scan)
+- Files with direct `.from(` outside repo/api: **73 → 63** (–10)
+- All 10 files now have zero `supabase` client imports.
+
+Say **continue 10j.5k12** to start the Abroad + Career batch.
