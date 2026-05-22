@@ -5,6 +5,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute, getDefaultRouteFor } from "@/lib/postAuthRoute";
+import { safeReturnTo } from "@/lib/safeReturnTo";
 
 /**
  * Public pre-auth onboarding entry point.
@@ -30,7 +31,7 @@ export default function Start() {
   useEffect(() => {
     if (authLoading || accountTypeLoading) return;
     if (user) {
-      const returnTo = searchParams.get("returnTo");
+      const returnTo = safeReturnTo(searchParams.get("returnTo"));
       const target = resolvePostAuthRoute(accountType, returnTo) ?? "/app/feed";
       navigate(target, { replace: true });
     }
