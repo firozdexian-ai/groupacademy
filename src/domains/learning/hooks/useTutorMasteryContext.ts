@@ -74,22 +74,23 @@ export function useTutorMasteryContext(opts?: UseTutorMasteryContextOptions) {
       if (!talentId) return null;
 
       // HUD: EXECUTING_AI_TUTOR_CONTEXT_RPC_INGRESS
-      const { data, error } = await supabase.rpc("get_tutor_mastery_context", {
-        _talent_id: talentId,
-        _module_id: moduleIdParam,
-        _content_id: contentIdParam,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Imprints explicit trace tracking packets for background monitoring agents
+      let data: any;
+      try {
+        data = await getTutorMasteryContext({
+          talentId,
+          moduleId: moduleIdParam,
+          contentId: contentIdParam,
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_tutor_mastery_context RPC lookup failed.", {
           talentId,
           moduleId: moduleIdParam,
           contentId: contentIdParam,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
+
 
       const raw = (data as any) || {};
 
