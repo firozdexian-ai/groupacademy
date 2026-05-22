@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -18,43 +18,38 @@ interface GoogleSignInButtonProps {
 export function GoogleSignInButton({ className, label = "Continue with Google" }: GoogleSignInButtonProps) {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
+  const redirectPendingRef = useRef(false);
 
-  // --- PHASE: ACCESSIBILITY_REFOCUS_STATE_CLEARANCE ---
-  // Architecture Fix: Defensively restore button interactive functionality if a user cancels or closes an outer auth popup window
+  // If the user closes/cancels the OAuth popup, the window regains focus
+  // without a redirect. Only re-enable the button in that case — never
+  // while a redirect is genuinely in flight (would allow double-click).
   useEffect(() => {
-    let isCurrentNodeMounted = true;
+    let mounted = true;
 
     const handleWindowFocusSync = () => {
-      // Small delayed tick ensures in-flight redirects or credential captures resolve completely first
+      if (document.visibilityState !== "visible") return;
+      if (redirectPendingRef.current) return;
       setTimeout(() => {
-        if (isCurrentNodeMounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }, 1200);
     };
 
     window.addEventListener("focus", handleWindowFocusSync);
     return () => {
-      isCurrentNodeMounted = false;
+      mounted = false;
       window.removeEventListener("focus", handleWindowFocusSync);
     };
   }, []);
 
-  // --- ACTION: ATOMIC_OAUTH_DISPATCH_HANDSHAKE ---
   const handleGoogleSignInClick = useCallback(async () => {
     if (loading) return;
-
     setLoading(true);
+    redirectPendingRef.current = true;
     try {
-      // HUD: COMMITTING_IDENTITY_INGRESS_OAUTH_HANDSHAKE
       await signInWithGoogle();
     } catch (err: any) {
-      // Digital Workforce Anomaly Trigger: Essential for catching localized connection timeouts
-      console.error("[Digital Workforce] ANOMALY: Google OAuth transaction pipeline rejected.", {
-        message: err?.message || "Uplink handshake failure.",
-        timestamp: new Date().toISOString(),
-      });
-
+      console.error("[GoogleSignIn] OAuth failed:", err?.message || err);
+      redirectPendingRef.current = false;
       setLoading(false);
     }
   }, [loading, signInWithGoogle]);
