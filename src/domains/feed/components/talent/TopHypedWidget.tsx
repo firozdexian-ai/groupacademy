@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listTopHypedPostsWeek } from "@/domains/feed/repo/feedRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
@@ -30,39 +30,7 @@ export function TopHypedWidget() {
     queryKey: ["top-hyped-posts-week"],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      // Pull metadata aggregates from the optimized database analysis view
-      const { data: topRows, error: topError } = await supabase
-        .from("v_top_hyped_posts_week")
-        .select("post_id, hypes_week")
-        .limit(5);
-
-      if (topError) throw topError;
-
-      const postIds = (topRows ?? []).map((t) => t.post_id).filter(Boolean);
-      if (!postIds.length) return [];
-
-      // Batch look up connecting post parameters natively using the unique ID indices array
-      const { data: contentRows, error: contentError } = await supabase
-        .from("feed_posts")
-        .select("id, text_content, talents(full_name)")
-        .in("id", postIds);
-
-      if (contentError) throw contentError;
-
-      // Construct a linear lookup mapping buffer to join datasets at O(N) complexity
-      const postBuffer = new Map((contentRows ?? []).map((row: any) => [row.id, row]));
-
-      return (topRows ?? []).map((trendingRow) => {
-        const postData = postBuffer.get(trendingRow.post_id);
-        return {
-          post_id: trendingRow.post_id,
-          hypes_week: Number(trendingRow.hypes_week || 0),
-          preview: postData?.text_content?.slice(0, 80) ?? null,
-          author_name: postData?.talents?.full_name ?? "Academy Member",
-        };
-      });
-    },
+    queryFn: async () => (await listTopHypedPostsWeek(5)) as TopPost[],
   });
 
   // 2. Instrument Lifecycle Observability & Exception Metrics Tracking

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { tipComment } from "@/domains/feed/repo/feedRepo";
+import { tipComment, listPostComments, insertPostComment } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -41,37 +41,21 @@ export function CommentList({ postId }: CommentListProps) {
   const { data: comments = [], isLoading: loading } = useQuery<Comment[]>({
     queryKey: ["post-comments", postId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("post_comments")
-        .select(
-          `
-          id, 
-          body, 
-          created_at, 
-          tip_count, 
-          tip_credits, 
-          author_talent_id, 
-          talents:author_talent_id(full_name, profile_photo_url)
-        `,
-        )
-        .eq("post_id", postId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) {
-        trackError(error.message, { component: "CommentList", action: "fetch_comments", postId });
-        throw error;
+      try {
+        const data = await listPostComments(postId, 50);
+        return (data ?? []).map((c: any) => ({
+          id: c.id,
+          body: c.body,
+          created_at: c.created_at,
+          tip_count: c.tip_count,
+          tip_credits: c.tip_credits,
+          author_talent_id: c.author_talent_id,
+          author: c.talents,
+        }));
+      } catch (err: any) {
+        trackError(err?.message ?? String(err), { component: "CommentList", action: "fetch_comments", postId });
+        throw err;
       }
-
-      return (data ?? []).map((c: any) => ({
-        id: c.id,
-        body: c.body,
-        created_at: c.created_at,
-        tip_count: c.tip_count,
-        tip_credits: c.tip_credits,
-        author_talent_id: c.author_talent_id,
-        author: c.talents,
-      }));
     },
     retry: 2,
     refetchOnWindowFocus: false,
@@ -108,9 +92,7 @@ export function CommentList({ postId }: CommentListProps) {
     setIsPostingLocal(true);
     trackEvent("comment_submission_initiated", { postId, talentId: talent.id });
 
-    const { error } = await supabase
-      .from("post_comments")
-      .insert({ post_id: postId, author_talent_id: talent.id, body: text });
+    const { error } = await insertPostComment({ postId, authorTalentId: talent.id, body: text });
 
     setIsPostingLocal(false);
 
