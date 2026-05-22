@@ -73,17 +73,14 @@ export function useOrgLearningHealth(companyId: string | undefined) {
     enabled: !!companyId,
     staleTime: 60 * 1000, // 1-minute organizational health consistency boundary
     queryFn: async (): Promise<OrgLearningHealth> => {
-      // HUD: EXECUTING_RPC_ORG_LEARNING_HEALTH
-      const { data, error } = await supabase.rpc("org_learning_health", {
-        p_company_id: companyId!,
-      });
-
-      if (error) {
+      try {
+        return await getOrgLearningHealth<OrgLearningHealth>(companyId!);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: org_learning_health calculation rejected.", error);
         throw error;
       }
-      return data as unknown as OrgLearningHealth;
     },
+
   });
 }
 
