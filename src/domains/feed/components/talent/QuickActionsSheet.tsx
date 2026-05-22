@@ -48,16 +48,8 @@ export function QuickActionsSheet({ open, onClose }: QuickActionsSheetProps) {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       try {
-        // Direct query criteria lookup using canonical typed selectors
-        const { data, error: dbError } = await supabase
-          .from("ai_agents")
-          .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
-          .eq("is_active", true)
-          .order("total_conversations", { ascending: false });
-
-        if (dbError) throw dbError;
-
-        return (data || []) as AgentRow[];
+        const data = await listActiveQuickActionAgents();
+        return data as AgentRow[];
       } catch (queryErr: any) {
         // Intercept background extraction issues and beam data snapshots back to central logs
         trackError(queryErr instanceof Error ? queryErr : String(queryErr), {
