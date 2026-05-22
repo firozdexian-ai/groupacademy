@@ -41,12 +41,12 @@ export function useToolRuns(limit = 5) {
     staleTime: 60 * 1000, // 1-minute visual consistency window for ledger grids
     queryFn: async (): Promise<ToolRun[]> => {
       // HUD: SECURE_USER_SESSION_INGRESS_CHECK
-      const { data: userRes, error: authError } = await supabase.auth.getUser();
-      if (authError || !userRes.user) return [];
+      const user = await getCurrentUser();
+      if (!user) return [];
 
       let data: any[] = [];
       try {
-        data = await listToolRunsForUser(userRes.user.id, limit);
+        data = await listToolRunsForUser(user.id, limit);
       } catch (error) {
         console.error("[Digital Workforce] FAULT: tool_runs collection channel dropped.", error);
         throw error;
