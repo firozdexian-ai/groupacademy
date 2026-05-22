@@ -87,18 +87,15 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
       const fullTargetObjectStoragePathStr = `profile-photos/${nonCollidingUniqueFileNameStr}`;
 
       // STORAGE TRANSACT EXECUTION: Push binary object to bucket allocation
-      const { error: storageUploadRegistryError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fullTargetObjectStoragePathStr, targetedFileItem, {
-          cacheControl: "3600",
+      let publicUrl: string;
+      try {
+        const uploadResult = await uploadPortfolioFile(fullTargetObjectStoragePathStr, targetedFileItem, {
           upsert: false,
         });
-
-      if (storageUploadRegistryError) throw storageUploadRegistryError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fullTargetObjectStoragePathStr);
+        publicUrl = uploadResult.publicUrl;
+      } catch (storageUploadRegistryError) {
+        throw storageUploadRegistryError;
+      }
 
       // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
