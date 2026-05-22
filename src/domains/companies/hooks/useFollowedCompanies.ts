@@ -1,74 +1,82 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCurrentUser } from "@/lib/auth";
-import {
-  listFollowedCompanyNames,
-  followCompany,
-  unfollowCompany,
-} from "@/domains/companies/repo/companiesRepo";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-/**
- * GroUp Academy: Company Interest & Follow Sentinel (V5.6.0)
- * Phase 10f: now routes table I/O through companiesRepo.
- */
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useFollowedCompanies() {
-  const qc = useQueryClient();
-  const queryKey = ["followed-companies"];
+  const { user } = useAuth();
 
-  const list = useQuery({
-    queryKey,
-    staleTime: 1000 * 60 * 5,
-    queryFn: async (): Promise<string[]> => {
-      const user = await getCurrentUser();
-      if (!user) return [];
-      return listFollowedCompanyNames(user.id);
+  return useQuery({
+    queryKey: ["followed-companies", user?.id ?? null],
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<Set<string>> => {
+      if (!user?.id) return new Set();
+      const { data, error } = await supabase
+        .from("followed_companies")
+        .select("company_name")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.company_name));
     },
   });
+}
 
-  const toggle = useMutation({
-    mutationFn: async (company_name: string) => {
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Please sign in to follow companies");
+export function useToggleFollowCompany() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
 
-      const isCurrentlyFollowing = (list.data ?? []).includes(company_name);
-      if (isCurrentlyFollowing) {
-        await unfollowCompany(user.id, company_name);
-        return { company_name, following: false };
+  return useMutation({
+    mutationFn: async (companyName: string) => {
+      if (!user?.id) {
+        navigate("/auth?returnTo=/app/jobs?tab=company");
+        throw new Error("auth-required");
+      }
+      const key = ["followed-companies", user.id];
+      const current = qc.getQueryData<Set<string>>(key) ?? new Set<string>();
+      const isFollowing = current.has(companyName);
+
+      if (isFollowing) {
+        const { error } = await supabase
+          .from("followed_companies")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("company_name", companyName);
+        if (error) throw error;
+        return { companyName, nowFollowing: false };
       } else {
-        await followCompany(user.id, company_name);
-        return { company_name, following: true };
+        const { error } = await supabase
+          .from("followed_companies")
+          .insert({ user_id: user.id, company_name: companyName });
+        if (error) throw error;
+        return { companyName, nowFollowing: true };
       }
     },
-    onMutate: async (company_name) => {
-      await qc.cancelQueries({ queryKey });
-      const previousFollows = qc.getQueryData<string[]>(queryKey);
-      if (previousFollows) {
-        const isFollowing = previousFollows.includes(company_name);
-        const nextFollows = isFollowing
-          ? previousFollows.filter((name) => name !== company_name)
-          : [...previousFollows, company_name];
-        qc.setQueryData(queryKey, nextFollows);
+    onMutate: async (companyName: string) => {
+      if (!user?.id) return;
+      const key = ["followed-companies", user.id];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Set<string>>(key) ?? new Set<string>();
+      const next = new Set(prev);
+      if (next.has(companyName)) next.delete(companyName);
+      else next.add(companyName);
+      qc.setQueryData(key, next);
+      return { prev };
+    },
+    onError: (err: any, _v, ctx) => {
+      if (err?.message === "auth-required") return;
+      if (user?.id && ctx?.prev) {
+        qc.setQueryData(["followed-companies", user.id], ctx.prev);
       }
-      return { previousFollows };
+      toast.error("Couldn't update follow. Try again.");
     },
-    onSuccess: (res) => {
-      toast.success(res.following ? `Now following ${res.company_name}` : `Unfollowed ${res.company_name}`);
-    },
-    onError: (err: any, _company_name, context) => {
-      if (context?.previousFollows) qc.setQueryData(queryKey, context.previousFollows);
-      toast.error(err.message ?? "Connection timeout. Follow state not updated.");
+    onSuccess: ({ nowFollowing, companyName }) => {
+      toast.success(nowFollowing ? `Following ${companyName}` : `Unfollowed ${companyName}`);
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey });
+      if (user?.id) qc.invalidateQueries({ queryKey: ["followed-companies", user.id] });
     },
   });
-
-  return {
-    followed: list.data ?? [],
-    isLoading: list.isLoading,
-    isFollowing: (name: string) => (list.data ?? []).includes(name),
-    toggle: toggle.mutate,
-    toggling: toggle.isPending,
-  };
 }
