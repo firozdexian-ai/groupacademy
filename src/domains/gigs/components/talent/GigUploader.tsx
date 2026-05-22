@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/lib/auth";
 import { uploadGigSubmission, removeGigSubmissions } from "@/domains/gigs/repo/gigsRepo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
