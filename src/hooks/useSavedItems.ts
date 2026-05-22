@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { listSavedItemsByTalent, deleteSavedItemRow, insertSavedItemRow } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
