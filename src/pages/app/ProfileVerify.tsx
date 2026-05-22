@@ -127,48 +127,49 @@ export default function ProfileVerify() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-10 pb-40 space-y-8 animate-in fade-in duration-700">
-      <header className="flex items-center gap-5">
-        <Button variant="ghost" size="icon" className="rounded-xl h-12 w-12" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-6 w-6 text-primary" />
+      <header className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter italic">Verify Identity</h1>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
-            Required for credit disbursement.
+          <h1 className="text-2xl font-bold">Verify your identity</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Required before we can pay out earnings.
           </p>
         </div>
       </header>
 
-      <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-xl">
-        <CardContent className="p-8 flex items-center gap-6">
+      <Card>
+        <CardContent className="p-6 flex items-center gap-5">
           <div
             className={cn(
-              "h-16 w-16 rounded-2xl flex items-center justify-center",
+              "h-14 w-14 rounded-2xl flex items-center justify-center",
               verified ? "bg-emerald-500/10" : "bg-primary/10",
             )}
           >
-            <ShieldCheck className={cn("h-8 w-8", verified ? "text-emerald-600" : "text-primary")} />
+            <ShieldCheck className={cn("h-7 w-7", verified ? "text-emerald-600" : "text-primary")} />
           </div>
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-black uppercase tracking-tight italic">
+              <p className="font-semibold">
                 {verified
-                  ? "Profile Verified"
+                  ? "Profile verified"
                   : verificationStatus === "pending"
-                    ? "Review In Progress"
-                    : "Identity Sync Pending"}
+                    ? "Review in progress"
+                    : "Verification pending"}
               </p>
-              <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-muted/50">
+              <Badge variant="outline" className="text-[10px]">
                 {verificationStatus}
               </Badge>
             </div>
             <Progress value={pct} className="h-2" />
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              {completed}/{checks.length} Logic Gates Cleared
+            <p className="text-xs text-muted-foreground">
+              {completed} of {checks.length} steps complete
             </p>
           </div>
         </CardContent>
       </Card>
+
 
       <div className="space-y-4">
         {checks.map((c) => (
