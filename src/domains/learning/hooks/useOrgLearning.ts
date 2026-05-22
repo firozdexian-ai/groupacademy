@@ -171,28 +171,17 @@ export function useAssignTalents() {
       budget_per_seat?: number | null;
       note?: string | null;
     }) => {
-      // HUD: ATOMIC_BULK_ENTERPRISE_ASSIGNMENT_RPC
-      const { data, error } = await supabase.rpc("org_assign_talents", {
-        p_company_id: input.company_id,
-        p_content_id: input.content_id,
-        p_cohort_id: input.cohort_id ?? null,
-        p_user_ids: input.user_ids,
-        p_due_at: input.due_at ?? null,
-        p_budget_per_seat: input.budget_per_seat ?? null,
-        p_note: input.note ?? null,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Captures business logic blocks (such as fiscal deficits or registration locks)
+      try {
+        return await orgAssignTalents(input);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: org_assign_talents bulk operation rejected.", {
           companyId: input.company_id,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
-      return data;
     },
+
     onSuccess: (_, vars) => {
       // Invalidate the full dependency graph to prevent stale presentation grids
       void qc.invalidateQueries({ queryKey: ["org-assignments", vars.company_id] });
