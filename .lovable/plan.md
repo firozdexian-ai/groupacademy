@@ -65,3 +65,13 @@ Migrated 10 files in Agents, Jobs, Marketing, Gigs, Learning, and Feed domains f
 - All 10 refactored files now have zero `supabase` client imports.
 
 Say **continue 10j.5k10** to run the next batch.
+
+## Phase 10j.5k10 — Repo migration batch (10 files)
+
+- Added helpers: `feedRepo.listTopHypedPostsWeek`, `listPostComments`, `insertPostComment`;
+  `gigsRepo.getTalentAvailability`, `upsertTalentAvailability`, `listMyOpenMarketplaceGigs`, `listShareableActiveContent`;
+  `financeRepo.listAdminCreditInvoices`;
+  `learningRepo.getCertificateMinimalByEnrollment`, `insertCertificate`, `getCertificateFullByEnrollment`, `listCohortsByContent`, `getCohortDetail`, `listCohortSessions`, `listCourseModulesByContent`, `listStudentResourceProgressFull`, `listModuleResourceIdsByStage`, `upsertStudentResourceProgress`, `markEnrollmentCompleted`;
+  `agentsRepo.listTalentAgentChatSessionKeys`, `listTopActiveAgentsForQuickActions`.
+- Refactored: TopHypedWidget, QuickActionsGrid, CommentList (kept realtime channel), AvailabilityWidget, Gro10xOpenGigs, CourseSharingGigForm, InvoicesTab, useCertificate, useCohorts, useCourseProgress.
+- Boundary: 83 → 72 files with direct `.from(` (10 files migrated; 1 retains supabase only for realtime).
