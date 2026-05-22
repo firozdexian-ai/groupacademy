@@ -11,14 +11,12 @@ export function AgentChannelsTab() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("agent_channels")
-      .select("*")
-      .order("channel_key")
-      .then(({ data }) => {
-        setRows(data ?? []);
+    listAgentChannels()
+      .then((data) => {
+        setRows(data);
         setIsLoading(false);
-      });
+      })
+      .catch(() => setIsLoading(false));
   }, []);
 
   return (
