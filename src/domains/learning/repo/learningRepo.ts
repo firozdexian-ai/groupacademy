@@ -1876,3 +1876,43 @@ export async function listCompanyLearningSeats(companyId: string): Promise<any[]
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5k9: learning stats hook ───────────────────────────────────
+export async function listActiveTalentEnrollmentsWithModules(talentId: string, limit = 10) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(
+      `id, status, progress, current_module_id, last_accessed_at,
+       content:content_id (
+         id, title, slug, thumbnail_url, content_type, modules_count, estimated_hours,
+         modules:course_modules ( id, title, display_order, estimated_time_minutes )
+       )`,
+    )
+    .eq("talent_id", talentId)
+    .in("status", ["active", "pending_payment"])
+    .order("last_accessed_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function countCompletedEnrollments(talentId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("enrollments")
+    .select("*", { count: "exact", head: true })
+    .eq("talent_id", talentId)
+    .eq("status", "completed");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function listRecentLearningActivity(talentId: string, limit = 30) {
+  const { data, error } = await supabase
+    .from("learning_activity")
+    .select("activity_date, minutes_learned, modules_completed, stages_completed")
+    .eq("talent_id", talentId)
+    .order("activity_date", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
