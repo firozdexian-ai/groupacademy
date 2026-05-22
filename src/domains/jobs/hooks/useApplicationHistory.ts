@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listTalentApplicationHistory } from "@/domains/jobs/repo/jobsRepo";
 import { useTalent } from "@/hooks/useTalent";
 
 /**
