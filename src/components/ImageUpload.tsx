@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, Loader2, ImagePlus, ShieldCheck, Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadToBucketPublic } from "@/domains/profile/repo/profileRepo";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
