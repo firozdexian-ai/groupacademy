@@ -341,3 +341,30 @@ export async function listActiveSchools(academyId?: string | null) {
   if (error) throw error;
   return (data ?? []) as Array<{ id: string; name: string; slug: string; description: string | null; icon: string | null; academy_id: string | null }>;
 }
+
+// ─── Phase 10j.5h6: public discovery & profile RPC wrappers ───────────────
+export async function getPublicTalentProfile<T = any>(handle: string): Promise<T | null> {
+  const { data, error } = await supabase.rpc("get_public_talent_profile", { _handle: handle });
+  if (error) throw error;
+  return (data ?? null) as T | null;
+}
+
+export async function searchPublicTalents<T = any>(args: {
+  filters: { keyword?: string; country?: string; skills?: string[] | null };
+  limit: number;
+  offset: number;
+}): Promise<T> {
+  const { data, error } = await supabase.rpc("search_public_talents", {
+    p_filters: args.filters as any,
+    p_limit: args.limit,
+    p_offset: args.offset,
+  });
+  if (error) throw error;
+  return (data ?? {}) as T;
+}
+
+export async function getTalentOutcomeSignal<T = any>(talentId: string): Promise<T> {
+  const { data, error } = await supabase.rpc("get_talent_outcome_signal", { _talent_id: talentId });
+  if (error) throw error;
+  return (data ?? {}) as T;
+}

@@ -873,3 +873,25 @@ export async function broadcastNotifications(args: {
   });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5h6: talent connection RPC wrappers ────────────────────────
+export async function requestTalentConnection(recipientId: string): Promise<void> {
+  const { error } = await supabase.rpc("talent_connection_request", { _recipient: recipientId });
+  if (error) throw error;
+}
+
+export async function respondTalentConnection(args: { requestId: string; accept: boolean }): Promise<void> {
+  const { error } = await supabase.rpc("talent_connection_respond", {
+    _request: args.requestId,
+    _accept: args.accept,
+  });
+  if (error) throw error;
+}
+
+export async function acceptConnectionAndOpenThread(connectionId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("connection_accept_and_open_thread", {
+    _connection_id: connectionId,
+  });
+  if (error) throw error;
+  return data ? String(data) : null;
+}
