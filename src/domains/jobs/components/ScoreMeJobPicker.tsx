@@ -54,10 +54,7 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
       trackEvent("score_me_job_picker_data_fetch_initiated");
 
       try {
-        const { data: userRes, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-
-        const uid = userRes?.user?.id;
+        const uid = await getCurrentUserId();
         const out: JobLite[] = [];
         const seen = new Set<string>();
 
