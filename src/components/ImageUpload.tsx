@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, Loader2, ImagePlus, ShieldCheck, Zap } from "lucide-react";
-import { uploadToBucketPublic } from "@/domains/profile/repo/profileRepo";
+import { uploadToBucketPublic, removeFromBucket } from "@/domains/profile/repo/profileRepo";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
