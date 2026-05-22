@@ -86,7 +86,7 @@ export function TalentAppShell() {
   const [isContentLead, setIsContentLead] = useState(false);
   const credits = useCreditPurchase();
 
-  // HUD: Institutional Navigation Artifacts
+  // Bottom nav items
   const desktopNavItems: NavItem[] = [
     { label: "Home", icon: Home, path: "/app/feed" },
     { label: "Jobs", icon: Briefcase, path: "/app/jobs" },
