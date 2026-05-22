@@ -105,10 +105,10 @@ export default function AgentProfile() {
               talentId: authenticatedTalentNode.id,
               agentKey: unverifiedAgentKeyStr,
             }).catch(() => []),
-            supabase.rpc("is_agent_connected", {
-              _agent_key: unverifiedAgentKeyStr,
-              _talent_id: authenticatedTalentNode.id,
-            }),
+            isAgentConnected({
+              agentKey: unverifiedAgentKeyStr,
+              talentId: authenticatedTalentNode.id,
+            }).catch(() => false),
           ]);
 
           if (!isThreadActiveAndValid) return;
