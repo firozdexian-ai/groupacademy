@@ -13,9 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentSession } from "@/lib/auth";
-import { logOutreachAndEmail } from "@/domains/ir/repo/irRepo";
+import { logOutreachAndEmail, listIrEmailCommunications } from "@/domains/ir/repo/irRepo";
 import { Send, X, ShieldCheck, Mail, Loader2, ExternalLink, History, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -43,15 +42,8 @@ function CommunicationHistory({ investorId }: { investorId?: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["ir-email-communications", investorId ?? "all"],
     queryFn: async () => {
-      let query = supabase
-        .from("ir_email_communications")
-        .select("id, investor_id, email_type, subject, content, ai_generated, sent_at, status, open_count, click_count, created_at")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (investorId) query = query.eq("investor_id", investorId);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as CommunicationRow[];
+      const rows = await listIrEmailCommunications(investorId, 10);
+      return rows as CommunicationRow[];
     },
   });
 

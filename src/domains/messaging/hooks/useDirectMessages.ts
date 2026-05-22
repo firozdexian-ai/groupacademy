@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
-import { insertDirectMessage } from "@/domains/messaging/repo/messagingRepo";
+import { insertDirectMessage, listDirectMessages } from "@/domains/messaging/repo/messagingRepo";
 
 /**
  * GroUp Academy: Direct Messaging Sync & Ingress Hub (V5.6.0)
@@ -40,21 +40,16 @@ export function useDirectMessages(threadId: string | undefined) {
     staleTime: 0,
     queryFn: async (): Promise<DirectMessage[]> => {
       // HUD: EXECUTING_INDEX_THREAD_SELECT
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select("*")
-        .eq("thread_id", threadId!)
-        .order("created_at", { ascending: true });
-
-      if (error) {
+      try {
+        const rows = await listDirectMessages(threadId!);
+        return rows as DirectMessage[];
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: direct_messages historical selection failure.", {
           threadId,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-
-      return (data ?? []) as DirectMessage[];
     },
   });
 

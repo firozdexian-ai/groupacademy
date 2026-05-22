@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { getIrInvestorDetail, listIrInvestorInteractions } from "@/domains/ir/repo/irRepo";
 import {
   Mail,
   Phone,
@@ -46,13 +46,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
     queryKey: ["ir-investor-detail", investorId],
     queryFn: async () => {
       if (!investorId) return null;
-      const { data, error } = await supabase
-        .from("ir_investors")
-        .select("*, vc_firm:ir_vc_firms(id, name, status)")
-        .eq("id", investorId)
-        .single();
-      if (error) throw error;
-      return data;
+      return await getIrInvestorDetail(investorId);
     },
     enabled: !!investorId,
   });
@@ -61,14 +55,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
     queryKey: ["ir-investor-interactions", investorId],
     queryFn: async () => {
       if (!investorId) return [];
-      const { data, error } = await supabase
-        .from("ir_investor_interactions")
-        .select("*")
-        .eq("investor_id", investorId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data;
+      return await listIrInvestorInteractions(investorId, 20);
     },
     enabled: !!investorId,
   });
