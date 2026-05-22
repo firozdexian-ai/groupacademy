@@ -146,13 +146,11 @@ export default function AgentProfile() {
     const numericalConnectionFeeValue = Number(agentProfileData.connection_fee ?? 0);
 
     try {
-      const { error: rpcMutationHandshakeError } = await supabase.rpc("connect_agent", {
-        _agent_key: unverifiedAgentKeyStr,
-        _talent_id: authenticatedTalentNode.id,
-        _fee: numericalConnectionFeeValue,
+      await connectAgent({
+        agentKey: unverifiedAgentKeyStr,
+        talentId: authenticatedTalentNode.id,
+        fee: numericalConnectionFeeValue,
       });
-
-      if (rpcMutationHandshakeError) throw rpcMutationHandshakeError;
 
       setIsUplinkConnected(true);
       executeNavigationHook(`/app/messages/${unverifiedAgentKeyStr}`);
