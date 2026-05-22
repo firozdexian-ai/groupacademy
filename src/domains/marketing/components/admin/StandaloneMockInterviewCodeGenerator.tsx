@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { insertMockInterviewAccessCode } from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,9 +40,8 @@ export function StandaloneMockInterviewCodeGenerator() {
     setIsGenerating(true);
     try {
       // 1. Authenticated Identity Audit
-      const authResponse = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Authentication check timed out");
+      const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Authentication check timed out");
 
-      const user = authResponse?.data?.user;
       const codes: string[] = [];
 
       // 2. High-Intensity Generation Loop
