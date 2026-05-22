@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, MapPin, Briefcase, TrendingUp } from "lucide-react";
 import { useCompanyDetail } from "@/domains/companies/hooks/useCompanyDetail";
-import { useFollowedCompanies } from "@/domains/companies/hooks/useFollowedCompanies";
+import { useFollowedCompanies, useToggleFollowCompany } from "@/domains/companies/hooks/useFollowedCompanies";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { JobCard } from "./JobCard";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -47,7 +47,8 @@ export function CompanyDetailSheet({ companyName, open, onOpenChange }: Props) {
 
   // 1. Core Server State Query Hook Sync Configuration
   const { data, isLoading, error: detailLoadError } = useCompanyDetail(open ? companyName : null);
-  const { isFollowing, toggle } = useFollowedCompanies();
+  const { data: followedSet } = useFollowedCompanies();
+  const { mutateAsync: toggleFollow } = useToggleFollowCompany();
   const { isSaved, toggleSave } = useSavedItems();
 
   // Monitor query transaction faults transparently via central telemetry boundaries
@@ -63,7 +64,7 @@ export function CompanyDetailSheet({ companyName, open, onOpenChange }: Props) {
 
   const header = data?.header;
   const jobs = data?.jobs ?? [];
-  const userIsFollowingTarget = companyName ? !!isFollowing(companyName) : false;
+  const userIsFollowingTarget = companyName ? !!followedSet?.has(companyName) : false;
 
   const handleFollowRelationshipToggle = async () => {
     if (!companyName) return;
@@ -74,7 +75,7 @@ export function CompanyDetailSheet({ companyName, open, onOpenChange }: Props) {
     });
 
     try {
-      await toggle(companyName);
+      await toggleFollow(companyName);
 
       // Automated Efficiency: Synchronize cache pools instantly across vertical layouts
       queryClient.invalidateQueries({ queryKey: ["company-detail", companyName] });
