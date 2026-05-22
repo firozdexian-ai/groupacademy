@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { searchPublicTalents } from "@/domains/profile/repo/profileRepo";
 
 /**
  * GroUp Academy: Enterprise Directory Discovery Engine (V5.6.0)
@@ -63,18 +63,18 @@ export function useTalentSearch(filters: TalentSearchFilters, page = 0, pageSize
       };
 
       // HUD: EXECUTING_DIRECTORY_RPC_QUERY_INGRESS
-      const { data, error } = await supabase.rpc("search_public_talents", {
-        p_filters: payloadFilters,
-        p_limit: pageSize,
-        p_offset: page * pageSize,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Crucial for monitoring complex directory search performance
+      let data: any;
+      try {
+        data = await searchPublicTalents<any>({
+          filters: payloadFilters,
+          limit: pageSize,
+          offset: page * pageSize,
+        });
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: search_public_talents RPC pipeline dropped.", {
           payloadFilters,
           page,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }

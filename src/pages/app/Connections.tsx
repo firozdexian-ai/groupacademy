@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { acceptConnectionAndOpenThread, respondTalentConnection } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -160,12 +161,7 @@ export default function Connections() {
 
       const isThreadMountedFlag = { current: true };
       try {
-        const { data: rpcThreadIdResponse, error: rpcMutationHandshakeError } = await supabase.rpc(
-          "connection_accept_and_open_thread",
-          { _connection_id: targetConnectionIdUUID },
-        );
-
-        if (rpcMutationHandshakeError) throw rpcMutationHandshakeError;
+        const rpcThreadIdResponse = await acceptConnectionAndOpenThread(targetConnectionIdUUID);
 
         toast({
           title: "Connection Request Finalized",
@@ -199,12 +195,7 @@ export default function Connections() {
 
       const isThreadMountedFlag = { current: true };
       try {
-        const { error: rpcMutationHandshakeError } = await supabase.rpc("talent_connection_respond", {
-          _request: targetConnectionIdUUID,
-          _accept: false,
-        });
-
-        if (rpcMutationHandshakeError) throw rpcMutationHandshakeError;
+        await respondTalentConnection({ requestId: targetConnectionIdUUID, accept: false });
 
         toast({
           title: "Connection Request Denied",

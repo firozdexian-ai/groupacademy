@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getCompanyBrandedCatalog } from "@/domains/ugc/repo/ugcRepo";
 import { Building2, BookOpen, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,18 +50,11 @@ export default function CompanyBrandedCatalog() {
 
     const executeAsynchronousHandshakeLookup = async () => {
       try {
-        const { data: outputPayload, error: databaseHandshakeError } = await supabase.rpc(
-          "get_company_branded_catalog",
-          { p_slug: unverifiedRouteSlugString },
-        );
+        const outputPayload = await getCompanyBrandedCatalog<BrandedCatalog>(unverifiedRouteSlugString);
 
         if (!isExecutionTrackActive) return;
 
-        if (databaseHandshakeError || !outputPayload) {
-          setCatalogPayloadState(null);
-        } else {
-          setCatalogPayloadState(outputPayload as unknown as BrandedCatalog);
-        }
+        setCatalogPayloadState(outputPayload ?? null);
       } catch (unhandledTerminalException) {
         if (isExecutionTrackActive) setCatalogPayloadState(null);
       } finally {

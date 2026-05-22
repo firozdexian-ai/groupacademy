@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link, NavLink } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getLeaderboard } from "@/domains/ugc/repo/ugcRepo";
 import { setHead } from "@/lib/setHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,19 +49,15 @@ export default function PublicLeaderboard() {
 
     const processLeaderboardSynchronization = async () => {
       try {
-        const { data: fetchOutputPayload, error: queryHandshakeError } = await supabase.rpc("get_leaderboard", {
-          _kind: dbMappedKindKey,
-          _period: activePeriodFilter,
-          _category: null,
+        const fetchOutputPayload = await getLeaderboard<Record<string, unknown>>({
+          kind: dbMappedKindKey,
+          period: activePeriodFilter,
+          category: null,
         });
 
         if (!isExecutionPipelineValid) return;
 
-        if (queryHandshakeError || !fetchOutputPayload) {
-          setRankingRowsRegistry([]);
-        } else {
-          setRankingRowsRegistry(fetchOutputPayload as Array<Record<string, unknown>>);
-        }
+        setRankingRowsRegistry(fetchOutputPayload ?? []);
 
         // Apply synchronized metadata metrics inside the data pipeline resolution thread
         setHead({

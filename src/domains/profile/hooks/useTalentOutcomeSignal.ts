@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentOutcomeSignal } from "@/domains/profile/repo/profileRepo";
 
 /**
  * GroUp Academy: B2B Procurement Outcome Engine (V5.6.0)
@@ -54,15 +54,13 @@ export function useTalentOutcomeSignal(talentId?: string | null) {
     staleTime: 60 * 1000,
     queryFn: async (): Promise<TalentOutcomeSignal> => {
       // HUD: INVOKING_TALENT_OUTCOME_SIGNAL_RPC_INGRESS
-      const { data, error } = await supabase.rpc("get_talent_outcome_signal", {
-        _talent_id: talentId!,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Imprints explicit trace tracking packets
+      let data: any;
+      try {
+        data = await getTalentOutcomeSignal<any>(talentId!);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_talent_outcome_signal RPC lookup failed.", {
           talentId,
-          message: error.message,
+          message: error?.message,
           timestamp: new Date().toISOString(),
         });
         throw error;

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getCompanyPublicProjects } from "@/domains/ugc/repo/ugcRepo";
 import { setHead } from "@/lib/setHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, Briefcase } from "lucide-react";
@@ -51,18 +51,11 @@ export default function CompanyPublicProjects() {
 
     const resolveCompanyPortfolioPayload = async () => {
       try {
-        const { data: fetchOutputPayload, error: queryHandshakeError } = await supabase.rpc(
-          "get_company_public_projects",
-          { _slug: rawRouteSlugParameterStr },
-        );
+        const fetchOutputPayload = await getCompanyPublicProjects<Payload>(rawRouteSlugParameterStr);
 
         if (!isRequestThreadActive) return;
 
-        if (queryHandshakeError || !fetchOutputPayload) {
-          setPayloadStateData(null);
-        } else {
-          setPayloadStateData(fetchOutputPayload as unknown as Payload);
-        }
+        setPayloadStateData(fetchOutputPayload ?? null);
       } catch (unhandledExceptionPayload) {
         if (isRequestThreadActive) setPayloadStateData(null);
       } finally {

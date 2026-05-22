@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getPublicProjects } from "@/domains/ugc/repo/ugcRepo";
 import { setHead } from "@/lib/setHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,20 +65,16 @@ export default function PublicProjectsIndex() {
 
     const executeIndexRegistrySynchronization = async () => {
       try {
-        const { data: outputHandshakePayload, error: queryHandshakeError } = await supabase.rpc("get_public_projects", {
-          _filters: { q: consolidatedDebouncedSearchQuery },
-          _page: 0,
-          _page_size: 24,
+        const outputHandshakePayload = await getPublicProjects<{ results?: ProjectRow[] }>({
+          filters: { q: consolidatedDebouncedSearchQuery },
+          page: 0,
+          pageSize: 24,
         });
 
         if (!isPipelineActiveAndValid) return;
 
-        if (queryHandshakeError || !outputHandshakePayload) {
-          setProjectRowsRegistry([]);
-        } else {
-          const processedPayloadArray = (outputHandshakePayload as { results?: ProjectRow[] } | null)?.results ?? [];
-          setProjectRowsRegistry(processedPayloadArray);
-        }
+        const processedPayloadArray = outputHandshakePayload?.results ?? [];
+        setProjectRowsRegistry(processedPayloadArray);
 
         // Apply synchronized metadata metrics inside the data pipeline resolution thread to prevent shifts
         setHead({

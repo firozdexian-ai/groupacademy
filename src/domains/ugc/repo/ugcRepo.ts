@@ -234,3 +234,62 @@ export async function getUgcDashboard<T = any>(): Promise<T> {
   if (error) throw error;
   return data as unknown as T;
 }
+
+// ─── Phase 10j.5h6: public discovery RPC wrappers ─────────────────────────
+export async function getPublicProjects<T = any>(args: {
+  filters: Record<string, unknown>;
+  page: number;
+  pageSize: number;
+}): Promise<T> {
+  const { data, error } = await supabase.rpc("get_public_projects", {
+    _filters: args.filters as any,
+    _page: args.page,
+    _page_size: args.pageSize,
+  });
+  if (error) throw error;
+  return (data ?? {}) as T;
+}
+
+export async function getPublicProjectDetail<T = any>(slug: string): Promise<T | null> {
+  const { data, error } = await supabase.rpc("get_public_project_detail", { _slug: slug });
+  if (error) throw error;
+  return (data ?? null) as T | null;
+}
+
+export async function recordDiscoverySignal(args: {
+  kind: string;
+  id: string;
+  signal: string;
+}): Promise<void> {
+  await supabase.rpc("record_discovery_signal", {
+    _kind: args.kind,
+    _id: args.id,
+    _signal: args.signal,
+  });
+}
+
+export async function getLeaderboard<T = any>(args: {
+  kind: string;
+  period: string;
+  category?: string | null;
+}): Promise<T[]> {
+  const { data, error } = await supabase.rpc("get_leaderboard", {
+    _kind: args.kind,
+    _period: args.period,
+    _category: args.category ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as T[];
+}
+
+export async function getCompanyPublicProjects<T = any>(slug: string): Promise<T | null> {
+  const { data, error } = await supabase.rpc("get_company_public_projects", { _slug: slug });
+  if (error) throw error;
+  return (data ?? null) as T | null;
+}
+
+export async function getCompanyBrandedCatalog<T = any>(slug: string): Promise<T | null> {
+  const { data, error } = await supabase.rpc("get_company_branded_catalog", { p_slug: slug });
+  if (error) throw error;
+  return (data ?? null) as T | null;
+}

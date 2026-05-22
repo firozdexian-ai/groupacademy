@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getPublicProjectDetail, recordDiscoverySignal } from "@/domains/ugc/repo/ugcRepo";
 import { setHead } from "@/lib/setHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,18 +72,11 @@ export default function PublicProjectDetail() {
 
     const executeProjectSpecificationHandshake = async () => {
       try {
-        const { data: outputHandshakePayload, error: queryHandshakeError } = await supabase.rpc(
-          "get_public_project_detail",
-          { _slug: rawRouteSlugParameterStr },
-        );
+        const outputHandshakePayload = await getPublicProjectDetail<Detail>(rawRouteSlugParameterStr);
 
         if (!isThreadActiveAndValid) return;
 
-        if (queryHandshakeError || !outputHandshakePayload) {
-          setProjectSpecificationData(null);
-        } else {
-          setProjectSpecificationData(outputHandshakePayload as unknown as Detail);
-        }
+        setProjectSpecificationData(outputHandshakePayload ?? null);
       } catch (fatalPipelineException) {
         if (isThreadActiveAndValid) setProjectSpecificationData(null);
       } finally {
@@ -132,11 +125,7 @@ export default function PublicProjectDetail() {
     // Insulate reporting discovery tracks securely inside clean, synchronous event steps
     const dispatchDiscoveryTelemetrySignal = async () => {
       try {
-        await supabase.rpc("record_discovery_signal", {
-          _kind: "project",
-          _id: targetProjectRecord.id,
-          _signal: "view",
-        });
+        await recordDiscoverySignal({ kind: "project", id: targetProjectRecord.id, signal: "view" });
       } catch (suppressedException) {
         // Suppresses runtime logging noise cleanly to avoid bleeding into rendering thread
       }

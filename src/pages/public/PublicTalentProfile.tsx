@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getPublicTalentProfile } from "@/domains/profile/repo/profileRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,18 +52,11 @@ export default function PublicTalentProfile() {
 
     const executeProfileRegistryLookup = async () => {
       try {
-        const { data: outputProfilePayload, error: queryHandshakeError } = await supabase.rpc(
-          "get_public_talent_profile",
-          { _handle: unverifiedRouteHandleStr },
-        );
+        const outputProfilePayload = await getPublicTalentProfile<any>(unverifiedRouteHandleStr);
 
         if (!isThreadActiveAndValid) return;
 
-        if (queryHandshakeError || !outputProfilePayload) {
-          setProfileDataPayload(null);
-        } else {
-          setProfileDataPayload(outputProfilePayload);
-        }
+        setProfileDataPayload(outputProfilePayload ?? null);
       } catch (fatalExecutionException) {
         if (isThreadActiveAndValid) setProfileDataPayload(null);
       }

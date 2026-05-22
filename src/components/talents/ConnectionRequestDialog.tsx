@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { supabase } from "@/integrations/supabase/client";
+import { requestTalentConnection } from "@/domains/talent/repo/talentRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, Sparkles, Loader2, ShieldCheck, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -95,11 +96,7 @@ export function ConnectionRequestDialog({
 
     try {
       // Execute transactional escrow request function via a cryptographically unified rpc node
-      const { error: transactionMutationError } = await supabase.rpc("talent_connection_request", {
-        _recipient: recipientId,
-      });
-
-      if (transactionMutationError) throw transactionMutationError;
+      await requestTalentConnection(recipientId);
 
       // Automated Efficiency: Synchronize cache streams across metrics and token ledgers instantly
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
