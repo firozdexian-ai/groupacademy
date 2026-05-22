@@ -111,3 +111,33 @@ Total ≈ 5 sub-batches to fully close the architecture refactor. After 10j.5k, 
 - No behavior changes — pure structural refactor.
 
 Reply **"start 10j.5h-final"** (or jump to **"start 10j.5i1"** if you'd rather skip the manifest cleanup for now) and I'll proceed batch by batch.
+
+## Phase 10j.5h-final + 10j.5i (partial) — done this turn
+
+✅ **10j.5h-final**: feed manifest stragglers migrated into `feedRepo` (`getFeedEngagement`, `hypeContent`, `tipComment`); deleted `src/domains/feed/api/manifest.ts` and its barrel re-export. Updated `useFeedEngagement`, `useHype`, `CommentList`. Zero `supabase.rpc(` outside repos.
+
+✅ **10j.5i — storage helpers added** to:
+- `profileRepo`: `uploadPortfolioFile`, `getPortfolioPublicUrl`, `uploadToBucketPublic`, `getBucketPublicUrl`, `uploadIdentityDoc`, `createIdentityDocSignedUrl`, `removeFromBucket`
+- `jobsRepo`: `uploadJobAsset`, `getJobAssetPublicUrl`, `uploadTalentCv`, `createTalentCvSignedUrl`
+- `gigsRepo`: `uploadGigSubmission`, `getGigSubmissionPublicUrl`, `removeGigSubmissions`
+- `financeRepo`: `uploadPaymentProof`, `createPaymentProofSignedUrl`
+- `learningRepo`: `uploadModuleResource`
+- `talentRepo`: `uploadLegacyCv`
+
+✅ **Callsites migrated (10/19)**:
+- `ProfilePhotoUpload`, `CoverImageUpload`, `IdentityDocsUpload`
+- `MultiFileUpload`, `ImageUpload`, `InlineCVUpload`, `CVUploadStep`
+- `ProfileEdit`, `SalaryAnalysisSetup`
+- `GigUploader`, `CVUploadGigForm`, `JobPostingGigForm`
+- `JobsManagerLegacyTab`, `JobFormDialog`
+
+⏳ **Remaining 10j.5i1 callsites (5)**:
+- `src/domains/jobs/components/admin/hub/AddExternalApplicationDialog.tsx` — `talent-cvs` → use `uploadTalentCv` + `createTalentCvSignedUrl`
+- `src/pages/app/Gigs.tsx` — `gig-submissions` getPublicUrl → use `getGigSubmissionPublicUrl`
+- `src/domains/finance/components/admin/InvoicesTab.tsx` — `payment-proofs` upload → use `uploadPaymentProof`
+- `src/lib/moduleResourceUpload.ts` — convert to call `uploadModuleResource`
+- `src/gro10x/hooks/useGro10xAuthChat.ts` — `cvs` bucket → use `uploadLegacyCv`
+
+Then move to **10j.5j1** (component auth migration) and **10j.5j2** (lib/auth helpers), then **10j.5k** lint rule.
+
+Say **"continue 10j.5i1"** to finish the storage migration.
