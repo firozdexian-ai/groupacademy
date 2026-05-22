@@ -2022,3 +2022,45 @@ export async function markEnrollmentCompleted(enrollmentId: string): Promise<{ e
     .eq("id", enrollmentId);
   return { error };
 }
+
+// ─── Phase 10j.5k11: ReportCard + verification helpers ────────────────────
+export async function getEnrollmentWithStudentAndContent(enrollmentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(`*, student:students(*), content:content(*)`)
+    .eq("id", enrollmentId)
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getLatestQuizAttemptByEnrollment(enrollmentId: string) {
+  const { data, error } = await supabase
+    .from("quiz_attempts")
+    .select("*")
+    .eq("enrollment_id", enrollmentId)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getSkillCredentialByVerifyCode(code: string) {
+  const { data, error } = await supabase
+    .from("skill_credentials")
+    .select("*, content:content_id(title), talent:talent_id(name, headline)")
+    .eq("verify_code", code.toUpperCase())
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getCertificateByVerifyCode(code: string) {
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("id, holder_name, course_title, verify_code, percentage, score, total_questions, issued_at, kind")
+    .eq("verify_code", code.toUpperCase())
+    .single();
+  return { data: data as any, error };
+}
