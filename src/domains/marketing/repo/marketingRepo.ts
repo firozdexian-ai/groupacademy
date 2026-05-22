@@ -603,3 +603,112 @@ export async function listSalaryAnalysisLeads() {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5k11: public blog + salary results helpers ────────────────
+export interface BlogPostFilter {
+  category?: string;
+  search?: string;
+  limit?: number;
+}
+
+export async function listPublishedBlogPosts(filter: BlogPostFilter = {}) {
+  let q = supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("status", "published")
+    .order("is_featured", { ascending: false })
+    .order("published_at", { ascending: false });
+  if (filter.category && filter.category !== "All") q = q.eq("category", filter.category);
+  if (filter.search) q = q.or(`title.ilike.%${filter.search}%,excerpt.ilike.%${filter.search}%`);
+  if (filter.limit) q = q.limit(filter.limit);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listPublishedBlogPostCards(filter: BlogPostFilter = {}) {
+  let q = supabase
+    .from("blog_posts")
+    .select(
+      "id, title, slug, excerpt, category, featured_image, is_featured, published_at, reading_time_mins, status",
+    )
+    .eq("status", "published")
+    .order("is_featured", { ascending: false })
+    .order("published_at", { ascending: false });
+  if (filter.category && filter.category !== "All") q = q.eq("category", filter.category);
+  if (filter.search) q = q.or(`title.ilike.%${filter.search}%,excerpt.ilike.%${filter.search}%`);
+  if (filter.limit) q = q.limit(filter.limit);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getPublishedBlogPostBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getPublishedBlogPostDetailBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select(
+      "id, title, slug, content, excerpt, category, tags, featured_image, author_name, published_at, reading_time_mins, views, external_url, status",
+    )
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateBlogPostViewsAbsolute(postId: string, views: number): Promise<void> {
+  await supabase.from("blog_posts").update({ views }).eq("id", postId);
+}
+
+export async function listLatestPublishedBlogPostsLite(limit = 3) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("id, title, slug, excerpt, featured_image, published_at")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getSalaryAnalysisWithCategory(id: string) {
+  const { data, error } = await supabase
+    .from("salary_analyses")
+    .select("*, profession_categories(name)")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listPublishedCoursesByProfession(professionLineId: string, limit = 3) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title, slug, description, estimated_hours, thumbnail_url")
+    .eq("profession_line_id", professionLineId)
+    .eq("is_published", true)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listPortfolioRequestsByEmailFull(email: string) {
+  const { data, error } = await supabase
+    .from("portfolio_requests")
+    .select("*")
+    .eq("email", email.trim().toLowerCase())
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
