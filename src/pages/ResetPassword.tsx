@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ const resetPasswordSchema = z
 const ResetPassword = () => {
   const navigate = useNavigate();
   const { updatePassword, resetPassword } = useAuth();
+  const { accountType } = useAccountType();
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [sessionValid, setSessionValid] = useState(false);
@@ -96,7 +99,8 @@ const ResetPassword = () => {
     try {
       await withTimeout(updatePassword(password), TIMEOUTS.AUTH, "Request timed out. Please try again.");
       toast.success("Password updated. You're all set.");
-      navigate("/app/feed", { replace: true });
+      const dest = resolvePostAuthRoute(accountType) ?? "/app/feed";
+      navigate(dest, { replace: true });
     } catch (error: any) {
       toast.error(error.message || "Couldn't update password. Please try again.");
     } finally {
