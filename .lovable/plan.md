@@ -84,6 +84,11 @@ Progress:
 - ✅ **10j.5h2**: finance/feed/gigs — 7 RPCs, 7 files
 - ✅ **10j.5h3**: analytics/messaging/learning/ugc/agents — `track_service_click`, `track_content_click`, `track_course_referral_click`, `upsert_direct_thread`, `talent_enroll_track`, `upcoming_sessions_for_user`, `toggle_project_public`, `talent_marketplace_summary` (8 RPCs, 10 callsites)
 - ✅ **10j.5h4**: admin overview — `get_workforce_dashboard`, `get_ugc_dashboard`, `get_global_crm_overview`, `get_creator_economy_leaderboard`, `sweep_expired_connections`, `broadcast_notifications`, `analyst_metrics_bulk`, `get_contact_unlocks_summary` (8 RPCs, 8 callsites)
+- ✅ **10j.5h5**: jobs/gigs hub & ranked — `get_ranked_jobs_for_talent`, `get_jobs_hub_dashboard`, `get_employer_pipeline_full`, `get_ranked_gigs_for_talent`, `get_gigs_hub_dashboard` (5 RPCs, 4 hooks)
+- ✅ **10j.5h6**: public discovery + profiles + connections — `get_public_talent_profile`, `search_public_talents`, `get_talent_outcome_signal`, `get_public_projects`, `get_public_project_detail`, `record_discovery_signal`, `get_leaderboard`, `get_company_public_projects`, `get_company_branded_catalog`, connection RPCs (10 RPCs, 10 files)
+- ✅ **10j.5h7**: learning & organization — `get_tutor_mastery_context`, `org_learning_health`, `org_team_mastery`, `org_assign_talents`, `cohort_health`, `mark_session_attendance`, `instructor_session_attendance`, `get_authoring_trends`, `get_track_progress`, `org_assign_track` (10 RPCs, 5 hooks)
+- ✅ **10j.5h8**: jobs discovery + gigs disputes + learning hub — `get_trending_jobs`, `get_jobs_in_field`, `count_jobs_by_type`, `get_application_buckets`, `get_or_create_talent`, `reject_gig_submission`, `award_gig_credits`, `open_verification_appeal`, `refresh_gig_matches`, `shortlist_match`, `open_gig_dispute`, `resolve_dispute`, `get_learning_hub_dashboard`, `get_instructor_summary`, `enroll_in_content`, `recompute_content_readiness` (16 RPCs, 12 files)
 
-Say **"continue 10j.5h5"** to proceed with the next batch (jobs/gigs RPCs: `get_jobs_hub_dashboard`, `get_ranked_jobs_for_talent`, `score_job_match`, `score_talent_job_mastery`, `get_employer_pipeline`, `get_gigs_hub_dashboard`, `get_ranked_gigs_for_talent`, `get_next_best_tool`).
+Say **"continue 10j.5h9"** to proceed with the next batch (remaining repo files + scattered pages: companies hooks, finance/admin RPCs in InvoicesTab/CreditPurchaseSheet, ProjectRoom/MyProjects/NewGigWizard/ReviewerCockpit pages, AbroadCounsellor, AgentProfile, onboarding RPCs, AccessCodeDialog, InstructorEarnings, ReportCard).
+
 
