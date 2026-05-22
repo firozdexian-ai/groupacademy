@@ -8,7 +8,7 @@ import {
 import { JobCard, type JobCardData } from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { Zap, Compass } from "lucide-react";
+import { Compass } from "lucide-react";
 
 interface RelatedJobsProps {
   currentJobId: string;
@@ -17,114 +17,100 @@ interface RelatedJobsProps {
   linkPrefix: "/jobs" | "/app/jobs";
 }
 
-function extractInstitutionalGeography(location: string | null): string | null {
+function extractCountry(location: string | null): string | null {
   if (!location) return null;
   const sanitized = location.trim().toLowerCase();
   if (sanitized.includes("remote") || sanitized.includes("hybrid")) return null;
   const components = location.split(",");
-  const countryCluster = components[components.length - 1].trim();
-  return countryCluster.length >= 2 ? countryCluster : null;
+  const country = components[components.length - 1].trim();
+  return country.length >= 2 ? country : null;
 }
 
 /**
- * GroUp Academy: Contextual Opportunity Recommender (RelatedJobs)
- * CTO Reference: Authoritative tiered engine for institutional, regional, and fallback job matching.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Related jobs rail. Tiers: same company → same country → featured fallback.
  */
 export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }: RelatedJobsProps) {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobCardData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sectionTitle, setSectionTitle] = useState("Recommended_Syncs");
+  const [sectionTitle, setSectionTitle] = useState("Recommended for you");
 
   useEffect(() => {
-    executeDiscoveryProtocol();
+    loadRelatedJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentJobId, companyName, location]);
 
-  const executeDiscoveryProtocol = async () => {
+  const loadRelatedJobs = async () => {
     if (!currentJobId || !companyName) return;
 
     setLoading(true);
-    trackEvent("opportunity_discovery_initiated", { currentJobId, companyName });
+    trackEvent("related_jobs_load", { currentJobId, companyName });
 
     try {
-      const trajectoryBuffer: JobCardData[] = [];
-      const filterRegistry = new Set<string>([currentJobId]);
+      const buffer: JobCardData[] = [];
+      const excludeIds = new Set<string>([currentJobId]);
 
-      // PHASE 1: Institutional Core Sync (Same Company)
-      const institutionalNodes = await listRelatedJobsByCompany(companyName, currentJobId, 3);
-
-      if (institutionalNodes.length) {
-        institutionalNodes.forEach((node) => {
-          trajectoryBuffer.push(node as unknown as JobCardData);
-          filterRegistry.add(node.id);
+      // 1. Same company
+      const sameCompany = await listRelatedJobsByCompany(companyName, currentJobId, 3);
+      if (sameCompany.length) {
+        sameCompany.forEach((node) => {
+          buffer.push(node as unknown as JobCardData);
+          excludeIds.add(node.id);
         });
-        setSectionTitle(`Institutional_Sync: ${companyName.trim().toUpperCase()}`);
+        setSectionTitle(`More at ${companyName.trim()}`);
       }
 
-      // PHASE 2: Geographic Vector Sync (Same Country)
-      const targetCountry = extractInstitutionalGeography(location);
-      if (targetCountry && trajectoryBuffer.length < 6) {
-        const quota = 6 - trajectoryBuffer.length;
-        const exclusionArray = Array.from(filterRegistry);
-
-        const geographicNodes = await listRelatedJobsByLocation(targetCountry, exclusionArray, quota);
-
-        if (geographicNodes.length) {
-          geographicNodes.forEach((node) => {
-            trajectoryBuffer.push(node as unknown as JobCardData);
-            filterRegistry.add(node.id);
+      // 2. Same country
+      const country = extractCountry(location);
+      if (country && buffer.length < 6) {
+        const quota = 6 - buffer.length;
+        const exclude = Array.from(excludeIds);
+        const nearby = await listRelatedJobsByLocation(country, exclude, quota);
+        if (nearby.length) {
+          nearby.forEach((node) => {
+            buffer.push(node as unknown as JobCardData);
+            excludeIds.add(node.id);
           });
-          if (!institutionalNodes.length) {
-            setSectionTitle(`Regional_Sync: ${targetCountry.trim().toUpperCase()}`);
-          }
+          if (!sameCompany.length) setSectionTitle(`Other jobs in ${country.trim()}`);
         }
       }
 
-      // PHASE 3: High-Intensity Fallback (Featured Nodes)
-      if (trajectoryBuffer.length < 3) {
-        const fallbackQuota = 6 - trajectoryBuffer.length;
-        const exclusionArray = Array.from(filterRegistry);
-
-        const featuredNodes = await listRelatedJobsFeatured(exclusionArray, fallbackQuota);
-
-        if (featuredNodes.length) {
-          featuredNodes.forEach((node) => trajectoryBuffer.push(node as unknown as JobCardData));
-          if (!institutionalNodes.length && !targetCountry) {
-            setSectionTitle("Strategic_Deployments");
-          }
+      // 3. Featured fallback
+      if (buffer.length < 3) {
+        const quota = 6 - buffer.length;
+        const exclude = Array.from(excludeIds);
+        const featured = await listRelatedJobsFeatured(exclude, quota);
+        if (featured.length) {
+          featured.forEach((node) => buffer.push(node as unknown as JobCardData));
+          if (!sameCompany.length && !country) setSectionTitle("Featured jobs");
         }
       }
 
-      const finalizedCollection = trajectoryBuffer.slice(0, 6);
-      setJobs(finalizedCollection);
+      const finalList = buffer.slice(0, 6);
+      setJobs(finalList);
 
-      trackEvent("opportunity_discovery_success", {
+      trackEvent("related_jobs_loaded", {
         currentJobId,
-        yieldedCount: finalizedCollection.length,
-        strategyMode: sectionTitle,
+        count: finalList.length,
+        mode: sectionTitle,
       });
     } catch (err: any) {
-      const exceptionMsg = err instanceof Error ? err.message : String(err);
-
-      trackError(exceptionMsg, {
+      const msg = err instanceof Error ? err.message : String(err);
+      trackError(msg, {
         component: "RelatedJobs",
-        action: "execute_discovery_protocol",
+        action: "load_related_jobs",
         currentJobId,
         companyName,
       });
-
-      setSectionTitle("Recommended_Syncs");
+      setSectionTitle("Recommended for you");
     } finally {
       setLoading(false);
     }
   };
 
-  const initializeJobHandshake = (jobId: string) => {
+  const openJob = (jobId: string) => {
     if (!jobId) return;
-
-    trackEvent("opportunity_discovery_navigation_redirect", { targetJobId: jobId, prefixMode: linkPrefix });
-
+    trackEvent("related_jobs_open", { targetJobId: jobId, prefixMode: linkPrefix });
     if (linkPrefix === "/app/jobs") {
       navigate(`${linkPrefix}/${jobId}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -135,11 +121,11 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
 
   if (loading) {
     return (
-      <div className="mt-12 space-y-6 select-none w-full animate-in fade-in duration-200">
+      <div className="mt-12 space-y-6 w-full animate-in fade-in duration-200">
         <Skeleton className="h-5 w-56 bg-muted/30 rounded-lg opacity-80" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((skeletonIndex) => (
-            <Skeleton key={skeletonIndex} className="h-40 rounded-2xl bg-card/40 opacity-60" />
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-40 rounded-2xl bg-card/40 opacity-60" />
           ))}
         </div>
       </div>
@@ -149,34 +135,24 @@ export function RelatedJobs({ currentJobId, companyName, location, linkPrefix }:
   if (jobs.length === 0) return null;
 
   return (
-    <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full w-full">
-      {/* HUD: SECTION COMPLIANCE HEADER STRIP */}
-      <div className="flex items-center justify-between mb-5 px-0.5 select-none w-full">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="p-1.5 rounded-xl bg-primary/10 border border-primary/5 shadow-inner shrink-0">
-            <Compass className="h-4 w-4 text-primary animate-pulse stroke-[2.2]" />
-          </div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-foreground/80 truncate">
-            {sectionTitle.replace(/_/g, " ")}
-          </h2>
+    <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      <div className="flex items-center gap-2.5 mb-5 px-0.5 w-full">
+        <div className="p-1.5 rounded-xl bg-primary/10 border border-primary/5 shrink-0">
+          <Compass className="h-4 w-4 text-primary" />
         </div>
-        <div className="flex items-center gap-1 opacity-40 shrink-0 text-muted-foreground">
-          <Zap className="h-3 w-3 fill-primary/10 text-primary stroke-[2.2]" />
-          <span className="text-[9px] font-extrabold uppercase tracking-widest leading-none">Discovery Active</span>
-        </div>
+        <h2 className="text-sm font-bold tracking-tight text-foreground truncate">{sectionTitle}</h2>
       </div>
 
-      {/* COMPONENT CARDS COMPILING GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-        {jobs.map((jobItem) => {
-          if (!jobItem || !jobItem.id) return null;
+        {jobs.map((job) => {
+          if (!job || !job.id) return null;
           return (
             <JobCard
-              key={jobItem.id}
-              job={jobItem}
+              key={job.id}
+              job={job}
               variant="default"
               className="hover:shadow-md transition-all duration-300"
-              onClick={() => initializeJobHandshake(jobItem.id)}
+              onClick={() => openJob(job.id)}
             />
           );
         })}
