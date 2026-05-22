@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedBlogPostCards } from "@/domains/marketing/repo/marketingRepo";
 import { FileText, Clock, ArrowLeft, Search, Calendar, ArrowRight, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
