@@ -110,18 +110,14 @@ export function useOrgTeamMastery(companyId: string | undefined, contentId?: str
     enabled: !!companyId,
     staleTime: 5 * 60 * 1000, // 5-minute psychometric consistency window for bulk sets
     queryFn: async (): Promise<OrgTeamMastery[]> => {
-      // HUD: EXECUTING_RPC_ORG_TEAM_MASTERY
-      const { data, error } = await supabase.rpc("org_team_mastery", {
-        p_company_id: companyId!,
-        p_content_id: contentId ?? null,
-      });
-
-      if (error) {
+      try {
+        return await getOrgTeamMastery<OrgTeamMastery>({ companyId: companyId!, contentId: contentId ?? null });
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: org_team_mastery query rejected.", error);
         throw error;
       }
-      return ((data as unknown) as OrgTeamMastery[]) ?? [];
     },
+
   });
 }
 
