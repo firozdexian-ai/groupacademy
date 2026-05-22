@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listDiscussionThreads,
   getDiscussionThreadWithPosts,
@@ -14,6 +13,9 @@ import {
   upsertSubmissionReview,
   insertContentReport,
   acceptLessonAnswer,
+  subscribeDiscussionPostsForCohort,
+  subscribeDiscussionPostsForThread,
+  subscribeLessonAnswers,
 } from "@/domains/learning/repo/learningRepo";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
