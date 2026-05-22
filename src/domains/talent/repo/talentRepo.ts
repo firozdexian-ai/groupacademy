@@ -895,3 +895,20 @@ export async function acceptConnectionAndOpenThread(connectionId: string): Promi
   if (error) throw error;
   return data ? String(data) : null;
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i) — legacy `cvs` bucket (Gro10x onboarding)
+// -----------------------------------------------------------------------------
+
+export async function uploadLegacyCv(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from("cvs")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from("cvs").getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}

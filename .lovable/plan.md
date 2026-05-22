@@ -1,94 +1,143 @@
-## Where we are
+# Next Phase Plan — finish the Supabase boundary seam
 
-Phase **10j.5g is complete**: every `supabase.from()` table query now lives inside the 18 domain repos (`src/domains/*/repo/`). Pages, hooks, and components no longer build raw table queries.
+We just landed **10j.5h9**. Every `supabase.rpc(...)` call outside `src/domains/*/repo/` and `src/edge/contracts/` is now gone. Time to close out the remaining two boundary phases and lock the rule with a lint check.
 
-What still leaks past the domain boundary outside repos/integrations:
+## Where we stand
 
-| Surface | Count | Notes |
+| Surface | Outside-allowed callsites | Status |
 |---|---|---|
-| `supabase.rpc(...)` | 84 callsites, 101 distinct functions | Heaviest leakage |
-| `supabase.storage.*` | 27 callsites across 8 buckets | uploads, public URLs, signed URLs |
-| `supabase.auth.*` | 70 callsites | mostly `getUser` / `getSession` |
-| `supabase.functions.invoke` | 2 callsites | already mostly via typed edge wrappers |
-| Direct client imports | 151 files | will shrink as the above migrate |
+| `supabase.rpc(...)` | 0 in pages/hooks/components | ✅ Done (10j.5h1–h9) |
+| `supabase.storage.*` | ~24 callsites across 19 files | ⏳ Next (10j.5i) |
+| `supabase.auth.*` | ~70 callsites across ~30 files | ⏳ After (10j.5j) |
+| Direct `@/integrations/supabase/client` imports | 280 files | Will collapse as 5i + 5j land |
 
-The goal of the next three sub-phases is the same architectural rule we just enforced for `from()`: **only repo files and the auth hook may import the supabase client.** Everything else goes through a typed helper.
+There is one small loose end before storage: 3 legacy `api/manifest.ts` + `learningApi.ts` files still contain raw `rpc()` plumbing. Those should be either moved to the matching repo or deleted if the manifest export is unused.
 
-## Phase 10j.5h — RPC consolidation
+## Phase 10j.5h-final — clean up the manifest stragglers (1 small batch)
 
-Move all `supabase.rpc(...)` calls into the matching domain repo as a thin typed wrapper. Group RPCs by domain based on naming + current callsite:
+Audit the 3 remaining files:
 
-```text
-companies/    get_companies_overview, get_industry_rollup, ensure_system_thread,
-              unlock_talent_inbox, boost_profile, assign_career_coach
-finance/      deduct_credits, add_credits, tip_comment
-feed/         hype_content, get_feed_engagement, record_match_event
-messaging/    upsert_direct_thread
-analytics/    track_service_click, track_content_click, track_course_referral_click
-learning/     talent_enroll_track, upcoming_sessions_for_user
-ir/           toggle_project_public
-talent/       talent_marketplace_summary
-... (~101 functions total)
-```
+- `src/domains/learning/api/learningApi.ts` (1 rpc)
+- `src/domains/learning/api/manifest.ts` (1 rpc)
+- `src/domains/feed/api/manifest.ts` (3 rpcs)
 
-Each repo gets a clearly-named helper, e.g. `companiesRepo.unlockTalentInbox(talentId)` that wraps `supabase.rpc("unlock_talent_inbox", { p_talent_id })` with typed args + return.
+For each: if the export is referenced, move the wrapper into the domain repo and update imports. If unreferenced, delete. Goal: zero `supabase.rpc(` outside `repo/` and `edge/contracts/`.
 
-Batch in groups of ~8–10 callsites per sub-batch (5h1, 5h2, …) so each step stays reviewable. Estimated: ~10 sub-batches.
+## Phase 10j.5i — Storage consolidation (1 batch, ~24 callsites)
 
-## Phase 10j.5i — Storage consolidation
-
-Create one storage helper per bucket inside the owning domain repo:
+Add bucket-scoped helpers to the owning domain repo. One helper per operation, named `<verb><Bucket>` so the bucket is obvious at the call site.
 
 ```text
-talent/        talent-cvs (signed URLs only), talent-id-docs, cvs (legacy)
-jobs/          job-assets (logos, attachments)
-gigs/          gig-submissions
-profile/       portfolio-uploads
-finance/       payment-proofs
-ir/            ir-data-room
+profile/      uploadProfilePhoto, uploadCoverImage, uploadIdentityDoc,
+              getProfilePhotoPublicUrl, createIdentityDocSignedUrl
+talent/       uploadTalentCv (signed-only), createTalentCvSignedUrl,
+              uploadBatchTalents
+jobs/         uploadJobLogo, uploadJobAttachment, getJobAssetPublicUrl
+gigs/         uploadGigSubmission, uploadGigCv, uploadGigJobPosting
+finance/      uploadPaymentProof, createPaymentProofSignedUrl
+ugc/          uploadPortfolioFile, getPortfolioPublicUrl
+learning/     uploadModuleResource (used by src/lib/moduleResourceUpload.ts)
+ir/           uploadIrDoc, createIrDocSignedUrl
 ```
 
-Helpers exposed: `uploadX(file, path)`, `getXPublicUrl(path)`, `createXSignedUrl(path, ttl)`, `removeX(path)`. Enforces the security memory rule that `talent-cvs` is **signed URLs only**. ~27 callsites → ~1 sub-batch.
+Rules enforced by the helpers (not by every caller):
 
-## Phase 10j.5j — Auth boundary
+- `talent-cvs` returns **only** signed URLs (matches security memory).
+- Each upload helper returns `{ path, publicUrl }` or `{ path, signedUrl, expiresAt }`, never the raw supabase response.
+- Public buckets get a single `getXPublicUrl(path)` wrapper so we never re-derive URLs by hand.
 
-`useAuth` already wraps most of this. Migrate the remaining 70 callsites:
+Touched callsites: `ProfilePhotoUpload`, `CoverImageUpload`, `IdentityDocsUpload`, `MultiFileUpload`, `InlineCVUpload`, `CVUploadStep`, `BatchTalentUpload`, `JobFormDialog`, `AddExternalApplicationDialog`, `JobsManagerLegacyTab`, `GigUploader`, `CVUploadGigForm`, `JobPostingGigForm`, `InvoicesTab`, `ImageUpload`, `SalaryAnalysisSetup`, `ProfileEdit`, `Gigs.tsx`, `moduleResourceUpload.ts`, `useGro10xAuthChat.ts`.
 
-- Replace inline `supabase.auth.getUser()` / `getSession()` in components with the `user` / `session` already available from `useAuth`.
-- For non-React code (helpers, edge wrappers), add a `getCurrentUser()` / `getCurrentSession()` helper in `src/lib/auth.ts` that wraps the supabase client.
-- Leave `signIn*`, `signUp`, `signOut`, `onAuthStateChange` inside the auth hook / sign-in pages — those are legitimately auth-surface code.
+Estimate: one focused batch (`10j.5i1`).
 
-## Acceptance
+## Phase 10j.5j — Auth boundary (2 small batches)
 
-After 5h + 5i + 5j:
+`useAuth` already wraps `signIn`, `signUp`, `signOut`, `onAuthStateChange`. The leakage is mostly `getUser()` / `getSession()` sprinkled into components and helpers.
 
-- Outside `src/domains/*/repo/`, `src/hooks/useAuth.ts`, `src/lib/auth.ts`, and `src/integrations/supabase/*`, **no file imports the supabase client at all**.
-- A single grep (`grep -rln "@/integrations/supabase/client" src | grep -v <allowed>`) returns zero.
-- This gives us a clean seam to later swap the data layer (server actions, edge-only access, caching) without touching feature code.
+**5j1 — Components & pages (~50 callsites).** Replace inline `supabase.auth.getUser()` with `user` / `session` from `useAuth()`. Targets include `ProtectedRoute`, `AuthGate`, `Navbar`, `TalentAppShell`, `ResetPassword`, `Gro10xSignIn`, `WebinarLanding`, `ProjectRoom`, `CourseDetail`, `OnboardingWizard`, `AdminSidebar`, etc.
 
-## Technical notes
+**5j2 — Non-React helpers (~20 callsites).** Create `src/lib/auth.ts` with:
 
-- Wrapper signatures use named-object args (`{ talentId, companyId }`) to avoid positional drift — same pattern as the `from()` repo helpers.
-- RPC wrappers throw on `error` and return `data` typed via `Database["public"]["Functions"][name]["Returns"]`.
-- Storage helpers return `{ path, publicUrl }` or `{ path, signedUrl, expiresAt }` rather than the raw supabase response.
-- No behavior changes — purely structural. Existing TanStack Query keys, RLS, and edge contracts remain identical.
+```ts
+export async function getCurrentUser(): Promise<User | null>
+export async function getCurrentSession(): Promise<Session | null>
+export async function getAccessToken(): Promise<string | null>
+```
 
-## Suggested order
+Migrate `useToolRuns`, `useFollowedCompanies`, `useApplicationMessages`, `useTalentLists`, `useAgentRuntimeThread`, `BatchTalentUpload`, repo files that still call `supabase.auth.*` (`ugcRepo`, `irRepo`), and any edge-wrapper plumbing.
 
-1. **10j.5h1–5h10** — RPC migration, domain by domain (start with `companies` + `finance` since they have the most callsites).
-2. **10j.5i** — Storage helpers (single batch).
-3. **10j.5j** — Auth cleanup + final import-boundary lint check.
+Leave `useAuth.ts`, the sign-in pages, and `AuthCallback` untouched — they are the legitimate auth surface.
 
-Progress:
-- ✅ **10j.5h1**: companies/talent/messaging — 7 RPCs, 11 callsites
-- ✅ **10j.5h2**: finance/feed/gigs — 7 RPCs, 7 files
-- ✅ **10j.5h3**: analytics/messaging/learning/ugc/agents — `track_service_click`, `track_content_click`, `track_course_referral_click`, `upsert_direct_thread`, `talent_enroll_track`, `upcoming_sessions_for_user`, `toggle_project_public`, `talent_marketplace_summary` (8 RPCs, 10 callsites)
-- ✅ **10j.5h4**: admin overview — `get_workforce_dashboard`, `get_ugc_dashboard`, `get_global_crm_overview`, `get_creator_economy_leaderboard`, `sweep_expired_connections`, `broadcast_notifications`, `analyst_metrics_bulk`, `get_contact_unlocks_summary` (8 RPCs, 8 callsites)
-- ✅ **10j.5h5**: jobs/gigs hub & ranked — `get_ranked_jobs_for_talent`, `get_jobs_hub_dashboard`, `get_employer_pipeline_full`, `get_ranked_gigs_for_talent`, `get_gigs_hub_dashboard` (5 RPCs, 4 hooks)
-- ✅ **10j.5h6**: public discovery + profiles + connections — `get_public_talent_profile`, `search_public_talents`, `get_talent_outcome_signal`, `get_public_projects`, `get_public_project_detail`, `record_discovery_signal`, `get_leaderboard`, `get_company_public_projects`, `get_company_branded_catalog`, connection RPCs (10 RPCs, 10 files)
-- ✅ **10j.5h7**: learning & organization — `get_tutor_mastery_context`, `org_learning_health`, `org_team_mastery`, `org_assign_talents`, `cohort_health`, `mark_session_attendance`, `instructor_session_attendance`, `get_authoring_trends`, `get_track_progress`, `org_assign_track` (10 RPCs, 5 hooks)
-- ✅ **10j.5h8**: jobs discovery + gigs disputes + learning hub — `get_trending_jobs`, `get_jobs_in_field`, `count_jobs_by_type`, `get_application_buckets`, `get_or_create_talent`, `reject_gig_submission`, `award_gig_credits`, `open_verification_appeal`, `refresh_gig_matches`, `shortlist_match`, `open_gig_dispute`, `resolve_dispute`, `get_learning_hub_dashboard`, `get_instructor_summary`, `enroll_in_content`, `recompute_content_readiness` (16 RPCs, 12 files)
+## Phase 10j.5k — Lint the boundary
 
-Say **"continue 10j.5h9"** to proceed with the next batch (remaining repo files + scattered pages: companies hooks, finance/admin RPCs in InvoicesTab/CreditPurchaseSheet, ProjectRoom/MyProjects/NewGigWizard/ReviewerCockpit pages, AbroadCounsellor, AgentProfile, onboarding RPCs, AccessCodeDialog, InstructorEarnings, ReportCard).
+Once 5h-final + 5i + 5j are done, add a `no-restricted-imports` ESLint rule:
 
+```js
+"no-restricted-imports": ["error", {
+  patterns: [{
+    group: ["@/integrations/supabase/client"],
+    message: "Import from the domain repo or src/lib/auth instead.",
+  }],
+}]
+```
 
+With per-file overrides for:
+
+- `src/domains/*/repo/**`
+- `src/hooks/useAuth.ts`
+- `src/lib/auth.ts`
+- `src/integrations/supabase/**`
+- `src/edge/**` (edge contract wrappers)
+
+A single `bun run lint` then guarantees the seam stays clean as the codebase evolves.
+
+## Suggested execution order
+
+```text
+1. 10j.5h-final    manifest cleanup            (1 micro-batch)
+2. 10j.5i1         storage helpers             (1 batch, ~24 sites)
+3. 10j.5j1         component auth migration    (1 batch, ~50 sites)
+4. 10j.5j2         lib/auth.ts + helper sites  (1 batch, ~20 sites)
+5. 10j.5k          eslint boundary rule        (1 small change)
+```
+
+Total ≈ 5 sub-batches to fully close the architecture refactor. After 10j.5k, the rule "only repos + auth talk to Supabase" is enforced mechanically, and we have a clean seam to later swap in server actions or edge-only data access without touching feature code.
+
+## Acceptance criteria (unchanged from earlier plan)
+
+- Outside `src/domains/*/repo/`, `src/hooks/useAuth.ts`, `src/lib/auth.ts`, `src/edge/**`, and `src/integrations/supabase/**`, **no file imports the supabase client**.
+- `rg -l "@/integrations/supabase/client" src | rg -v <allowed>` returns zero.
+- `bun run lint` passes the new boundary rule.
+- No behavior changes — pure structural refactor.
+
+Reply **"start 10j.5h-final"** (or jump to **"start 10j.5i1"** if you'd rather skip the manifest cleanup for now) and I'll proceed batch by batch.
+
+## Phase 10j.5h-final + 10j.5i (partial) — done this turn
+
+✅ **10j.5h-final**: feed manifest stragglers migrated into `feedRepo` (`getFeedEngagement`, `hypeContent`, `tipComment`); deleted `src/domains/feed/api/manifest.ts` and its barrel re-export. Updated `useFeedEngagement`, `useHype`, `CommentList`. Zero `supabase.rpc(` outside repos.
+
+✅ **10j.5i — storage helpers added** to:
+- `profileRepo`: `uploadPortfolioFile`, `getPortfolioPublicUrl`, `uploadToBucketPublic`, `getBucketPublicUrl`, `uploadIdentityDoc`, `createIdentityDocSignedUrl`, `removeFromBucket`
+- `jobsRepo`: `uploadJobAsset`, `getJobAssetPublicUrl`, `uploadTalentCv`, `createTalentCvSignedUrl`
+- `gigsRepo`: `uploadGigSubmission`, `getGigSubmissionPublicUrl`, `removeGigSubmissions`
+- `financeRepo`: `uploadPaymentProof`, `createPaymentProofSignedUrl`
+- `learningRepo`: `uploadModuleResource`
+- `talentRepo`: `uploadLegacyCv`
+
+✅ **Callsites migrated (10/19)**:
+- `ProfilePhotoUpload`, `CoverImageUpload`, `IdentityDocsUpload`
+- `MultiFileUpload`, `ImageUpload`, `InlineCVUpload`, `CVUploadStep`
+- `ProfileEdit`, `SalaryAnalysisSetup`
+- `GigUploader`, `CVUploadGigForm`, `JobPostingGigForm`
+- `JobsManagerLegacyTab`, `JobFormDialog`
+
+⏳ **Remaining 10j.5i1 callsites (5)**:
+- `src/domains/jobs/components/admin/hub/AddExternalApplicationDialog.tsx` — `talent-cvs` → use `uploadTalentCv` + `createTalentCvSignedUrl`
+- `src/pages/app/Gigs.tsx` — `gig-submissions` getPublicUrl → use `getGigSubmissionPublicUrl`
+- `src/domains/finance/components/admin/InvoicesTab.tsx` — `payment-proofs` upload → use `uploadPaymentProof`
+- `src/lib/moduleResourceUpload.ts` — convert to call `uploadModuleResource`
+- `src/gro10x/hooks/useGro10xAuthChat.ts` — `cvs` bucket → use `uploadLegacyCv`
+
+Then move to **10j.5j1** (component auth migration) and **10j.5j2** (lib/auth helpers), then **10j.5k** lint rule.
+
+Say **"continue 10j.5i1"** to finish the storage migration.

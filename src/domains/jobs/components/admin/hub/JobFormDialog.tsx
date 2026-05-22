@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadJobAsset } from "@/domains/jobs/repo/jobsRepo";
 import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
 import { getJobById, insertJob, updateJob } from "@/domains/jobs/repo/jobsRepo";
 import { Button } from "@/components/ui/button";
@@ -158,11 +158,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
     const toastId = toast.loading("Deploying institutional artifact...");
     try {
       const fileName = `job-logos/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("job-assets").upload(fileName, file);
-      if (error) throw error;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("job-assets").getPublicUrl(fileName);
+      const { publicUrl } = await uploadJobAsset(fileName, file);
       updateField("company_logo_url", publicUrl);
       toast.success("Artifact Secured", { id: toastId });
     } catch (err: any) {

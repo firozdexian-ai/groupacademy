@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getLatestIdentityDoc, insertIdentityDoc } from "@/domains/profile/repo/profileRepo";
+import { getLatestIdentityDoc, insertIdentityDoc, uploadIdentityDoc } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -103,12 +103,7 @@ export function IdentityDocsUpload() {
     const fileExtensionString = file.name.split(".").pop() || "jpg";
     const fullTargetStoragePathStr = `${uid}/${Date.now()}-${label}.${fileExtensionString}`;
 
-    const { error } = await supabase.storage.from("talent-id-docs").upload(fullTargetStoragePathStr, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-    if (error) throw error;
+    await uploadIdentityDoc(fullTargetStoragePathStr, file, { upsert: false });
     return fullTargetStoragePathStr;
   };
 

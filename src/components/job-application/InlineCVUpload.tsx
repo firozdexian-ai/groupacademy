@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -115,15 +115,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
       const filePath = `${talent.id}/NODE_CV_${Date.now()}.${fileExt}`;
 
       // Upload binary chunk streams safely into private portfolio bucket indices
-      const { error: uploadError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(filePath, file, { cacheControl: "3600", upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
+      const { publicUrl } = await uploadPortfolioFile(filePath, file, { upsert: true });
 
       // Invoke centralized serverless cognitive computing synapse node for document extraction
       let parseResult: any = null;

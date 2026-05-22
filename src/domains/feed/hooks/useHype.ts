@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { feedApi } from "@/domains/feed/api/manifest";
+import { hypeContent as rpcHypeContent } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -106,7 +106,7 @@ export function useHype(
 
     let error: any = null;
     try {
-      await feedApi.hypeContent({ _content_type: contentType, _content_id: contentId } as any);
+      await rpcHypeContent({ _content_type: contentType, _content_id: contentId });
     } catch (e) {
       error = e;
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
 import { generateOutreachMessage } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
@@ -82,15 +83,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       // PHASE 1: Storage Node Ingress Lookups
       const fileName = `gig-cvs/${talentId}/${Date.now()}-${cvFile.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fileName, cvFile, { cacheControl: "3600", upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
+      const { publicUrl } = await uploadPortfolioFile(fileName, cvFile, { upsert: false });
 
       setCvUrl(publicUrl);
 

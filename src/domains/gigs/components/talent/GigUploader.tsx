@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadGigSubmission, removeGigSubmissions } from "@/domains/gigs/repo/gigsRepo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileIcon, ImageIcon, Video, Music, FileText, Loader2, CheckCircle2 } from "lucide-react";
@@ -119,14 +120,12 @@ export function GigUploader({
 
           trackEvent("gig_uploader_stream_initiated", { fileName: safeName, fileSize: f.size });
 
-          const { error } = await supabase.storage.from("gig-submissions").upload(path, f, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: f.type || "application/octet-stream",
-          });
-          setProgress(Math.round(((i + 1) / files.length) * 100));
-
-          if (error) {
+          try {
+            await uploadGigSubmission(path, f, {
+              upsert: false,
+              contentType: f.type || "application/octet-stream",
+            });
+          } catch (error: any) {
             trackError(error, {
               component: "GigUploader",
               action: "supabase_storage_upload_fault",
@@ -134,8 +133,10 @@ export function GigUploader({
               targetBucket: "gig-submissions",
             });
             toast.error(`Upload failed for asset target: ${f.name}`);
+            setProgress(Math.round(((i + 1) / files.length) * 100));
             continue;
           }
+          setProgress(Math.round(((i + 1) / files.length) * 100));
 
           uploaded.push({
             path,
@@ -175,8 +176,7 @@ export function GigUploader({
     onChange(value.filter((f) => f.path !== path));
 
     try {
-      const { error } = await supabase.storage.from("gig-submissions").remove([path]);
-      if (error) throw error;
+      await removeGigSubmissions([path]);
     } catch (err: any) {
       // Best-effort delete; ignore errors as admin can still clear downstream via service role hooks
       trackError(err, {

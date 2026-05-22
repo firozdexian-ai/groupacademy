@@ -386,3 +386,68 @@ export async function provisionOrGetInstance(args: { clusterGeoId: string; funne
   );
   return { data, error } as { data: any; error: any };
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i)
+// Buckets owned by profile domain: portfolio-uploads (public), talent-id-docs (private)
+// -----------------------------------------------------------------------------
+
+export async function uploadPortfolioFile(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from("portfolio-uploads")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from("portfolio-uploads").getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+export function getPortfolioPublicUrl(path: string): string {
+  return supabase.storage.from("portfolio-uploads").getPublicUrl(path).data.publicUrl;
+}
+
+export async function uploadToBucketPublic(
+  bucket: string,
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+export function getBucketPublicUrl(bucket: string, path: string): string {
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+
+export async function uploadIdentityDoc(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string }> {
+  const { error } = await supabase.storage
+    .from("talent-id-docs")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  return { path };
+}
+
+export async function createIdentityDocSignedUrl(path: string, expiresInSeconds = 3600): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("talent-id-docs")
+    .createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function removeFromBucket(bucket: string, paths: string[]): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove(paths);
+  if (error) throw error;
+}

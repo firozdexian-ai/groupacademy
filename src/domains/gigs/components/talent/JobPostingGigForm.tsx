@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadJobAsset } from "@/domains/jobs/repo/jobsRepo";
 import { parseJobPost } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,15 +99,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
         toast.info("VISION_SYNC: Streaming raw visual telemetry to asset grid...", { id: toastId });
         const fileName = `gig-job-screenshots/${talentId}/${Date.now()}-${screenshotFile.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("job-assets")
-          .upload(fileName, screenshotFile, { cacheControl: "3600", upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("job-assets").getPublicUrl(fileName);
+        const { publicUrl } = await uploadJobAsset(fileName, screenshotFile, { upsert: false });
 
         setSourceImageUrl(publicUrl);
         payload = { imageUrl: publicUrl };

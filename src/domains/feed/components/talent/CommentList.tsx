@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { feedApi } from "@/domains/feed/api/manifest";
+import { tipComment } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,7 @@ export function CommentList({ postId }: CommentListProps) {
     // Execute atomic RPC credit deduction with server-side balance checks
     let error: any = null;
     try {
-      await feedApi.tipComment({ _comment_id: commentId, _amount: amount } as any);
+      await tipComment({ _comment_id: commentId, _amount: amount });
     } catch (e) {
       error = e;
     }

@@ -312,3 +312,27 @@ export async function createCreditInvoice(args: { credits: number; priceUsd: num
   if (error) throw error;
   return data as { success: boolean; invoice_number?: string };
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i) — payment-proofs (private)
+// -----------------------------------------------------------------------------
+
+export async function uploadPaymentProof(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string }> {
+  const { error } = await supabase.storage
+    .from("payment-proofs")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  return { path };
+}
+
+export async function createPaymentProofSignedUrl(path: string, expiresInSeconds = 3600): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("payment-proofs")
+    .createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}

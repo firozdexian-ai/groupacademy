@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadJobAsset } from "@/domains/jobs/repo/jobsRepo";
 import { enhanceJobDescription } from "@/domains/jobs/api/jobsApi";
 import {
   listAdminJobs,
@@ -208,9 +208,7 @@ export function JobsManagerLegacyTab() {
     setIsUploadingLogo(true);
     try {
       const fileName = `job-logos/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("job-assets").upload(fileName, file);
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from("job-assets").getPublicUrl(fileName);
+      const { publicUrl } = await uploadJobAsset(fileName, file);
       updateField("company_logo_url", publicUrl);
       toast.success("Logo uploaded");
     } catch (err: any) {

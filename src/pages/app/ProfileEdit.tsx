@@ -28,7 +28,7 @@ import { SkillsEditor } from "@/components/profile/SkillsEditor";
 import { CoverImageUpload } from "@/components/profile/CoverImageUpload";
 import { ExperienceEditor, ExperienceEntry } from "@/components/profile/ExperienceEditor";
 import { EducationEditor, EducationEntry } from "@/components/profile/EducationEditor";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
@@ -96,14 +96,7 @@ export default function ProfileEdit() {
     setUploadingCV(true);
     try {
       const fileName = `${talent.id}/cv-${Date.now()}.${file.name.split(".").pop()}`;
-      const { error: uploadError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
+      const { publicUrl } = await uploadPortfolioFile(fileName, file, { upsert: true });
       setCvUrl(publicUrl);
       setParsingCV(true);
 

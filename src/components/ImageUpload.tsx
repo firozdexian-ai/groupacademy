@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, Loader2, ImagePlus, ShieldCheck, Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadToBucketPublic, removeFromBucket } from "@/domains/profile/repo/profileRepo";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -70,20 +70,14 @@ export function ImageUpload({ value, onUpload, onRemove, bucket = "course-covers
     const computedStorageFileNameStr = `asset_${uniqueHashTokenStr}_${Date.now()}.${fileExtensionStr}`;
 
     try {
-      const { error: storageUploadRegistryError } = await supabase.storage
-        .from(bucket)
-        .upload(computedStorageFileNameStr, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      const { publicUrl } = await uploadToBucketPublic(bucket, computedStorageFileNameStr, file, {
+        upsert: false,
+      });
 
-      if (storageUploadRegistryError) throw storageUploadRegistryError;
-
-      const { data: publicUrlPayloadData } = supabase.storage.from(bucket).getPublicUrl(computedStorageFileNameStr);
-
-      if (!publicUrlPayloadData?.publicUrl) {
+      if (!publicUrl) {
         throw new Error("Registry Error: Object storage engine failed to generate secure URL public tracking string.");
       }
+      const publicUrlPayloadData = { publicUrl };
 
       if (isMountedRef.current) {
         onUpload(publicUrlPayloadData.publicUrl);
@@ -153,11 +147,7 @@ export function ImageUpload({ value, onUpload, onRemove, bucket = "course-covers
     });
 
     try {
-      const { error: storageEvictionRegistryError } = await supabase.storage
-        .from(bucket)
-        .remove([derivedTargetFilePathStr]);
-
-      if (storageEvictionRegistryError) throw storageEvictionRegistryError;
+      await removeFromBucket(bucket, [derivedTargetFilePathStr]);
 
       if (isMountedRef.current) {
         onRemove();

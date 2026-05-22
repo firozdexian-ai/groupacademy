@@ -459,3 +459,29 @@ export async function getTalentProjectWorkload<T = any>(talentId: string): Promi
   if (error) throw error;
   return ((data as unknown) as T[]) ?? [];
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i) — gig-submissions (public)
+// -----------------------------------------------------------------------------
+
+export async function uploadGigSubmission(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from("gig-submissions")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from("gig-submissions").getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+export function getGigSubmissionPublicUrl(path: string): string {
+  return supabase.storage.from("gig-submissions").getPublicUrl(path).data.publicUrl;
+}
+
+export async function removeGigSubmissions(paths: string[]): Promise<void> {
+  const { error } = await supabase.storage.from("gig-submissions").remove(paths);
+  if (error) throw error;
+}

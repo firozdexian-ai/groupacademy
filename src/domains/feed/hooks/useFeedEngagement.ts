@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { feedApi } from "@/domains/feed/api/manifest";
+import { getFeedEngagement } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useMemo } from "react";
 
@@ -49,10 +49,10 @@ export function useFeedEngagement(postIds: string[]) {
       // HUD: EXECUTING_RPC_BATCH_ENGAGEMENT_SELECT
       let data: any[] = [];
       try {
-        data = (await feedApi.getEngagement({
+        data = (await getFeedEngagement({
           _post_ids: postIds,
           _talent_id: talent?.id || null,
-        } as any)) as any[];
+        })) as any[];
       } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_feed_engagement database sync failed.", {
           postIdCount: postIds.length,

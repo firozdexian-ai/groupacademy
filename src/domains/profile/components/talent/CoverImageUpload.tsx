@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -71,18 +71,9 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
       const fullTargetObjectStoragePathStr = `cover-images/${nonCollidingUniqueFileNameStr}`;
 
       // STORAGE TRANSACT EXECUTION: Push binary object to bucket allocation
-      const { error: storageUploadRegistryError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fullTargetObjectStoragePathStr, targetFileItem, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (storageUploadRegistryError) throw storageUploadRegistryError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fullTargetObjectStoragePathStr);
+      const { publicUrl } = await uploadPortfolioFile(fullTargetObjectStoragePathStr, targetFileItem, {
+        upsert: false,
+      });
 
       // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });

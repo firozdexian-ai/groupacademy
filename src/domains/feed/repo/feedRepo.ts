@@ -160,3 +160,21 @@ export async function recordShare(_post_id: string, _channel: string): Promise<v
   const { error } = await (supabase as any).rpc("record_share", { _post_id, _channel });
   if (error) throw error;
 }
+
+// --- Engagement / Hype / Tip (migrated from feed/api/manifest.ts, Phase 10j.5h-final) ---
+
+export async function getFeedEngagement(args: { _post_ids: string[]; _talent_id: string | null }): Promise<any[]> {
+  const { data, error } = await (supabase as any).rpc("get_feed_engagement", args);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function hypeContent(args: { _content_type: string; _content_id: string }): Promise<void> {
+  const { error } = await (supabase as any).rpc("hype_content", args);
+  if (error) throw error;
+}
+
+export async function tipComment(args: { _comment_id: string; _amount: number }): Promise<void> {
+  const { error } = await (supabase as any).rpc("tip_comment", args);
+  if (error) throw error;
+}

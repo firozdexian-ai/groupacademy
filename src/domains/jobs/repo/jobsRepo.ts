@@ -881,3 +881,45 @@ export async function awardGigCredits(args: { submissionId: string; adminNotes: 
   });
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i) — job-assets (public), talent-cvs (signed)
+// -----------------------------------------------------------------------------
+
+export async function uploadJobAsset(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from("job-assets")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from("job-assets").getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+export function getJobAssetPublicUrl(path: string): string {
+  return supabase.storage.from("job-assets").getPublicUrl(path).data.publicUrl;
+}
+
+export async function uploadTalentCv(
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string }> {
+  // talent-cvs is private per security memory — no public URL exposure
+  const { error } = await supabase.storage
+    .from("talent-cvs")
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  return { path };
+}
+
+export async function createTalentCvSignedUrl(path: string, expiresInSeconds = 3600): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("talent-cvs")
+    .createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}

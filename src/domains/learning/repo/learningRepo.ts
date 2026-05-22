@@ -1715,3 +1715,21 @@ export async function incrementAccessCodeUse(rowId: string): Promise<void> {
   const { error } = await supabase.rpc("increment_access_code_use" as any, { row_id: rowId });
   if (error) throw error;
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers (Phase 10j.5i) — module resources (public)
+// -----------------------------------------------------------------------------
+
+export async function uploadModuleResource(
+  bucket: string,
+  path: string,
+  file: File,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string; publicUrl: string }> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}

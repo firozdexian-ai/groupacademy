@@ -10,5 +10,3 @@ export * from "./hooks/usePollVoting";
 export * from "./hooks/usePostReactions";
 export { useContentHype, type HypeContentType } from "./hooks/useContentHype";
 
-// API
-export { feedApi, type FeedApi } from "./api/manifest";
