@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
+import { safeReturnTo } from "@/lib/safeReturnTo";
 import { finalizePendingOnboarding } from "@/lib/finalizePendingOnboarding";
 import { useAuthChat, AuthAction } from "@/hooks/useAuthChat";
 import { useTheme } from "next-themes";
@@ -63,7 +64,7 @@ const AuthChat = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         await finalizePendingOnboarding();
-        const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
+        const dest = resolvePostAuthRoute(accountType, safeReturnTo(searchParams.get("returnTo")));
         if (dest) navigate(dest, { replace: true });
       }
     });
@@ -212,7 +213,12 @@ const AuthChat = () => {
           <div className="flex justify-center py-8 animate-in zoom-in-95 fade-in duration-700">
             <Button
               size="lg"
-              onClick={() => navigate(searchParams.get("returnTo") || "/app/feed")}
+              onClick={() => {
+                const dest =
+                  resolvePostAuthRoute(accountType, safeReturnTo(searchParams.get("returnTo"))) ||
+                  "/app/feed";
+                navigate(dest);
+              }}
               className="rounded-full h-12 px-8 gap-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-lg group"
             >
               Continue to your dashboard

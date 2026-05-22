@@ -74,7 +74,7 @@ const Auth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         await finalizePendingOnboarding();
-        const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
+        const dest = resolvePostAuthRoute(accountType, safeReturnTo(searchParams.get("returnTo")));
         if (dest) navigate(dest, { replace: true });
       }
     });
