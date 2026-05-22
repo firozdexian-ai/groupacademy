@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getPublishedBlogPostDetailBySlug, updateBlogPostViewsAbsolute } from "@/domains/marketing/repo/marketingRepo";
 import { Clock, ArrowLeft, User, Calendar, Tag, Share2, Eye, ExternalLink, Sparkles, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,16 +52,7 @@ export default function BlogPost() {
   const { data: blogPostQueryPayload, isLoading: isPostCacheResolving } = useQuery({
     queryKey: ["app-blog-article-detail-node", unverifiedPostSlugStr],
     queryFn: async (): Promise<BlogPostPayload> => {
-      const { data: dbPostPayload, error: queryHandshakeError } = await supabase
-        .from("blog_posts")
-        .select(
-          "id, title, slug, content, excerpt, category, tags, featured_image, author_name, published_at, reading_time_mins, views, external_url, status",
-        )
-        .eq("slug", unverifiedPostSlugStr!)
-        .eq("status", "published")
-        .maybeSingle();
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbPostPayload = await getPublishedBlogPostDetailBySlug(unverifiedPostSlugStr!);
       if (!dbPostPayload) throw new Error("Target article metrics map unassigned.");
       return dbPostPayload as unknown as BlogPostPayload;
     },
@@ -83,10 +74,7 @@ export default function BlogPost() {
 
     const commitAtomicViewIncrementMutation = async () => {
       try {
-        await supabase
-          .from("blog_posts")
-          .update({ views: fallbackViewsCountInt + 1 })
-          .eq("id", targetPostIdUUID);
+        await updateBlogPostViewsAbsolute(targetPostIdUUID, fallbackViewsCountInt + 1);
       } catch (suppressedMutationException) {
         // Suppress analytic tracing failures safely from core component threads
       }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedBlogPosts } from "@/domains/marketing/repo/marketingRepo";
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import {
@@ -42,21 +42,7 @@ export default function PublicBlog() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["public-blog-posts", selectedCategory, searchTerm],
-    queryFn: async () => {
-      let query = supabase
-        .from("blog_posts")
-        .select("*")
-        .eq("status", "published")
-        .order("is_featured", { ascending: false })
-        .order("published_at", { ascending: false });
-
-      if (selectedCategory !== "All") query = query.eq("category", selectedCategory);
-      if (searchTerm) query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%`);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => listPublishedBlogPosts({ category: selectedCategory, search: searchTerm }),
   });
 
   const featuredPost = posts.find((p) => p.is_featured);

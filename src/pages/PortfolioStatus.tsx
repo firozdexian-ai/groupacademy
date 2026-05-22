@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listPortfolioRequestsByEmailFull } from "@/domains/marketing/repo/marketingRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,19 +72,12 @@ export default function PortfolioStatus() {
 
     setIsLoading(true);
     try {
-      const { data, error } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("portfolio_requests")
-            .select("*")
-            .eq("email", email.trim().toLowerCase())
-            .order("created_at", { ascending: false }),
-        ),
+      const data = await withTimeout(
+        listPortfolioRequestsByEmailFull(email),
         TIMEOUTS.DEFAULT,
         "Search sequence timed out.",
       );
 
-      if (error) throw error;
       setRequests((data || []) as any);
 
       if (!data?.length) {

@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
 import { userHasRole } from "@/domains/admin/repo/adminRepo";
-import { getCertificateById } from "@/domains/learning/repo/learningRepo";
+import {
+  getCertificateById,
+  getEnrollmentWithStudentAndContent,
+  getLatestQuizAttemptByEnrollment,
+  getCertificateMinimalByEnrollment,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -72,13 +76,13 @@ export default function ReportCard() {
       const user = await getCurrentUser();
       if (!user) return navigate("/auth");
 
-      const { data: enrollment, error: enrollError } = await supabase
-        .from("enrollments")
-        .select(`*, student:students(*), content:content(*)`)
-        .eq("id", enrollmentId)
-        .single();
-
-      if (enrollError || !enrollment) throw new Error("Academic Record Not Found");
+      let enrollment: any;
+      try {
+        enrollment = await getEnrollmentWithStudentAndContent(enrollmentId!);
+      } catch {
+        throw new Error("Academic Record Not Found");
+      }
+      if (!enrollment) throw new Error("Academic Record Not Found");
 
       // Permission Logic: Self or Admin
       if (enrollment.student.user_id !== user.id) {
@@ -86,13 +90,7 @@ export default function ReportCard() {
         if (!isAdmin) throw new Error("Unauthorized: Access Denied to Node");
       }
 
-      const { data: quizAttempt } = await supabase
-        .from("quiz_attempts")
-        .select("*")
-        .eq("enrollment_id", enrollmentId)
-        .order("completed_at", { ascending: false })
-        .limit(1)
-        .single();
+      const quizAttempt = await getLatestQuizAttemptByEnrollment(enrollmentId!);
 
       if (!quizAttempt) throw new Error("Evaluation Logic Missing: No Quiz Found");
 
@@ -103,11 +101,7 @@ export default function ReportCard() {
         enrollment,
       });
 
-      const { data: cert } = await supabase
-        .from("certificates")
-        .select("*")
-        .eq("enrollment_id", enrollmentId)
-        .maybeSingle();
+      const cert = await getCertificateMinimalByEnrollment(enrollmentId!);
       if (cert) setCertificate(cert as any);
     } catch (err: any) {
       setLoadError(err.message);

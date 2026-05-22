@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getCertificateByVerifyCode } from "@/domains/learning/repo/learningRepo";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,11 +43,7 @@ export default function VerifyCertificate() {
     if (!code) return;
     const fetchProtocol = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("certificates")
-        .select("id, holder_name, course_title, verify_code, percentage, score, total_questions, issued_at, kind")
-        .eq("verify_code", code.toUpperCase())
-        .single();
+      const { data, error } = await getCertificateByVerifyCode(code);
 
       if (error || !data) {
         setNotFound(true);

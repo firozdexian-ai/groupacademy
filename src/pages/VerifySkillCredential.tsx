@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getSkillCredentialByVerifyCode } from "@/domains/learning/repo/learningRepo";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BadgeCheck, Award, Trophy, ShieldCheck, ShieldAlert, ArrowLeft } from "lucide-react";
@@ -20,11 +20,7 @@ export default function VerifySkillCredential() {
   useEffect(() => {
     if (!code) return;
     (async () => {
-      const { data } = await supabase
-        .from("skill_credentials")
-        .select("*, content:content_id(title), talent:talent_id(name, headline)")
-        .eq("verify_code", code.toUpperCase())
-        .maybeSingle();
+      const data = await getSkillCredentialByVerifyCode(code);
       setCredential(data);
       setLoading(false);
     })();

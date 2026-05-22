@@ -1,77 +1,77 @@
-## Phase 10j.5k8 — Repository Boundary Hardening (Batch 8) ✅
+# Plan: Finish repo boundary refactor (Phases 10j.5k11 → 5k18)
 
-Migrated 8 files in Finance, Gigs, and Talent domains from direct `supabase.from()` chains to repo helpers. Note: earlier batches (5k5–5k7) used a single-line grep that missed multi-line `.from()` chains, so the real remaining count was higher than reported. Accurate counter is now in place.
+## Verified starting state
+
+- **73 files** outside `repo/`, `api/`, `integrations/` still call `supabase.from(...)` directly
+- **101 files** still import `@/integrations/supabase/client` (some legitimately for `.channel()` realtime / `.auth` / `.storage` — those stay)
+- Bulk of remaining work lives in **`src/pages/`** (was out of scope for 5k1–5k10, which targeted `src/domains/`)
+
+## Goal
+
+Drive direct `.from(` calls outside the repo/api layer to **0**, leaving only legitimate `supabase` client usage (realtime channels, auth, storage uploads).
+
+## Batch breakdown (~10 files each)
+
+### 5k11 — Public + auth-adjacent pages (10 files)
+PublicBlog, PublicBlogPost, VerifyCertificate, VerifySkillCredential, PortfolioStatus, Index, ReportCard, SalaryAnalysisResults, app/Blog, app/BlogPost
+→ helpers in `marketingRepo`, `learningRepo`, `profileRepo`
+
+### 5k12 — Abroad + Career pages (10 files)
+app/AbroadHub, app/AbroadApplications, app/StudyAbroad, app/CareerCoach, app/IELTSPrep, app/IELTSCoach, app/IELTSResults, app/AppMockInterviewSetup, app/ProfileBuilder, app/AppSalaryAnalysisSetup
+→ `abroadRepo`, new `careerRepo` helpers
+
+### 5k13 — Jobs + Applications pages (~10 files)
+app/AppJobDetail, app/JobAssessment, app/JobAssessmentResults, app/AppApplicationDetail, app/AppOfferDecision, app/Marketplace, app/MyGigs, app/Gigs, app/AppProfessionDetail, app/AppSessionJoin
+→ `jobsRepo`, `gigsRepo`
+
+### 5k14 — Agents + Course + Misc pages (~10 files)
+app/AIAgents, app/AgentMarketplace, app/AgentChat, app/AppCourseDetail, app/PostDetail, app/LanguageInstructorsPage, AdminLiveInbox, AdminMessagingInbox, admin/WorkforceFleet, layouts/TalentAppShell
+→ `agentsRepo`, `learningRepo`, `messagingRepo`, `workforceRepo`
+
+### 5k15 — Sweep remaining pages + components (~10 files)
+Whatever's left in `src/pages/` + stray `src/components/` files
+
+### 5k16 — Hooks audit (~10 files)
+`src/hooks/*` files still doing direct `.from(` (useCredits, useTalent, useInterviews, useOffers, useSavedItems, etc.)
+
+### 5k17 — Gro10x shell (~10 files)
+`src/gro10x/pages/*` and `src/gro10x/hooks/*`
+
+### 5k18 — Final sweep + verification
+- Run full repo scan → expect **0** `.from(` outside repo/api
+- Keep documented exceptions (realtime, auth, storage) in `.lovable/plan.md`
+- Update CI-ready grep guard pattern
+
+## Per-batch protocol (unchanged)
+
+1. Identify ~10 files with direct `.from(`
+2. Add typed helpers to the appropriate domain repo
+3. Replace inline queries with helper calls
+4. Remove `supabase` client import where no longer needed (keep if `.channel/.auth/.storage` remain)
+5. Update `.lovable/plan.md` with: files migrated, helpers added, before→after count
+6. Report **verified count** (multi-line `rg -U 'supabase\s*\n?\s*\.from\('`)
+
+## Honest expectations
+
+- ~8 batches × ~2 min each = **finishes refactor**, no user-visible change
+- Then we pivot to publication readiness (auth, payments live mode, SEO, smoke tests, monitoring)
+- I will report accurate counts each turn (no domain-only undercount)
+
+Reply **continue 10j.5k11** to start.
+
+## Phase 10j.5k11 — Repo migration batch (10 pages) ✅
+
+Targeted public + auth-adjacent pages (first batch outside `src/domains/`).
 
 ### Added repo helpers
-- `financeRepo.getTalentCreditBalance(talentId)`
-- `financeRepo.listTalentCreditTransactions(talentId, limit)`
-- `financeRepo.listMyCreditInvoices(talentId, limit)`
-- `financeRepo.getTalentServiceHistorySnapshot(talentId)` (parallel: assessments + interviews + salary analyses)
-- `financeRepo.listAdminWithdrawalRequests()`
-- `financeRepo.updatePlatformSettingByKey(key, value)`
-- `gigsRepo.listRecommendedGigBidders(gigId, gigKind, limit)`
-- `talentRepo.insertBatchUpload(payload)`
+- `marketingRepo`: `listPublishedBlogPosts`, `listPublishedBlogPostCards`, `getPublishedBlogPostBySlug`, `getPublishedBlogPostDetailBySlug`, `updateBlogPostViewsAbsolute`, `listLatestPublishedBlogPostsLite`, `getSalaryAnalysisWithCategory`, `listPublishedCoursesByProfession`, `listPortfolioRequestsByEmailFull`
+- `learningRepo`: `getEnrollmentWithStudentAndContent`, `getLatestQuizAttemptByEnrollment`, `getSkillCredentialByVerifyCode`, `getCertificateByVerifyCode`
 
 ### Refactored files
-- `domains/finance/hooks/useCredits.ts` — wallet balance + tx history via repo
-- `domains/finance/components/talent/ServiceHistoryCard.tsx` — single repo call replaces 3 parallel `.from()`s
-- `domains/finance/components/talent/MyInvoicesList.tsx`
-- `domains/finance/components/admin/WithdrawalsTab.tsx`
-- `domains/finance/components/admin/PaymentSettingsTab.tsx` — settings read + per-key update
-- `domains/gigs/components/talent/RecommendedBiddersPanel.tsx`
-- `domains/gigs/components/talent/JobPostingGigForm.tsx` — uses existing `insertGigSubmission`
-- `domains/talent/components/admin/BatchTalentUpload.tsx` — both insert paths via `talentRepo.insertBatchUpload`
+- `pages/PublicBlog.tsx`, `pages/PublicBlogPost.tsx`, `pages/VerifyCertificate.tsx`, `pages/VerifySkillCredential.tsx`, `pages/PortfolioStatus.tsx`, `pages/Index.tsx`, `pages/ReportCard.tsx`, `pages/SalaryAnalysisResults.tsx`, `pages/app/Blog.tsx`, `pages/app/BlogPost.tsx`
 
-### Boundary metric
-- Files with direct `.from()` outside repos/api: **101 → 93** (–8)
-- All 8 files now have zero `supabase` client imports.
+### Boundary metric (verified, multi-line scan)
+- Files with direct `.from(` outside repo/api: **73 → 63** (–10)
+- All 10 files now have zero `supabase` client imports.
 
-Say **continue 10j.5k9** to run the next batch (~10 files, recommend admin-side gigs/learning/jobs UI clusters).
-
-## Phase 10j.5k9 — Repository Boundary Hardening (Batch 9) ✅
-
-Migrated 10 files in Agents, Jobs, Marketing, Gigs, Learning, and Feed domains from direct `supabase.from()` chains to repo helpers.
-
-### Added repo helpers
-- `agentsRepo.listAdminAgentBasics()`
-- `agentsRepo.listAgentsByMarketplaceStatus(status, opts)`
-- `agentsRepo.listAllAgentsOrdered()`
-- `agentsRepo.listAgentChatSessionKeys(limit)`
-- `agentsRepo.listRecentAgentOutreachAdmin(limit)`
-- `agentsRepo.countAgentOutreachDedupeSince(sinceIso)`
-- `agentsRepo.countPlatformEventsSince(sinceIso)`
-- `jobsRepo.listPendingJobSubmissions()`
-- `jobsRepo.listRelatedJobsByCompany/ByLocation/Featured`
-- `marketingRepo.listSalaryAnalysisLeads()`
-- `learningRepo.listActiveTalentEnrollmentsWithModules`
-- `learningRepo.countCompletedEnrollments`
-- `learningRepo.listRecentLearningActivity`
-- `feedRepo.insertPollVote`
-
-### Refactored files
-- `domains/agents/hooks/admin/useAdminAgents.ts`
-- `domains/agents/components/dashboard/AgentMarketplaceTab.tsx`
-- `domains/agents/components/dashboard/AgentsRegistryTab.tsx`
-- `domains/agents/components/dashboard/AgentOutreachTab.tsx`
-- `domains/jobs/components/admin/hub/PendingJobSubmissions.tsx`
-- `domains/marketing/components/admin/leads/SalaryAnalysisLeadsManager.tsx`
-- `domains/gigs/components/talent/CVUploadGigForm.tsx` — reuses `insertGigSubmission`
-- `domains/jobs/components/RelatedJobs.tsx`
-- `domains/learning/hooks/useLearningStats.ts`
-- `domains/feed/hooks/usePollVoting.ts`
-
-### Boundary metric
-- Files with direct `.from()` outside repos/api: **93 → 83** (–10)
-- All 10 refactored files now have zero `supabase` client imports.
-
-Say **continue 10j.5k10** to run the next batch.
-
-## Phase 10j.5k10 — Repo migration batch (10 files)
-
-- Added helpers: `feedRepo.listTopHypedPostsWeek`, `listPostComments`, `insertPostComment`;
-  `gigsRepo.getTalentAvailability`, `upsertTalentAvailability`, `listMyOpenMarketplaceGigs`, `listShareableActiveContent`;
-  `financeRepo.listAdminCreditInvoices`;
-  `learningRepo.getCertificateMinimalByEnrollment`, `insertCertificate`, `getCertificateFullByEnrollment`, `listCohortsByContent`, `getCohortDetail`, `listCohortSessions`, `listCourseModulesByContent`, `listStudentResourceProgressFull`, `listModuleResourceIdsByStage`, `upsertStudentResourceProgress`, `markEnrollmentCompleted`;
-  `agentsRepo.listTalentAgentChatSessionKeys`, `listTopActiveAgentsForQuickActions`.
-- Refactored: TopHypedWidget, QuickActionsGrid, CommentList (kept realtime channel), AvailabilityWidget, Gro10xOpenGigs, CourseSharingGigForm, InvoicesTab, useCertificate, useCohorts, useCourseProgress.
-- Boundary: 83 → 72 files with direct `.from(` (10 files migrated; 1 retains supabase only for realtime).
+Say **continue 10j.5k12** to start the Abroad + Career batch.

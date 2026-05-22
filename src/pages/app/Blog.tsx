@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedBlogPostCards } from "@/domains/marketing/repo/marketingRepo";
 import { FileText, Clock, ArrowLeft, Search, Calendar, ArrowRight, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,31 +67,13 @@ export default function Blog() {
   const { data: blogPostsPayload = [], isLoading: isRegistryCacheResolving } = useQuery<BlogPostRecord[]>({
     queryKey: ["app-blog-posts-registry", selectedCategoryFilter, debouncedSearchQueryStr],
     queryFn: async (): Promise<BlogPostRecord[]> => {
-      let databaseQueryBuilder = supabase
-        .from("blog_posts")
-        .select(
-          "id, title, slug, excerpt, category, featured_image, is_featured, published_at, reading_time_mins, status",
-        )
-        .eq("status", "published")
-        .order("is_featured", { ascending: false })
-        .order("published_at", { ascending: false });
-
-      if (selectedCategoryFilter !== "All") {
-        databaseQueryBuilder = databaseQueryBuilder.eq("category", selectedCategoryFilter);
-      }
-
-      if (debouncedSearchQueryStr) {
-        databaseQueryBuilder = databaseQueryBuilder.or(
-          `title.ilike.%${debouncedSearchQueryStr}%,excerpt.ilike.%${debouncedSearchQueryStr}%`,
-        );
-      }
-
-      const { data: fetchOutputPayload, error: queryHandshakeError } = await databaseQueryBuilder;
-      if (queryHandshakeError) throw queryHandshakeError;
-
-      return (fetchOutputPayload as unknown as BlogPostRecord[]) ?? [];
+      const data = await listPublishedBlogPostCards({
+        category: selectedCategoryFilter,
+        search: debouncedSearchQueryStr,
+      });
+      return (data as unknown as BlogPostRecord[]) ?? [];
     },
-    staleTime: 10 * 60 * 1000, // Extend cache longevity for publication content layers
+    staleTime: 10 * 60 * 1000,
   });
 
   const handlePurgeFiltersAction = React.useCallback(() => {

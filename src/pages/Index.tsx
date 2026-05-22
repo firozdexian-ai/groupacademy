@@ -8,7 +8,7 @@ import { useAccountType } from "@/hooks/useAccountType";
 import { getDefaultRouteFor } from "@/lib/postAuthRoute";
 import { usePWADetect } from "@/hooks/usePWADetect";
 import { useTheme } from "next-themes";
-import { supabase } from "@/integrations/supabase/client";
+import { listLatestPublishedBlogPostsLite } from "@/domains/marketing/repo/marketingRepo";
 import logoIcon from "@/assets/logo-icon.png";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
@@ -54,12 +54,7 @@ const Index = () => {
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
-      const { data } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, excerpt, featured_image, published_at")
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(3);
+      const data = await listLatestPublishedBlogPostsLite(3);
       if (data) setBlogPosts(data as BlogPost[]);
     };
     fetchBlogPosts();

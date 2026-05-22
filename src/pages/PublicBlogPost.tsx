@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { incrementBlogPostViews } from "@/domains/marketing/repo/marketingRepo";
+import { incrementBlogPostViews, getPublishedBlogPostBySlug } from "@/domains/marketing/repo/marketingRepo";
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { useEffect } from "react";
@@ -39,16 +38,7 @@ export default function PublicBlogPost() {
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["public-blog-post", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .select("*")
-        .eq("slug", slug)
-        .eq("status", "published")
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getPublishedBlogPostBySlug(slug!),
     enabled: !!slug,
   });
 
