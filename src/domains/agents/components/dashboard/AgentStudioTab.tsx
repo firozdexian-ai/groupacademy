@@ -695,13 +695,12 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("agent_knowledge_sources")
-      .select("*")
-      .eq("agent_id", agentId)
-      .order("created_at", { ascending: false });
-    setSources((data as any) ?? []);
-    setLoading(false);
+    try {
+      const data = await listAgentKnowledgeSources(agentId);
+      setSources(data as any);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleIngest = async () => {
