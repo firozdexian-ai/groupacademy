@@ -7,7 +7,7 @@ import {
 } from "@/domains/abroad/repo/abroadRepo";
 import { generateStudyRoadmap } from "@/domains/abroad/api/abroadApi";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { toast } from "sonner";
 
 // UI Primitive Matrix Registries

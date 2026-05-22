@@ -35,7 +35,7 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
-import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { ProfileCompletionPrompt } from "@/domains/profile/components/talent/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
 import { generateInterviewQuestions } from "@/domains/jobs/api/jobsApi";

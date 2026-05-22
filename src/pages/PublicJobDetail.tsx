@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { toast } from "sonner";
-import { RelatedJobs } from "@/components/jobs/RelatedJobs";
+import { RelatedJobs } from "@/domains/jobs/components/RelatedJobs";
 import { Footer } from "@/components/Footer";
 import logoIcon from "@/assets/logo-icon.png";
 import { cn } from "@/lib/utils";

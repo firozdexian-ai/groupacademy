@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EventsTab } from "@/components/learning/EventsTab";
+import { EventsTab } from "@/domains/learning/components/talent/EventsTab";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE } from "@/lib/uiTokens";
 import { cn } from "@/lib/utils";
 

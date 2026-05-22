@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Target, TrendingUp, Sparkles, Zap } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";

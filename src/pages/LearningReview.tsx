@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ReviewQueueRunner } from "@/components/learning/ReviewQueueRunner";
+import { ReviewQueueRunner } from "@/domains/learning/components/talent/ReviewQueueRunner";
 
 export default function LearningReview() {
   useEffect(() => {

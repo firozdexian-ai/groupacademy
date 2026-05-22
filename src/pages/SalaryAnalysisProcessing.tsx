@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { Loader2, AlertCircle, RefreshCw, ShieldCheck, Database, Cpu, Globe, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeSalary } from "@/domains/talent/api/talentApi";

@@ -15,11 +15,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GigCard } from "@/components/gigs/GigCard";
-import { MySubmissions } from "@/components/gigs/MySubmissions";
-import { GigUploader, type UploadedFile } from "@/components/gigs/GigUploader";
-import { GigForYouTab } from "@/components/gigs/GigForYouTab";
-import { AvailabilityWidget } from "@/components/gigs/AvailabilityWidget";
+import { GigCard } from "@/domains/gigs/components/talent/GigCard";
+import { MySubmissions } from "@/domains/gigs/components/talent/MySubmissions";
+import { GigUploader, type UploadedFile } from "@/domains/gigs/components/talent/GigUploader";
+import { GigForYouTab } from "@/domains/gigs/components/talent/GigForYouTab";
+import { AvailabilityWidget } from "@/domains/gigs/components/talent/AvailabilityWidget";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search,

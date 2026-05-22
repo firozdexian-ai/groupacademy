@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // Sub-views imported as modules
-import { MyHubView } from "@/components/learning/views/MyHubView";
-import { TracksView } from "@/components/learning/views/TracksView";
-import { AcademyView } from "@/components/learning/views/AcademyView";
-import { StudyAbroadView } from "@/components/learning/views/StudyAbroadView";
+import { MyHubView } from "@/domains/learning/components/talent/views/MyHubView";
+import { TracksView } from "@/domains/learning/components/talent/views/TracksView";
+import { AcademyView } from "@/domains/learning/components/talent/views/AcademyView";
+import { StudyAbroadView } from "@/domains/learning/components/talent/views/StudyAbroadView";
 
 type TabKey = "my-hub" | "tracks" | "academy" | "study-abroad";
 

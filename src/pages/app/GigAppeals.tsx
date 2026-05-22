@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { VerificationVerdictCard } from "@/components/gigs/VerificationVerdictCard";
+import { VerificationVerdictCard } from "@/domains/gigs/components/talent/VerificationVerdictCard";
 import { Scale, Loader2, AlertCircle, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 

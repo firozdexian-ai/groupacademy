@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { MasteryBars } from "./MasteryBars";
-import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
+import { AdaptiveSnapshotCard } from "@/domains/learning/components/talent/AdaptiveSnapshotCard";
 import {
   Award,
   CheckCircle,

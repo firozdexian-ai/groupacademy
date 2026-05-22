@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useContentHype, type HypeContentType } from "@/hooks/useContentHype";
+import { useContentHype, type HypeContentType } from "@/domains/feed/hooks/useContentHype";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 

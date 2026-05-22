@@ -34,10 +34,10 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
-import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { ProfileCompletionPrompt } from "@/domains/profile/components/talent/ProfileCompletionPrompt";
 import { cn } from "@/lib/utils";
 
 // =========================================================================

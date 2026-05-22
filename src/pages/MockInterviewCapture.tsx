@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { updateMockInterview } from "@/domains/marketing/repo/marketingRepo";
 import { getMockInterviewById } from "@/domains/marketing/repo/marketingRepo";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";

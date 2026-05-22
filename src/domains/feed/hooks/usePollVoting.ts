@@ -3,7 +3,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { insertPollVote } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
-import { useFeedEngagement, patchEngagementCache } from "@/hooks/useFeedEngagement";
+import { useFeedEngagement, patchEngagementCache } from "@/domains/feed/hooks/useFeedEngagement";
 
 /**
  * GroUp Academy: Feed Poll Analytics Engine (V5.6.0)

@@ -3,7 +3,7 @@ import { LucideIcon, Coins, Star, Users, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
+import { AgentAvatar } from "@/domains/agents/components/chat/AgentAvatar";
 
 /**
  * GroUp Academy: Marketplace Agent Card Node (V5.6.0)

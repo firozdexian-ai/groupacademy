@@ -7,9 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PostCard, type FeedPost } from "@/components/feed/PostCard";
-import { CommentList } from "@/components/feed/CommentList";
-import { PostInsightsAccordion } from "@/components/feed/PostInsightsAccordion";
+import { PostCard, type FeedPost } from "@/domains/feed/components/talent/PostCard";
+import { CommentList } from "@/domains/feed/components/talent/CommentList";
+import { PostInsightsAccordion } from "@/domains/feed/components/talent/PostInsightsAccordion";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 

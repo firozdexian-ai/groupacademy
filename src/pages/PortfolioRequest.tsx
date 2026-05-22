@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
-import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { ProfileCompletionPrompt } from "@/domains/profile/components/talent/ProfileCompletionPrompt";
 import { cn } from "@/lib/utils";
 
 // Experience Protocols for 2026

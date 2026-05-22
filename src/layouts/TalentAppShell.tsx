@@ -49,14 +49,14 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { useTheme } from "next-themes";
 import { getWhatsAppLink } from "@/lib/constants/support";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
 import logoIcon from "@/assets/logo-icon.png";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
-import { useCreditPurchase } from "@/hooks/useCreditPurchase";
+import { useCreditPurchase } from "@/domains/finance/hooks/useCreditPurchase";
 import { GlobalAIBubble } from "@/components/ai/GlobalAIBubble";
 
 /**

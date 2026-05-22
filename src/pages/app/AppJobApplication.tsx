@@ -8,7 +8,7 @@ import {
 } from "@/domains/jobs/repo/jobsRepo";
 import { updateTalentCvUrl } from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";

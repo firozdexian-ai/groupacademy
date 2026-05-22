@@ -4,11 +4,11 @@ import { useTalent } from "@/hooks/useTalent";
 import { useJobsHubDashboard } from "@/domains/jobs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Layers, Building2, Globe, Zap } from "lucide-react";
-import { JobsHubHeader } from "@/components/jobs/JobsHubHeader";
-import { BrowseView } from "@/components/jobs/views/BrowseView";
-import { CompaniesView } from "@/components/jobs/views/CompaniesView";
-import { LocationsView } from "@/components/jobs/views/LocationsView";
-import { ToolsView } from "@/components/jobs/views/ToolsView";
+import { JobsHubHeader } from "@/domains/jobs/components/JobsHubHeader";
+import { BrowseView } from "@/domains/jobs/components/views/BrowseView";
+import { CompaniesView } from "@/domains/jobs/components/views/CompaniesView";
+import { LocationsView } from "@/domains/jobs/components/views/LocationsView";
+import { ToolsView } from "@/domains/jobs/components/views/ToolsView";
 
 type TabKey = "browse" | "company" | "country" | "tools";
 

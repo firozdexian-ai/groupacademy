@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Coins, Zap, ShieldCheck, TrendingUp } from "lucide-react";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";

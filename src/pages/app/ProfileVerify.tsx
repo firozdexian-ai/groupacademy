@@ -13,8 +13,8 @@ import {
   getTalentVerificationStatus,
 } from "@/domains/talent/repo/talentRepo";
 import { cn } from "@/lib/utils";
-import { IdentityDocsUpload } from "@/components/profile/IdentityDocsUpload";
-import { PayoutAccountsManager } from "@/components/profile/PayoutAccountsManager";
+import { IdentityDocsUpload } from "@/domains/profile/components/talent/IdentityDocsUpload";
+import { PayoutAccountsManager } from "@/domains/profile/components/talent/PayoutAccountsManager";
 
 interface Check {
   key: string;

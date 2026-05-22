@@ -56,7 +56,7 @@ import {
 import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/domains/learning/components/admin/content-widgets/BatchContentGenerator";
 import { DraggableList } from "@/platform/admin/ui/DraggableList";
-import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
+import { ItemBankAnalyticsPanel } from "@/domains/learning/components/talent/ItemBankAnalyticsPanel";
 import { useModuleReviewBadge } from "@/domains/learning";
 
 function ReviewNudge({ moduleId, onClick }: { moduleId: string; onClick: () => void }) {

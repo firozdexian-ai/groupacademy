@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRankedJobsForTalent } from "@/domains/jobs/repo/jobsRepo";
-import type { JobCardData } from "@/components/jobs/JobCard";
+import type { JobCardData } from "@/domains/jobs/components/JobCard";
 
 /**
  * GroUp Academy: Algorithmic Match Distribution Engine (V5.6.0)

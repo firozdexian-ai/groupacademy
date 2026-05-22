@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { cn } from "@/lib/utils";
 import { COUNTRIES, getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { EmptyState } from "@/components/common/EmptyState";

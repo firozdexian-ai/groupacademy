@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
 import { analyzeJobMarket, scoreJobMatch } from "@/domains/jobs/api/jobsApi";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

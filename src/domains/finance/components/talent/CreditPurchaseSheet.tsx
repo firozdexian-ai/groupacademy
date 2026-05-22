@@ -6,7 +6,7 @@ import { createCheckout } from "@/domains/finance/api/financeApi";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
 import { SUPPORT_CONFIG, getCreditPurchaseMessage } from "@/lib/constants/support";
-import { usePaymentConfig } from "@/hooks/usePaymentConfig";
+import { usePaymentConfig } from "@/domains/finance/hooks/usePaymentConfig";
 import { toast } from "sonner";
 
 // UI Primitive Matrix Registries

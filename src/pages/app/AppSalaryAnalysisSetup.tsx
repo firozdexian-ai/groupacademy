@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
 
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
-import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { ProfileCompletionPrompt } from "@/domains/profile/components/talent/ProfileCompletionPrompt";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { cn } from "@/lib/utils";

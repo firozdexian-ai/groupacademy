@@ -4,8 +4,8 @@ import { Search, Bot, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThreadListItem } from "@/components/messages/ThreadListItem";
-import { useMessageThreads } from "@/hooks/useMessageThreads";
+import { ThreadListItem } from "@/domains/messaging/components/talent/ThreadListItem";
+import { useMessageThreads } from "@/domains/messaging/hooks/useMessageThreads";
 import { cn } from "@/lib/utils";
 
 // =========================================================================

@@ -2,8 +2,8 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, GraduationCap, Sparkles, Target } from "lucide-react";
-import { MyCoursesTab } from "@/components/learning/MyCoursesTab";
-import { UpcomingSessionsRail } from "@/components/learning/UpcomingSessionsRail";
+import { MyCoursesTab } from "@/domains/learning/components/talent/MyCoursesTab";
+import { UpcomingSessionsRail } from "@/domains/learning/components/talent/UpcomingSessionsRail";
 import { cn } from "@/lib/utils";
 
 /**

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
+import { JobCard, type JobCardData } from "@/domains/jobs/components/JobCard";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL_WIDE } from "@/lib/uiTokens";
