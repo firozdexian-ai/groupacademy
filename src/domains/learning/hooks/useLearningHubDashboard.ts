@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getLearningHubDashboard } from "@/domains/learning/repo/learningRepo";
 
 /**
  * GroUp Academy: Pedagogical Command Center (V5.6.0)
