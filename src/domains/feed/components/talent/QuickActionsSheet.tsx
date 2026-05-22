@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, LucideIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveQuickActionAgents } from "@/domains/feed/repo/feedRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { iconMap } from "@/lib/iconMap";
 import { cn } from "@/lib/utils";
