@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { toast } from "sonner";
@@ -27,8 +28,8 @@ export function useInviteToApply() {
 
   return useMutation({
     mutationFn: async (input: InviteToApplyInput): Promise<string> => {
-      const { data: u, error: authError } = await supabase.auth.getUser();
-      if (authError || !u.user) throw new Error("AUTH_REQUIRED: Please sign in to invite talent.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("AUTH_REQUIRED: Please sign in to invite talent.");
 
       // HUD: EXECUTING_JOB_INVITATION_INSERT
       const { data, error } = await supabase
@@ -38,7 +39,7 @@ export function useInviteToApply() {
           company_id: input.company_id,
           talent_id: input.talent_id,
           note: input.note ?? null,
-          invited_by: u.user.id,
+          invited_by: user.id,
         })
         .select("id")
         .single();

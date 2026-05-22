@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Loader2, MessageSquare, Send, Award, Zap, HelpCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentSession } from "@/lib/auth";
 import { learnerScenarioEvaluate, learnerScenarioPool } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -110,14 +110,14 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
     trackEvent("simulation_scenario_turn_dispatched", { moduleId, scenarioId: scenario.id });
 
     try {
-      const { data: sessData, error: sessError } = await supabase.auth.getSession();
-      if (sessError || !sessData?.session) throw new Error("AUTH_SYNC_REQUIRED");
+      const session = await getCurrentSession();
+      if (!session) throw new Error("AUTH_SYNC_REQUIRED");
 
       const responseTokenStream = await fetch(STREAM_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessData.session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           mode: "turn",

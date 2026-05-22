@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/auth";
 import { deductCreditsRpc } from "@/domains/finance/repo/financeRepo";
 import {
   updateAgentChatSession,
@@ -218,16 +218,14 @@ export function useAgentChat(): UseAgentChatReturn {
           }
         }
 
-        const {
-          data: { session: authSession },
-        } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("AUTH_SYNC_REQUIRED");
+        const accessToken = await getAccessToken();
+        if (!accessToken) throw new Error("AUTH_SYNC_REQUIRED");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             agentKey: session.agent_key,

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { listAcademiesSchoolsReadiness } from "@/domains/learning/repo/learningRepo";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,10 +69,9 @@ export function TracksTab() {
 
     const loadEcosystemAcademyTracks = async () => {
       try {
-        const { data: userData, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
+        const user = await getCurrentUser();
 
-        const authenticatedUserId = userData?.user?.id;
+        const authenticatedUserId = user?.id;
 
         // Concurrent Ingress: Resolve baseline structures in a single batch transaction pass
         const { academies: academiesData, schools: schoolsData, readiness: readinessData } =

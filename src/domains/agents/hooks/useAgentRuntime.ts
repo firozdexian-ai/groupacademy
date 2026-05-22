@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/auth";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError } from "@/lib/aiErrorHandler";
@@ -166,16 +167,14 @@ export function useAgentRuntime(
 
       let assistantBuffer = "";
       try {
-        const {
-          data: { session: authSession },
-        } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("AUTH_REQUIRED");
+        const accessToken = await getAccessToken();
+        if (!accessToken) throw new Error("AUTH_REQUIRED");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-runtime`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({

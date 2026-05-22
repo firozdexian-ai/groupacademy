@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 
 /**
  * GroUp Academy: Credit Purchase UI Sheet State Orchestrator (V5.5.0)
@@ -30,7 +31,7 @@ const setOpen = (next: boolean) => {
   // Digital Workforce Telemetry: Enqueue monetization intent signals on initialization
   if (next) {
     try {
-      supabase.auth.getUser().then(({ data: { user } }) => {
+      getCurrentUser().then((user) => {
         if (user) {
           // HUD: Pipeline conversion track telemetry dispatch
           supabase

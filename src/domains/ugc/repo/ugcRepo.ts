@@ -6,6 +6,7 @@
  * - Per-entity upsert/delete helpers with slug normalization and author binding
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 
 export const slugifyUgc = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) ||
@@ -87,7 +88,7 @@ export async function upsertUgcBlog(payload: any): Promise<void> {
     if (error) throw error;
   } else {
     if (!row.author_id) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       row.author_id = user?.id;
     }
     const { error } = await supabase.from("blog_posts").insert(row);
@@ -109,7 +110,7 @@ export async function upsertUgcFeedPost(payload: any): Promise<void> {
     if (error) throw error;
   } else {
     if (!row.author_user_id) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       row.author_user_id = user?.id;
       row.author_name = row.author_name || user?.email || "Admin";
     }
@@ -156,7 +157,7 @@ export async function resolveUgcReport(input: {
   status: "reviewed" | "dismissed" | "removed";
   notes?: string;
 }): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const { error } = await supabase
     .from("content_reports")
     .update({

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/auth";
 import { createAgentChatSession, updateAgentChatSessionMessages, incrementAgentConversations } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
@@ -98,16 +98,14 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
       let assistantBuffer = "";
 
       try {
-        const {
-          data: { session: authSession },
-        } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("AUTH_SYNC_REQUIRED");
+        const accessToken = await getAccessToken();
+        if (!accessToken) throw new Error("AUTH_SYNC_REQUIRED");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             agentKey: "ai-general",

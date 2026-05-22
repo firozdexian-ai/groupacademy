@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import {
   updateLearningTrack,
   deleteLearningTrackItem,
@@ -136,10 +137,10 @@ export function useCreateTrack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<LearningTrack> & { title: string; slug: string }) => {
-      const auth = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       const { data, error } = await supabase
         .from("learning_tracks")
-        .insert({ ...input, created_by: auth.data.user?.id ?? null })
+        .insert({ ...input, created_by: user?.id ?? null })
         .select()
         .single();
 

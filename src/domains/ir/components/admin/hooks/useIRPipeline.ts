@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 
 export type PipelineStage =
@@ -76,12 +77,12 @@ export function useIRPipeline() {
 
       // IR-Z1: restore stage-transition audit trail
       if (fromStage !== params.toStage) {
-        const { data: auth } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
         await (supabase as any).from("ir_pipeline_events").insert({
           investor_id: params.investorId,
           from_stage: fromStage,
           to_stage: params.toStage,
-          changed_by: auth.user?.id ?? null,
+          changed_by: user?.id ?? null,
         });
       }
     },

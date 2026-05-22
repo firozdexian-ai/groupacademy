@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getTalentOnboardingStateByUser,
   patchTalentByUser,
@@ -44,9 +44,9 @@ export async function finalizePendingOnboarding(): Promise<boolean> {
   if (!pending) return false;
 
   try {
-    const { data: authData, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !authData?.user?.id) return false;
-    const userId = authData.user.id;
+    const user = await getCurrentUser();
+    if (!user?.id) return false;
+    const userId = user.id;
 
     const existing = await getTalentOnboardingStateByUser(userId);
 

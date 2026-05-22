@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { insertDirectMessage } from "@/domains/messaging/repo/messagingRepo";
 
 /**
@@ -101,14 +102,14 @@ export function useDirectMessages(threadId: string | undefined) {
     mutationFn: async (input: SendMessageInput) => {
       if (!threadId || !input.body.trim()) return;
 
-      const { data: u, error: authError } = await supabase.auth.getUser();
-      if (authError || !u.user) throw new Error("AUTH_SYNC_REQUIRED: Identity node untrusted.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("AUTH_SYNC_REQUIRED: Identity node untrusted.");
 
       // HUD: EXECUTING_MESSAGE_INGRESS_INSERT
       try {
         await insertDirectMessage({
           threadId,
-          senderId: u.user.id,
+          senderId: user.id,
           senderRole: input.role,
           body: input.body.trim(),
         });
