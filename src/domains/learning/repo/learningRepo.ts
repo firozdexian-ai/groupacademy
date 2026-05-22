@@ -1564,3 +1564,107 @@ export async function upcomingSessionsForUser(args: { userId: string; limit: num
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5h7: Learning / Org RPC wrappers ───────────────────────────
+export async function getTutorMasteryContext(args: {
+  talentId: string;
+  moduleId?: string | null;
+  contentId?: string | null;
+}): Promise<any> {
+  const { data, error } = await supabase.rpc("get_tutor_mastery_context", {
+    _talent_id: args.talentId,
+    _module_id: args.moduleId ?? null,
+    _content_id: args.contentId ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getOrgLearningHealth<T = any>(companyId: string): Promise<T> {
+  const { data, error } = await supabase.rpc("org_learning_health", { p_company_id: companyId });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function getOrgTeamMastery<T = any>(args: {
+  companyId: string;
+  contentId?: string | null;
+}): Promise<T[]> {
+  const { data, error } = await supabase.rpc("org_team_mastery", {
+    p_company_id: args.companyId,
+    p_content_id: args.contentId ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as T[];
+}
+
+export async function orgAssignTalents(input: {
+  company_id: string;
+  content_id: string;
+  cohort_id?: string | null;
+  user_ids: string[];
+  due_at?: string | null;
+  budget_per_seat?: number | null;
+  note?: string | null;
+}): Promise<any> {
+  const { data, error } = await supabase.rpc("org_assign_talents", {
+    p_company_id: input.company_id,
+    p_content_id: input.content_id,
+    p_cohort_id: input.cohort_id ?? null,
+    p_user_ids: input.user_ids,
+    p_due_at: input.due_at ?? null,
+    p_budget_per_seat: input.budget_per_seat ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getCohortHealth(cohortId: string): Promise<any> {
+  const { data, error } = await supabase.rpc("cohort_health", { _cohort_id: cohortId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function markSessionAttendance(sessionId: string): Promise<void> {
+  const { error } = await supabase.rpc("mark_session_attendance", { _session_id: sessionId });
+  if (error) throw error;
+}
+
+export async function getInstructorSessionAttendance<T = any>(sessionId: string): Promise<T[]> {
+  const { data, error } = await supabase.rpc("instructor_session_attendance", { _session_id: sessionId });
+  if (error) throw error;
+  return (data ?? []) as T[];
+}
+
+export async function getAuthoringTrends<T = any>(args: { instructorId: string; days: number }): Promise<T> {
+  const { data, error } = await supabase.rpc("get_authoring_trends", {
+    _instructor_id: args.instructorId,
+    _days: args.days,
+  });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function getTrackProgress<T = any>(assignmentId: string): Promise<T> {
+  const { data, error } = await supabase.rpc("get_track_progress", { p_assignment_id: assignmentId });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function orgAssignTrack(input: {
+  track_id: string;
+  company_id: string;
+  user_ids: string[];
+  due_at?: string | null;
+}): Promise<any> {
+  const { data, error } = await supabase.rpc("org_assign_track", {
+    p_track_id: input.track_id,
+    p_company_id: input.company_id,
+    p_user_ids: input.user_ids,
+    p_due_at: input.due_at ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
