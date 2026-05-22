@@ -26,9 +26,8 @@ interface Props {
 }
 
 /**
- * GroUp Academy: Arbitration Picker Pipeline Node (ScoreMeJobPicker)
- * CTO Reference: Authoritative slide-up sheet aggregating saved and trending job roles for AI scoring vectors.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Bottom sheet that lets a talent pick a saved or recent job and jumps to
+ * the job detail page with `?score=1` so AI Insights can auto-score the match.
  */
 export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
   const navigate = useNavigate();
@@ -37,10 +36,9 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
   const [jobs, setJobs] = useState<JobLite[]>([]);
   const [q, setQ] = useState("");
 
-  // Monitor asset orchestrator visibility metrics across active event channels
   useEffect(() => {
     if (open) {
-      trackEvent("score_me_job_picker_mounted");
+      trackEvent("score_me_job_picker_opened");
     }
   }, [open]);
 
@@ -49,9 +47,10 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
 
     let alive = true;
 
-    const compileScoringOpportunities = async () => {
+    const loadJobs = async () => {
       setLoading(true);
-      trackEvent("score_me_job_picker_data_fetch_initiated");
+      trackEvent("score_me_job_picker_load_started");
+
 
       try {
         const uid = await getCurrentUserId();
@@ -118,27 +117,26 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
 
         if (alive) {
           setJobs(out);
-          trackEvent("score_me_job_picker_data_fetch_success", { compiledCount: out.length });
+          trackEvent("score_me_job_picker_load_success", { count: out.length });
         }
       } catch (err: any) {
         trackError(err, {
           component: "ScoreMeJobPicker",
-          action: "compile_scoring_opportunities_api",
+          action: "load_jobs",
         });
-        toast.error("Ecosystem transaction timeout. Re-trigger alignment lookup.");
+        toast.error("Couldn't load jobs. Please try again.");
       } finally {
         if (alive) setLoading(false);
       }
     };
 
-    compileScoringOpportunities();
+    loadJobs();
 
     return () => {
       alive = false;
     };
   }, [open]);
 
-  // Optimize filtered lookups using memoized computational blocks cleanly
   const filtered = useMemo(() => {
     const sanitizedQuery = q.trim().toLowerCase();
     if (!sanitizedQuery) return jobs;
@@ -150,18 +148,18 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
     );
   }, [jobs, q]);
 
-  const handleSelectionPickProtocol = (id: string) => {
+  const handlePick = (id: string) => {
     if (!id) return;
 
-    trackEvent("score_me_job_picker_item_selected", { targetJobId: id });
+    trackEvent("score_me_job_picker_item_selected", { jobId: id });
     onOpenChange(false);
 
-    // Automated Efficiency: Broadcast client invalidations over query blocks cleanly
     queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
     navigate(`/app/jobs/${id}?score=1`);
     setQ("");
   };
+
 
   return (
     <Sheet
@@ -179,28 +177,25 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
         className="max-h-[85vh] max-h-[85svh] h-[85vh] p-0 flex flex-col rounded-t-3xl bg-background/98 backdrop-blur-xl border-t border-border/40 select-none sm:select-text transform-gpu shadow-2xl transition-all duration-300 overflow-hidden"
         style={{ contentVisibility: "auto" }}
       >
-        {/* STRUCTURAL INTERACTIVE DRAG HANDLE GRAPHEME */}
         <div className="mx-auto w-12 h-1 bg-muted/60 rounded-full mt-2.5 shrink-0 select-none" />
 
-        {/* HUD LEVEL 1: OVERLAY PRESENTATION BRANDING HEADER */}
         <SheetHeader className="px-5 pt-3 pb-2 text-left select-none shrink-0 w-full">
           <div className="flex items-center gap-2.5">
             <Sparkles className="h-4.5 w-4.5 text-primary fill-primary/10 animate-pulse shrink-0 stroke-[2.2]" />
             <SheetTitle className="text-sm font-bold tracking-tight text-foreground uppercase tracking-wide">
-              Analyze Profile Matching Alignment
+              Score me vs a job
             </SheetTitle>
           </div>
           <SheetDescription className="text-xs text-muted-foreground/90 leading-normal mt-0.5 select-none">
-            Select an occupational tracking target node to calculate predictive alignment scores. Processing invokes a
-            ledger debit of <span className="font-bold text-primary tabular-nums">10 credits</span> per assessment run.
+            Pick a saved or recent job to see how well your profile matches.
+            Costs <span className="font-bold text-primary tabular-nums">10 credits</span> per score.
           </SheetDescription>
         </SheetHeader>
 
-        {/* HUD LEVEL 2: DYNAMIC FILTER INPUT STRIP */}
         <div className="px-5 pt-2 pb-1 shrink-0 select-none w-full relative group">
           <Search className="absolute left-8 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
           <Input
-            placeholder="Search matching staged portfolio or recent role targets..."
+            placeholder="Search saved or recent jobs..."
             value={q}
             disabled={loading}
             onChange={(e) => setQ(e.target.value)}
@@ -208,7 +203,6 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
           />
         </div>
 
-        {/* HUD LEVEL 3: SCROLLABLE MATRIX LIST WORKSPACE */}
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2 pb-safe-bottom w-full">
           {loading ? (
             <div className="space-y-2.5 w-full select-none animate-pulse">
@@ -218,7 +212,7 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 italic tracking-tight py-12 text-center select-text max-w-xs mx-auto leading-normal">
-              No occupational tracking entries compiled inside selection filters right now.
+              No jobs found. Try saving a job first or adjust your search.
             </p>
           ) : (
             filtered.map((jobItem) => {
@@ -230,10 +224,9 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
                   key={jobItem.id}
                   variant="outline"
                   type="button"
-                  onClick={() => handleSelectionPickProtocol(jobItem.id)}
+                  onClick={() => handlePick(jobItem.id)}
                   className="w-full justify-between h-auto py-3 px-3.5 border border-border/40 bg-background/40 backdrop-blur-md rounded-xl hover:border-primary/30 hover:bg-background transition-all duration-200 transform-gpu cursor-pointer flex items-center gap-4 text-left group shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  {/* Identity branding brief wrapper */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/5 flex items-center justify-center shrink-0 shadow-inner group-hover:bg-primary/15 transition-colors">
                       <Briefcase className="h-4 w-4 text-primary stroke-[2.2] transition-transform group-hover:scale-105" />
@@ -243,19 +236,18 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
                         {jobItem.title}
                       </p>
                       <p className="text-[11px] font-semibold text-muted-foreground/70 truncate tracking-tight pr-1 italic leading-none">
-                        {jobItem.company_name || "Ecosystem Organization"}
+                        {jobItem.company_name || "Company"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Operational source indicator ribbon */}
                   <div className="flex items-center gap-2 shrink-0 select-none tabular-nums text-xs">
                     {isSavedNode && (
                       <Badge
                         variant="secondary"
                         className="text-[9px] font-extrabold h-4.5 px-2 bg-muted/40 text-muted-foreground/90 uppercase border-none tracking-wide rounded"
                       >
-                        Staged Path
+                        Saved
                       </Badge>
                     )}
                     <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all stroke-[2.5]" />
@@ -269,3 +261,4 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
     </Sheet>
   );
 }
+

@@ -613,6 +613,10 @@ export default function App() {
                     
                     <Route path="tools/cv-maker" element={<CVMaker />} />
                     <Route path="tools/application-helper" element={<ApplicationHelper />} />
+                    <Route path="tools/assessment" element={<AppCareerAssessment />} />
+                    <Route path="tools/mock-interview" element={<AppMockInterviewSetup />} />
+                    <Route path="tools/salary-analysis" element={<AppSalaryAnalysisSetup />} />
+                    <Route path="tools/portfolio" element={<AppPortfolioRequest />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />

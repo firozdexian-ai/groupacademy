@@ -4,10 +4,8 @@ import { getNextBestTool } from "@/domains/jobs/repo/jobsRepo";
 import type { ToolKey } from "./useToolRuns";
 
 /**
- * GroUp Academy: Agentic Workflow Orchestrator (V5.6.0)
- * CTO Reference: Authoritative sensor for session-based tool recommendations.
- * Architecture: Digital Workforce enabled - logs recommendation drops to Admin OS.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Recommends the single best next AI tool for the current user, based on
+ * their profile state and recent activity (via the get_next_best_tool RPC).
  */
 
 export interface NextBestTool {
@@ -16,26 +14,19 @@ export interface NextBestTool {
   job_id?: string | null;
 }
 
-/**
- * Identifies the high-affinity tool for the current user context.
- * Replaces loose type-casting with strict RPC telemetry.
- */
 export function useNextBestTool() {
   return useQuery({
     queryKey: ["next-best-tool"],
-    // Performance Baseline: 2-minute stability for session-level signals
     staleTime: 2 * 60 * 1000,
     queryFn: async (): Promise<NextBestTool | null> => {
       const user = await getCurrentUser();
-
       if (!user) return null;
 
-      // HUD: EXECUTING_AGENTIC_RECOMMENDATION_RPC
       try {
         const data = await getNextBestTool(user.id);
         return data as unknown as NextBestTool;
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: get_next_best_tool RPC handshake failed.", {
+        console.error("Failed to load next-best tool recommendation", {
           userId: user.id,
           message: error?.message,
         });

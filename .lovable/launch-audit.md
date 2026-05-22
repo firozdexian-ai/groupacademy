@@ -199,3 +199,22 @@ Carry-overs / deferred:
 - P1 #13 Company onboarding wizard — out of scope, tracked for A9/Companies group.
 - P2 #10 AuthClassic "Try the chat experience instead" CTA label, #16 verbose submit error, #17 done as part of P1.
 - Long-standing carry-overs unchanged: `country_code = "BD"` admin backfill, manifest preview 401, auth audit log retention check.
+
+---
+
+## A5.3 — Tools tab (Consolidated AI Tools Hub) — shipped 2026-05-22
+
+Replaced the `ToolsView` "coming soon" stub with the full consolidated hub described in `mem://product/consolidated-ai-tools-hub`.
+
+**Wired up:**
+- `ToolsView.tsx` rewritten: Up-Next recommendation card (powered by `useNextBestTool`), 7-tool responsive grid (CV, Application answers, Score me vs job, Career assessment, Mock interview, Salary analysis, Portfolio builder), Recent activity list (last 5 `tool_runs` with humanized labels + relative dates).
+- 4 new routes under `/app/tools/*`: `assessment`, `mock-interview`, `salary-analysis`, `portfolio` — all reuse the existing `App*` setup pages. Existing `/app/services/*` routes kept for backward compatibility.
+- "Score me vs job" tile opens the `ScoreMeJobPicker` sheet → routes to `/app/jobs/:id?score=1` → auto-triggers `AIJobInsights` scoring on `AppJobDetail`.
+- `useNextBestTool` reason codes mapped to plain-English copy (no_cv / low_completeness / saved_recent / saved_unscored / no_assessment_recent / no_salary_recent / default).
+
+**Humanized copy:**
+- `ScoreMeJobPicker`: sheet title "Analyze Profile Matching Alignment" → "Score me vs a job"; description "occupational tracking target node…ledger debit" → "Pick a saved or recent job…Costs 10 credits per score"; search placeholder, empty state, error toast, "Ecosystem Organization" → "Company", "Staged Path" → "Saved" all rewritten.
+- `AppJobDetail`: "Synthetic alignment compatibility calculations complete." → "Match score ready."; "The system intelligence core failed to interpret parameters." → "Couldn't score this job right now."; "Secure registration route parameter copied to system buffer." → "Link copied."; "Record Unassigned / targeted career tracking row" → "Job not found / This job may have been removed".
+- `useToolRuns`, `useNextBestTool`: removed "Digital Workforce / Phase Z1 / CTO Reference / HUD" jargon from JSDoc + console errors. Auth error string "Authentication session required." → "Please sign in first." Also added `next-best-tool` invalidation on successful tool-run record so Up Next updates immediately.
+
+Next: A5.4 onward per launch audit.
