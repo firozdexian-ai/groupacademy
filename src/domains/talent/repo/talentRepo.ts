@@ -207,6 +207,9 @@ export const talentRepo = {
   getBatchUpload: (batchId: string) =>
     supabase.from("batch_uploads").select("*").eq("id", batchId).single(),
 
+  insertBatchUpload: (payload: { uploaded_by: string; file_count: number; status: string }) =>
+    supabase.from("batch_uploads").insert(payload).select().single(),
+
   logAgentMessage: (body: string) =>
     (supabase.from("messaging_messages") as any).insert({
       direction: "inbound",

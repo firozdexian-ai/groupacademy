@@ -222,6 +222,27 @@ export async function insertGigSubmission(payload: {
   return data as { id: string };
 }
 
+// ─── Phase 10j.5k8: recommended bidders for a gig ─────────────────────────
+export async function listRecommendedGigBidders(
+  gigId: string,
+  gigKind: "marketplace" | "quick" = "marketplace",
+  limit = 5,
+) {
+  const { data, error } = await supabase
+    .from("gig_matches")
+    .select(`
+      id, talent_id, score, signals, why_text, status,
+      talents ( full_name, profile_photo_url )
+    `)
+    .eq("gig_id", gigId)
+    .eq("gig_kind", gigKind)
+    .order("score", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+
 // ─── Phase 10j.5e: marketplace gigs (talent-facing) ───────────────────────
 export async function getMarketplaceGigById(id: string) {
   const { data, error } = await supabase

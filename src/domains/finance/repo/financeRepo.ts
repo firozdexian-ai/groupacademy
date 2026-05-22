@@ -363,3 +363,85 @@ export async function logMonetizationIntent(userId: string, surface: string): Pr
       metadata: { surface, timestamp: new Date().toISOString() },
     });
 }
+
+// ─── Phase 10j.5k8: talent-side wallet helpers ───────────────────────────
+export async function getTalentCreditBalance(talentId: string) {
+  const { data, error } = await supabase
+    .from("talent_credits")
+    .select("balance, earned_balance")
+    .eq("talent_id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? { balance: 0, earned_balance: 0 }) as { balance: number; earned_balance: number };
+}
+
+export async function listTalentCreditTransactions(talentId: string, limit = 20) {
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("*")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listMyCreditInvoices(talentId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("credit_invoices")
+    .select("*")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getTalentServiceHistorySnapshot(talentId: string) {
+  const [assessmentsRes, interviewsRes, salaryAnalysesRes] = await Promise.all([
+    supabase
+      .from("career_assessments")
+      .select("id, created_at, percentage, readiness_level")
+      .eq("talent_id", talentId)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("mock_interviews")
+      .select("id, created_at, status, selection_percentage, job_title")
+      .eq("talent_id", talentId)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("salary_analyses")
+      .select("id, created_at, status, job_title")
+      .eq("talent_id", talentId)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(3),
+  ]);
+  return {
+    assessments: (assessmentsRes.data ?? []) as any[],
+    interviews: (interviewsRes.data ?? []) as any[],
+    salaryAnalyses: (salaryAnalysesRes.data ?? []) as any[],
+  };
+}
+
+// ─── Phase 10j.5k8: admin withdrawals & platform settings updates ────────
+export async function listAdminWithdrawalRequests() {
+  const { data, error } = await (supabase as any)
+    .from("withdrawal_requests")
+    .select("*, talent:talents(full_name, email)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function updatePlatformSettingByKey(key: string, value: string | null): Promise<void> {
+  const { error } = await supabase
+    .from("platform_settings")
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq("key", key);
+  if (error) throw error;
+}
+
