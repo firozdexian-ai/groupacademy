@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useApplicationMessages } from "@/domains/jobs";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
 
 // UI Primitive Matrix Registries
