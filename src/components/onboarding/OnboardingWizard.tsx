@@ -252,7 +252,7 @@ export function OnboardingWizard({
       } catch {
         /* sessionStorage may be unavailable in privacy mode — ignore. */
       }
-      trackEvent("onboarding_wizard_preauth_stashed");
+      trackEvent("onboarding_preauth_stashed");
       onComplete();
       return;
     }
@@ -342,7 +342,7 @@ export function OnboardingWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background font-sans text-left select-none sm:select-text transform-gpu animate-in fade-in duration-300">
-      {/* HUD HEADER COVER BAR METRIC PLOTS ROW */}
+      {/* Header */}
       <header className="border-b border-border/40 bg-card/90 backdrop-blur-xl shrink-0 select-none w-full">
         <div className="flex items-center justify-between gap-4 px-5 py-4 md:px-8 max-w-7xl mx-auto w-full">
           <div className="flex items-center gap-3.5 min-w-0">
@@ -363,7 +363,7 @@ export function OnboardingWizard({
           </div>
         </div>
 
-        {/* PROGRESS STEPPER DOTS LAYER HEADER */}
+        {/* Step indicator */}
         <div className="flex items-center justify-center gap-5 pb-4 max-w-4xl mx-auto w-full px-4 border-t border-border/5 pt-3.5">
           {STEPS.map((stepConfig, index) => {
             const Icon = stepConfig.icon || MapPin;
@@ -408,7 +408,7 @@ export function OnboardingWizard({
         </div>
       </header>
 
-      {/* HUD CONTAINER BODY SECTION FOR INDIVIDUAL DISPLAY TILES */}
+      {/* Body */}
       <main className="flex-1 overflow-y-auto w-full">
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col p-4 py-8 md:p-8 justify-between">
           <div key={step} className="flex-1 animate-in fade-in slide-in-from-bottom-1 duration-200 w-full">
@@ -525,7 +525,7 @@ export function OnboardingWizard({
                                     key={instItem.id}
                                     value={instItem.name}
                                     onSelect={() => {
-                                      trackEvent("onboarding_institution_node_selected", { name: instItem.name });
+                                      trackEvent("onboarding_institution_selected", { name: instItem.name });
                                       setInstitution(instItem);
                                       setComboOpen(false);
                                     }}
@@ -607,7 +607,7 @@ export function OnboardingWizard({
             </div>
           </div>
 
-          {/* HUD COMMAND TRANSACTION CONFIG NAVIGATION FOOTER ACTIONS STRIP */}
+          {/* Footer */}
           <div className="sticky bottom-0 mt-10 flex items-center justify-between gap-4 rounded-xl border border-border/40 bg-background/95 p-4 shadow-sm backdrop-blur select-none w-full shrink-0">
             <Button
               variant="ghost"
