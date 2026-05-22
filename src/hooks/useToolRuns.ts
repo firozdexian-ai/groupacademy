@@ -3,10 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { insertToolRun, listToolRunsForUser } from "@/domains/jobs/repo/jobsRepo";
 
 /**
- * GroUp Academy: AI Credit Consumption Ledger (V5.6.0)
- * CTO Reference: High-performance auditing observer tracking computational asset runs.
- * Architecture: Optimized via TanStack Query v5 with atomic mutation invalidations.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Tool runs ledger — tracks each AI tool invocation by the current user
+ * so we can show "Recent activity" and "Up next" recommendations.
  */
 
 export type ToolKey = "cv" | "assessment" | "salary" | "portfolio" | "score" | "answers" | "interview";
@@ -30,17 +28,12 @@ const VALID_TOOL_KEYS: Set<ToolKey> = new Set([
   "interview",
 ]);
 
-// --- SENSORS: AUDITING TRANSACTION OBSERVERS ---
-
-/**
- * Fetches an audited history of micro-billing execution items completed by the active session.
- */
+/** Fetches recent tool runs for the current user. */
 export function useToolRuns(limit = 5) {
   return useQuery({
     queryKey: ["tool-runs", limit],
-    staleTime: 60 * 1000, // 1-minute visual consistency window for ledger grids
+    staleTime: 60 * 1000,
     queryFn: async (): Promise<ToolRun[]> => {
-      // HUD: SECURE_USER_SESSION_INGRESS_CHECK
       const user = await getCurrentUser();
       if (!user) return [];
 
@@ -48,11 +41,10 @@ export function useToolRuns(limit = 5) {
       try {
         data = await listToolRunsForUser(user.id, limit);
       } catch (error) {
-        console.error("[Digital Workforce] FAULT: tool_runs collection channel dropped.", error);
+        console.error("Failed to load tool runs", error);
         throw error;
       }
 
-      // Hardened Data Normalization Layer: Protects display logs against schema drifts
       return (data || []).map((row: any) => {
         const rawKey = String(row.tool_key);
         const validatedKey: ToolKey = VALID_TOOL_KEYS.has(rawKey as ToolKey) ? (rawKey as ToolKey) : "assessment";
@@ -70,8 +62,6 @@ export function useToolRuns(limit = 5) {
   });
 }
 
-// --- ACTIONS: LEDGER MUTATION WORKFLOWS ---
-
 export interface RecordToolRunInput {
   toolKey: ToolKey;
   costCredits: number;
@@ -79,16 +69,14 @@ export interface RecordToolRunInput {
   jobId?: string | null;
 }
 
-/**
- * Initializes a transaction-isolated hook to log tool runs and systematically evict stale state keys.
- */
+/** React hook to record a tool run and invalidate dependent caches. */
 export function useRecordToolRun() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (opts: RecordToolRunInput): Promise<void> => {
       const user = await getCurrentUser();
-      if (!user) throw new Error("Authentication session required.");
+      if (!user) throw new Error("Please sign in first.");
 
       try {
         await insertToolRun({
@@ -99,25 +87,23 @@ export function useRecordToolRun() {
           job_id: opts.jobId ?? null,
         });
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: tool_runs ledger logging rejected.", {
+        console.error("Failed to record tool run", {
           toolKey: opts.toolKey,
           costCredits: opts.costCredits,
-          message: error.message,
+          message: error?.message,
         });
         throw error;
       }
     },
     onSuccess: () => {
-      // Force programmatic cache eviction across all billing listeners globally
       void qc.invalidateQueries({ queryKey: ["tool-runs"] });
-      void qc.invalidateQueries({ queryKey: ["talent-profile"] }); // Evict profile to refresh remaining credit totals smoothly
+      void qc.invalidateQueries({ queryKey: ["next-best-tool"] });
+      void qc.invalidateQueries({ queryKey: ["talent-profile"] });
     },
   });
 }
 
-/**
- * Fire-and-forget ledger insert for non-hook call sites.
- */
+/** Fire-and-forget ledger insert for non-hook call sites. */
 export async function recordToolRun(opts: RecordToolRunInput): Promise<void> {
   try {
     const user = await getCurrentUser();
@@ -130,13 +116,11 @@ export async function recordToolRun(opts: RecordToolRunInput): Promise<void> {
       job_id: opts.jobId ?? null,
     });
   } catch (e) {
-    console.error("[Digital Workforce] FAULT: recordToolRun threw.", e);
+    console.error("recordToolRun failed", e);
   }
 }
 
-/**
- * Explicit callback proxy to trigger manual billing query invalidations when necessary.
- */
+/** Returns a callback to manually invalidate the tool-runs cache. */
 export function useInvalidateToolRuns() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ["tool-runs"] });
