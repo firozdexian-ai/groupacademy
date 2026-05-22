@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getCompanyWallet } from "@/domains/learning/repo/learningRepo";
+import {
+  getCompanyWallet,
+  getOrgLearningHealth,
+  getOrgTeamMastery,
+  orgAssignTalents,
+} from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
