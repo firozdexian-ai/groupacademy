@@ -54,12 +54,7 @@ const Index = () => {
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
-      const { data } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, excerpt, featured_image, published_at")
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(3);
+      const data = await listLatestPublishedBlogPostsLite(3);
       if (data) setBlogPosts(data as BlogPost[]);
     };
     fetchBlogPosts();
