@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthoringTrends } from "@/domains/learning/repo/learningRepo";
+
 
 /**
  * GroUp Academy: Authoring Trends Intelligence (V2.1.0)
