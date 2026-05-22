@@ -109,7 +109,7 @@ export function PhoneCaptureStep({ onContinue }: Props) {
           Add your phone number
         </h2>
         <p className="text-xs sm:text-sm font-semibold text-muted-foreground/80 leading-normal max-w-xs mx-auto pt-1.5">
-          We'll use this to alert you about job replies and to send verification codes.
+          We'll use this so employers can reach you about jobs.
         </p>
       </div>
 

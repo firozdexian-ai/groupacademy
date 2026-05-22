@@ -1,9 +1,9 @@
-import { useMemo } from "react";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { Sparkles } from "lucide-react";
+import { Sparkles, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AccountUpgradeModalProps {
   open: boolean;
@@ -11,61 +11,57 @@ interface AccountUpgradeModalProps {
 }
 
 /**
- * GroUp Academy: Hardened Infrastructure Upgrade Gate (V5.6.0)
- * CTO Reference: Absolute full-screen uncloseable viewport gate enforcing relational data hydration hooks.
- * Architecture: Isolated modal container preventing element composition clipping or focus traps.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Uncloseable gate shown to talents who completed signup before the new
+ * onboarding fields existed. They re-run the short wizard to fill in the
+ * missing details. A small "Sign out" escape hatch keeps users from being
+ * permanently locked out if any lookup data is unavailable.
  */
 export function AccountUpgradeModal({ open, onComplete }: AccountUpgradeModalProps) {
-  // Guard interface event routing options defensively to ensure total user focus lock
-  const handleElementInteractionBlocker = useMemo(() => {
-    return (e: Event) => {
-      // HUD: ENFORCING_IMMUTABLE_ONBOARDING_GATEWAY_LOCK
-      e.preventDefault();
-    };
-  }, []);
+  const { signOut } = useAuth();
+  const block = (e: Event) => e.preventDefault();
 
   return (
     <Dialog open={open}>
       <DialogPortal>
-        {/* HUD: FIXED_BACKDROP_BLUR_SHIELD */}
         <DialogOverlay className="bg-slate-950/80 backdrop-blur-xl transition-all duration-500 z-40" />
-
-        {/* COMPONENT: FULL_SCREEN_MIGRATION_TERMINAL */}
         <DialogPrimitive.Content
-          onPointerDownOutside={handleElementInteractionBlocker}
-          onEscapeKeyDown={handleElementInteractionBlocker}
-          onInteractOutside={handleElementInteractionBlocker}
+          onPointerDownOutside={block}
+          onEscapeKeyDown={block}
+          onInteractOutside={block}
           className={cn(
             "fixed inset-0 z-50 flex h-screen w-screen flex-col bg-background p-0 outline-none overflow-hidden select-none",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-100 duration-500",
           )}
         >
-          {/* ACCESSIBILITY: AUTHENTICATED_ARIA_DOM_DESCRIPTIONS */}
-          <DialogPrimitive.Title className="sr-only">Account Infrastructure Upgrade Protocol</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">Finish setting up your account</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            We have upgraded our deep learning core infrastructure pipelines. Legacy accounts must commit updated
-            profile parameters to unlock multi-agent compute environments.
+            We need a couple more details to personalize your experience.
           </DialogPrimitive.Description>
 
-          {/* HUD: STANDARDIZED_TOP_BORDER_ACCENT_LINE */}
           <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary shrink-0" />
 
-          {/* WORKSPACE_SURFACE: METADATA_CONTAINER */}
           <div className="relative flex-1 w-full h-full">
-            {/* CTO Architecture Note: The welcome message is passed down inside an explicit layout block 
-              to guarantee standard linear rendering passes without dynamic text menu overlapping splits.
-            */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4 pointer-events-none">
-              <div className="rounded-full border-2 border-primary/20 bg-card/90 backdrop-blur-md px-4 py-2 shadow-xl flex items-center justify-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary animate-pulse shrink-0" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary italic font-mono leading-none">
-                  Infrastructure Upgrade Active
+              <div className="rounded-full border border-primary/20 bg-card/90 backdrop-blur-md px-4 py-2 shadow-xl flex items-center justify-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-[11px] font-semibold text-primary leading-none">
+                  Finish setting up your account
                 </span>
               </div>
             </div>
 
-            {/* CORE WORKFLOW SYSTEM MULTI_STEP STEPPER ENGINE */}
+            {/* Escape hatch — talents stuck on this gate (e.g. lookup data
+                missing) can always sign out and contact support. */}
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="absolute top-5 right-5 z-20 pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-card/80 backdrop-blur-md px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign out</span>
+            </button>
+
             <OnboardingWizard onComplete={onComplete} />
           </div>
         </DialogPrimitive.Content>
