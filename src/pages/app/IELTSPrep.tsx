@@ -1,7 +1,10 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listIeltsResourceAccessByTalent,
+  listActiveIeltsResourcesBySection,
+} from "@/domains/abroad/repo/abroadRepo";
 import { insertIeltsResourceAccess } from "@/domains/learning/repo/learningRepo";
 import { insertContactLog } from "@/domains/marketing/repo/marketingRepo";
 import {
@@ -90,11 +93,7 @@ export default function IELTSPrep() {
     queryKey: ["app-ielts-resource-access-registry", talentProfileRecord?.id],
     queryFn: async (): Promise<string[]> => {
       if (!talentProfileRecord?.id) return [];
-      const { data: dbAccessPayload } = await supabase
-        .from("ielts_resource_access")
-        .select("resource_id")
-        .eq("talent_id", talentProfileRecord.id);
-      return dbAccessPayload?.map((row) => row.resource_id) || [];
+      return await listIeltsResourceAccessByTalent(talentProfileRecord.id);
     },
     enabled: !!talentProfileRecord?.id,
   });
@@ -102,14 +101,7 @@ export default function IELTSPrep() {
   const { data: sectionResourcesPayload = [], isLoading: isSectionCacheResolving } = useQuery<IELTSResourcePayload[]>({
     queryKey: ["app-ielts-resources-catalog", activeSectionState],
     queryFn: async (): Promise<IELTSResourcePayload[]> => {
-      const { data: dbCatalogPayload, error: queryHandshakeError } = await supabase
-        .from("ielts_resources")
-        .select("id, title, description, section, content_type, content_url, is_free, duration_mins, difficulty_level")
-        .eq("section", activeSectionState)
-        .eq("is_active", true)
-        .order("display_order");
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbCatalogPayload = await listActiveIeltsResourcesBySection(activeSectionState);
       return (dbCatalogPayload as unknown as IELTSResourcePayload[]) ?? [];
     },
   });

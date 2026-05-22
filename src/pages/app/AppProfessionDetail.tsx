@@ -1,6 +1,10 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getProfessionTrackBySlug,
+  getActiveInstructorForProfession,
+  listPublishedContentForProfession,
+} from "@/domains/talent/repo/talentRepo";
 import { AIChatPanel } from "@/components/ai-instructor/AIChatPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,15 +96,7 @@ export default function AppProfessionDetail() {
       setIsDataLayerLoading(true);
 
       try {
-        const { data: professionQueryPayload, error: professionHandshakeError } = await supabase
-          .from("profession_categories")
-          .select(
-            `id, name, slug, description, target_audience, career_outcome, credit_cost, schools(name, academies(name))`,
-          )
-          .eq("slug", unverifiedTrackSlugStr)
-          .maybeSingle();
-
-        if (professionHandshakeError) throw professionHandshakeError;
+        const professionQueryPayload = await getProfessionTrackBySlug(unverifiedTrackSlugStr);
 
         if (!professionQueryPayload) {
           if (isThreadActiveFlag.current) {
@@ -115,32 +111,20 @@ export default function AppProfessionDetail() {
         setProfessionRecordState(castProfessionNode);
 
         // Perform downstream secondary entity lookups simultaneously to prevent execution blocking
-        const [instructorQueryResponse, coursesQueryResponse] = await Promise.all([
-          supabase
-            .from("ai_instructors")
-            .select("id, name, persona, expertise_areas")
-            .eq("profession_line_id", castProfessionNode.id)
-            .eq("is_active", true)
-            .maybeSingle(),
-          supabase
-            .from("content")
-            .select(
-              `id, title, slug, description, estimated_hours, modules_count, credit_cost, profession_levels(name, slug)`,
-            )
-            .eq("profession_line_id", castProfessionNode.id)
-            .eq("is_published", true)
-            .order("display_order"),
+        const [instructorData, coursesData] = await Promise.all([
+          getActiveInstructorForProfession(castProfessionNode.id),
+          listPublishedContentForProfession(castProfessionNode.id),
         ]);
 
         if (!isThreadActiveFlag.current) return;
 
-        if (instructorQueryResponse.data) {
-          setAIInstructorState(instructorQueryResponse.data as unknown as AIInstructor);
+        if (instructorData) {
+          setAIInstructorState(instructorData as unknown as AIInstructor);
         } else {
           setAIInstructorState(null);
         }
 
-        setCoursesRegistryPayload((coursesQueryResponse.data as unknown as Course[]) || []);
+        setCoursesRegistryPayload((coursesData as unknown as Course[]) || []);
       } catch (fatalHandshakeException) {
         if (isThreadActiveFlag.current) {
           setSynchronizationErrorStr("Track Metadata Synchronization Aborted.");

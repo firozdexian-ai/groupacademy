@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveDestinationAgents } from "@/domains/abroad/repo/abroadRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Globe, Plane, Languages, Mic, Inbox, Loader2 } from "lucide-react";
@@ -33,13 +33,7 @@ export default function AbroadHub() {
   const { data: destinationAgentsRegistry = [], isLoading: isRegistryResolving } = useQuery<DestinationAgent[]>({
     queryKey: ["destination-agents-registry-list"],
     queryFn: async (): Promise<DestinationAgent[]> => {
-      const { data: databaseOutputPayload, error: queryHandshakeError } = await supabase
-        .from("destination_agents")
-        .select("id, country_code, display_name, tagline, flag_emoji, is_active, display_order")
-        .eq("is_active", true)
-        .order("display_order");
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const databaseOutputPayload = await listActiveDestinationAgents();
       return (databaseOutputPayload as unknown as DestinationAgent[]) ?? [];
     },
   });

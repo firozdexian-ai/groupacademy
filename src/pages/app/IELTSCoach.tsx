@@ -1,7 +1,11 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getIeltsStreakByUser,
+  listRecentIeltsMockAttempts,
+  getIeltsDailyChallenge,
+} from "@/domains/abroad/repo/abroadRepo";
 import { getCurrentUser } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,14 +97,7 @@ export default function IELTSCoach() {
     queryFn: async (): Promise<StreakRecord | null> => {
       const authUser = await getCurrentUser();
       if (!authUser) return null;
-
-      const { data: dbStreakRow, error: queryHandshakeError } = await supabase
-        .from("ielts_streaks")
-        .select("id, user_id, current_streak_days, longest_streak_days, xp_total, updated_at")
-        .eq("user_id", authUser.id)
-        .maybeSingle();
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbStreakRow = await getIeltsStreakByUser(authUser.id);
       return dbStreakRow as unknown as StreakRecord | null;
     },
   });
@@ -108,13 +105,7 @@ export default function IELTSCoach() {
   const { data: recentAttemptsCollection = [], isLoading: isRecentCacheResolving } = useQuery<MockAttemptNode[]>({
     queryKey: ["app-ielts-historical-mock-attempts"],
     queryFn: async (): Promise<MockAttemptNode[]> => {
-      const { data: dbAttemptsPayload, error: queryHandshakeError } = await supabase
-        .from("ielts_mock_attempts")
-        .select("id, section, ai_band_score, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbAttemptsPayload = await listRecentIeltsMockAttempts(5);
       return (dbAttemptsPayload as unknown as MockAttemptNode[]) ?? [];
     },
   });
@@ -123,16 +114,8 @@ export default function IELTSCoach() {
     useQuery<DailyChallengePayload | null>({
       queryKey: ["app-ielts-daily-synchronized-challenge"],
       queryFn: async (): Promise<DailyChallengePayload | null> => {
-        // Pin localized timestamp vectors cleanly avoiding local machine offsets execution variations
         const compiledSystemDateString = new Date().toISOString().slice(0, 10);
-
-        const { data: dbChallengeRow, error: queryHandshakeError } = await supabase
-          .from("ielts_daily_challenges")
-          .select("id, challenge_date, section, prompt_id, ielts_prompts(id, prompt_text)")
-          .eq("challenge_date", compiledSystemDateString)
-          .maybeSingle();
-
-        if (queryHandshakeError) throw queryHandshakeError;
+        const dbChallengeRow = await getIeltsDailyChallenge(compiledSystemDateString);
         return dbChallengeRow as unknown as DailyChallengePayload | null;
       },
     });

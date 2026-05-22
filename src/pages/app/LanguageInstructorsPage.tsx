@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveLanguageInstructorsByCode } from "@/domains/abroad/repo/abroadRepo";
 import { bookLanguageSession } from "@/domains/abroad/api/abroadApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,14 +40,7 @@ export default function LanguageInstructorsPage() {
   } = useQuery({
     queryKey: ["app-lang-instructors-registry", languageCode],
     queryFn: async (): Promise<InstructorRecord[]> => {
-      const { data, error } = await supabase
-        .from("language_instructors")
-        .select("id, user_id, display_name, native_language, is_verified, hourly_rate_credits, bio")
-        .contains("teaches_languages", [languageCode.toUpperCase()])
-        .eq("is_active", true)
-        .order("rating", { ascending: false });
-
-      if (error) throw error;
+      const data = await listActiveLanguageInstructorsByCode(languageCode);
       return (data as unknown as InstructorRecord[]) ?? [];
     },
   });
