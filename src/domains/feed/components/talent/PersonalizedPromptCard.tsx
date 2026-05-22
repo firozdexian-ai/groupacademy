@@ -121,7 +121,7 @@ export function PersonalizedPromptCard() {
     // Check transaction conditions for credit-gated ecosystem endpoints
     if (prompt.cost) {
       if (balance < prompt.cost) {
-        toast.error(`Insufficient credit balance. This service requires ${prompt.cost} credits.`);
+        toast.error(`Not enough credits — this needs ${prompt.cost} credits.`);
         return;
       }
 
