@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getPaymentConfigSettings, updatePlatformSettingByKey } from "@/domains/finance/repo/financeRepo";
 import { updateStripeSecret } from "@/domains/finance/api/financeApi";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,18 +37,8 @@ export function PaymentInfraTab() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["platform-settings-payment"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("platform_settings")
-        .select("*")
-        .in("key", [
-          "payment_gateway",
-          "stripe_publishable_key",
-          "stripe_mode",
-          "currency",
-          "whatsapp_purchase_enabled",
-        ]);
-      if (error) throw error;
-      return new Map(data?.map((s) => [s.key, s.value]) || []);
+      const data = await getPaymentConfigSettings();
+      return new Map(data.map((s) => [s.key, s.value]));
     },
   });
 
@@ -92,7 +82,7 @@ export function PaymentInfraTab() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const updates = [
+      const updates: Array<{ key: string; value: string | null }> = [
         { key: "payment_gateway", value: gateway },
         { key: "stripe_publishable_key", value: stripeKey || null },
         { key: "stripe_mode", value: stripeMode },
@@ -100,11 +90,7 @@ export function PaymentInfraTab() {
         { key: "whatsapp_purchase_enabled", value: whatsappEnabled ? "true" : "false" },
       ];
       for (const u of updates) {
-        const { error } = await supabase
-          .from("platform_settings")
-          .update({ value: u.value, updated_at: new Date().toISOString() })
-          .eq("key", u.key);
-        if (error) throw error;
+        await updatePlatformSettingByKey(u.key, u.value);
       }
     },
     onSuccess: () => {

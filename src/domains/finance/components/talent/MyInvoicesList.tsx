@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listMyCreditInvoices } from "@/domains/finance/repo/financeRepo";
 import { format, isValid } from "date-fns";
 import { useTalent } from "@/hooks/useTalent";
 import { SUPPORT_CONFIG } from "@/lib/constants/support";
@@ -53,18 +53,13 @@ export function MyInvoicesList() {
     staleTime: 30 * 1000, // 30-second ledger consistency caching boundary
     queryFn: async (): Promise<InvoiceRow[]> => {
       // HUD: RUNNING_INVOICE_LEDGER_INGRESS_SELECT
-      const { data, error } = await supabase
-        .from("credit_invoices")
-        .select("*")
-        .eq("talent_id", talent!.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) {
+      try {
+        const data = await listMyCreditInvoices(talent!.id, 50);
+        return (data || []) as InvoiceRow[];
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: credit_invoices ledger lookup failed.", error);
         throw error;
       }
-      return (data || []) as InvoiceRow[];
     },
   });
 

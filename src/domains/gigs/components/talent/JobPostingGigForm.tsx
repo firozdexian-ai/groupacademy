@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { uploadJobAsset } from "@/domains/jobs/repo/jobsRepo";
+import { insertGigSubmission } from "@/domains/gigs/repo/gigsRepo";
 import { parseJobPost } from "@/domains/jobs/api/jobsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,28 +148,22 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
     const toastId = toast.loading("Registering submission tokens into global ledger...");
 
     try {
-      const { data: inserted, error: insertError } = await supabase
-        .from("gig_submissions")
-        .insert({
-          gig_id: gig.id,
-          talent_id: talentId,
-          status: "pending",
-          submission_data: {
-            input_method: inputMode,
-            source: inputMode === "text" ? jobText : sourceImageUrl,
-            curated_data: {
-              title: editTitle.trim(),
-              company: editCompany.trim(),
-              location: editLocation.trim(),
-              type: editJobType.trim(),
-            },
-            ai_meta: parsedRaw,
+      const inserted = await insertGigSubmission({
+        gig_id: gig.id,
+        talent_id: talentId,
+        status: "pending",
+        submission_data: {
+          input_method: inputMode,
+          source: inputMode === "text" ? jobText : sourceImageUrl,
+          curated_data: {
+            title: editTitle.trim(),
+            company: editCompany.trim(),
+            location: editLocation.trim(),
+            type: editJobType.trim(),
           },
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+          ai_meta: parsedRaw,
+        },
+      });
 
       // Load auto-review routines dynamically within a clean sandbox boundary container
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");

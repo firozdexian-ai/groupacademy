@@ -1,31 +1,29 @@
-## Phase 10j.5k7 — Repository Boundary Hardening (Batch 7)
+## Phase 10j.5k8 — Repository Boundary Hardening (Batch 8) ✅
 
-Continue migrating direct `supabase` client imports in non-repo files to domain repository helpers. Target ~10 files in the IR, Messaging, Learning, and Profile domains.
+Migrated 8 files in Finance, Gigs, and Talent domains from direct `supabase.from()` chains to repo helpers. Note: earlier batches (5k5–5k7) used a single-line grep that missed multi-line `.from()` chains, so the real remaining count was higher than reported. Accurate counter is now in place.
 
-### Target files (hooks + components only — repos stay as-is)
+### Added repo helpers
+- `financeRepo.getTalentCreditBalance(talentId)`
+- `financeRepo.listTalentCreditTransactions(talentId, limit)`
+- `financeRepo.listMyCreditInvoices(talentId, limit)`
+- `financeRepo.getTalentServiceHistorySnapshot(talentId)` (parallel: assessments + interviews + salary analyses)
+- `financeRepo.listAdminWithdrawalRequests()`
+- `financeRepo.updatePlatformSettingByKey(key, value)`
+- `gigsRepo.listRecommendedGigBidders(gigId, gigKind, limit)`
+- `talentRepo.insertBatchUpload(payload)`
 
-1. `src/domains/profile/hooks/useTalentPitches.ts`
-2. `src/domains/ir/components/admin/EmailComposer.tsx`
-3. `src/domains/ir/components/admin/hooks/useIRPipeline.ts`
-4. `src/domains/ir/components/admin/InvestorDetailSheet.tsx`
-5. `src/domains/ir/components/admin/economics/CohortRetentionCard.tsx`
-6. `src/domains/messaging/hooks/useMessageThreads.ts`
-7. `src/domains/messaging/hooks/useDirectMessages.ts`
-8. `src/domains/messaging/components/admin/MessagingChannelsTab.tsx`
-9. `src/domains/learning/hooks/useResourceProgress.ts`
-10. `src/domains/learning/hooks/useProgress.ts`
-11. `src/domains/learning/hooks/useOrgLearning.ts`
-12. `src/domains/profile/components/talent/ProfileEditDialog.tsx`
+### Refactored files
+- `domains/finance/hooks/useCredits.ts` — wallet balance + tx history via repo
+- `domains/finance/components/talent/ServiceHistoryCard.tsx` — single repo call replaces 3 parallel `.from()`s
+- `domains/finance/components/talent/MyInvoicesList.tsx`
+- `domains/finance/components/admin/WithdrawalsTab.tsx`
+- `domains/finance/components/admin/PaymentSettingsTab.tsx` — settings read + per-key update
+- `domains/gigs/components/talent/RecommendedBiddersPanel.tsx`
+- `domains/gigs/components/talent/JobPostingGigForm.tsx` — uses existing `insertGigSubmission`
+- `domains/talent/components/admin/BatchTalentUpload.tsx` — both insert paths via `talentRepo.insertBatchUpload`
 
-### Approach
-- Add new helper functions to: `irRepo.ts`, `messagingRepo.ts`, `learningRepo.ts`, `profileRepo.ts`
-- Replace `supabase.from(...)` calls in the above files with repo helper calls
-- Keep behavior, error handling, and types identical
-- No schema or RLS changes
+### Boundary metric
+- Files with direct `.from()` outside repos/api: **101 → 93** (–8)
+- All 8 files now have zero `supabase` client imports.
 
-### Outcome
-- ~12 files removed from the direct-client import list (168 → ~156)
-- Repo layer expanded across 4 domains
-- No UI or business-logic changes
-
-Say **approve** to switch to build mode, or request adjustments to the file list.
+Say **continue 10j.5k9** to run the next batch (~10 files, recommend admin-side gigs/learning/jobs UI clusters).
