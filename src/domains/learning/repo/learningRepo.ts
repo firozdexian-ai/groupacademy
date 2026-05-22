@@ -1916,3 +1916,109 @@ export async function listRecentLearningActivity(talentId: string, limit = 30) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10j.5k10: certificates, cohorts, course progress ────────────────
+export async function getCertificateMinimalByEnrollment(enrollmentId: string) {
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("id, verify_code")
+    .eq("enrollment_id", enrollmentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function insertCertificate(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from("certificates")
+    .insert(payload as any)
+    .select("id, verify_code")
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getCertificateFullByEnrollment(enrollmentId: string) {
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("*")
+    .eq("enrollment_id", enrollmentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listCohortsByContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("cohorts")
+    .select("*")
+    .eq("content_id", contentId)
+    .order("starts_on", { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getCohortDetail(cohortId: string) {
+  const { data, error } = await supabase
+    .from("cohorts")
+    .select("*, content(id, title, thumbnail_url)")
+    .eq("id", cohortId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listCohortSessions(cohortId: string) {
+  const { data, error } = await supabase
+    .from("course_sessions")
+    .select("*")
+    .eq("cohort_id", cohortId)
+    .order("scheduled_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listCourseModulesByContent(contentId: string) {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .select("id, display_order, title")
+    .eq("content_id", contentId)
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listStudentResourceProgressFull(talentId: string) {
+  const { data, error } = await supabase
+    .from("student_resource_progress")
+    .select("resource_id, completed_at, module_resources!inner(module_id, stage_number)")
+    .eq("student_id", talentId);
+  if (error && (error as any).code !== "PGRST116") throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listModuleResourceIdsByStage(moduleId: string, stageNumber: number) {
+  const { data, error } = await supabase
+    .from("module_resources")
+    .select("id")
+    .eq("module_id", moduleId)
+    .eq("stage_number", stageNumber);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string }>;
+}
+
+export async function upsertStudentResourceProgress(rows: Array<{ student_id: string; resource_id: string; completed_at: string }>): Promise<void> {
+  if (!rows.length) return;
+  const { error } = await supabase
+    .from("student_resource_progress")
+    .upsert(rows as any, { onConflict: "student_id,resource_id" });
+  if (error) throw error;
+}
+
+export async function markEnrollmentCompleted(enrollmentId: string): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ status: "completed", completed_at: new Date().toISOString() } as any)
+    .eq("id", enrollmentId);
+  return { error };
+}

@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   upsertCohort,
   upsertCourseSession,
   getCohortHealth,
   markSessionAttendance,
   getInstructorSessionAttendance,
+  listCohortsByContent,
+  getCohortDetail,
+  listCohortSessions,
 } from "@/domains/learning/repo/learningRepo";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -43,22 +45,16 @@ export function useCohorts(contentId?: string) {
     staleTime: 5 * 60 * 1000, // 5-minute executive consistency baseline
     queryFn: async () => {
       if (!contentId) return [];
-
-      const { data, error } = await supabase
-        .from("cohorts")
-        .select("*")
-        .eq("content_id", contentId)
-        .order("starts_on", { ascending: true, nullsFirst: false });
-
-      if (error) {
+      try {
+        return await listCohortsByContent(contentId);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: cohorts taxonomy synchronization failure.", {
           contentId,
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return data ?? [];
     },
   });
 }
@@ -72,21 +68,16 @@ export function useCohort(cohortId?: string) {
     enabled: !!cohortId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cohorts")
-        .select("*, content(id, title, thumbnail_url)")
-        .eq("id", cohortId!)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        return await getCohortDetail(cohortId!);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: cohort relational node hydration failure.", {
           cohortId,
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return data;
     },
   });
 }
@@ -135,21 +126,16 @@ export function useCohortSessions(cohortId?: string) {
     enabled: !!cohortId,
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_sessions")
-        .select("*")
-        .eq("cohort_id", cohortId!)
-        .order("scheduled_date", { ascending: true });
-
-      if (error) {
+      try {
+        return await listCohortSessions(cohortId!);
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: course_sessions registry stream failure.", {
           cohortId,
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return data ?? [];
     },
   });
 }

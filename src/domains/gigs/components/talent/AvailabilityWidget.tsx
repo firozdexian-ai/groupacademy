@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTalentAvailability, upsertTalentAvailability } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -38,16 +38,7 @@ export function AvailabilityWidget() {
     queryKey: ["talent-availability", talent?.id],
     enabled: !!talent?.id,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data: row, error: dbError } = await supabase
-        .from("talent_availability")
-        .select("talent_id, weekly_capacity_hours, paused_until, notify_via_email")
-        .eq("talent_id", talent!.id)
-        .maybeSingle();
-
-      if (dbError) throw dbError;
-      return row as AvailabilityData | null;
-    },
+    queryFn: async () => (await getTalentAvailability(talent!.id)) as AvailabilityData | null,
   });
 
   // 2. Controlled Hybrid Hydration: Guard against racing loop overrides
@@ -73,11 +64,7 @@ export function AvailabilityWidget() {
   // 4. Hardened Data Mutation Engine (useMutation transition replacing local boolean states)
   const mutation = useMutation({
     mutationFn: async (payload: AvailabilityData) => {
-      const { error: upsertError } = await supabase
-        .from("talent_availability")
-        .upsert(payload, { onConflict: "talent_id" });
-
-      if (upsertError) throw upsertError;
+      await upsertTalentAvailability(payload as any);
       return payload;
     },
     onSuccess: (variables) => {

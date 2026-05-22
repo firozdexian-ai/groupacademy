@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, LayoutGrid, LucideIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listTalentAgentChatSessionKeys,
+  listTopActiveAgentsForQuickActions,
+} from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -55,14 +58,7 @@ export function QuickActionsGrid() {
       try {
         if (talent?.id) {
           // Fetch historical user chat parameters to identify top personal affinity vectors
-          const { data: sessions, error: sessionErr } = await supabase
-            .from("agent_chat_sessions")
-            .select("agent_key")
-            .eq("talent_id", talent.id)
-            .order("updated_at", { ascending: false })
-            .limit(50);
-
-          if (sessionErr) throw sessionErr;
+          const sessions = await listTalentAgentChatSessionKeys(talent.id, 50);
 
           if (sessions && sessions.length > 0) {
             const counts = sessions.reduce(
@@ -82,14 +78,7 @@ export function QuickActionsGrid() {
         }
 
         // Aggregate core active ecosystem bots safely based on global traction metrics
-        const { data: allAgents, error: agentsErr } = await supabase
-          .from("ai_agents")
-          .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
-          .eq("is_active", true)
-          .order("total_conversations", { ascending: false })
-          .limit(15);
-
-        if (agentsErr) throw agentsErr;
+        const allAgents = await listTopActiveAgentsForQuickActions(15);
 
         if (!allAgents || allAgents.length === 0) return [];
 

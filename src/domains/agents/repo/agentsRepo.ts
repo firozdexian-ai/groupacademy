@@ -602,3 +602,26 @@ export async function countPlatformEventsSince(sinceIso: string): Promise<number
   if (error) throw error;
   return count ?? 0;
 }
+
+// ─── Phase 10j.5k10: per-talent affinity (recent agent_key sessions) ───────
+export async function listTalentAgentChatSessionKeys(talentId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("agent_chat_sessions")
+    .select("agent_key")
+    .eq("talent_id", talentId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<{ agent_key: string | null }>;
+}
+
+export async function listTopActiveAgentsForQuickActions(limit = 15) {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
+    .eq("is_active", true)
+    .order("total_conversations", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

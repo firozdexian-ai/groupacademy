@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listMyOpenMarketplaceGigs } from "@/domains/gigs/repo/gigsRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { GRO10X_MUTED } from "@/gro10x/lib/tokens";
@@ -13,14 +13,7 @@ export function Gro10xOpenGigs() {
     queryKey: ["gro10x-open-gigs", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("marketplace_gigs")
-        .select("id,title,status,total_bids,budget_amount,selected_bid_id")
-        .eq("posted_by", user.id)
-        .in("status", ["pending", "approved", "active", "in_progress"])
-        .order("created_at", { ascending: false })
-        .limit(20);
-      return data ?? [];
+      return await listMyOpenMarketplaceGigs(user.id, 20);
     },
     enabled: !!user,
   });

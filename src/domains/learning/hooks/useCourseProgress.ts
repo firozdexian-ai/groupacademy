@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listCourseModulesByContent,
+  listStudentResourceProgressFull,
+  listModuleResourceIdsByStage,
+  upsertStudentResourceProgress,
+  markEnrollmentCompleted,
+} from "@/domains/learning/repo/learningRepo";
 import { useToast } from "@/hooks/use-toast";
 
 /**
@@ -49,24 +55,19 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
     staleTime: 2 * 60 * 1000, // 2-minute performance consistency baseline
     queryFn: async (): Promise<CourseProgress | null> => {
       // HUD: Fetch_Module_Architecture
-      const { data: modules, error: modulesError } = await supabase
-        .from("course_modules")
-        .select("id, display_order, title")
-        .eq("content_id", contentId!)
-        .order("display_order", { ascending: true });
-
-      if (modulesError) {
+      let modules: any[] = [];
+      try {
+        modules = await listCourseModulesByContent(contentId!);
+      } catch (modulesError) {
         console.error("[Digital Workforce] FAULT: course_modules extraction failed schema bounds.", modulesError);
         throw modulesError;
       }
 
       // HUD: Fetch_Interaction_Telemetry
-      const { data: resourceProgress, error: progressError } = await supabase
-        .from("student_resource_progress")
-        .select("resource_id, completed_at, module_resources!inner(module_id, stage_number)")
-        .eq("student_id", talentId!);
-
-      if (progressError && progressError.code !== "PGRST116") {
+      let resourceProgress: any[] = [];
+      try {
+        resourceProgress = await listStudentResourceProgressFull(talentId!);
+      } catch (progressError: any) {
         console.error("[Digital Workforce] FAULT: student_resource_progress telemetry query failure.", progressError);
         throw progressError;
       }
@@ -126,13 +127,7 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
     mutationFn: async ({ moduleId, stageNumber }: { moduleId: string; stageNumber: number }) => {
       if (!talentId || !moduleId) throw new Error("BAD_MUTATION_ARGS: Missing identity or module context keys.");
 
-      const { data: resources, error: resourceError } = await supabase
-        .from("module_resources")
-        .select("id")
-        .eq("module_id", moduleId)
-        .eq("stage_number", stageNumber);
-
-      if (resourceError) throw resourceError;
+      const resources = await listModuleResourceIdsByStage(moduleId, stageNumber);
 
       const progressRecords = (resources || []).map((r) => ({
         student_id: talentId,
@@ -141,11 +136,7 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
       }));
 
       if (progressRecords.length > 0) {
-        const { error: insertError } = await supabase
-          .from("student_resource_progress")
-          .upsert(progressRecords, { onConflict: "student_id,resource_id" });
-
-        if (insertError) throw insertError;
+        await upsertStudentResourceProgress(progressRecords);
       }
     },
     onMutate: async ({ moduleId, stageNumber }) => {
@@ -224,10 +215,7 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
   const completeEnrollment = async (): Promise<boolean> => {
     if (!enrollmentId || !progress?.isCompleted) return false;
 
-    const { error } = await supabase
-      .from("enrollments")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("id", enrollmentId);
+    const { error } = await markEnrollmentCompleted(enrollmentId);
 
     if (error) {
       console.error("[Digital Workforce] ANOMALY: completeEnrollment ledger state mutation failed.", error);

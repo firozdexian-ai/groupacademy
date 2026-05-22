@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { getCertificateByEnrollment } from "@/domains/learning/repo/learningRepo";
+import {
+  getCertificateByEnrollment,
+  getCertificateMinimalByEnrollment,
+  insertCertificate,
+  getCertificateFullByEnrollment,
+} from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -46,43 +50,25 @@ export function useCertificate() {
    */
   const issueMutation = useMutation({
     mutationFn: async (params: IssueCertificateParams) => {
-      // HUD: REGISTRY_AUDIT
-      // Prevent redundant artifact creation for existing trajectories
-      const { data: existing, error: auditError } = await supabase
-        .from("certificates")
-        .select("id, verify_code")
-        .eq("enrollment_id", params.enrollment_id)
-        .maybeSingle();
-
-      if (auditError) {
-        throw auditError;
-      }
-
+      // HUD: REGISTRY_AUDIT — prevent redundant artifact creation
+      const existing = await getCertificateMinimalByEnrollment(params.enrollment_id);
       if (existing) {
         console.log("[Digital Workforce] Existing_Artifact_Found: Re-linking layout tokens.");
         return existing;
       }
 
       // HUD: ATOMIC_INGRESS
-      const { data, error: insertError } = await supabase
-        .from("certificates")
-        .insert({
-          enrollment_id: params.enrollment_id,
-          talent_id: params.talent_id,
-          content_id: params.content_id,
-          holder_name: params.holder_name,
-          course_title: params.course_title,
-          score: params.score,
-          total_questions: params.total_questions,
-          percentage: params.percentage,
-          issued_at: new Date().toISOString(),
-        })
-        .select("id, verify_code")
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
+      const data = await insertCertificate({
+        enrollment_id: params.enrollment_id,
+        talent_id: params.talent_id,
+        content_id: params.content_id,
+        holder_name: params.holder_name,
+        course_title: params.course_title,
+        score: params.score,
+        total_questions: params.total_questions,
+        percentage: params.percentage,
+        issued_at: new Date().toISOString(),
+      });
 
       return data;
     },
@@ -117,17 +103,12 @@ export function useCertificate() {
       enabled: !!enrollmentId,
       staleTime: 5 * 60 * 1000, // 5 minute stability mapping
       queryFn: async (): Promise<CertificateRegistryNode | null> => {
-        const { data, error } = await supabase
-          .from("certificates")
-          .select("*")
-          .eq("enrollment_id", enrollmentId!)
-          .maybeSingle();
-
-        if (error) {
+        try {
+          return (await getCertificateFullByEnrollment(enrollmentId!)) as CertificateRegistryNode | null;
+        } catch (error) {
           console.error("[Digital Workforce] FAULT: REGISTRY_FETCH_FAULT.", error);
           throw error;
         }
-        return data as CertificateRegistryNode | null;
       },
     });
   };
