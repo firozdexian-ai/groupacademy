@@ -45,6 +45,18 @@ const AuthChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // If the visitor explicitly asked for the signup form (e.g. marketing
+  // links use ?tab=signup), send them to the classic form which honors that
+  // param. The chat flow auto-detects login vs signup from the email, so
+  // forcing a tab inside the chat isn't meaningful.
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "signup" || tab === "login") {
+      const qs = new URLSearchParams(searchParams);
+      navigate(`/auth/classic?${qs.toString()}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   // REDIRECT GUARD: Wait for account type so company users land on /company
   useEffect(() => {
     if (authLoading || !user || accountTypeLoading) return;
