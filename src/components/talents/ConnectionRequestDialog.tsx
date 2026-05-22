@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
+import { supabase } from "@/integrations/supabase/client";
 import { requestTalentConnection } from "@/domains/talent/repo/talentRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, Sparkles, Loader2, ShieldCheck, Zap } from "lucide-react";
