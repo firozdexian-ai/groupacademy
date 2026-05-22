@@ -92,14 +92,12 @@ export function ChannelPromotionCard({ job }: Props) {
   };
 
   const handleMarkPosted = async (channel: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const uid = await getCurrentUserId();
     try {
       await insertJobChannelPost({
         job_id: job.id,
         channel,
-        posted_by: user?.id || null,
+        posted_by: uid || null,
         caption: captions[channel] || null,
       });
     } catch (error: any) {
