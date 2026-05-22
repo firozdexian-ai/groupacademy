@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedBlogPosts } from "@/domains/marketing/repo/marketingRepo";
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import {
