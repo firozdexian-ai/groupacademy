@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/lib/auth";
 import { getLatestIdentityDoc, insertIdentityDoc, uploadIdentityDoc } from "@/domains/profile/repo/profileRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
