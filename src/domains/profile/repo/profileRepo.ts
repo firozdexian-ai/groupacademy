@@ -446,3 +446,8 @@ export async function createIdentityDocSignedUrl(path: string, expiresInSeconds 
   if (error) throw error;
   return data.signedUrl;
 }
+
+export async function removeFromBucket(bucket: string, paths: string[]): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove(paths);
+  if (error) throw error;
+}
