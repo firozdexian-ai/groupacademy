@@ -71,19 +71,11 @@ export default function MultiFileUpload({
 
     if (signal.aborted) throw new Error("SYNC_ABORTED");
 
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(cryptographicallySecureFileNameStr, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+    const { publicUrl } = await uploadToBucketPublic(bucket, cryptographicallySecureFileNameStr, file, {
+      upsert: false,
+    });
 
     if (signal.aborted) throw new Error("SYNC_ABORTED");
-    if (uploadError) throw uploadError;
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(bucket).getPublicUrl(cryptographicallySecureFileNameStr);
 
     return { name: file.name, url: publicUrl };
   };
