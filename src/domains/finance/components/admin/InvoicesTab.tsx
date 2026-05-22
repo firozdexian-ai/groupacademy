@@ -1,8 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { uploadPaymentProof, createPaymentProofSignedUrl } from "@/domains/finance/repo/financeRepo";
-import { approveInvoiceAndDisburse, cancelInvoice } from "@/domains/finance/repo/financeRepo";
+import {
+  uploadPaymentProof,
+  createPaymentProofSignedUrl,
+  approveInvoiceAndDisburse,
+  cancelInvoice,
+  listAdminCreditInvoices,
+} from "@/domains/finance/repo/financeRepo";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -95,14 +99,7 @@ export function InvoicesTab() {
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["admin-credit-invoices", statusFilter],
     queryFn: async () => {
-      let q = supabase
-        .from("credit_invoices")
-        .select("*, talents:talent_id (full_name, email, phone)")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (statusFilter !== "all") q = q.eq("status", statusFilter);
-      const { data, error } = await q;
-      if (error) throw error;
+      const data = await listAdminCreditInvoices(statusFilter, 500);
       return (data || []) as unknown as InvoiceRow[];
     },
   });
