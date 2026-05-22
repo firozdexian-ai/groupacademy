@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveStudyAbroadPrograms } from "@/domains/abroad/repo/abroadRepo";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import {
   ArrowLeft,
@@ -84,25 +84,17 @@ export default function StudyAbroad() {
   } = useQuery({
     queryKey: ["study-abroad-programs", selectedCountry, selectedDegree, searchTerm],
     queryFn: async () => {
-      let query = supabase
-        .from("study_abroad_programs")
-        .select("*")
-        .eq("is_active", true)
-        .order("featured", { ascending: false })
-        .order("university_name");
-
-      if (selectedCountry !== "all") query = query.eq("country_code", selectedCountry);
-      if (selectedDegree !== "All Degrees") query = query.eq("degree_type", selectedDegree);
-      if (searchTerm) {
-        query = query.or(`university_name.ilike.%${searchTerm}%,program_name.ilike.%${searchTerm}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) {
+      try {
+        const data = await listActiveStudyAbroadPrograms({
+          country: selectedCountry,
+          degree: selectedDegree,
+          search: searchTerm,
+        });
+        return (data as unknown as Program[]) || [];
+      } catch (error) {
         await reportAnomaly("ProgramRegistrySyncFailure", { error });
         throw error;
       }
-      return (data as unknown as Program[]) || [];
     },
     staleTime: 5 * 60 * 1000,
   });

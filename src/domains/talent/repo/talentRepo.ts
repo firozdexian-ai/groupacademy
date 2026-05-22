@@ -728,6 +728,61 @@ export async function assignCareerCoach(_talent_id: string): Promise<string | nu
   return data ? String(data) : null;
 }
 
+export async function getTalentCareerCoachId(talentId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("talents")
+    .select("career_coach_instructor_id")
+    .eq("id", talentId)
+    .maybeSingle();
+  return ((data as any)?.career_coach_instructor_id as string | null) ?? null;
+}
+
+export async function getAiInstructorBasicById(id: string) {
+  const { data } = await supabase
+    .from("ai_instructors")
+    .select("id, name, profession_line_id, avatar_url")
+    .eq("id", id)
+    .maybeSingle();
+  return data as any;
+}
+
+export async function getProfessionTrackBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("profession_categories")
+    .select(
+      `id, name, slug, description, target_audience, career_outcome, credit_cost, schools(name, academies(name))`,
+    )
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getActiveInstructorForProfession(professionLineId: string) {
+  const { data, error } = await supabase
+    .from("ai_instructors")
+    .select("id, name, persona, expertise_areas")
+    .eq("profession_line_id", professionLineId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function listPublishedContentForProfession(professionLineId: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      `id, title, slug, description, estimated_hours, modules_count, credit_cost, profession_levels(name, slug)`,
+    )
+    .eq("profession_line_id", professionLineId)
+    .eq("is_published", true)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+
 export async function getTalentCountryByUserId(user_id: string): Promise<string | null> {
   const { data } = await supabase.from("talents").select("country").eq("user_id", user_id).maybeSingle();
   return (data?.country as string | null) ?? null;

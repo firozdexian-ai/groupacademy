@@ -1,7 +1,10 @@
 import * as React from "react";
 import { Loader2, Bot, UserX } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { assignCareerCoach } from "@/domains/talent/repo/talentRepo";
+import {
+  assignCareerCoach,
+  getTalentCareerCoachId,
+  getAiInstructorBasicById,
+} from "@/domains/talent/repo/talentRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { AIChatPanel } from "@/components/ai-instructor/AIChatPanel";
 import { trackCoachEvent } from "@/lib/onboarding/telemetry";
@@ -17,9 +20,6 @@ interface CoachInstructor {
   avatar_url: string | null;
 }
 
-interface TalentCoachBindingRecord {
-  career_coach_instructor_id: string | null;
-}
 
 interface StarterChipConfig {
   label: string;
@@ -59,14 +59,7 @@ export default function CareerCoach() {
     const executeCoachAssignmentAndDossierLookup = async () => {
       try {
         // Step 1: Read active relational coach-to-talent bindings tracking row
-        const { data: bindingQueryPayload } = await supabase
-          .from("talents")
-          .select("career_coach_instructor_id")
-          .eq("id", talentProfileRecord.id)
-          .maybeSingle();
-
-        const castBindingRecord = bindingQueryPayload as unknown as TalentCoachBindingRecord | null;
-        let evaluatedCoachIdUUID = castBindingRecord?.career_coach_instructor_id ?? null;
+        let evaluatedCoachIdUUID = await getTalentCareerCoachId(talentProfileRecord.id);
 
         // Step 2: Programmatically trigger remote atomic allocation RPC procedure if mapping is unassigned
         if (!evaluatedCoachIdUUID) {
@@ -86,11 +79,7 @@ export default function CareerCoach() {
         }
 
         // Step 3: Gather lead artificial intelligence instructor biography specifications
-        const { data: instructorQueryPayload } = await supabase
-          .from("ai_instructors")
-          .select("id, name, profession_line_id, avatar_url")
-          .eq("id", evaluatedCoachIdUUID)
-          .maybeSingle();
+        const instructorQueryPayload = await getAiInstructorBasicById(evaluatedCoachIdUUID);
 
         if (isThreadActive) {
           if (instructorQueryPayload) {

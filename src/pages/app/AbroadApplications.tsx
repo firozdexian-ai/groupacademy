@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listAbroadApplicationsForCurrentUser } from "@/domains/abroad/repo/abroadRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,12 +43,7 @@ export default function AbroadApplications() {
   const { data: applicationsRegistryRows = [], isLoading: isRegistryCacheResolving } = useQuery<AbroadApplication[]>({
     queryKey: ["my-abroad-applications-ledger"],
     queryFn: async (): Promise<AbroadApplication[]> => {
-      const { data: rawDatabaseRows, error: databaseHandshakeError } = await supabase
-        .from("abroad_applications")
-        .select("id, target_country, intake_term, stage, updated_at, created_at")
-        .order("updated_at", { ascending: false });
-
-      if (databaseHandshakeError) throw databaseHandshakeError;
+      const rawDatabaseRows = await listAbroadApplicationsForCurrentUser();
       return (rawDatabaseRows as unknown as AbroadApplication[]) ?? [];
     },
   });

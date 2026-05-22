@@ -8,12 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfessionCategoriesBasic, insertSalaryAnalysis } from "@/domains/marketing/repo/marketingRepo";
 import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
-import { insertSalaryAnalysis } from "@/domains/marketing/repo/marketingRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
+
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
@@ -97,30 +96,14 @@ export default function AppSalaryAnalysisSetup() {
 
   React.useEffect(() => {
     let isThreadActive = true;
-    const macroAbortControllerInstance = new AbortController();
-
-    const networkSchedulingTimerToken = setTimeout(() => {
-      macroAbortControllerInstance.abort();
-    }, TIMEOUTS.CATEGORY_LOAD || 10000);
-
     const loadProfessionCategoriesDirectory = async () => {
       try {
-        const { data: dbCategoriesPayload, error: queryHandshakeError } = await supabase
-          .from("profession_categories")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("display_order")
-          .abortSignal(macroAbortControllerInstance.signal);
-
-        clearTimeout(networkSchedulingTimerToken);
-
-        if (queryHandshakeError) throw queryHandshakeError;
+        const dbCategoriesPayload = await listActiveProfessionCategoriesBasic();
         if (dbCategoriesPayload && isThreadActive) {
           setProfessionCategoriesArray(dbCategoriesPayload as unknown as ProfessionCategory[]);
         }
       } catch (pipelineException: any) {
-        clearTimeout(networkSchedulingTimerToken);
-        if (pipelineException?.name !== "AbortError" && isThreadActive) {
+        if (isThreadActive) {
           console.error("Diagnostic Failure: Profession Configuration Load Exception:", pipelineException);
         }
       }
@@ -129,8 +112,6 @@ export default function AppSalaryAnalysisSetup() {
     loadProfessionCategoriesDirectory();
 
     return () => {
-      clearTimeout(networkSchedulingTimerToken);
-      macroAbortControllerInstance.abort();
       isThreadActive = false;
     };
   }, []);

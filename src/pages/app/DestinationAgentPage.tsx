@@ -1,7 +1,11 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getDestinationAgentByCountry,
+  listActiveProgramsForCountry,
+  listDestinationAgentMessages,
+} from "@/domains/abroad/repo/abroadRepo";
 import { aiDestinationAgent } from "@/domains/abroad/api/abroadApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,13 +70,7 @@ export default function DestinationAgentPage() {
   const { data: destinationAgentMetadata, isLoading: isAgentCacheResolving } = useQuery({
     queryKey: ["app-destination-agent-profile", validatedCountryCodeStr],
     queryFn: async (): Promise<DestinationAgentRecord> => {
-      const { data: dbAgentPayload, error: queryHandshakeError } = await supabase
-        .from("destination_agents")
-        .select("id, country_code, display_name, tagline, flag_emoji")
-        .eq("country_code", validatedCountryCodeStr)
-        .maybeSingle();
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbAgentPayload = await getDestinationAgentByCountry(validatedCountryCodeStr);
       if (!dbAgentPayload) throw new Error("Target destination profile parameters unallocated.");
       return dbAgentPayload as unknown as DestinationAgentRecord;
     },
@@ -82,14 +80,7 @@ export default function DestinationAgentPage() {
   const { data: availableProgramsCollection = [] } = useQuery({
     queryKey: ["app-study-abroad-programs-index", validatedCountryCodeStr],
     queryFn: async (): Promise<StudyAbroadProgramItem[]> => {
-      const { data: dbProgramsPayload, error: queryHandshakeError } = await supabase
-        .from("study_abroad_programs")
-        .select("id, university_name, program_name, degree_type, tuition_range")
-        .eq("country_code", validatedCountryCodeStr)
-        .eq("is_active", true)
-        .limit(10);
-
-      if (queryHandshakeError) throw queryHandshakeError;
+      const dbProgramsPayload = await listActiveProgramsForCountry(validatedCountryCodeStr, 10);
       return (dbProgramsPayload as unknown as StudyAbroadProgramItem[]) ?? [];
     },
     enabled: !!validatedCountryCodeStr,
@@ -104,14 +95,7 @@ export default function DestinationAgentPage() {
     let isThreadActive = true;
     const loadHistoricalMessagesTrack = async () => {
       try {
-        const { data: dbMessagesPayload, error: queryHandshakeError } = await supabase
-          .from("destination_agent_messages")
-          .select("role, content")
-          .eq("country_code", validatedCountryCodeStr)
-          .order("created_at", { ascending: true })
-          .limit(40);
-
-        if (queryHandshakeError) throw queryHandshakeError;
+        const dbMessagesPayload = await listDestinationAgentMessages(validatedCountryCodeStr, 40);
         if (!isThreadActive) return;
 
         if (dbMessagesPayload && dbMessagesPayload.length > 0) {
