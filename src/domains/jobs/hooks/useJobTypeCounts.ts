@@ -19,24 +19,19 @@ export function useJobTypeCounts(country?: string | null) {
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<Record<string, number>> => {
       // HUD: EXECUTING_JOB_SEGMENT_AGGREGATION_SYNC
-      const { data, error } = await supabase.rpc("count_jobs_by_type", {
-        _country: country || null,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Critical for monitoring background indexing health.
+      let data: Array<{ job_type: string; cnt: string | number }>;
+      try {
+        data = await countJobsByType(country || null);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: count_jobs_by_type RPC handshake failed.", {
           country: country || "GLOBAL",
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
 
       const map: Record<string, number> = {};
-
-      // HUD: CORE_METRICS_MAPPING
-      (data || []).forEach((row: { job_type: string; cnt: string | number }) => {
+      (data || []).forEach((row) => {
         if (row.job_type) {
           map[row.job_type] = Number(row.cnt || 0);
         }
