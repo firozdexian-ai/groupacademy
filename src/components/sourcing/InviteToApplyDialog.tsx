@@ -67,30 +67,23 @@ export function InviteToApplyDialog({ open, onOpenChange, companyId, talentId }:
       setFetchingJobs(true);
     }
 
-    (supabase as any)
-      .from("jobs")
-      .select("id, title")
-      .eq("company_id", companyId)
-      .eq("status", "active")
-      .limit(50)
-      .then(({ data: jobsDataPayload, error: jobsQueryError }: { data: ActiveJobNode[] | null; error: any }) => {
-        if (jobsQueryError) {
-          trackError(jobsQueryError, {
-            component: "InviteToApplyDialog",
-            action: "fetch_company_active_jobs",
-            companyId,
-          });
-          if (isRequestActive && isMountedRef.current) {
-            setFetchingJobs(false);
-          }
-          return;
-        }
-
+    listJobsByCompanyAndStatus(companyId, "active", 50)
+      .then((jobsDataPayload) => {
         if (isRequestActive && isMountedRef.current) {
           const typedJobsList = (jobsDataPayload || []) as ActiveJobNode[];
           setJobs(typedJobsList);
           setFetchingJobs(false);
           trackEvent("job_invitation_active_openings_loaded", { listingsCount: typedJobsList.length });
+        }
+      })
+      .catch((jobsQueryError: any) => {
+        trackError(jobsQueryError, {
+          component: "InviteToApplyDialog",
+          action: "fetch_company_active_jobs",
+          companyId,
+        });
+        if (isRequestActive && isMountedRef.current) {
+          setFetchingJobs(false);
         }
       });
 
