@@ -8,6 +8,7 @@
  * - Data room documents, share links, telemetry
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 
 // ─── Generic helpers ───────────────────────────────────────────────────────
 export async function upsertGraphRow(table: string, payload: any): Promise<void> {
