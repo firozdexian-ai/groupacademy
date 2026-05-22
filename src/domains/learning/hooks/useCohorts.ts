@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { upsertCohort, upsertCourseSession } from "@/domains/learning/repo/learningRepo";
+import {
+  upsertCohort,
+  upsertCourseSession,
+  getCohortHealth,
+  markSessionAttendance,
+  getInstructorSessionAttendance,
+} from "@/domains/learning/repo/learningRepo";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
