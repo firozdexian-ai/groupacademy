@@ -20,9 +20,8 @@ interface WhyYouMatchPanelProps {
 }
 
 /**
- * GroUp Academy: AI Trajectory Validation Ribbon (WhyYouMatchPanel)
- * CTO Reference: Authoritative panel breaking down credential alignments and skill gaps for tailored optimization.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Why-you-match panel: surfaces verified credentials, mastery topics, and
+ * skill gaps from score-job-match's verified_match payload.
  */
 export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
   // Monitor algorithmic matching panel initialization configurations via telemetry
