@@ -20,11 +20,7 @@ export default function VerifySkillCredential() {
   useEffect(() => {
     if (!code) return;
     (async () => {
-      const { data } = await supabase
-        .from("skill_credentials")
-        .select("*, content:content_id(title), talent:talent_id(name, headline)")
-        .eq("verify_code", code.toUpperCase())
-        .maybeSingle();
+      const data = await getSkillCredentialByVerifyCode(code);
       setCredential(data);
       setLoading(false);
     })();
