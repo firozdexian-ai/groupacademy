@@ -1,68 +1,82 @@
-# Phase A4 — Re-audit & completion plan
+# A5.1 — Hub shell + Browse tab
 
-Verified what shipped vs what remains. Below is a piece-by-piece status with gaps surfaced.
+## P0 finding from audit
 
-## Completion summary — what shipped ✅
+**`/app/jobs` is functionally empty.** All four tab views are 3-line stubs:
 
-| Slice | Status | Evidence |
-|---|---|---|
-| A4-FIX-1 `TalentHome` cleanup | ✅ Done | `adminSupportAssistant` removed, replaced with `trackError`; copy humanized ("messages from employers", "skills verified", "You're live on Gro10x", "Couldn't boost your profile…") |
-| A4-FIX-2 Feed user-visible copy | ✅ Partial — toasts/aria done | Fixed: `HypeBoostSheet`, `FloatingWhatsAppButton` toast, `PostCard` (saved-items, report, aria), `PersonalizedPromptCard` (3 toasts), `ComposePost` (telemetry + aria), `CommentList` (tip strings) |
-| A4-FIX-3 Shell scrub | ✅ Done | `TalentAppShell.tsx`: jargon comments + `fetchInstitutionalAlerts` → `fetchNotificationCount` |
-| A4-FIX-4 Landing decision | ✅ Recorded | Kept `/app` → `/app/feed`; documented in audit log |
-| A4-AUDIT-BACKFILL | ✅ Done | A2 + A4 sections added to `.lovable/launch-audit.md` |
+```
+src/domains/jobs/components/views/BrowseView.tsx     → "Browse view coming soon."
+src/domains/jobs/components/views/CompaniesView.tsx  → "Companies view coming soon."
+src/domains/jobs/components/views/LocationsView.tsx  → "Locations view coming soon."
+src/domains/jobs/components/views/ToolsView.tsx      → "Tools view coming soon."
+```
 
-## Gaps found in re-audit ⚠️
+Meanwhile, the real machinery is sitting **unused**:
+- `InfiniteJobsList.tsx` (172 LOC) — wired to `useRankedJobs` + sentinel-based infinite scroll
+- `useJobsHubDashboard` — returns `{ trending, in_field, companies, countries, remote, type_counts }`
+- `useRankedJobs` — keyset-paginated, per-card match %, deterministic ranking (memory: Zero-Latency Matching)
+- `AppJobs.tsx` (426 LOC) — full search + filters experience, but routed at `/app/jobs/all`, not the hub default
 
-### G1 — `TalentHome` (`/app/me`) is orphaned (P0)
-- No bottom-nav slot, no header link, no profile-dropdown entry points to `/app/me`.
-- The profile dropdown goes to `/app/profile` (read view) and `/app/profile/edit` only.
-- `TalentHome` (readiness card, pitches, verified skills) is the actual talent dashboard yet is unreachable from the shell. We humanized it but no user will ever see it.
-- **Fix:** add a "Dashboard" or "My Hub" entry in the profile dropdown, OR swap the avatar tap to land on `/app/me` (with a "View public profile" item in the menu).
+Net effect: every talent who taps "Jobs" in the bottom nav lands on a blank page. The full jobs list is hidden behind a route they have no link to.
 
-### G2 — `QuickActionsGrid` is dead code (P1)
-- `src/domains/feed/components/talent/QuickActionsGrid.tsx` exists, references the Quick Actions Grid memory, but `rg` shows zero imports anywhere.
-- Same for `QuickActionsSheet.tsx`.
-- **Fix:** either mount on Feed/TalentHome per the memory, or delete (and clear the memory if intentionally dropped).
+## A5.1 scope (Browse only — Companies/Locations/Tools handled in A5.2/A5.3)
 
-### G3 — One residual user-visible jargon string (P1)
-- `FloatingWhatsAppButton.tsx:73` throws `"Credit wallet ledger mutation failed to settle cleanly."` — surfaces in console + crash boundary.
-- **Fix:** plain message.
+### Step 1 — Replace `BrowseView` stub with a real composition
+Use what already exists. Render in order:
 
-### G4 — Internal jargon comments remain across 30 feed files (P2, deferred earlier — recommend keeping deferred)
-- `Phase Z0`, `Digital Workforce`, `Automated Efficiency`, `Neural Match`, `Institutional` in code comments and console.error strings.
-- Not user-visible. Pre-launch comment-only pass.
-- **Decision needed:** scrub now (1 batch sed) or hold until pre-launch sweep?
+```
+┌─ JobsHubHeader (already there)
+├─ Trending strip      ← dashboard.trending  (horizontal scroll, top 6, JobCard compact)
+├─ In your field strip ← dashboard.in_field  (horizontal scroll, top 6)
+├─ Type counts chips   ← dashboard.type_counts (clickable → /app/jobs/all?type=...)
+├─ "Recommended for you" header + match-% badge legend
+└─ <InfiniteJobsList talentId={talent?.id} />  ← the real list
+```
 
-### G5 — Functional checks never run live (P1)
-The original plan called for live walkthroughs that we didn't execute:
-- Hype + comment realtime subscription cleanup on remount
-- Pagination/refresh on `useFeedRecommendations`
-- Notification bell badge counter
-- Fresh `*@gro10x.com` sign-up → onboarding → feed → post → hype → comment flow
+For unauthenticated talents (no `talent?.id`), fall back to:
+- Trending strip (public data)
+- "Sign in for personalized matches" CTA → `/auth?returnTo=/app/jobs`
 
-## Proposed sub-phases to close A4
+### Step 2 — Humanize `useJobsHubDashboard` + `useRankedJobs` + `InfiniteJobsList`
+Strip the "Digital Workforce / Phase Z0 / HUD: EXECUTING_… / CTO Reference / Z0 Hardened" jargon from:
+- JSDoc blocks (3 hooks/components)
+- `console.error("[Digital Workforce] ANOMALY: …")` → `console.error("get_jobs_hub_dashboard failed", { ... })`
+- Inline numbered comments ("1. TanStack…", "2. High-Performance Defensive…")
 
-### A4-CLOSE-1 — Wire `/app/me` into the shell (P0, ~10 min)
-Add a "My dashboard" item to the profile dropdown above "View profile", linking to `/app/me`. Keeps current nav, makes TalentHome reachable in 2 taps.
+Behavior unchanged — comments + log strings only.
 
-### A4-CLOSE-2 — `QuickActionsGrid` decision (P1, ~5–20 min)
-Quick check on the memory and decide: mount on TalentHome below the readiness card, OR delete both files. Recommend **mount on TalentHome** since that's the canonical "dashboard" surface and matches the memory's intent.
+### Step 3 — Beef up `JobsHubHeader`
+Currently 8 lines, just `<h1>Jobs Hub</h1>`. Add:
+- Search box that deep-links to `/app/jobs/all?q=…` (reuses the working search there)
+- "View all jobs" link → `/app/jobs/all` (so users can still reach the full filter UI)
+- Preferences trigger → `JobPreferencesSheet` (already exists, currently unmounted)
 
-### A4-CLOSE-3 — Fix `FloatingWhatsAppButton` Error string (P1, ~2 min)
-Replace `"Credit wallet ledger mutation failed to settle cleanly."` with `"Couldn't apply the credit bonus."`.
+### Step 4 — Profile completeness gate
+`ProfileCompletenessGate.tsx` exists but is never imported. Mount it above the Recommended list when `talent` is present but readiness < 60% (matches A4 readiness logic).
 
-### A4-CLOSE-4 — Live verification (P1, ~10 min)
-- Open preview as admin, navigate `/app/feed` and `/app/me`, confirm no console errors.
-- Tap profile avatar → confirm new "My dashboard" link.
-- Refresh feed, scroll, check infinite-scroll sentinel fires.
-- Skim console for any `adminSupportAssistant` / `Digital Workforce` log noise.
+### Step 5 — Auth gate guard
+`/app/jobs` already redirects unauth users via `OnboardingGuard` for protected routes; double-check the `Navigate to="/auth?returnTo=/app/jobs"` path is intact (memory: Auth Gate for Services).
 
-### A4-CLOSE-5 — Comment scrub decision (deferred or now)
-Ask: do you want the 30-file comment scrub done as part of A4 close, or rolled into a single pre-launch sweep? My recommendation: **defer to pre-launch** — comment-only changes carry merge-conflict risk against ongoing feature work and have zero user impact.
+### Step 6 — Verification
+- Open `/app/jobs` as admin in preview → Browse tab renders Trending + In-Field + InfiniteJobsList.
+- Scroll → sentinel fires `fetchNextPage`.
+- Tap a card → navigates to `/app/jobs/:id` (A5.4 territory but smoke-test routing).
+- Console clean of `Digital Workforce` log noise.
+- Tap "View all" → `/app/jobs/all` renders the existing filterable list unchanged.
 
-## Order
+## Out of scope for A5.1
+- `CompaniesView` / `LocationsView` / `ToolsView` stubs (A5.2 + A5.3).
+- `AppJobs.tsx` refactor (deferred — works fine standalone, reachable via "View all").
+- Job detail / apply / messages (A5.4 / A5.5).
+- Comment-only jargon scrub of files not touched here (defer to pre-launch sweep).
 
-A4-CLOSE-1 → A4-CLOSE-2 → A4-CLOSE-3 → A4-CLOSE-4 → log final A4 closeout entry in `.lovable/launch-audit.md` → ready for A5 (Jobs Hub).
+## Decisions needed from you
 
-Estimated total: ~30 min to fully close A4.
+1. **Trending + In-Field strips** — show as horizontal scrollers (mobile-first, current memory pattern) or vertical sections above the infinite list? Recommend: horizontal scroll for both, then full infinite list below.
+2. **`/app/jobs/all`** — keep as-is and link "View all jobs" from the hub, or eventually merge its filter UI into Browse and delete the route? Recommend: keep for A5.1 (low-risk), revisit in A5.7.
+3. **Profile gate threshold** — show ProfileCompletenessGate when readiness is below what %? Recommend 60% (matches A4 "go live" floor).
+
+## Estimated work
+~45 min for steps 1–5, ~10 min for verification, ~5 min for audit log. Single session.
+
+Once you approve, I'll execute steps 1 → 6 and append the `## A5.1 — shipped` block to `.lovable/launch-audit.md`.
