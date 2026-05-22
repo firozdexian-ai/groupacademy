@@ -20,9 +20,7 @@ export function useFollowedCompanies() {
     queryKey,
     staleTime: 1000 * 60 * 5,
     queryFn: async (): Promise<string[]> => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return [];
       return listFollowedCompanyNames(user.id);
     },
