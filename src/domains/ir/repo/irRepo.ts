@@ -197,7 +197,7 @@ export async function createDataRoomShareLink(input: {
   expires_in_days?: number | null;
   require_email?: boolean;
 }): Promise<any> {
-  const { data: user } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const expires_at =
     input.expires_in_days && input.expires_in_days > 0
       ? new Date(Date.now() + input.expires_in_days * 86400000).toISOString()
@@ -209,7 +209,7 @@ export async function createDataRoomShareLink(input: {
       investor_id: input.investor_id ?? null,
       expires_at,
       require_email: input.require_email ?? true,
-      created_by: user.user?.id,
+      created_by: user?.id,
     })
     .select("*")
     .single();
