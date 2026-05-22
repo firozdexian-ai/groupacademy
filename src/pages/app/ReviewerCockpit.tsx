@@ -69,27 +69,29 @@ export default function ReviewerCockpit() {
 
   const calibrate = async (passed: boolean) => {
     setWorking(true);
-    const { error } = await supabase.rpc("submit_calibration_attempt", { _score: passed ? 85 : 60, _answers: {} });
-    setWorking(false);
-    if (error) {
+    try {
+      await submitCalibrationAttempt({ passed });
+      load();
+    } catch (error) {
       await reportAnomaly("CalibrationFailure", { error });
       toast.error("Calibration failed.");
-    } else {
-      load();
+    } finally {
+      setWorking(false);
     }
   };
 
   const claim = async (id: string) => {
     setWorking(true);
-    const { data, error } = await supabase.rpc("claim_review_assignment", { _assignment_id: id });
-    setWorking(false);
-    if (error) {
+    try {
+      await claimReviewAssignment(id);
+      toast.success("Assignment claimed.");
+      openItem(id);
+    } catch (error) {
       await reportAnomaly("ClaimAssignmentFailure", { id, error });
       toast.error("Claim operation failed.");
-      return;
+    } finally {
+      setWorking(false);
     }
-    toast.success("Assignment claimed.");
-    openItem(id);
   };
 
   const openItem = async (id: string) => {
@@ -108,22 +110,23 @@ export default function ReviewerCockpit() {
   const submitVerdict = async () => {
     if (!active) return;
     setWorking(true);
-    const { error } = await supabase.rpc("submit_review_verdict", {
-      _assignment_id: active.id,
-      _verdict: verdict,
-      _payload: {},
-      _confidence: confidence,
-      _rationale: rationale,
-    });
-    setWorking(false);
-    if (error) {
-      await reportAnomaly("VerdictSubmissionFailure", { id: active.id, error });
-      toast.error("Verdict sync failed.");
-    } else {
+    try {
+      await submitReviewVerdict({
+        assignmentId: active.id,
+        verdict,
+        payload: {},
+        confidence,
+        rationale,
+      });
       toast.success("Verdict synchronized.");
       setActive(null);
       setRationale("");
       load();
+    } catch (error) {
+      await reportAnomaly("VerdictSubmissionFailure", { id: active.id, error });
+      toast.error("Verdict sync failed.");
+    } finally {
+      setWorking(false);
     }
   };
 
