@@ -61,3 +61,14 @@ Backend: `auth.users` row, `user_roles`, `talents` row for admin.
 Time to fix: ~45 min. No DB migrations. Recommend rolling these into A-FIX after A2 finishes so we batch UI touches.
 
 ---
+
+## A1-FIX shipped — 2026-05-22
+- ✅ #1 Unified `ADMIN_ROLES` constant in `src/lib/adminRoles.ts`; imported in `useAccountType.ts` and `ProtectedRoute.tsx`
+- ✅ #2 Friendly RBAC + fault copy in `ProtectedRoute.tsx`
+- ✅ #3 `TalentAppShell` logout now calls `useAuth().signOut()`
+- ✅ #4 `ResetPassword` routes via `resolvePostAuthRoute(accountType)`
+- ✅ #5 `AuthChat` redirects `?tab=signup|login` to `/auth/classic` (which honors the tab)
+- ✅ #6 Friendlier "email not confirmed" copy in `useAuth.ts`
+- ✅ #7 `GoogleSignInButton` focus-reset guarded by `visibilityState` + `redirectPendingRef`
+
+Carry-over P2s tracked: country_code backfill, manifest preview 401, auth audit retention.
