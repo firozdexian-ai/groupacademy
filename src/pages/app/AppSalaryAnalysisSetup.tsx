@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { insertSalaryAnalysis } from "@/domains/marketing/repo/marketingRepo";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, FileCheck, ArrowLeft, Coins, Zap, Target, ShieldCheck } from "lucide-react";
@@ -160,19 +161,11 @@ export default function AppSalaryAnalysisSetup() {
 
     try {
       const generatedTargetStoragePath = `salary-cv/${Date.now().toString()}-${targetFileObj.name}`;
-      const { error: storageUploadError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(generatedTargetStoragePath, targetFileObj);
-
-      if (storageUploadError) throw storageUploadError;
-
-      const { data: publicUrlPayloadResponse } = supabase.storage
-        .from("portfolio-uploads")
-        .getPublicUrl(generatedTargetStoragePath);
-      setCvSecureUrlStr(publicUrlPayloadResponse.publicUrl);
+      const { publicUrl } = await uploadPortfolioFile(generatedTargetStoragePath, targetFileObj);
+      setCvSecureUrlStr(publicUrl);
 
       if (talentProfileRecord?.id) {
-        await updateTalent({ cvUrl: publicUrlPayloadResponse.publicUrl });
+        await updateTalent({ cvUrl: publicUrl });
         await refreshTalent();
       }
       toast({ title: "Document Artifact Hashed & Secured" });

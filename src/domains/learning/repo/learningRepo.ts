@@ -1733,3 +1733,31 @@ export async function uploadModuleResource(
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return { path, publicUrl: data.publicUrl };
 }
+
+// -----------------------------------------------------------------------------
+// Storage helpers — assessment / IELTS audio (private buckets)
+// -----------------------------------------------------------------------------
+
+export async function uploadIeltsAudio(
+  path: string,
+  blob: Blob,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string }> {
+  const { error } = await supabase.storage
+    .from("ielts-audio")
+    .upload(path, blob, { upsert: options?.upsert ?? false, contentType: options?.contentType });
+  if (error) throw error;
+  return { path };
+}
+
+export async function uploadAssessmentAudio(
+  path: string,
+  blob: Blob,
+  options?: { upsert?: boolean; contentType?: string },
+): Promise<{ path: string }> {
+  const { error } = await supabase.storage
+    .from("assessment-audio")
+    .upload(path, blob, { upsert: options?.upsert ?? true, contentType: options?.contentType ?? "audio/webm" });
+  if (error) throw error;
+  return { path };
+}

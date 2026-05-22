@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadIeltsAudio } from "@/domains/learning/repo/learningRepo";
 import { aiIeltsEvaluate } from "@/domains/abroad/api/abroadApi";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,11 +94,7 @@ export default function IELTSMockRunner() {
         if (!authUserResponse.user) throw new Error("Authentication credential session expired.");
 
         const generatedPath = `${authUserResponse.user.id}/${Date.now().toString()}.webm`;
-        const { error: storageUploadError } = await supabase.storage
-          .from("ielts-audio")
-          .upload(generatedPath, activeAudioBlob);
-
-        if (storageUploadError) throw storageUploadError;
+        await uploadIeltsAudio(generatedPath, activeAudioBlob);
         remoteAudioStoragePath = generatedPath;
       }
 

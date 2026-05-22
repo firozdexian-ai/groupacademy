@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadTalentCv, createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import {
   getJobForApplication,
   getExistingTalentApplication,
@@ -166,21 +167,13 @@ export default function AppJobApplication() {
         const extractedFileExtensionStr = targetedUploadFileNode.name.split(".").pop();
         const generatedTargetStoragePath = `${talentProfileRecord.id}/${Date.now().toString()}-cv.${extractedFileExtensionStr}`;
 
-        const { error: storageUploadError } = await supabase.storage
-          .from("talent-cvs")
-          .upload(generatedTargetStoragePath, targetedUploadFileNode);
+        await uploadTalentCv(generatedTargetStoragePath, targetedUploadFileNode);
 
-        if (storageUploadError) throw storageUploadError;
-
-        const { data: signedUrlResponsePayload, error: signingHandshakeError } = await supabase.storage
-          .from("talent-cvs")
-          .createSignedUrl(generatedTargetStoragePath, 31536000);
-
-        if (signingHandshakeError || !signedUrlResponsePayload) throw signingHandshakeError;
+        const signedUrl = await createTalentCvSignedUrl(generatedTargetStoragePath, 31536000);
 
         const { error: relationalTalentRowUpdateError } = await updateTalentCvUrl(
           talentProfileRecord.id,
-          signedUrlResponsePayload.signedUrl,
+          signedUrl,
         );
 
         if (relationalTalentRowUpdateError) throw relationalTalentRowUpdateError;

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadTalentCv, createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { batchParseCvs } from "@/domains/talent/api/talentApi";
 import { Button } from "@/components/ui/button";
@@ -290,17 +291,18 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const filePath = `${user.id}/${timestamp}-${safeName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("talent-cvs")
-          .upload(filePath, file, { contentType: "application/pdf" });
+        try {
+          await uploadTalentCv(filePath, file, { contentType: "application/pdf" });
+        } catch {
+          continue;
+        }
 
-        if (uploadError) continue;
-
-        const { data: signedUrlData } = await supabase.storage
-          .from("talent-cvs")
-          .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-
-        if (signedUrlData?.signedUrl) urls.push(signedUrlData.signedUrl);
+        try {
+          const signedUrl = await createTalentCvSignedUrl(filePath, 60 * 60 * 24 * 365);
+          if (signedUrl) urls.push(signedUrl);
+        } catch {
+          // skip
+        }
       }
 
       if (urls.length === 0) throw new Error("Payload Upload Failed");

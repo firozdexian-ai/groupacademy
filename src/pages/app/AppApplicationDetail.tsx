@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -211,16 +212,17 @@ export default function AppApplicationDetail() {
     }
 
     try {
-      const { data: temporarySignedUrlToken, error: storageSigningHandshakeError } = await supabase.storage
-        .from("talent-cvs")
-        .createSignedUrl(applicationDetailState.cv_url, 60);
+      const temporarySignedUrlToken = await createTalentCvSignedUrl(
+        applicationDetailState.cv_url,
+        60,
+      ).catch(() => null);
 
-      if (storageSigningHandshakeError || !temporarySignedUrlToken) {
+      if (!temporarySignedUrlToken) {
         toast.error("The request to authenticate secure cloud credential links was refused.");
         return;
       }
 
-      window.open(temporarySignedUrlToken.signedUrl, "_blank", "noopener,noreferrer");
+      window.open(temporarySignedUrlToken, "_blank", "noopener,noreferrer");
     } catch (suppressedStorageException) {
       toast.error("Cloud file subsystem rejected target asset call indices.");
     }

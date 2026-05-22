@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadTalentCv, createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
 import { insertExternalJobApplication, getOrCreateTalent } from "@/domains/jobs/repo/jobsRepo";
 import { findTalentByEmail } from "@/domains/talent/repo/talentRepo";
@@ -99,10 +100,8 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       let publicUrl = "";
       if (cvFile) {
         const path = `external-applications/${Date.now()}-${cvFile.name}`;
-        const { error: upErr } = await supabase.storage.from("talent-cvs").upload(path, cvFile);
-        if (upErr) throw upErr;
-        const { data } = supabase.storage.from("talent-cvs").getPublicUrl(path);
-        publicUrl = data.publicUrl;
+        await uploadTalentCv(path, cvFile);
+        publicUrl = await createTalentCvSignedUrl(path, 60 * 60 * 24 * 365);
         setCvUrl(publicUrl);
       }
 

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadPaymentProof, createPaymentProofSignedUrl } from "@/domains/finance/repo/financeRepo";
 import { approveInvoiceAndDisburse, cancelInvoice } from "@/domains/finance/repo/financeRepo";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -482,12 +483,8 @@ function ApproveDialog({ open, onOpenChange, invoice, onDone }: any) {
       let proofUrl: string | null = null;
       if (file) {
         const path = `proofs/${invoice.id}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from("payment-proofs").upload(path, file);
-        if (upErr) throw upErr;
-        const { data: signed } = await supabase.storage
-          .from("payment-proofs")
-          .createSignedUrl(path, 60 * 60 * 24 * 365);
-        proofUrl = signed?.signedUrl || path;
+        await uploadPaymentProof(path, file);
+        proofUrl = await createPaymentProofSignedUrl(path, 60 * 60 * 24 * 365).catch(() => path);
       }
       const result = await approveInvoiceAndDisburse({
         invoiceId: invoice.id,

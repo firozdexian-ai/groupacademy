@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { uploadModuleResource } from "@/domains/learning/repo/learningRepo";
 
 type ResourceType = Database["public"]["Enums"]["resource_type"];
 
@@ -8,7 +8,8 @@ export const MAX_RESOURCE_MB = 50;
 
 /**
  * Upload a file to the shared course-content bucket and return its public URL.
- * Used by both the per-resource uploader and the bulk uploader.
+ * Thin wrapper around `learningRepo.uploadModuleResource` that enforces the
+ * client-side size cap and standardises the destination path layout.
  */
 export async function uploadModuleResourceFile(
   file: File,
@@ -21,13 +22,11 @@ export async function uploadModuleResourceFile(
   const path = `module-resources/${moduleId}/${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { publicUrl } = await uploadModuleResource(BUCKET, path, file, {
     upsert: false,
     contentType: file.type || undefined,
   });
-  if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { url: data.publicUrl };
+  return { url: publicUrl };
 }
 
 /**
