@@ -121,15 +121,9 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       const fileExtensionStr = file.name.split(".").pop();
       const generatedBucketPath = `${talent.id}/cv_v3.${fileExtensionStr}`;
 
-      const { error: uploadStorageError } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(generatedBucketPath, file, { upsert: true });
+      const { publicUrl } = await uploadPortfolioFile(generatedBucketPath, file, { upsert: true });
 
-      if (uploadStorageError) throw uploadStorageError;
-
-      const { data: publicUrlPayload } = supabase.storage.from("portfolio-uploads").getPublicUrl(generatedBucketPath);
-
-      const absolutePublicFileUrlStr = publicUrlPayload.publicUrl;
+      const absolutePublicFileUrlStr = publicUrl;
 
       setUploadedFile(absolutePublicFileUrlStr);
       setIsUploading(false);
