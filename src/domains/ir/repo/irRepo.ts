@@ -179,13 +179,13 @@ export async function uploadDataRoomDocument(input: {
   const path = `${crypto.randomUUID()}/${input.file.name}`;
   const { error: upErr } = await supabase.storage.from("ir-data-room").upload(path, input.file, { upsert: false });
   if (upErr) throw upErr;
-  const { data: user } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const { error } = await supabase.from("ir_data_room_documents").insert({
     title: input.title,
     doc_type: input.doc_type,
     file_url: path,
     total_slides: input.total_slides ?? null,
-    created_by: user.user?.id,
+    created_by: user?.id,
   });
   if (error) throw error;
 }
