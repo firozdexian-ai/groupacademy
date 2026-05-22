@@ -158,7 +158,7 @@ export function PersonalizedPromptCard() {
           talentId: talent?.id,
         });
 
-        toast.error("Ledger connection timeout. Please verify your balance tokens.", { id: toastId });
+        toast.error("Couldn't process that — please check your balance and try again.", { id: toastId });
       } finally {
         setLoading(null);
       }
