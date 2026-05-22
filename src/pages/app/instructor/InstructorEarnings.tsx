@@ -100,12 +100,12 @@ export default function InstructorEarnings() {
   const { data: dashboardPayloadData, isLoading: isDashboardResolving } = useQuery<DashboardV2 | null>({
     queryKey: ["instructor-dashboard"],
     queryFn: async (): Promise<DashboardV2 | null> => {
-      const { data: rawRpcPayload, error: rpcHandshakeError } = await supabase.rpc("get_instructor_dashboard_v2");
-      if (rpcHandshakeError) {
+      try {
+        return await getInstructorDashboardV2<DashboardV2>();
+      } catch (rpcHandshakeError: any) {
         toast({ title: "Synchronization Failure", description: rpcHandshakeError.message, variant: "destructive" });
         throw rpcHandshakeError;
       }
-      return (rawRpcPayload as unknown as DashboardV2) ?? null;
     },
   });
 
