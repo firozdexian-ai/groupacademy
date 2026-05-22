@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Sparkles, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";

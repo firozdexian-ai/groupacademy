@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Coins, Sparkles, ChevronDown, ChevronUp, Zap, ShieldCheck, ArrowRight, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { getUpcomingPublishedEvent } from "@/domains/learning/repo/learningRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";

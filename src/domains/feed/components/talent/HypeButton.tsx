@@ -4,7 +4,6 @@ import { Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useContentHype, type HypeContentType } from "@/hooks/useContentHype";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface HypeButtonProps {

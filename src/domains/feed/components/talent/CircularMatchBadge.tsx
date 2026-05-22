@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { supabase } from "@/integrations/supabase/client";
 
 /**
  * GroUp Academy: Neural Match Visualization (CircularMatchBadge)

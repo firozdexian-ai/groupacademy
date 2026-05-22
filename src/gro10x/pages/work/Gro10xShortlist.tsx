@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../../lib/tokens";
 import { Loader2, Bookmark, MapPin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";

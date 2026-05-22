@@ -1,5 +1,4 @@
 import { useReducer, useCallback, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { checkAuthEmail } from "@/domains/admin/repo/adminRepo";
 import { useAuth } from "@/hooks/useAuth";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";

@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { adminContentAi } from "@/domains/ugc/api/ugcApi";
 
 export type AIMode = "description" | "slug" | "image_prompt" | "outline" | "cover_image";
