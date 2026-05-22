@@ -34,19 +34,9 @@ const setOpen = (next: boolean) => {
       getCurrentUser().then((user) => {
         if (user) {
           // HUD: Pipeline conversion track telemetry dispatch
-          supabase
-            .from("platform_events" as any)
-            .insert({
-              event_type: "monetization_intent_detected",
-              user_id: user.id,
-              metadata: {
-                surface: "CreditPurchaseSheet",
-                timestamp: new Date().toISOString(),
-              },
-            })
-            .then(() => {
-              console.log("[Digital Workforce] SIGNAL: Monetization intent enqueued for lead tracking.");
-            });
+          void logMonetizationIntent(user.id, "CreditPurchaseSheet").then(() => {
+            console.log("[Digital Workforce] SIGNAL: Monetization intent enqueued for lead tracking.");
+          });
         }
       });
     } catch {
