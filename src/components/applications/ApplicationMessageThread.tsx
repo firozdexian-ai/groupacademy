@@ -35,9 +35,9 @@ export function ApplicationMessageThread({ applicationId, actorRole }: Applicati
     let isCurrent = true;
 
     (async () => {
-      const { data: userRes } = await supabase.auth.getUser();
-      if (userRes?.user && isCurrent) {
-        setActiveUserId(userRes.user.id);
+      const user = await getCurrentUser();
+      if (user && isCurrent) {
+        setActiveUserId(user.id);
       }
     })();
 
