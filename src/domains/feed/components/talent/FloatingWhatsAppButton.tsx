@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
-import { supabase } from "@/integrations/supabase/client";
+import { markTalentWhatsappBonusClaimed } from "@/domains/talent/repo/talentRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { getWhatsAppLink, getWhatsAppConnectMessage } from "@/lib/constants/support";
@@ -61,12 +61,7 @@ export function FloatingWhatsAppButton({ showPrompt = true }: FloatingWhatsAppBu
 
       if (success) {
         // 2. Database Synchronization: Commit timestamp status back to core identity tables
-        const { error: dbError } = await supabase
-          .from("talents")
-          .update({ whatsapp_bonus_claimed_at: new Date().toISOString() })
-          .eq("id", talent.id);
-
-        if (dbError) throw dbError;
+        await markTalentWhatsappBonusClaimed(talent.id);
 
         // 3. Cache Bridge Invalidation: Force client query clients to re-sync across viewports
         queryClient.invalidateQueries({ queryKey: ["credits-balance"] });

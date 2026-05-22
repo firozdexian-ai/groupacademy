@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { listAllAgentTools } from "@/domains/agents/repo/agentsRepo";
 import { Plug, Wrench, Network, Braces, Activity, Cpu } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -25,15 +25,12 @@ export function AgentToolsTab() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("agent_tools")
-      .select("*")
-      .order("handler_kind")
-      .order("name")
-      .then(({ data }) => {
-        setTools((data ?? []) as Tool[]);
+    listAllAgentTools()
+      .then((data) => {
+        setTools(data as Tool[]);
         setIsLoading(false);
-      });
+      })
+      .catch(() => setIsLoading(false));
   }, []);
 
   const groups = useMemo(

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   getStudioBundle,
   updateAiAgent,
   insertAiAgent,
   deactivateAiAgent,
   deleteAgentKnowledgeSource,
+  listAgentKnowledgeSources,
 } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -695,13 +695,12 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("agent_knowledge_sources")
-      .select("*")
-      .eq("agent_id", agentId)
-      .order("created_at", { ascending: false });
-    setSources((data as any) ?? []);
-    setLoading(false);
+    try {
+      const data = await listAgentKnowledgeSources(agentId);
+      setSources(data as any);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleIngest = async () => {

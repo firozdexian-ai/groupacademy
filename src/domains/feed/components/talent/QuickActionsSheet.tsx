@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, LucideIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveQuickActionAgents } from "@/domains/feed/repo/feedRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { iconMap } from "@/lib/iconMap";
 import { cn } from "@/lib/utils";
@@ -48,16 +48,8 @@ export function QuickActionsSheet({ open, onClose }: QuickActionsSheetProps) {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       try {
-        // Direct query criteria lookup using canonical typed selectors
-        const { data, error: dbError } = await supabase
-          .from("ai_agents")
-          .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
-          .eq("is_active", true)
-          .order("total_conversations", { ascending: false });
-
-        if (dbError) throw dbError;
-
-        return (data || []) as AgentRow[];
+        const data = await listActiveQuickActionAgents();
+        return data as AgentRow[];
       } catch (queryErr: any) {
         // Intercept background extraction issues and beam data snapshots back to central logs
         trackError(queryErr instanceof Error ? queryErr : String(queryErr), {

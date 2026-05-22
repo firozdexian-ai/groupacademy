@@ -7,7 +7,7 @@
 //     already reads `active_prompt_variant` to select which to send.
 
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { updateAiAgent } from "@/domains/agents/repo/agentsRepo";
 import { agentBlueprint } from "@/domains/agents/api/agentsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,9 +101,8 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
   async function applyProposal() {
     if (!proposal) return;
     setApplying(true);
-    const { error } = await supabase
-      .from("ai_agents")
-      .update({
+    try {
+      await updateAiAgent(agent.id, {
         name: proposal.name,
         description: proposal.description,
         system_prompt: proposal.system_prompt,
@@ -112,13 +111,13 @@ export function AgentBrainPanel({ agent, onSaved }: AgentBrainPanelProps) {
         connection_fee: proposal.connection_fee,
         message_credit_cost: proposal.message_credit_cost,
         category: proposal.category,
-      })
-      .eq("id", agent.id);
-    setApplying(false);
-    if (error) {
-      toast({ title: "Apply failed", description: error.message, variant: "destructive" });
+      });
+    } catch (err: any) {
+      setApplying(false);
+      toast({ title: "Apply failed", description: err?.message ?? String(err), variant: "destructive" });
       return;
     }
+    setApplying(false);
     toast({ title: "Blueprint applied" });
     setProposal(null);
     setBrief("");

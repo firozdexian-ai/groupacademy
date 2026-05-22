@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { listAiAgentsForListTab } from "@/domains/agents/repo/agentsRepo";
 import { Search, Activity, Cpu, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -24,24 +24,12 @@ export function AgentListTab({ title, description, icon: Icon, agentTypeFilter, 
 
   useEffect(() => {
     setIsLoading(true);
-    let q = supabase
-      .from("ai_agents")
-      .select(
-        "id,agent_key,name,description,agent_type,audience,visibility,is_active,total_conversations,credit_cost,message_credit_cost,model",
-      )
-      .order("total_conversations", { ascending: false })
-      .limit(200);
-
-    if (agentTypeFilter) {
-      if (Array.isArray(agentTypeFilter)) q = q.in("agent_type", agentTypeFilter);
-      else q = q.eq("agent_type", agentTypeFilter);
-    }
-    if (audienceFilter) q = q.eq("audience", audienceFilter);
-
-    q.then(({ data }) => {
-      setRows(data ?? []);
-      setIsLoading(false);
-    });
+    listAiAgentsForListTab({ agentTypeFilter, audienceFilter })
+      .then((data) => {
+        setRows(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
   }, [agentTypeFilter, audienceFilter]);
 
   const filtered = rows.filter(

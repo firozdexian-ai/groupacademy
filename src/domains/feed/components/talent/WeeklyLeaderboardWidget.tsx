@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getWeeklyLeaderboard } from "@/domains/feed/repo/feedRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,17 +29,8 @@ export function WeeklyLeaderboardWidget() {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      // Direct criteria query extraction using canonical typed selectors
-      const { data, error: dbError } = await supabase
-        .from("v_weekly_leaderboard")
-        .select("talent_id, full_name, profile_photo_url, credits_earned, hype_count")
-        .limit(10);
-
-      if (dbError) {
-        throw dbError;
-      }
-
-      return (data || []) as Row[];
+      const data = await getWeeklyLeaderboard();
+      return data as Row[];
     }
   });
 

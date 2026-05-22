@@ -178,3 +178,36 @@ export async function tipComment(args: { _comment_id: string; _amount: number })
   const { error } = await (supabase as any).rpc("tip_comment", args);
   if (error) throw error;
 }
+
+// ─── Phase 10j.5k6 ────────────────────────────────────────────────────────
+export async function listActiveProfileCardThemes() {
+  const { data, error } = await supabase
+    .from("profile_card_themes")
+    .select(
+      "id, media_type, media_url, poster_url, gradient_css, overlay_opacity, text_color, start_at, end_at, is_active, priority",
+    )
+    .eq("is_active", true)
+    .order("priority", { ascending: false })
+    .limit(5);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getWeeklyLeaderboard() {
+  const { data, error } = await supabase
+    .from("v_weekly_leaderboard")
+    .select("talent_id, full_name, profile_photo_url, credits_earned, hype_count")
+    .limit(10);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listActiveQuickActionAgents() {
+  const { data, error } = await supabase
+    .from("ai_agents")
+    .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
+    .eq("is_active", true)
+    .order("total_conversations", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

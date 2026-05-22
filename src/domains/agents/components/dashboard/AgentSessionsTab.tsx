@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listRecentAgentChatSessions } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,14 +78,8 @@ export function AgentSessionsManager() {
   const loadSessions = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("agent_chat_sessions")
-        .select(`*, talent:talents(full_name, email)`)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (error) throw error;
-      setSessions(data || []);
+      const data = await listRecentAgentChatSessions(200);
+      setSessions(data);
     } catch (error: any) {
       toast.error("Transmission Error: Session registry sync failed.");
     } finally {

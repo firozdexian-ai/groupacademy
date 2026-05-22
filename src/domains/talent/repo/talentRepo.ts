@@ -777,6 +777,14 @@ export async function updateTalentCvUrl(talentId: string, cvUrl: string): Promis
   return { error };
 }
 
+export async function markTalentWhatsappBonusClaimed(talentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("talents")
+    .update({ whatsapp_bonus_claimed_at: new Date().toISOString() })
+    .eq("id", talentId);
+  if (error) throw error;
+}
+
 // ─── Phase 10j.5g3 ─────────────────────────────────────────────────────────
 export async function listTalentSystemFeedNotifications(talentId: string, limit = 200) {
   const { data, error } = await supabase

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfileCardThemes } from "@/domains/feed/repo/feedRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 
 interface Theme {
@@ -39,19 +39,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
     queryKey: ["profile-card-theme-active"],
     staleTime: 1000 * 60 * 10,
     queryFn: async () => {
-      // Direct data query execution block using the canonical typed database client
-      const { data, error: dbError } = await supabase
-        .from("profile_card_themes")
-        .select(
-          "id, media_type, media_url, poster_url, gradient_css, overlay_opacity, text_color, start_at, end_at, is_active, priority",
-        )
-        .eq("is_active", true)
-        .order("priority", { ascending: false })
-        .limit(5);
-
-      if (dbError) {
-        throw dbError;
-      }
+      const data = await listActiveProfileCardThemes();
 
       const now = Date.now();
 

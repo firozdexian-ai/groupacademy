@@ -462,3 +462,65 @@ export async function connectAgent(args: { agentKey: string; talentId: string; f
   });
   if (error) throw error;
 }
+
+// ─── Phase 10j.5k6 ────────────────────────────────────────────────────────
+export async function listAgentChannels() {
+  const { data, error } = await supabase
+    .from("agent_channels")
+    .select("*")
+    .order("channel_key");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAllAgentTools() {
+  const { data, error } = await supabase
+    .from("agent_tools")
+    .select("*")
+    .order("handler_kind")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAiAgentsForListTab(opts: {
+  agentTypeFilter?: string | string[];
+  audienceFilter?: string;
+}) {
+  let q = supabase
+    .from("ai_agents")
+    .select(
+      "id,agent_key,name,description,agent_type,audience,visibility,is_active,total_conversations,credit_cost,message_credit_cost,model",
+    )
+    .order("total_conversations", { ascending: false })
+    .limit(200);
+  if (opts.agentTypeFilter) {
+    if (Array.isArray(opts.agentTypeFilter)) q = q.in("agent_type", opts.agentTypeFilter);
+    else q = q.eq("agent_type", opts.agentTypeFilter);
+  }
+  if (opts.audienceFilter) q = q.eq("audience", opts.audienceFilter);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listRecentAgentChatSessions(limit = 200) {
+  const { data, error } = await supabase
+    .from("agent_chat_sessions")
+    .select(`*, talent:talents(full_name, email)`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listAgentKnowledgeSources(agentId: string) {
+  const { data, error } = await supabase
+    .from("agent_knowledge_sources")
+    .select("*")
+    .eq("agent_id", agentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { listAgentChannels } from "@/domains/agents/repo/agentsRepo";
 import { Zap, Network, Activity, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -11,14 +11,12 @@ export function AgentChannelsTab() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("agent_channels")
-      .select("*")
-      .order("channel_key")
-      .then(({ data }) => {
-        setRows(data ?? []);
+    listAgentChannels()
+      .then((data) => {
+        setRows(data);
         setIsLoading(false);
-      });
+      })
+      .catch(() => setIsLoading(false));
   }, []);
 
   return (
