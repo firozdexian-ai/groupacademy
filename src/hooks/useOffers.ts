@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
 import { notifyHiringEvent } from "@/domains/jobs/api/jobsApi";
 import { insertOffer, updateOfferStatus, acceptOffer, declineOffer } from "@/domains/jobs/repo/jobsRepo";
@@ -50,15 +50,15 @@ export function useCreateOffer() {
         title: string;
       },
     ): Promise<string> => {
-      const { data: u, error: authError } = await supabase.auth.getUser();
-      if (authError || !u.user) throw new Error("Authentication session required.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Authentication session required.");
 
       try {
         return await insertOffer({
           ...input,
           base_amount: input.base_amount ?? 0,
           currency: input.currency ?? "USD",
-          created_by: u.user.id,
+          created_by: user.id,
         });
       } catch (error) {
         console.error("[Digital Workforce] FAULT: offers registry insertion rejected.", error);

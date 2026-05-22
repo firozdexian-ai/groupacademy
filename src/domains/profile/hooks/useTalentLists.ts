@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import {
   listTalentLists as repoListTalentLists,
   listTalentListMembers,
@@ -123,15 +123,15 @@ export function useCreateTalentList() {
 
   return useMutation({
     mutationFn: async (input: { companyId: string; name: string; description?: string }) => {
-      const { data: u, error: authError } = await supabase.auth.getUser();
-      if (authError || !u.user) throw new Error("Authentication session required.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Authentication session required.");
 
       try {
         return await createTalentList({
           companyId: input.companyId,
           name: input.name,
           description: input.description ?? null,
-          createdBy: u.user.id,
+          createdBy: user.id,
         });
       } catch (error) {
         console.error("[Digital Workforce] FAULT: talent_lists registry insertion rejected.", error);
@@ -160,14 +160,14 @@ export function useAddToList() {
 
   return useMutation({
     mutationFn: async (input: { listId: string; talentId: string; note?: string; companyId: string }) => {
-      const { data: u, error: authError } = await supabase.auth.getUser();
-      if (authError || !u.user) throw new Error("Authentication session required.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Authentication session required.");
 
       try {
         await upsertTalentListMember({
           listId: input.listId,
           talentId: input.talentId,
-          addedBy: u.user.id,
+          addedBy: user.id,
           note: input.note ?? null,
         });
       } catch (error: any) {

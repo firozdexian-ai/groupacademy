@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { uploadTalentCv, createTalentCvSignedUrl } from "@/domains/jobs/repo/jobsRepo";
 import { talentRepo } from "@/domains/talent/repo/talentRepo";
 import { batchParseCvs } from "@/domains/talent/api/talentApi";
@@ -246,9 +247,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
     setShowProgress(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) throw new Error("Registry Access Denied: Unauthorized");
 
       const { data: batch, error: batchError } = await supabase
@@ -280,9 +279,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
     setShowProgress(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) throw new Error("Registry Access Denied: Unauthorized");
 
       const urls: string[] = [];

@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser, getAccessToken } from "@/lib/auth";
 import { deleteAgentMessage } from "@/domains/agents/repo/agentsRepo";
 import { useAdminAgents } from "./useAdminAgents";
 
@@ -42,8 +43,8 @@ export function useAdminAgentThreads() {
   const [threads, setThreads] = useState<AdminThreadSummary[]>([]);
 
   const reload = useCallback(async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData?.user?.id;
+    const user = await getCurrentUser();
+    const uid = user?.id;
     if (!uid) return;
     const { data } = await supabase
       .from("agent_threads")
@@ -99,8 +100,8 @@ export function useAgentRuntimeThread(
       setMessages([]);
       setThreadId(null);
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const uid = userData?.user?.id;
+        const user = await getCurrentUser();
+        const uid = user?.id;
         if (!uid) return;
         const { data: thread } = await supabase
           .from("agent_threads")
@@ -186,8 +187,7 @@ export function useAgentRuntimeThread(
       setSending(true);
 
       try {
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess?.session?.access_token;
+        const token = await getAccessToken();
         if (!token) throw new Error("Not authenticated");
 
         const resp = await fetch(`${SUPABASE_URL}/functions/v1/agent-runtime`, {

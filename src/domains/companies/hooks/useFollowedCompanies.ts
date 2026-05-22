@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import {
   listFollowedCompanyNames,
   followCompany,
@@ -20,9 +20,7 @@ export function useFollowedCompanies() {
     queryKey,
     staleTime: 1000 * 60 * 5,
     queryFn: async (): Promise<string[]> => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return [];
       return listFollowedCompanyNames(user.id);
     },
@@ -30,9 +28,7 @@ export function useFollowedCompanies() {
 
   const toggle = useMutation({
     mutationFn: async (company_name: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) throw new Error("Please sign in to follow companies");
 
       const isCurrentlyFollowing = (list.data ?? []).includes(company_name);

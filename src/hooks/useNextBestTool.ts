@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { getNextBestTool } from "@/domains/jobs/repo/jobsRepo";
 import type { ToolKey } from "./useToolRuns";
 
@@ -26,17 +26,17 @@ export function useNextBestTool() {
     // Performance Baseline: 2-minute stability for session-level signals
     staleTime: 2 * 60 * 1000,
     queryFn: async (): Promise<NextBestTool | null> => {
-      const { data: userRes, error: authError } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
 
-      if (authError || !userRes.user) return null;
+      if (!user) return null;
 
       // HUD: EXECUTING_AGENTIC_RECOMMENDATION_RPC
       try {
-        const data = await getNextBestTool(userRes.user.id);
+        const data = await getNextBestTool(user.id);
         return data as unknown as NextBestTool;
       } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_next_best_tool RPC handshake failed.", {
-          userId: userRes.user.id,
+          userId: user.id,
           message: error?.message,
         });
         return null;

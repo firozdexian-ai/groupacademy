@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   listApplicationMessages,
@@ -68,11 +69,8 @@ export function useApplicationMessages(applicationId: string | undefined) {
     async (body: string, senderRole: "talent" | "recruiter" | "admin") => {
       if (!applicationId || !body.trim()) return;
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error("AUTH_SYNC_REQUIRED");
+        const user = await getCurrentUser();
+        if (!user) throw new Error("AUTH_SYNC_REQUIRED");
         await insertApplicationMessage({
           applicationId,
           senderId: user.id,
@@ -92,9 +90,7 @@ export function useApplicationMessages(applicationId: string | undefined) {
   const markRead = useCallback(async () => {
     if (!applicationId) return;
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return;
       await markApplicationMessagesRead({
         applicationId,

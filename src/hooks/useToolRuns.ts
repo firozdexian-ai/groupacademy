@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from "@/lib/auth";
 import { insertToolRun, listToolRunsForUser } from "@/domains/jobs/repo/jobsRepo";
 
 /**
@@ -41,12 +41,12 @@ export function useToolRuns(limit = 5) {
     staleTime: 60 * 1000, // 1-minute visual consistency window for ledger grids
     queryFn: async (): Promise<ToolRun[]> => {
       // HUD: SECURE_USER_SESSION_INGRESS_CHECK
-      const { data: userRes, error: authError } = await supabase.auth.getUser();
-      if (authError || !userRes.user) return [];
+      const user = await getCurrentUser();
+      if (!user) return [];
 
       let data: any[] = [];
       try {
-        data = await listToolRunsForUser(userRes.user.id, limit);
+        data = await listToolRunsForUser(user.id, limit);
       } catch (error) {
         console.error("[Digital Workforce] FAULT: tool_runs collection channel dropped.", error);
         throw error;
@@ -87,12 +87,12 @@ export function useRecordToolRun() {
 
   return useMutation({
     mutationFn: async (opts: RecordToolRunInput): Promise<void> => {
-      const { data: userRes, error: authError } = await supabase.auth.getUser();
-      if (authError || !userRes.user) throw new Error("Authentication session required.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Authentication session required.");
 
       try {
         await insertToolRun({
-          user_id: userRes.user.id,
+          user_id: user.id,
           tool_key: opts.toolKey,
           cost_credits: opts.costCredits,
           payload: opts.payload ?? {},
@@ -120,10 +120,10 @@ export function useRecordToolRun() {
  */
 export async function recordToolRun(opts: RecordToolRunInput): Promise<void> {
   try {
-    const { data: userRes, error: authError } = await supabase.auth.getUser();
-    if (authError || !userRes.user) return;
+    const user = await getCurrentUser();
+    if (!user) return;
     await insertToolRun({
-      user_id: userRes.user.id,
+      user_id: user.id,
       tool_key: opts.toolKey,
       cost_credits: opts.costCredits,
       payload: opts.payload ?? {},
