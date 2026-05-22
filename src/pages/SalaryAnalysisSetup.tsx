@@ -166,13 +166,10 @@ const SalaryAnalysisSetupContent = () => {
     setCvFile(file);
     try {
       const fileName = `salary-cv/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("portfolio-uploads").upload(fileName, file);
-      if (error) throw error;
+      const { publicUrl } = await uploadPortfolioFile(fileName, file);
+      setCvUrl(publicUrl);
 
-      const { data: publicUrl } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
-      setCvUrl(publicUrl.publicUrl);
-
-      if (talent?.id) await updateTalent({ cvUrl: publicUrl.publicUrl });
+      if (talent?.id) await updateTalent({ cvUrl: publicUrl });
       toast({ title: "Artifact Uploaded Successfully." });
     } catch (e) {
       toast({ title: "Upload Fault", description: "Try pasting CV text.", variant: "destructive" });
