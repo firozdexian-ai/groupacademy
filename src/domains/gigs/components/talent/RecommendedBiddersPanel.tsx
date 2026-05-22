@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { refreshGigMatches, shortlistMatch } from "@/domains/gigs/repo/gigsRepo";
+import { refreshGigMatches, shortlistMatch, listRecommendedGigBidders } from "@/domains/gigs/repo/gigsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -53,18 +52,7 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
     refetchOnWindowFocus: false,
     queryFn: async () => {
       // Execute explicit criterion lookup while fetching nested profile details in a single pass
-      const { data, error } = await supabase
-        .from("gig_matches")
-        .select(`
-          id, talent_id, score, signals, why_text, status,
-          talents ( full_name, profile_photo_url )
-        `)
-        .eq("gig_id", gigId)
-        .eq("gig_kind", gigKind)
-        .order("score", { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
+      const data = await listRecommendedGigBidders(gigId, gigKind, 5);
       return (data || []) as any[];
     },
   });
