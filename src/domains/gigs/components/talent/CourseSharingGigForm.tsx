@@ -64,31 +64,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
     queryKey: ["share-active-courses"],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const cutoffTimestamp = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const permissibleTypes = ["recorded_course", "live_webinar", "batch_class"] as const;
-
-      // Single server-side pass fetching combined attributes efficiently
-      const { data: blendedContent, error: combinedError } = await supabase
-        .from("content")
-        .select("id, slug, title, content_type, cover_image_url, credit_cost, price, event_date")
-        .eq("is_published", true)
-        .eq("is_ready", true)
-        .eq("is_private", false)
-        .in("content_type", permissibleTypes);
-
-      if (combinedError) throw combinedError;
-      if (!blendedContent) return [];
-
-      // Filter contextual records downstream safely using single iterations
-      return blendedContent.filter((contentItem) => {
-        if (contentItem.content_type === "recorded_course") return true;
-
-        // Ensure live webinar schedules operate ahead of safety limits cleanly
-        if (!contentItem.event_date) return false;
-        return contentItem.event_date >= cutoffTimestamp;
-      });
-    },
+    queryFn: async () => listShareableActiveContent(),
   });
 
   // Observe content lifecycle loading errors transparently
@@ -150,24 +126,19 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
     trackEvent("course_sharing_submission_initiated", { gigId: gig.id, courseId: selected.id });
 
     try {
-      const { data: recordPayload, error: insertError } = await supabase
-        .from("gig_submissions")
-        .insert({
-          gig_id: gig.id,
-          talent_id: talentId,
-          status: "pending",
-          submission_data: {
-            course_id: selected.id,
-            share_url: linkFor(selected),
-            channels: shared,
-            ref_code: refCode,
-            timestamp: new Date().toISOString(),
-          },
-        })
-        .select("id")
-        .single();
+      const recordPayload = await insertGigSubmission({
+        gig_id: gig.id,
+        talent_id: talentId,
+        status: "pending",
+        submission_data: {
+          course_id: selected.id,
+          share_url: linkFor(selected),
+          channels: shared,
+          ref_code: refCode,
+          timestamp: new Date().toISOString(),
+        },
+      });
 
-      if (insertError) throw insertError;
 
       // Dynamically load automated verification scripts inside a safe sandboxed container
       const { triggerAutoReview } = await import("@/lib/gigAutoReview");
