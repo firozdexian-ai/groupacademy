@@ -26,7 +26,6 @@ import { ProfileSectionEditor } from "@/components/profile/ProfileSectionEditor"
 import { PublicProfileSettings } from "@/components/profile/PublicProfileSettings";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { cn } from "@/lib/utils";
 import { enhanceCoverLetter } from "@/domains/jobs/api/jobsApi";

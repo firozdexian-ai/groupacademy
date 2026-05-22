@@ -9,7 +9,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { recordToolRun } from "@/hooks/useToolRuns";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateApplicationAnswers } from "@/domains/jobs/api/jobsApi";
 

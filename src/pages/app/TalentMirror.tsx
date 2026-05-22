@@ -3,7 +3,6 @@ import { ArrowLeft, Award, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TalentMirrorPanel } from "@/components/learning/TalentMirrorPanel";
 import { SkillCredentialsPanel } from "@/components/learning/SkillCredentialsPanel";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE } from "@/lib/uiTokens";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";

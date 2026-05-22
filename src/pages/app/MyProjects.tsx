@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getTalentProjectWorkload } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent } from "@/components/ui/card";

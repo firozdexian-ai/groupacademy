@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Send, Sparkles, ShieldCheck, CheckCircle2, Circle, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { submitCalibrationAttempt, claimReviewAssignment, submitReviewVerdict } from "@/domains/gigs/repo/gigsRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { aiItemTranslate, aiItemTranslateApply } from "@/domains/learning/api/learningApi";
 import { toast } from "sonner";
 

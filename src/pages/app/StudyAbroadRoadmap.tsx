@@ -4,7 +4,6 @@ import { ArrowLeft, Map, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RoadmapIntakeForm } from "@/components/abroad/RoadmapIntakeForm";
-import { supabase } from "@/integrations/supabase/client";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { toast } from "sonner";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens";
