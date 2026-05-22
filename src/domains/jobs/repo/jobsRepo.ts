@@ -638,6 +638,22 @@ export async function listActiveJobsByCompanyIdShort(companyId: string, limit = 
   return (data ?? []) as any[];
 }
 
+// ─── Phase 10j.5k2: active jobs by status (for invite-to-apply dialogs) ───
+export async function listJobsByCompanyAndStatus(
+  companyId: string,
+  status: string,
+  limit = 50,
+): Promise<Array<{ id: string; title: string }>> {
+  const { data, error } = await (supabase as any)
+    .from("jobs")
+    .select("id, title")
+    .eq("company_id", companyId)
+    .eq("status", status)
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; title: string }>;
+}
+
 // ─── Phase 10j.5g2: AppJobApplication helpers ─────────────────────────────
 export async function getJobForApplication(jobId: string): Promise<{ data: any; error: any }> {
   const { data, error } = await supabase
