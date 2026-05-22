@@ -590,8 +590,7 @@ function CancelDialog({ open, onOpenChange, invoice, onDone }: any) {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const { error } = await supabase.rpc("cancel_invoice", { p_invoice_id: invoice.id, p_reason: reason || null });
-      if (error) throw error;
+      await cancelInvoice({ invoiceId: invoice.id, reason: reason || null });
       toast.success("Identity Protocol Terminated");
       onDone();
     } catch (err: any) {
