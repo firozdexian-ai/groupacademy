@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
-import { insertExternalJobApplication } from "@/domains/jobs/repo/jobsRepo";
+import { insertExternalJobApplication, getOrCreateTalent } from "@/domains/jobs/repo/jobsRepo";
 import { findTalentByEmail } from "@/domains/talent/repo/talentRepo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,12 +144,11 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
 
     setSaving(true);
     try {
-      const { data: talentId, error: tErr } = await supabase.rpc("get_or_create_talent", {
-        p_email: email.trim() || `${Date.now()}@external.local`,
-        p_full_name: name.trim(),
-        p_phone: phone.trim() || null,
+      const talentId = await getOrCreateTalent({
+        email: email.trim() || `${Date.now()}@external.local`,
+        fullName: name.trim(),
+        phone: phone.trim() || null,
       });
-      if (tErr) throw tErr;
 
       const {
         data: { user },

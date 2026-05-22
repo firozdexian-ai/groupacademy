@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getLearningHubDashboard } from "@/domains/learning/repo/learningRepo";
 
 /**
  * GroUp Academy: Pedagogical Command Center (V5.6.0)
@@ -54,17 +54,17 @@ export function useLearningHubDashboard() {
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<LearningHubDashboard> => {
       // HUD: EXECUTING_LEARNING_HUB_AGGREGATION_SYNC
-      const { data, error } = await supabase.rpc("get_learning_hub_dashboard");
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies bottlenecks in the B2C student conversion funnel.
+      let data: any;
+      try {
+        data = await getLearningHubDashboard();
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_learning_hub_dashboard RPC failure.", {
-          error: error.message,
-          code: error.code,
+          error: error?.message,
+          code: error?.code,
         });
         throw error;
       }
+
 
       // Hardened Data Normalization:
       // Ensures UI consistency even if specific arrays are null on backend.

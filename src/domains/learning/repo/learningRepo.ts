@@ -1668,3 +1668,33 @@ export async function orgAssignTrack(input: {
   return data;
 }
 
+
+// ─── Phase 10j.5h8: hub, instructor, enrollment, readiness RPC wrappers ───
+export async function getLearningHubDashboard<T = any>(): Promise<T> {
+  const { data, error } = await supabase.rpc("get_learning_hub_dashboard");
+  if (error) throw error;
+  return data as T;
+}
+
+export async function getInstructorSummary<T = any>(): Promise<T> {
+  const { data, error } = await supabase.rpc("get_instructor_summary");
+  if (error) throw error;
+  return data as T;
+}
+
+export async function enrollInContent<T = any>(args: {
+  contentId: string;
+  refCode: string | null;
+}): Promise<T> {
+  const { data, error } = await supabase.rpc("enroll_in_content" as any, {
+    p_content_id: args.contentId,
+    p_ref_code: args.refCode,
+  });
+  if (error) throw error;
+  return data as T;
+}
+
+export async function recomputeContentReadiness(contentId: string) {
+  const { error } = await supabase.rpc("recompute_content_readiness", { _content_id: contentId });
+  if (error) throw error;
+}

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { enrollInContent } from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 
@@ -87,13 +88,11 @@ export function useEnrollment(contentId: string | undefined) {
       const activeRef = refOverride ?? readRef();
 
       // HUD: EXECUTING_RPC_ATOMIC_ENROLLMENT_INGRESS
-      const { data, error } = await supabase.rpc("enroll_in_content" as any, {
-        p_content_id: contentId,
-        p_ref_code: activeRef || null,
+      const data = await enrollInContent<EnrollmentHandshakePayload>({
+        contentId,
+        refCode: activeRef || null,
       });
-
-      if (error) throw error;
-      return data as EnrollmentHandshakePayload;
+      return data;
     },
     onSuccess: (data) => {
       if (!data?.success) {

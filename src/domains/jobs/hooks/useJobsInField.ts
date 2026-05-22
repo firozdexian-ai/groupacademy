@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getJobsInField } from "@/domains/jobs/repo/jobsRepo";
 import type { JobCardData } from "@/components/jobs/JobCard";
 
 /**
@@ -21,23 +21,17 @@ export function useJobsInField(talentId: string | undefined, limit = 5) {
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<JobCardData[]> => {
       // HUD: EXECUTING_FIELD_AFFINITY_MATCHING_SYNC
-      const { data, error } = await supabase.rpc("get_jobs_in_field", {
-        _talent_id: talentId!,
-        _limit: limit,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger:
-        // Identifies RPC bottlenecks or semantic tagging errors in discovery.
+      try {
+        const data = await getJobsInField({ talentId: talentId!, limit });
+        return (data || []) as JobCardData[];
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_jobs_in_field RPC handshake failed.", {
           talentId,
           limit,
-          error: error.message,
+          error: error?.message,
         });
         throw error;
       }
-
-      return (data || []) as JobCardData[];
     },
   });
 }

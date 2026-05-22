@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getInstructorSummary } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -43,9 +44,10 @@ export function useInstructorSummary() {
     staleTime: 5 * 60 * 1000, // 5-minute financial stability window
     queryFn: async (): Promise<InstructorSummary> => {
       // HUD: EXECUTING_RPC_INSTRUCTOR_FINANCIAL_SYNC
-      const { data, error } = await supabase.rpc("get_instructor_summary");
-
-      if (error) {
+      let data: any;
+      try {
+        data = await getInstructorSummary();
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: get_instructor_summary sync failure.", error);
         throw error;
       }

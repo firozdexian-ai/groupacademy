@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { openGigDispute } from "@/domains/gigs/repo/gigsRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Scale, ShieldAlert } from "lucide-react";
@@ -80,17 +80,15 @@ export function OpenDisputeButton({ gigId, submissionId, verificationId, role, t
 
     try {
       // Direct criteria query execution mapping over decentralized Supabase RPC schema
-      const { error: rpcError } = await supabase.rpc("open_gig_dispute", {
-        _gig_id: gigId,
-        _submission_id: submissionId ?? null,
-        _verification_id: verificationId ?? null,
-        _opened_by_role: role,
-        _reason_code: reason,
-        _narrative: sanitizedNarrative,
-        _evidence: [], // Handled incrementally on downstream evidence boards
+      await openGigDispute({
+        gigId,
+        submissionId: submissionId ?? null,
+        verificationId: verificationId ?? null,
+        openedByRole: role,
+        reasonCode: reason,
+        narrative: sanitizedNarrative,
+        evidence: [],
       });
-
-      if (rpcError) throw rpcError;
 
       trackEvent("dispute_arbitration_submission_success", { gigId, reasonCode: reason });
 

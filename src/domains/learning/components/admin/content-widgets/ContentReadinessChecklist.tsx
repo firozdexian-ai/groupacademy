@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, Zap, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { setContentPublished } from "@/domains/learning/repo/learningRepo";
+import { setContentPublished, recomputeContentReadiness } from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 import {
@@ -62,11 +61,15 @@ export default function ContentReadinessChecklist({
 
   const recompute = async () => {
     setBusy(true);
-    const { error } = await supabase.rpc("recompute_content_readiness", { _content_id: contentId });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Readiness recomputed");
-    onRecomputed?.();
+    try {
+      await recomputeContentReadiness(contentId);
+      setBusy(false);
+      toast.success("Readiness recomputed");
+      onRecomputed?.();
+    } catch (error: any) {
+      setBusy(false);
+      toast.error(error?.message ?? "Recompute failed");
+    }
   };
 
   const forcePublish = async () => {

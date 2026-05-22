@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { toast } from "sonner";
 import {
   getReviewerProgramBundle,
   updateReviewerStatus,
+  resolveDispute as resolveDisputeRpc,
 } from "@/domains/gigs/repo/gigsRepo";
 
 export function ReviewerProgramTab() {
@@ -44,8 +44,13 @@ export function ReviewerProgramTab() {
   };
 
   const resolveDispute = async (id: string, verdict: string) => {
-    const { error } = await supabase.rpc("resolve_dispute", { _dispute_id: id, _verdict: verdict, _notes: "Admin override" });
-    if (error) toast.error(error.message); else { toast.success("Resolved"); load(); }
+    try {
+      await resolveDisputeRpc({ disputeId: id, verdict, notes: "Admin override" });
+      toast.success("Resolved");
+      load();
+    } catch (error: any) {
+      toast.error(error?.message ?? "Resolve failed");
+    }
   };
 
   if (loading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;

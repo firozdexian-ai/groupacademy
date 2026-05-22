@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { refreshGigMatches, shortlistMatch } from "@/domains/gigs/repo/gigsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -83,12 +84,7 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
   // 3. Hardened Re-Scoring Model Mutation Engine
   const refresh = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("refresh_gig_matches", {
-        _gig_id: gigId,
-        _gig_kind: gigKind,
-        _limit: 25,
-      });
-      if (error) throw error;
+      await refreshGigMatches({ gigId, gigKind, limit: 25 });
     },
     onMutate: () => {
       trackEvent("recommended_bidders_refresh_requested", { gigId });
@@ -114,8 +110,8 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
   // 4. Hardened Shortlist Selection Mutation Pipeline
   const shortlist = useMutation({
     mutationFn: async (matchId: string) => {
-      const { error } = await supabase.rpc("shortlist_match", { _match_id: matchId });
-      if (error) throw error;
+      await shortlistMatch(matchId);
+
     },
     onMutate: (matchId) => {
       trackEvent("recommended_bidders_shortlist_requested", { matchId, gigId });

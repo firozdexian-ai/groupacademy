@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { openVerificationAppeal } from "@/domains/gigs/repo/gigsRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, AlertTriangle, Clock, Loader2, Scale } from "lucide-react";
@@ -109,13 +109,11 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
 
     try {
       // Direct criteria query execution mapping over decentralized Supabase RPC schema
-      const { error } = await supabase.rpc("open_verification_appeal", {
-        _verification_id: verification.id,
-        _reason: sanitizedReasonText,
-        _evidence: [], // Managed incrementally on downstream verification evidence tracks
+      await openVerificationAppeal({
+        verificationId: verification.id,
+        reason: sanitizedReasonText,
+        evidence: [],
       });
-
-      if (error) throw error;
 
       trackEvent("verification_appeal_submission_success", { verificationId: verification.id });
 

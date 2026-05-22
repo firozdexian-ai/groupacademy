@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getTrendingJobs } from "@/domains/jobs/repo/jobsRepo";
 import type { JobCardData } from "@/components/jobs/JobCard";
 
 /**
@@ -20,19 +20,18 @@ export function useTrendingJobs(limit = 10) {
     staleTime: 2 * 60 * 1000,
     queryFn: async (): Promise<JobCardData[]> => {
       // HUD: EXECUTING_TRENDING_JOBS_RPC_INGRESS_SYNC
-      const { data, error } = await supabase.rpc("get_trending_jobs", {
-        limit_n: limit,
-      });
-
-      if (error) {
-        // Digital Workforce Anomaly Trigger: Essential for monitoring complex analytics function processing health
+      let data: any[];
+      try {
+        data = await getTrendingJobs(limit);
+      } catch (error: any) {
         console.error("[Digital Workforce] ANOMALY: get_trending_jobs RPC aggregation failed.", {
           limit,
-          message: error.message,
+          message: error?.message,
           timestamp: new Date().toISOString(),
         });
         throw error;
       }
+
 
       // Hardened Data Normalization Layer: Sanitizes raw database variables against schema anomalies
       return (data || []).map((row: any) => ({

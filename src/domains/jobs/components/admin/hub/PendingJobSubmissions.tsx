@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { rejectGigSubmission, awardGigCredits } from "@/domains/jobs/repo/jobsRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,15 +54,16 @@ export function PendingJobSubmissions() {
 
   const handleReject = async (id: string) => {
     const toastId = toast.loading("Processing rejection protocol...");
-    const { error } = await supabase.rpc("reject_gig_submission", {
-      p_submission_id: id,
-      p_admin_notes: "Rejected via Jobs Hub Verification Gate",
-    });
-
-    if (error) return toast.error("Protocol Fault: " + error.message, { id: toastId });
-
-    toast.success("Submission Node Terminated", { id: toastId });
-    qc.invalidateQueries({ queryKey: ["pending-job-submissions"] });
+    try {
+      await rejectGigSubmission({
+        submissionId: id,
+        adminNotes: "Rejected via Jobs Hub Verification Gate",
+      });
+      toast.success("Submission Node Terminated", { id: toastId });
+      qc.invalidateQueries({ queryKey: ["pending-job-submissions"] });
+    } catch (error: any) {
+      toast.error("Protocol Fault: " + (error?.message ?? "unknown"), { id: toastId });
+    }
   };
 
   const handlePublished = async () => {
@@ -70,15 +72,14 @@ export function PendingJobSubmissions() {
     const toastId = toast.loading("Finalizing publication & reward protocol...");
 
     // ATOMIC SYNC: Approve submission and award fractional credits
-    const { error } = await supabase.rpc("award_gig_credits", {
-      p_submission_id: editing.submissionId,
-      p_admin_notes: "Identity Verified: Published via Recruiter OS",
-    });
-
-    if (error) {
-      toast.error(`Infra published, but ledger sync failed: ${error.message}`, { id: toastId });
-    } else {
+    try {
+      await awardGigCredits({
+        submissionId: editing.submissionId,
+        adminNotes: "Identity Verified: Published via Recruiter OS",
+      });
       toast.success("Node Verified & Contributor Rewarded", { id: toastId });
+    } catch (error: any) {
+      toast.error(`Infra published, but ledger sync failed: ${error?.message ?? "unknown"}`, { id: toastId });
     }
 
     setEditing(null);

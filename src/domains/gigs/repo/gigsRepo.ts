@@ -346,3 +346,61 @@ export async function getGigsHubDashboard() {
   if (error) throw error;
   return data as any;
 }
+
+// ─── Phase 10j.5h8: verification, matches, disputes RPC wrappers ──────────
+export async function openVerificationAppeal(args: {
+  verificationId: string;
+  reason: string;
+  evidence?: any[];
+}) {
+  const { error } = await supabase.rpc("open_verification_appeal", {
+    _verification_id: args.verificationId,
+    _reason: args.reason,
+    _evidence: args.evidence ?? [],
+  });
+  if (error) throw error;
+}
+
+export async function refreshGigMatches(args: { gigId: string; gigKind: string; limit?: number }) {
+  const { error } = await supabase.rpc("refresh_gig_matches", {
+    _gig_id: args.gigId,
+    _gig_kind: args.gigKind,
+    _limit: args.limit ?? 25,
+  });
+  if (error) throw error;
+}
+
+export async function shortlistMatch(matchId: string) {
+  const { error } = await supabase.rpc("shortlist_match", { _match_id: matchId });
+  if (error) throw error;
+}
+
+export async function openGigDispute(args: {
+  gigId: string;
+  submissionId?: string | null;
+  verificationId?: string | null;
+  openedByRole: string;
+  reasonCode: string;
+  narrative: string;
+  evidence?: any[];
+}) {
+  const { error } = await supabase.rpc("open_gig_dispute", {
+    _gig_id: args.gigId,
+    _submission_id: args.submissionId ?? null,
+    _verification_id: args.verificationId ?? null,
+    _opened_by_role: args.openedByRole,
+    _reason_code: args.reasonCode,
+    _narrative: args.narrative,
+    _evidence: args.evidence ?? [],
+  });
+  if (error) throw error;
+}
+
+export async function resolveDispute(args: { disputeId: string; verdict: string; notes: string }) {
+  const { error } = await supabase.rpc("resolve_dispute", {
+    _dispute_id: args.disputeId,
+    _verdict: args.verdict,
+    _notes: args.notes,
+  });
+  if (error) throw error;
+}

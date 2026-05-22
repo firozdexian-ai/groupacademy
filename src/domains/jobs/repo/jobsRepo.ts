@@ -823,3 +823,61 @@ export async function getEmployerPipelineFull(args: {
   if (error) throw error;
   return (data ?? {}) as any;
 }
+
+// ─── Phase 10j.5h8: discovery + admin RPC wrappers ────────────────────────
+export async function getTrendingJobs(limit: number) {
+  const { data, error } = await supabase.rpc("get_trending_jobs", { limit_n: limit });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function getJobsInField(args: { talentId: string; limit: number }) {
+  const { data, error } = await supabase.rpc("get_jobs_in_field", {
+    _talent_id: args.talentId,
+    _limit: args.limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function countJobsByType(country: string | null) {
+  const { data, error } = await supabase.rpc("count_jobs_by_type", { _country: country });
+  if (error) throw error;
+  return (data ?? []) as Array<{ job_type: string; cnt: string | number }>;
+}
+
+export async function getApplicationBuckets(userId: string) {
+  const { data, error } = await supabase.rpc("get_application_buckets", { p_user_id: userId });
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getOrCreateTalent(args: {
+  email: string;
+  fullName: string;
+  phone: string | null;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc("get_or_create_talent", {
+    p_email: args.email,
+    p_full_name: args.fullName,
+    p_phone: args.phone,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function rejectGigSubmission(args: { submissionId: string; adminNotes: string }) {
+  const { error } = await supabase.rpc("reject_gig_submission", {
+    p_submission_id: args.submissionId,
+    p_admin_notes: args.adminNotes,
+  });
+  if (error) throw error;
+}
+
+export async function awardGigCredits(args: { submissionId: string; adminNotes: string }) {
+  const { error } = await supabase.rpc("award_gig_credits", {
+    p_submission_id: args.submissionId,
+    p_admin_notes: args.adminNotes,
+  });
+  if (error) throw error;
+}
