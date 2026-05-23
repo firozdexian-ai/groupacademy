@@ -64,7 +64,7 @@ export function AssessmentStepper({ categoryId, categoryName, onComplete, onBack
 
       return (data || []).map((row: any) => ({
         id: String(row.id),
-        question_text: String(row.question_text ?? "Untitled Evaluation Parameter"),
+        question_text: String(row.question_text ?? "Untitled question"),
         question_type: String(row.question_type) as Question["question_type"],
         options: row.options || [],
         weight: Number(row.weight ?? 1),

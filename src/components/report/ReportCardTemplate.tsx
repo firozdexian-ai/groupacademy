@@ -63,12 +63,12 @@ export function ReportCardTemplate({ data }: ReportCardTemplateProps) {
       percentage: finalYieldPercentage,
       enrollmentDate: parsedEnrollmentDateStr,
       completionTimestamp: parsedCompletionTimestampStr,
-      fullName: String(data?.student?.full_name || "Anonymous Talent Node").trim(),
+      fullName: String(data?.student?.full_name || "Anonymous").trim(),
       studentId: String(data?.student?.student_id || "UNASSIGNED_ID")
         .trim()
         .toUpperCase(),
       email: String(data?.student?.email || "sync_line_offline").trim(),
-      courseTitle: String(data?.content?.title || "Unresolved Educational Node Specification").trim(),
+      courseTitle: String(data?.content?.title || "Untitled course").trim(),
       attemptId: String(data?.quiz_attempt?.id || "N/A")
         .trim()
         .toUpperCase(),

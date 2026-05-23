@@ -270,7 +270,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                           value={artifactItem.title || ""}
                           onChange={(e) => updateRegistryNode("experience", idx, "title", e.target.value)}
                           className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner"
-                          placeholder="E.g. Lead Platform Engineer"
+                          placeholder="E.g. Senior Software Engineer"
                         />
                       </div>
                       <div className="space-y-1.5 text-left">
@@ -281,7 +281,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                           value={artifactItem.company || ""}
                           onChange={(e) => updateRegistryNode("experience", idx, "company", e.target.value)}
                           className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner"
-                          placeholder="E.g. Global Tech Labs Corp"
+                          placeholder="E.g. Acme Inc."
                         />
                       </div>
                     </div>
@@ -363,7 +363,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                         value={artifactItem.name || ""}
                         onChange={(e) => updateRegistryNode("projects", idx, "name", e.target.value)}
                         className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner"
-                        placeholder="E.g. Distributed Ledger Microservice Engine"
+                        placeholder="E.g. Payments microservice"
                       />
                     </div>
                     <div className="space-y-1.5 text-left">
@@ -404,7 +404,7 @@ export default function ProfileBuilderForm({ value, onChange }: ProfileBuilderFo
                           value={artifactItem.title || ""}
                           onChange={(e) => updateRegistryNode("achievements", idx, "title", e.target.value)}
                           className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner"
-                          placeholder="E.g. National Hackathon First Prize Absolute Champion"
+                          placeholder="E.g. 1st place, National Hackathon"
                         />
                       </div>
                       <div className="space-y-1.5 text-left">

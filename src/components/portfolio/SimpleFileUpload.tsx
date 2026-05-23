@@ -99,7 +99,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
           Math.min(100, Math.round((progressEventObj.loaded / progressEventObj.total) * 100)),
         );
         setProgress(structuralPercentValue);
-        setStatusMessage(`Ingress Stream Sync: ${structuralPercentValue}%`);
+        setStatusMessage(`Uploading: ${structuralPercentValue}%`);
       }
     };
 
@@ -395,7 +395,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
                 Artifact Ingress Mapped
               </p>
               <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-wider truncate text-ellipsis block pt-1.5 leading-none select-text">
-                {uploadedUrl.includes("storage") ? "Ledger Binary Storage Matrix" : "External Mapped Address URL Node"}
+                {uploadedUrl.includes("storage") ? "Stored file" : "External link"}
               </p>
             </div>
           </div>
