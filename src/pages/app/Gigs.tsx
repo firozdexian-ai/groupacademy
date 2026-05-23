@@ -525,11 +525,11 @@ export default function Gigs() {
                     <div className="min-w-0 flex-1 leading-none space-y-1 block pr-2">
                       <div className="flex items-center gap-1.5 flex-wrap select-none pointer-events-none leading-none">
                         <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-transparent bg-primary/5 text-primary tracking-wide pt-0 leading-none shrink-0">
-                          EXTERNAL CORPORATE GIG
+                          CLIENT GIG
                         </Badge>
                         {marketItemNode.is_featured && (
                           <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-amber-500/20 bg-amber-500/5 text-amber-600 tracking-wide pt-0 leading-none shrink-0 rounded-xs shadow-3xs">
-                            FLAG_PRIORITY
+                            FEATURED
                           </Badge>
                         )}
                       </div>
@@ -543,12 +543,11 @@ export default function Gigs() {
                       <div className="flex items-center gap-3.5 font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none leading-none pt-0.5 tabular-nums w-full shrink-0">
                         <span className="flex items-center gap-0.5 font-extrabold text-amber-600 shrink-0">
                           <Coins className="h-3.5 w-3.5 stroke-[2] text-amber-500" />{" "}
-                          {marketItemNode.budget_amount.toLocaleString()} Budget Credits
+                          {marketItemNode.budget_amount.toLocaleString()} credits budget
                         </span>
                         <span className="opacity-30 block select-none shrink-0">•</span>
                         <span className="flex items-center gap-1 shrink-0">
-                          <Send className="h-3.5 w-3.5 stroke-[2.2]" /> {marketItemNode.total_bids || 0} Bid Profiles
-                          Logged
+                          <Send className="h-3.5 w-3.5 stroke-[2.2]" /> {marketItemNode.total_bids || 0} bids
                         </span>
                       </div>
                     </div>
