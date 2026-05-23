@@ -35,17 +35,17 @@ const POPULAR_NODES = COUNTRIES.filter((c) =>
 );
 
 const DEGREE_LEVELS = [
-  { value: "bachelor", label: "Undergraduate_Core" },
-  { value: "master", label: "Master_Specialization" },
-  { value: "phd", label: "Doctoral_Research" },
-  { value: "diploma", label: "Professional_Certificate" },
+  { value: "bachelor", label: "Bachelor's" },
+  { value: "master", label: "Master's" },
+  { value: "phd", label: "PhD" },
+  { value: "diploma", label: "Diploma / Certificate" },
 ];
 
 const BUDGET_NODES = [
-  { value: "low", label: "FISCAL_EFFICIENT", sub: "< $15k/year tuition" },
-  { value: "medium", label: "FISCAL_BALANCED", sub: "$15k - $35k/year" },
-  { value: "high", label: "FISCAL_PREMIUM", sub: "$35k+/year" },
-  { value: "scholarship", label: "FUNDING_REQUIRED", sub: "Scholarship seeking" },
+  { value: "low", label: "Budget-friendly", sub: "Under $15k/year tuition" },
+  { value: "medium", label: "Balanced", sub: "$15k – $35k/year" },
+  { value: "high", label: "Premium", sub: "$35k+/year" },
+  { value: "scholarship", label: "Need a scholarship", sub: "Funding required" },
 ];
 
 export function RoadmapIntakeForm() {
@@ -74,7 +74,7 @@ export function RoadmapIntakeForm() {
       const exists = prev.targetCountries.includes(code);
       if (exists) return { ...prev, targetCountries: prev.targetCountries.filter((c) => c !== code) };
       if (prev.targetCountries.length >= 3) {
-        toast.error("TRAJECTORY_LIMIT: Max 3 countries permitted.");
+        toast.error("You can pick up to 3 countries.");
         return prev;
       }
       return { ...prev, targetCountries: [...prev.targetCountries, code] };
@@ -139,9 +139,8 @@ export function RoadmapIntakeForm() {
       return roadmap.id;
     },
     onSuccess: async (roadmapId) => {
-      toast.success("NEURAL_GENERATION_INITIALIZED");
+      toast.success("Roadmap is being built…");
 
-      // Systematic program cache invalidation across billing keys before shifting route frames
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["talent-credits-balance"] }),
         qc.invalidateQueries({ queryKey: ["ir-snapshots"] }),
@@ -151,14 +150,13 @@ export function RoadmapIntakeForm() {
       navigate(`/app/abroad/roadmap/${roadmapId}`);
     },
     onError: (err: any) => {
-      // Digital Workforce Anomaly Trigger: Essential for debugging multi-table database transaction dropouts
-      console.error("[Digital Workforce] ANOMALY: Admissions Trajectory sync mutation failed.", {
+      console.error("[abroad] Admissions roadmap sync failed.", {
         talentId: talent?.id,
         formData,
         message: err.message,
         timestamp: new Date().toISOString(),
       });
-      toast.error(err.message || "SYNC_FAULT: Multi-stage tracking initialization failure.");
+      toast.error(err.message || "Couldn't generate roadmap. Please try again.");
     },
   });
 
@@ -176,17 +174,17 @@ export function RoadmapIntakeForm() {
         <div className="flex justify-between items-end px-1">
           <div className="space-y-1">
             <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">
-              Initialize_Admissions
+              Build your roadmap
             </h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-              Trajectory_Mapping_v3.4
+              Step {step} of 3
             </p>
           </div>
           <Badge
             variant="outline"
             className="h-8 rounded-xl border-2 font-black italic text-[10px] px-3 bg-primary/5 text-primary border-primary/20"
           >
-            PHASE_0{step} <span className="mx-1 opacity-30">/</span> 03
+            Step {String(step).padStart(2, "0")} <span className="mx-1 opacity-30">/</span> 03
           </Badge>
         </div>
         <Progress value={(step / 3) * 100} className="h-1.5 bg-primary/10 shadow-inner" />
@@ -263,7 +261,7 @@ export function RoadmapIntakeForm() {
                   onValueChange={(v) => setFormData((p) => ({ ...p, targetIntake: v }))}
                 >
                   <SelectTrigger className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20 disabled:opacity-40">
-                    <SelectValue placeholder="Select_Term..." />
+                    <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-2">
                     {["Fall 2026", "Spring 2027", "Fall 2027"].map((term) => (
@@ -284,13 +282,13 @@ export function RoadmapIntakeForm() {
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="flex items-center gap-3 text-xl font-black uppercase italic tracking-tighter">
-              <span className="text-primary text-2xl font-serif">A_</span> Academic_Core_Metrics
+              <span className="text-primary text-2xl font-serif">A</span> Academic background
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 pt-0 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Target Field of Study
+                Field of study
               </Label>
               <input
                 type="text"
@@ -310,7 +308,7 @@ export function RoadmapIntakeForm() {
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="flex items-center gap-3 text-xl font-black uppercase italic tracking-tighter">
-              <Wallet className="text-primary h-6 w-6" /> Fiscal_Authorization
+              <Wallet className="text-primary h-6 w-6" /> Budget & payment
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 pt-0 space-y-8">
@@ -344,19 +342,19 @@ export function RoadmapIntakeForm() {
 
             <div className="p-6 rounded-3xl bg-muted/20 border-2 border-dashed border-border/40 space-y-4">
               <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-[0.2em]">
-                <span className="text-muted-foreground">SYNC_GENERATION_FEE</span>
-                <span className="text-foreground">{serviceCost}_CREDITS</span>
+                <span className="text-muted-foreground">Roadmap cost</span>
+                <span className="text-foreground">{serviceCost} credits</span>
               </div>
               <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-[0.2em]">
-                <span className="text-muted-foreground">VAULT_BALANCE</span>
+                <span className="text-muted-foreground">Your balance</span>
                 <span className={cn(balance < serviceCost ? "text-rose-500 animate-pulse" : "text-emerald-500")}>
-                  {balance}_CREDITS
+                  {balance} credits
                 </span>
               </div>
               {balance < serviceCost && (
                 <div className="flex items-center gap-2 pt-2 border-t border-border/10 justify-end">
                   <Zap className="h-3 w-3 text-rose-500" />
-                  <p className="text-[8px] font-black text-rose-500 uppercase italic">Insufficient_Capital_Detected</p>
+                  <p className="text-[8px] font-black text-rose-500 uppercase italic">Not enough credits</p>
                 </div>
               )}
             </div>
@@ -383,7 +381,7 @@ export function RoadmapIntakeForm() {
             disabled={(step === 1 && !isStep11ValidNamespaceCheck()) || (step === 2 && !isStep2Valid)}
             className="h-14 flex-1 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-lg disabled:cursor-not-allowed"
           >
-            ADVANCE_PHASE <ChevronRight className="ml-2 h-4 w-4" />
+            Next <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
           <Button
@@ -396,7 +394,7 @@ export function RoadmapIntakeForm() {
               <Loader2 className="animate-spin h-5 w-5" />
             ) : (
               <>
-                <Sparkles className="h-5 w-5" /> GENERATE_ROADMAP
+                <Sparkles className="h-5 w-5" /> Generate roadmap
               </>
             )}
           </Button>
