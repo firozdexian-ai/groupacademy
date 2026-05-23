@@ -198,7 +198,7 @@ export function InfiniteGigsList({ talentId, search }: Props) {
           !hasNextPage &&
           items.length > 6 && (
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/40 italic select-none animate-in fade-in duration-300">
-              &mdash; Ecosystem Stream Lock Fully Synchronized &mdash;
+              &mdash; You're all caught up &mdash;
             </p>
           )
         )}
