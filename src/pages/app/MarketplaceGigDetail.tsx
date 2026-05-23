@@ -223,7 +223,7 @@ export default function MarketplaceGigDetail() {
             </Card>
           ) : (
             <Card className={cn(CARD, "p-6 space-y-6")}>
-              <CardTitle className="text-base">Initialize Proposal</CardTitle>
+              <CardTitle className="text-base">Submit a proposal</CardTitle>
               {gigRecord.pricing_type !== "fixed" && (
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wide">Bid Amount</Label>
