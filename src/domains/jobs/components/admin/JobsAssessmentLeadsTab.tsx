@@ -162,7 +162,7 @@ export function JobsAssessmentLeadsTab() {
             <div className="h-12 w-12 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20">
               <Activity className="h-6 w-6 text-primary" />
             </div>
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Lead Ledger</h2>
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Leads</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic ml-16">
             Neural Recruitment Telemetry v2.6
