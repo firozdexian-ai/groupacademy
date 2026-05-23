@@ -12,12 +12,12 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "abroad-overview": "Career Abroad Overview",
-  "abroad-destinations": "Destination Agents",
-  "abroad-applications": "Application Pipeline",
-  "abroad-programs": "Uni Programs",
-  "abroad-ielts-prompts": "IELTS Prompt Bank",
-  "abroad-ielts-resources": "IELTS Resources",
-  "abroad-language-lab": "Language Lab",
-  "abroad-roadmap-leads": "Roadmap Leads",
+  "abroad-overview": "Study abroad overview",
+  "abroad-destinations": "Destination agents",
+  "abroad-applications": "Applications",
+  "abroad-programs": "University programs",
+  "abroad-ielts-prompts": "IELTS prompts",
+  "abroad-ielts-resources": "IELTS resources",
+  "abroad-language-lab": "Language lab",
+  "abroad-roadmap-leads": "Roadmap leads",
 };

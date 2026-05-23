@@ -13,13 +13,13 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "ir-dashboard": "Investor Nexus",
-  "ir-targets": "MRR Projections",
-  "ir-vcs": "VC Portfolio",
+  "ir-dashboard": "Investor overview",
+  "ir-targets": "MRR projections",
+  "ir-vcs": "VC portfolio",
   "ir-investors": "Shareholders",
-  "ir-pipeline": "Investor Pipeline",
-  "ir-emails": "Executive Updates",
-  "ir-dataroom": "Data Room",
-  "ir-economics": "Unit Economics",
-  "ir-influencers": "Key Influencers",
+  "ir-pipeline": "Investor pipeline",
+  "ir-emails": "Executive updates",
+  "ir-dataroom": "Data room",
+  "ir-economics": "Unit economics",
+  "ir-influencers": "Key influencers",
 };

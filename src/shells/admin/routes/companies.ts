@@ -26,10 +26,10 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 
 export const TITLES: Record<string, string> = {
   companies: "Employer CRM",
-  contacts: "B2B Contacts",
-  "company-agents": "Internal Agents",
-  industries: "Verticals",
-  "companies-overview": "Companies Overview",
-  "companies-unlocks": "Contact Unlocks",
-  "companies-wa-channel": "Employer WhatsApp Line",
+  contacts: "B2B contacts",
+  "company-agents": "Account managers",
+  industries: "Industries",
+  "companies-overview": "Companies overview",
+  "companies-unlocks": "Contact unlocks",
+  "companies-wa-channel": "Employer WhatsApp line",
 };

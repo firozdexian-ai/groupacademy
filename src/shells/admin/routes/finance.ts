@@ -12,12 +12,12 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "finops-overview": "FinOps Dashboard",
-  "finops-talent-credits": "Talent Credits",
-  "finops-gro10x-credits": "Gro10x Credits",
-  "finops-company-credits": "Company Credits",
+  "finops-overview": "Finance overview",
+  "finops-talent-credits": "Talent credits",
+  "finops-gro10x-credits": "Gro10x credits",
+  "finops-company-credits": "Company credits",
   "finops-transactions": "Transactions",
-  "finops-pay-infra": "Payment Infrastructure",
+  "finops-pay-infra": "Payment settings",
   "finops-invoices": "Invoices",
   "finops-withdrawals": "Withdrawals",
 };
