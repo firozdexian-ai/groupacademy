@@ -124,8 +124,8 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
           variant: "destructive",
         });
       } else {
-        // Digital Workforce System Interceptor: Pipes pipeline breakdowns straight to Admin Command chat lines
-        console.error("[Digital Workforce] ANOMALY: Study Abroad Roadmap generation process failure.", {
+        // Internal error logger
+        console.error("[abroad] Roadmap generation failed.", {
           countryCode,
           formData: form,
           message: msg,
@@ -133,8 +133,8 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         });
 
         toast({
-          title: "Handshake Failed",
-          description: "Computational edge timeout. Log enqueued for workforce advisor review.",
+          title: "Couldn't generate roadmap",
+          description: "Something went wrong on our side. Please try again in a moment.",
           variant: "destructive",
         });
       }
@@ -281,7 +281,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
               className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99] disabled:cursor-not-allowed"
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {isPending ? "Configuring AI Swarm Pipeline..." : `Generate AI Roadmap (${ROADMAP_CREDIT_COST} Credits)`}
+              {isPending ? "Building your roadmap..." : `Generate AI Roadmap (${ROADMAP_CREDIT_COST} Credits)`}
             </Button>
           </div>
         </div>

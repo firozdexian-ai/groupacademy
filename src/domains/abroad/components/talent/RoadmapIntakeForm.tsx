@@ -88,11 +88,11 @@ export function RoadmapIntakeForm() {
       if (!talent?.id) throw new Error("AUTH_SYNC_REQUIRED");
       if (!canAffordAmount(serviceCost)) throw new Error("FISCAL_DEFICIT");
 
-      // HUD: STEP_1_ATOM_CREDIT_DEDUCTION_HANDSHAKE
-      const success = await deductCustomAmount(serviceCost, "STUDY_ABROAD_ROADMAP", null, "Neural Admissions Roadmap");
-      if (!success) throw new Error("TRANSACTION_FAULT: Ledger deduction denied.");
+      // Step 1: deduct credits for the roadmap
+      const success = await deductCustomAmount(serviceCost, "STUDY_ABROAD_ROADMAP", null, "Study abroad roadmap");
+      if (!success) throw new Error("Couldn't deduct credits.");
 
-      // HUD: STEP_2_LEAD_REGISTRY_MIRRORING_INSERTION
+      // Step 2: mirror lead into CRM
       const { error: leadError } = await insertRoadmapContactLead({
         full_name: talent.fullName || "Roadmap_Lead",
         email: talent.email || "",
@@ -197,13 +197,13 @@ export function RoadmapIntakeForm() {
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="flex items-center gap-3 text-xl font-black uppercase italic tracking-tighter">
-              <MapPin className="text-primary h-6 w-6 animate-pulse" /> Global_Destinations
+              <MapPin className="text-primary h-6 w-6 animate-pulse" /> Destinations
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 pt-0 space-y-8">
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground ml-1">
-                Vector: Target_Countries (Max 3)
+                Target countries (max 3)
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {POPULAR_NODES.map((c) => {
@@ -234,7 +234,7 @@ export function RoadmapIntakeForm() {
             <div className="grid sm:grid-cols-2 gap-6 pt-6 border-t-2 border-border/10">
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase italic tracking-widest ml-1 text-muted-foreground">
-                  Vector: Degree_Level
+                  Degree level
                 </Label>
                 <Select
                   disabled={isSubmitting}
@@ -242,7 +242,7 @@ export function RoadmapIntakeForm() {
                   onValueChange={(v) => setFormData((p) => ({ ...p, degreeLevel: v }))}
                 >
                   <SelectTrigger className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20 disabled:opacity-40">
-                    <SelectValue placeholder="Initialize_Selection..." />
+                    <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-2">
                     {DEGREE_LEVELS.map((l) => (
@@ -255,7 +255,7 @@ export function RoadmapIntakeForm() {
               </div>
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase italic tracking-widest ml-1 text-muted-foreground">
-                  Vector: Target_Intake
+                  Target intake
                 </Label>
                 <Select
                   disabled={isSubmitting}
@@ -373,7 +373,7 @@ export function RoadmapIntakeForm() {
           disabled={isSubmitting}
           className="h-14 px-8 rounded-2xl border-2 font-black uppercase italic text-[10px] tracking-widest"
         >
-          <ChevronLeft className="mr-2 h-4 w-4" /> {step === 1 ? "Abort" : "Node_Prev"}
+          <ChevronLeft className="mr-2 h-4 w-4" /> {step === 1 ? "Cancel" : "Back"}
         </Button>
 
         {step < 3 ? (

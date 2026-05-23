@@ -112,7 +112,7 @@ export default function IELTSMockRunner() {
       );
       navigateHook(`/app/abroad/ielts/results/${evaluationResponsePayload.attempt_id}`);
     } catch (mutationException: any) {
-      toast.error(mutationException.message || "Pipeline evaluation channel interrupted.");
+      toast.error(mutationException.message || "Couldn't grade your response. Please try again.");
     } finally {
       setIsSubmissionPending(false);
     }
@@ -125,7 +125,7 @@ export default function IELTSMockRunner() {
           {unverifiedSectionStr?.toUpperCase()} MOCK EXAMINATION
         </h1>
         <p className="font-mono text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest pt-1">
-          {isAudioSectionFlag ? "Vocal Response Window (60-120 Seconds)" : "Text-based Response Window (Min 250 words)"}
+          {isAudioSectionFlag ? "Audio response window (60–120 seconds)" : "Written response window (min 250 words)"}
         </p>
       </header>
 
@@ -161,7 +161,7 @@ export default function IELTSMockRunner() {
               className="rounded-lg h-12 w-full font-bold uppercase tracking-widest shadow-2xs"
             >
               <Mic className="h-4 w-4 mr-2" />{" "}
-              {activeAudioBlob ? "Re-Initiate Recording" : "Initialize Recording Channel"}
+              {activeAudioBlob ? "Record again" : "Start recording"}
             </Button>
           )}
           {activeAudioBlob && (
@@ -187,7 +187,7 @@ export default function IELTSMockRunner() {
       >
         {isSubmissionPending ? (
           <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> <span>Transmitting Evaluation Matrix...</span>
+            <Loader2 className="h-4 w-4 animate-spin" /> <span>Submitting for grading...</span>
           </div>
         ) : (
           <div className="flex items-center gap-2">

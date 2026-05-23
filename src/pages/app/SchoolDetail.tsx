@@ -226,7 +226,7 @@ export default function SchoolDetail() {
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Rationalize request…"
+            placeholder="Tell them why you'd like to connect…"
             rows={4}
             className="rounded-xl"
           />

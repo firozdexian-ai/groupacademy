@@ -50,7 +50,7 @@ export function RoadmapTimeline({
 
         // Safe sanitization handling for localized text conversions
         const standardizedTitle = useMemo(() => {
-          const rawTitle = String(item.title || "Untitled Step Node");
+          const rawTitle = String(item.title || "Untitled step");
           return rawTitle.trim().replace(/\s+/g, "_");
         }, [item.title]);
 

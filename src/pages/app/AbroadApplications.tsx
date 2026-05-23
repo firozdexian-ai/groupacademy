@@ -92,7 +92,7 @@ export default function AbroadApplications() {
                       {applicationItemNode.target_country}
                       <span className="font-mono font-medium opacity-40 mx-2 select-none">·</span>
                       <span className="text-muted-foreground/80 lowercase font-medium font-sans">
-                        {applicationItemNode.intake_term ?? "Timeline Allocation Pending"}
+                        {applicationItemNode.intake_term ?? "Intake to be confirmed"}
                       </span>
                     </p>
 

@@ -308,8 +308,8 @@ export default function IELTSPrep() {
         ) : (
           <EmptyState
             icon={Sparkles}
-            title="Syllabus Unit Registry Vacuum"
-            description={`Operational ${activeSectionState} resource manifest assemblies are current pending registry configuration updates.`}
+            title="No resources yet"
+            description={`No ${activeSectionState} resources are available right now. Check back soon.`}
           />
         )}
       </div>
