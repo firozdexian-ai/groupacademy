@@ -48,7 +48,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
 
     // PROTOCOL LOCK: Quantitative Ingress Format Validation Check
     if (!targetFileItem.type.startsWith("image/")) {
-      toast.error("Format Rejected: Ingress pipeline requires a valid image binary node asset.");
+      toast.error("Please upload a valid image file.");
       trackEvent("cover_image_invalid_type_intercepted", { fileType: targetFileItem.type });
       return;
     }
@@ -56,14 +56,14 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
     // PROTOCOL LOCK: Quantitative Volume Payload Verification Check (Ceiling Standard: 5MB)
     const MAX_BINARY_BYTE_SIZE_CEILING = 5 * 1024 * 1024;
     if (targetFileItem.size > MAX_BINARY_BYTE_SIZE_CEILING) {
-      toast.error("Payload Exceeded: Image binary node configuration must remain < 5MB.");
+      toast.error("Image must be smaller than 5MB.");
       trackEvent("cover_image_size_overflow_intercepted", { fileSize: targetFileItem.size });
       return;
     }
 
     setIsUploading(true);
     trackEvent("cover_image_upload_initiated", { fileType: targetFileItem.type });
-    const dynamicToastTrackerId = toast.loading("Synchronizing image binary asset with storage registry index...");
+    const dynamicToastTrackerId = toast.loading("Uploading cover image…");
 
     try {
       const fileExtensionString = targetFileItem.name.split(".").pop();
@@ -83,7 +83,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
         setPreviewUrl(publicUrl);
         onImageChange(publicUrl);
 
-        toast.success("Visual cover asset successfully synchronized down ledger.", { id: dynamicToastTrackerId });
+        toast.success("Cover image updated.", { id: dynamicToastTrackerId });
         trackEvent("cover_image_upload_success");
       }
     } catch (caughtPipelineExceptionErr: any) {
@@ -97,7 +97,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
         action: "commit_cover_image_storage_ingress_api",
       });
 
-      toast.error(`Ecosystem validation error: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
+      toast.error(`Upload failed: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setIsUploading(false);
@@ -110,7 +110,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
 
   const handleTermination = async () => {
     trackEvent("cover_image_purge_requested");
-    const dynamicToastTrackerId = toast.loading("Purging asset coefficients from registry indices...");
+    const dynamicToastTrackerId = toast.loading("Removing cover image…");
 
     try {
       // Invalidate dashboard queries to reflect changes in real time
@@ -120,11 +120,11 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
       if (isMountedRef.current) {
         setPreviewUrl(null);
         onImageChange(null);
-        toast.success("Portfolio cover path successfully expunged.", { id: dynamicToastTrackerId });
+        toast.success("Cover image removed.", { id: dynamicToastTrackerId });
       }
     } catch (err) {
       trackError(err, { component: "CoverImageUpload", action: "execute_cover_purge_callback" });
-      toast.error("Ecosystem sync exception: Failed to flush indices.", { id: dynamicToastTrackerId });
+      toast.error("Failed to remove cover image. Please try again.", { id: dynamicToastTrackerId });
     }
   };
 
@@ -155,10 +155,10 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
             </div>
             <div className="text-center space-y-1 leading-none">
               <p className="text-xs font-bold uppercase tracking-wide text-foreground/80 leading-none">
-                Initialize Cover Node Ingress
+                Upload a cover image
               </p>
               <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-widest block leading-none pt-0.5">
-                Awaiting structural asset configuration properties
+                Click to choose an image (max 5MB)
               </p>
             </div>
           </div>
@@ -169,7 +169,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md z-20 animate-in fade-in duration-200">
             <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
             <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary mt-2 animate-pulse leading-none">
-              Syncing Synapse Ledger…
+              Uploading…
             </p>
           </div>
         )}

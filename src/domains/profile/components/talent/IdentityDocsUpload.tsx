@@ -184,7 +184,7 @@ export function IdentityDocsUpload() {
           <div className="flex items-center gap-2 py-4 text-muted-foreground select-none leading-none w-full">
             <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5]" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider pl-0.5 animate-pulse">
-              Hydrating Verification Node Ledger…
+              Loading verification status…
             </span>
           </div>
         ) : doc ? (
@@ -195,11 +195,11 @@ export function IdentityDocsUpload() {
                 {doc.doc_type === "nid" ? "National ID Card" : "Passport"}
               </p>
               <p className="text-[10px] font-semibold text-muted-foreground/50 tracking-tight leading-none pt-0.5 tabular-nums select-none">
-                Transmission committed on {new Date(doc.created_at).toLocaleDateString()}
+                Submitted on {new Date(doc.created_at).toLocaleDateString()}
               </p>
               {doc.review_notes && doc.status === "rejected" && (
                 <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 select-text bg-rose-500/5 border border-rose-500/10 p-2 rounded-lg leading-normal mt-1 w-full pr-1">
-                  Exception Reason: {doc.review_notes.trim()}
+                  Reason: {doc.review_notes.trim()}
                 </p>
               )}
             </div>
@@ -264,7 +264,7 @@ export function IdentityDocsUpload() {
             {docType === "nid" && (
               <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                  Reverse Back of National ID smart card *
+                  Back of National ID smart card *
                 </Label>
                 <input
                   ref={backInput}
@@ -286,12 +286,12 @@ export function IdentityDocsUpload() {
               {busy ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                  <span>Processing Secure Ledger Ingress…</span>
+                  <span>Uploading…</span>
                 </>
               ) : (
                 <>
                   <Upload className="h-3.5 w-3.5 stroke-[2.2]" />
-                  <span>Commit Document for Audit Review</span>
+                  <span>Submit for review</span>
                 </>
               )}
             </Button>

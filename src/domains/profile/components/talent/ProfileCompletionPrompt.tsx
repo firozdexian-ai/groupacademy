@@ -70,9 +70,9 @@ export function ProfileCompletionPrompt({
     if (!talent.linkedinUrl) {
       gaps.push({
         key: "linkedin",
-        label: "Network Handshake",
+        label: "LinkedIn profile",
         icon: Linkedin,
-        action: "Authorize LinkedIn Sync",
+        action: "Link LinkedIn",
         priority: 2,
       });
     }
@@ -80,7 +80,7 @@ export function ProfileCompletionPrompt({
     if (!Array.isArray(talent.experience) || talent.experience.length === 0) {
       gaps.push({
         key: "experience",
-        label: "Professional Ledger",
+        label: "Work experience",
         icon: Briefcase,
         action: "Add work experience",
         priority: 3,
@@ -90,7 +90,7 @@ export function ProfileCompletionPrompt({
     if (!Array.isArray(talent.education) || talent.education.length === 0) {
       gaps.push({
         key: "education",
-        label: "Academic Registry",
+        label: "Education",
         icon: GraduationCap,
         action: "Add education",
         priority: 4,
@@ -260,8 +260,7 @@ export function ProfileCompletionPrompt({
           />
         </div>
         <p className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-muted-foreground/60 flex-1 min-w-0 truncate leading-none">
-          <span className="text-primary font-black">{profileFidelityMetrics.yieldPercentage}%</span> Profile Elements
-          Synchronized
+          <span className="text-primary font-black">{profileFidelityMetrics.yieldPercentage}%</span> Profile complete
         </p>
         <Button
           size="sm"
@@ -270,7 +269,7 @@ export function ProfileCompletionPrompt({
           onClick={handleActionProtocolTrigger}
           className="h-7 px-2.5 rounded-lg text-muted-foreground/70 hover:text-primary font-bold uppercase text-[9px] tracking-wider shrink-0 cursor-pointer hover:bg-primary/5 transition-colors"
         >
-          <span>Complete Nodes</span>
+          <span>Finish profile</span>
           <ArrowRight className="ml-1 h-3.5 w-3.5 stroke-[2.5]" />
         </Button>
       </div>
@@ -294,10 +293,10 @@ export function ProfileCompletionPrompt({
           <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
             <h3 className="text-sm sm:text-base font-bold text-foreground/90 uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
               <ShieldCheck className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-              <span>Registry Synchronization Alignment</span>
+              <span>Complete your profile</span>
             </h3>
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-              Maximize candidate visibility parameters and automated neural index matching yields
+              A complete profile boosts your visibility and improves job matches.
             </p>
           </div>
           {showDismiss && (
@@ -362,7 +361,7 @@ export function ProfileCompletionPrompt({
           className="w-full h-10 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transform-gpu active:scale-[0.995] transition-transform flex items-center justify-center cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 mt-1 select-none"
         >
           <Zap className="h-4 w-4 fill-primary-foreground/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Synchronize Digital Professional Identity Vector</span>
+          <span>Complete my profile</span>
         </Button>
       </CardContent>
     </Card>

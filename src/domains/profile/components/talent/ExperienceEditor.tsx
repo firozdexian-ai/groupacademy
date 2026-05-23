@@ -137,10 +137,10 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
         <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 flex-1 leading-none">
           <Label className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
             <Briefcase className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-            <span>Professional Experience Registry</span>
+            <span>Work experience</span>
           </Label>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-            Synchronize workspace profile blocks with historical vocational placement indices
+            Add roles, companies, and dates so recruiters can see your background.
           </p>
         </div>
 
@@ -152,7 +152,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
           className="h-8 px-3 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1 flex items-center justify-center transition-colors select-none"
         >
           <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>Deploy Node</span>
+          <span>Add experience</span>
         </Button>
       </div>
 
@@ -171,10 +171,10 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
             </div>
             <div className="space-y-1.5 leading-none text-center font-bold text-xs tracking-tight">
               <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground/80 leading-none">
-                Experience Ledger Vacant
+                No experience added yet
               </p>
               <p className="text-[11px] font-semibold text-muted-foreground/40 leading-normal max-w-xs mx-auto italic">
-                No active professional records found. Click here to initialize a career node entry line.
+                Click here to add your first role.
               </p>
             </div>
           </div>

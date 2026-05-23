@@ -247,12 +247,12 @@ export function PayoutAccountsManager() {
           <div className="flex items-center gap-2 py-4 text-muted-foreground select-none leading-none w-full">
             <Loader2 className="h-4 w-4 animate-spin text-primary stroke-[2.5]" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider pl-0.5 animate-pulse">
-              Hydrating Disbursement Node Ledger…
+              Loading payout accounts…
             </span>
           </div>
         ) : rows.length === 0 ? (
           <div className="text-[11px] font-semibold text-muted-foreground/50 italic py-2 pl-0.5 select-none leading-none">
-            No active configuration accounts found down tracking paths.
+            No payout accounts yet.
           </div>
         ) : (
           /* ACTIVE DISBURSEMENT ROUTE TILES GRID LIST */
@@ -428,7 +428,7 @@ export function PayoutAccountsManager() {
             className="w-full h-10 rounded-xl border border-border/60 text-muted-foreground font-bold hover:text-foreground uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-colors select-none"
           >
             <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Add Ingress Disbursement Route</span>
+            <span>Add payout account</span>
           </Button>
         )}
 

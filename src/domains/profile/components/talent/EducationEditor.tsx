@@ -126,10 +126,10 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
         <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 flex-1 leading-none">
           <Label className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
             <GraduationCap className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-            <span>Academic Credential Registry</span>
+            <span>Education</span>
           </Label>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-            Synchronize workspace profile matrices with verified educational credentials
+            Add schools, degrees, and dates so we can match you with the right opportunities.
           </p>
         </div>
 
@@ -160,10 +160,10 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
             </div>
             <div className="space-y-1.5 leading-none text-center font-bold text-xs tracking-tight">
               <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground/80 leading-none">
-                Academic Directory Empty
+                No education added yet
               </p>
               <p className="text-[11px] font-semibold text-muted-foreground/40 leading-normal max-w-xs mx-auto italic">
-                No configuration records detected. Click here to append a fresh academic field.
+                Click here to add a school or degree.
               </p>
             </div>
           </div>

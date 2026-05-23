@@ -227,12 +227,12 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
           {/* SECTION TARGET A: ABOUT TEXTAREA AREA */}
           {section === "about" && (
             <div className="space-y-1.5 text-left w-full min-w-0 animate-in fade-in duration-200">
-              <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">Candidate Professional Bio Summary</Label>
+              <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">About you</Label>
               <Textarea
                 value={about}
                 disabled={saving}
                 onChange={(e) => setAbout(e.target.value)}
-                placeholder="Synchronize your digital professional narrative, key performance competencies, and project deliverables track history…"
+                placeholder="Write a short bio — your background, what you do, and what you're looking for…"
                 className="min-h-[180px] w-full rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3.5 leading-relaxed italic resize-none shadow-inner"
               />
             </div>
@@ -362,10 +362,10 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border border-border/40 bg-background font-bold text-xs">
-                        <SelectItem value="Native" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Native Dialect</SelectItem>
-                        <SelectItem value="Fluent" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Fluent Ingress</SelectItem>
+                        <SelectItem value="Native" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Native</SelectItem>
+                        <SelectItem value="Fluent" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Fluent</SelectItem>
                         <SelectItem value="Intermediate" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Intermediate</SelectItem>
-                        <SelectItem value="Basic" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Basic Operational</SelectItem>
+                        <SelectItem value="Basic" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">Basic</SelectItem>
                       </SelectContent>
                     </Select>
                     
@@ -395,7 +395,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
             onClick={onClose}
             disabled={saving}
           >
-            Abort Section Changes
+            Cancel
           </Button>
           <Button
             type="button"
@@ -406,12 +406,12 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
             {saving ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                <span>Syncing Segment Ledger Node…</span>
+                <span>Saving…</span>
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 stroke-[2.2]" />
-                <span>Authorize Segment Sync</span>
+                <span>Save</span>
               </>
             )}
           </Button>

@@ -234,7 +234,7 @@ export function CVUploadSection() {
 
       if (isMountedRef.current) {
         setError(formattedExceptionMsgStr);
-        toast.error("Ecosystem sync exception: Data processing protocol aborted.");
+        toast.error("CV upload failed. Please try again.");
       }
     } finally {
       if (isMountedRef.current) {
@@ -254,10 +254,10 @@ export function CVUploadSection() {
           <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
             <CardTitle className="text-sm sm:text-base font-bold text-foreground/90 uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
               <Zap className="h-4 w-4 text-primary fill-primary/10 stroke-[2.2] shrink-0 animate-pulse" />
-              <span>Neural Artifact Sync</span>
+              <span>Upload your CV</span>
             </CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-              Automated profile hydration variables via AI-orchestrated psychometric parsing sequences
+              We'll auto-fill your profile from your CV using AI.
             </CardDescription>
           </div>
           {hasCV && (
@@ -266,7 +266,7 @@ export function CVUploadSection() {
               className="rounded px-2 h-5.5 text-[9px] font-extrabold tracking-wider uppercase border border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1 flex items-center leading-none shadow-xs shrink-0 select-none"
             >
               <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-              <span>Node Verified</span>
+              <span>CV on file</span>
             </Badge>
           )}
         </div>
@@ -302,7 +302,7 @@ export function CVUploadSection() {
               className="h-2 rounded-full border-none bg-primary/10 shadow-inner w-full block"
             />
             <p className="text-[9px] text-primary/40 uppercase font-bold text-center tracking-widest leading-none pt-1 animate-pulse select-none">
-              Extracting specialized identity mapping coefficients…
+              Extracting your details…
             </p>
           </div>
         ) : error ? (
@@ -312,7 +312,7 @@ export function CVUploadSection() {
               <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.5] mt-0.5" />
               <div className="space-y-1 flex-1 min-w-0">
                 <p className="text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400 select-none leading-none">
-                  Ecosystem Ingress Sync Fault
+                  CV upload failed
                 </p>
                 <p className="text-[11px] font-semibold text-muted-foreground/60 max-w-full break-words select-text pt-0.5">
                   {error}
@@ -325,7 +325,7 @@ export function CVUploadSection() {
               className="w-full h-10 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
-              <span>Re-Initialize Calibration Sync</span>
+              <span>Try again</span>
             </Button>
           </div>
         ) : hasCV ? (
@@ -337,10 +337,10 @@ export function CVUploadSection() {
               </div>
               <div className="space-y-1 flex-1 min-w-0 flex flex-col justify-center">
                 <p className="text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 leading-none">
-                  Ecosystem Ingress Verified
+                  CV uploaded
                 </p>
                 <p className="text-[10px] font-extrabold text-muted-foreground/50 uppercase tracking-wider block pt-1.5 leading-none">
-                  Identity ledger profile values fully populated from CV mapping lines
+                  Your profile was auto-filled from your CV.
                 </p>
               </div>
             </div>
@@ -403,7 +403,7 @@ export function CVUploadSection() {
         {/* BOTTOM METRIC RIBBON OVERLAY LABEL */}
         <div className="mt-6 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
           <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Neural Engine Vector Ingress Protocol Alignment Core v2.6 Mapped</span>
+          <span>Powered by AI · CV parsing</span>
         </div>
       </CardContent>
     </Card>

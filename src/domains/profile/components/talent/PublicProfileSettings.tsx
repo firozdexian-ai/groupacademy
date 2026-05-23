@@ -122,7 +122,7 @@ export function PublicProfileSettings() {
       <CardHeader className="p-4 sm:p-5 border-b border-border/10 bg-muted/10 select-none leading-none w-full shrink-0">
         <CardTitle className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2 w-full leading-none">
           <Globe className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-          <span>Public Trajectory Discoverability settings</span>
+          <span>Public profile settings</span>
         </CardTitle>
       </CardHeader>
 
@@ -131,11 +131,10 @@ export function PublicProfileSettings() {
         <div className="flex items-center justify-between gap-4 p-3 rounded-xl border border-border/40 bg-background/30 w-full min-w-0 select-none leading-none shadow-xs">
           <div className="min-w-0 flex-1 space-y-1.5 flex flex-col justify-center text-left leading-none">
             <p className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wide leading-none">
-              Make Vector Profile Discoverable
+              Make my profile public
             </p>
             <p className="text-[10px] font-semibold text-muted-foreground/60 leading-none pt-0.5 block truncate">
-              Authorize recruiters and verified enterprise entities to audit verified proficiency snap metrics down
-              ledger.
+              Let recruiters and employers find your verified skills and experience.
             </p>
           </div>
           <Switch
@@ -160,7 +159,7 @@ export function PublicProfileSettings() {
             {/* SUB NODE BLOCK B: UNIQUE ALIAS HANDLE INGRESS SLOT */}
             <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight">
               <label className="text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/60 block pl-0.5 leading-none select-none">
-                Claim Unique Public Route Handle String *
+                Choose your public handle *
               </label>
               <div className="flex gap-2 w-full font-semibold text-sm">
                 <div className="flex-1 flex items-center rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm text-foreground/90 px-3 shadow-inner h-10 min-w-0 select-none">
@@ -185,12 +184,12 @@ export function PublicProfileSettings() {
                   {claimHandle.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
                   ) : (
-                    <span>Claim Link</span>
+                    <span>Claim handle</span>
                   )}
                 </Button>
               </div>
               <p className="text-[10px] font-mono text-muted-foreground/40 uppercase pl-0.5 select-none leading-none pt-0.5">
-                Parameters: 3 to 40 characters &bull; letters, digits, and hyphens exclusively.
+                3-40 characters &bull; letters, digits, and hyphens only.
               </p>
             </div>
 
@@ -199,7 +198,7 @@ export function PublicProfileSettings() {
               <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.015] p-3.5 space-y-3 font-bold text-xs select-none w-full min-w-0 leading-none shadow-xs">
                 <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 leading-none">
                   <CheckCircle2 className="h-3.5 w-3.5 stroke-[2.5] shrink-0" />
-                  <span>Ecosystem Ingress Synchronized Live At:</span>
+                  <span>Live at:</span>
                 </div>
                 <code className="text-xs select-all block break-all font-mono font-medium text-foreground/80 leading-normal pl-0.5 selection:bg-emerald-500/10">
                   {publicUrl}
