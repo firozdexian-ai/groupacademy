@@ -62,7 +62,7 @@ interface Hit {
 }
 
 function getFiles(): string[] {
-  const cmd = `rg -l --type ts --type tsx --type js --type jsx -e '${JARGON.join("|")}' ${SCOPES.join(" ")}`;
+  const cmd = `rg -l -g '*.{ts,tsx,js,jsx}' -e '${JARGON.join("|")}' ${SCOPES.join(" ")}`;
   try {
     const out = execSync(cmd, { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 });
     return out.trim().split("\n").filter(Boolean).filter(f => !EXCLUDE_PATTERNS.some(p => p.test(f)));
