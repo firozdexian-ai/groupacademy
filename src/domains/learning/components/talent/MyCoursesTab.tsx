@@ -264,11 +264,10 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
       <Card className="border border-dashed border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full">
         <CardContent className="p-5 text-center space-y-3.5 select-none">
           <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-            Telemetry Hydration Intercepted
+            Couldn't load your courses
           </p>
           <p className="text-xs font-semibold italic text-muted-foreground/80 max-w-xs mx-auto leading-normal">
-            Ecosystem calibration error: Could not fetch localized active course parameters cleanly down to workspace
-            layout fields.
+            Something went wrong. Please try again.
           </p>
           <Button
             onClick={() => refetch()}

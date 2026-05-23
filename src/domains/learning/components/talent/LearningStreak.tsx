@@ -127,7 +127,7 @@ export function LearningStatsRow({ streak, hoursLearned, coursesCompleted, class
       {!isStreakActive && normalizedHours === 0 && normalizedCourses === 0 && (
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-muted/20 text-muted-foreground/50 border border-dashed border-border/40 text-[10px] font-bold uppercase tracking-wider shrink-0 leading-none">
           <Sparkles className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 stroke-[2.2] animate-pulse" />
-          <span>Awaiting Telemetry Ingress</span>
+          <span>No activity yet</span>
         </div>
       )}
     </div>

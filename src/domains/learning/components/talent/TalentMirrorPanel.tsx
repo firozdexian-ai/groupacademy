@@ -100,10 +100,10 @@ export function TalentMirrorPanel() {
           </div>
           <div className="space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-              Telemetry Alignment Exception
+              Couldn't load
             </p>
             <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
-              {error || "Ecosystem calibration matrix link dropped."}
+              {error || "Something went wrong. Please try again."}
             </p>
           </div>
           <Button

@@ -166,7 +166,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags = [],
                   variant="destructive"
                   className="text-[9px] font-extrabold px-2 h-5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm uppercase tracking-wide leading-none flex items-center shrink-0"
                 >
-                  Anomaly: {flagItem?.replace(/_/g, " ")}
+                  Flag: {flagItem?.replace(/_/g, " ")}
                 </Badge>
               ))}
             </div>

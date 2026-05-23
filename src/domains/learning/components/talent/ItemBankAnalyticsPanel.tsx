@@ -111,10 +111,10 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
           </div>
           <div className="space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-              Telemetry Channel Intercepted
+              Couldn't load
             </p>
             <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
-              {error.message || "Ecosystem calibration connection link lost."}
+              {error.message || "Something went wrong. Please try again."}
             </p>
           </div>
           <Button
@@ -124,7 +124,7 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
             className="h-8 rounded-xl border-border/60 hover:bg-accent font-bold uppercase text-[10px] tracking-wide gap-1.5 shrink-0 shadow-sm cursor-pointer"
           >
             <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Re-trigger Synchronizer</span>
+            <span>Try again</span>
           </Button>
         </CardContent>
       </Card>
@@ -138,15 +138,15 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
     <div className="space-y-4 text-left antialiased max-w-full w-full select-none sm:select-text">
       {/* HUD SECTION 1: CALIBRATION METRIC PLOTS ROW */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full select-none">
-        <Stat label="Active Quiz Items" value={summaryModelValues.quiz_items || 0} />
-        <Stat label="Scenario Matrices" value={summaryModelValues.scenario_items || 0} />
+        <Stat label="Quiz Items" value={summaryModelValues.quiz_items || 0} />
+        <Stat label="Scenarios" value={summaryModelValues.scenario_items || 0} />
         <Stat
-          label="Avg P-Value Index"
+          label="Avg Difficulty"
           value={pct(summaryModelValues.avg_p_value)}
           tone={summaryModelValues.avg_p_value !== null && summaryModelValues.avg_p_value < 0.4 ? "warn" : "default"}
         />
         <Stat
-          label="Requires Revision"
+          label="Needs Review"
           value={summaryModelValues.items_needing_review || 0}
           tone={summaryModelValues.items_needing_review > 0 ? "warn" : "default"}
         />
@@ -165,7 +165,7 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
             }}
             className="h-7 px-3 text-[10px] font-extrabold uppercase tracking-wide rounded-xl shadow-sm cursor-pointer transition-all active:scale-95"
           >
-            <span>{onlyFlagged ? "Show Full Repository" : "Isolate Anomaly Gaps Only"}</span>
+            <span>{onlyFlagged ? "Show all" : "Show flagged only"}</span>
           </Button>
         </div>
 

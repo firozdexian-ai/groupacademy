@@ -37,7 +37,7 @@ export default function LearningHub() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {/* Header Orchestration */}
       <header className="flex justify-between items-start">
-        <h1 className="text-2xl font-black uppercase tracking-tight">Academic Hub</h1>
+        <h1 className="text-2xl font-black uppercase tracking-tight">Learning</h1>
         {dueReviews > 0 && <Badge variant="destructive">{dueReviews} Due</Badge>}
       </header>
 

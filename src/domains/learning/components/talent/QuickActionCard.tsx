@@ -103,7 +103,7 @@ export function QuickActionCard({ icon: Icon, label, count, path, description, c
           ) : (
             <div className="flex items-center gap-1 mt-1.5 opacity-20 select-none text-muted-foreground leading-none">
               <Zap className="h-3 w-3 fill-primary/10 text-primary stroke-[2.2] shrink-0" />
-              <span className="text-[8px] font-black uppercase tracking-wider">Protocol Active</span>
+              <span className="text-[8px] font-black uppercase tracking-wider">Available</span>
             </div>
           )}
         </div>
