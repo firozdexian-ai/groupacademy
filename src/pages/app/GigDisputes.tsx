@@ -123,7 +123,7 @@ export default function GigDisputes() {
                     minute: "2-digit",
                   })
                   .toUpperCase()
-              : "UNASSIGNED TIMELOG PARAMETER";
+              : "Unknown date";
 
             return (
               <Card
