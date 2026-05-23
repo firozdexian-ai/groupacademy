@@ -559,7 +559,7 @@ export default function Gigs() {
           </div>
         </TabsContent>
 
-        {/* VIEWPORT CHANNEL E: CANDIDATE TRANSACTIONS DIRECTORY MONITOR */}
+        {/* My activity */}
         <TabsContent
           value="work"
           className="space-y-6 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200 leading-none"
@@ -567,7 +567,7 @@ export default function Gigs() {
           <section className="space-y-3 block w-full">
             <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-primary flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
               <Zap className="h-3.5 w-3.5 stroke-[2.2] fill-current text-primary" />{" "}
-              <span>Hashed Micro Task Submission Logs</span>
+              <span>My submissions</span>
             </h3>
             <MySubmissions talentId={talentProfileRecord?.id} />
           </section>
@@ -575,7 +575,7 @@ export default function Gigs() {
           <div className="grid sm:grid-cols-2 gap-4 block w-full pt-2 align-top">
             <section className="space-y-3 block flex-1 min-w-0">
               <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-blue-600 flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
-                <Send className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Proposals Bids Register</span>
+                <Send className="h-3.5 w-3.5 stroke-[2.2]" /> <span>My bids</span>
               </h3>
 
               <div className="space-y-2 block w-full">
@@ -603,7 +603,7 @@ export default function Gigs() {
                   ))
                 ) : (
                   <p className="font-sans text-xs italic font-medium text-muted-foreground/40 block py-1 px-0.5 select-none pointer-events-none">
-                    No active commercial proposal indices logged.
+                    You haven't placed any bids yet.
                   </p>
                 )}
               </div>
@@ -611,7 +611,7 @@ export default function Gigs() {
 
             <section className="space-y-3 block flex-1 min-w-0">
               <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-emerald-600 flex items-center gap-1.5 select-none pointer-events-none leading-none pb-2 border-b border-border/5">
-                <ShieldCheck className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Operational Contracts Vault</span>
+                <ShieldCheck className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Active contracts</span>
               </h3>
 
               <div className="space-y-2 block w-full">
@@ -628,7 +628,7 @@ export default function Gigs() {
                             {contractItem.marketplace_gigs?.title || "Untitled gig"}
                           </h4>
                           <p className="font-mono text-[9px] font-black text-emerald-600 uppercase tracking-tight leading-none block pt-0.5 select-text tabular-nums">
-                            Escrow Balance: {contractItem.agreed_amount.toLocaleString()} Credits Draw
+                            In escrow: {contractItem.agreed_amount.toLocaleString()} credits
                           </p>
                         </div>
                         <Button
@@ -637,13 +637,13 @@ export default function Gigs() {
                           className="h-7.5 px-3 rounded font-mono text-[10px] font-extrabold uppercase tracking-wide cursor-pointer shrink-0 shadow-2xs transform-gpu active:scale-95 pt-0.5"
                           onClick={() => setActiveDeliverableContractId(contractItem.id)}
                         >
-                          Deliver Artifact
+                          Submit deliverable
                         </Button>
                       </div>
                     ))
                 ) : (
                   <p className="font-sans text-xs italic font-medium text-muted-foreground/40 block py-1 px-0.5 select-none pointer-events-none">
-                    No active legal assignment matrices validated in escrow handles.
+                    No active contracts.
                   </p>
                 )}
               </div>
