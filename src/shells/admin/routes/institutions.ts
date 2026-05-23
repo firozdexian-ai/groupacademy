@@ -21,11 +21,11 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  institutions: "Institutions Registry",
-  "partner-orgs": "Partner Organizations",
-  "inst-overview": "Institutions Dashboard",
-  "inst-types": "Institution Types",
-  "inst-clubs": "Clubs & Departments",
+  institutions: "Institutions",
+  "partner-orgs": "Partner organizations",
+  "inst-overview": "Institutions overview",
+  "inst-types": "Institution types",
+  "inst-clubs": "Clubs & departments",
   "inst-reps": "Representatives",
-  "inst-events": "Events & Competitions",
+  "inst-events": "Events & competitions",
 };

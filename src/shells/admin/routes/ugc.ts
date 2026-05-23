@@ -10,10 +10,10 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  all: "Catalog Architecture",
-  "ugc-videos": "Digital Library",
-  "ugc-overview": "UGC & Contents",
-  "ugc-blog": "Thought Leadership",
-  "ugc-feed": "Network Stream",
-  "ugc-competitions": "Gamification",
+  all: "Content catalog",
+  "ugc-videos": "Video library",
+  "ugc-overview": "UGC overview",
+  "ugc-blog": "Blog",
+  "ugc-feed": "Social feed",
+  "ugc-competitions": "Competitions",
 };

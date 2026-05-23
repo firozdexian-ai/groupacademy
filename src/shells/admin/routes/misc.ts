@@ -5,5 +5,5 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "quiz-manage": "Certification Logic",
+  "quiz-manage": "Quiz management",
 };

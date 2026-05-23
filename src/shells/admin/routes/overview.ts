@@ -32,10 +32,10 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  overview: "Lifetime Overview",
-  "overview-lifetime": "Lifetime Overview",
-  "overview-month": "Monthly Overview",
-  "overview-quarter": "Quarterly Overview",
-  "overview-analyst": "Business Analyst",
-  "overview-reports": "Report Builder",
+  overview: "Lifetime overview",
+  "overview-lifetime": "Lifetime overview",
+  "overview-month": "Monthly overview",
+  "overview-quarter": "Quarterly overview",
+  "overview-analyst": "Business analyst",
+  "overview-reports": "Report builder",
 };

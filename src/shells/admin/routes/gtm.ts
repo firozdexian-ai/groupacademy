@@ -10,10 +10,10 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "gtm-overview": "GTM (Geography)",
+  "gtm-overview": "Geography overview",
   "gtm-countries": "Countries",
-  "gtm-states": "States / Regions",
+  "gtm-states": "States / regions",
   "gtm-cities": "Cities",
   "gtm-clusters": "Clusters",
-  "gtm-knowledge": "Knowledge Packs",
+  "gtm-knowledge": "Knowledge packs",
 };

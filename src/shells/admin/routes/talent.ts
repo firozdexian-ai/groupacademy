@@ -14,14 +14,14 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "crm-overview": "CRM Overview",
-  "crm-talent-pool": "Talent Pool",
-  "crm-professions": "Professions & Roles",
-  "crm-upload": "Talent Upload",
-  "crm-outreach": "Outreach Log",
-  "crm-wa-channel": "WhatsApp Line",
-  "crm-creator-economy": "Creator Economy",
+  "crm-overview": "CRM overview",
+  "crm-talent-pool": "Talent pool",
+  "crm-professions": "Professions & roles",
+  "crm-upload": "Upload talents",
+  "crm-outreach": "Outreach log",
+  "crm-wa-channel": "WhatsApp line",
+  "crm-creator-economy": "Creator economy",
   "crm-notifications": "Notifications",
   "crm-support-ai": "Support AI",
-  portfolios: "Creative Assets",
+  portfolios: "Portfolios",
 };

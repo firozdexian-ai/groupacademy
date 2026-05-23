@@ -14,14 +14,14 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 
 export const TITLES: Record<string, string> = {
   workforce: "Workforce",
-  team: "Human Capital",
+  team: "Team",
   "hr-workforce": "Workforce",
-  "hr-overview": "Team & Workforce",
-  "hr-grades": "Grades & Levels",
+  "hr-overview": "Team & workforce",
+  "hr-grades": "Grades & levels",
   "hr-verticals": "Verticals",
   "hr-functions": "Functions",
   "hr-teams": "Teams",
-  "hr-targets": "Targets & Incentives",
+  "hr-targets": "Targets & incentives",
   "hr-onboarding": "Onboarding",
-  "hr-payroll": "Rewards & Payroll",
+  "hr-payroll": "Rewards & payroll",
 };

@@ -16,14 +16,14 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  leads: "Scorecard Intel",
-  "jobs-overview": "Jobs Overview",
-  "jobs-upload": "Jobs Upload & Approval",
-  "jobs-hub": "Jobs Hub",
-  "jobs-applications": "Candidate Flow",
-  "jobs-pipeline": "Kanban Pipeline",
+  leads: "Scorecard leads",
+  "jobs-overview": "Jobs overview",
+  "jobs-upload": "Upload & approve jobs",
+  "jobs-hub": "Jobs hub",
+  "jobs-applications": "Applications",
+  "jobs-pipeline": "Pipeline",
   "jobs-sourcing": "Sourcing",
   "jobs-talent-crm": "Talent CRM",
-  "jobs-assessments": "Jobs Assessments",
-  "jobs-kpis": "Growth Analytics",
+  "jobs-assessments": "Assessments",
+  "jobs-kpis": "Analytics",
 };
