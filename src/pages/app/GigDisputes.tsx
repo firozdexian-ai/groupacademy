@@ -167,7 +167,7 @@ export default function GigDisputes() {
                       <ShieldAlert className="h-4 w-4 text-muted-foreground/40 stroke-[2.2] shrink-0 mt-0.5 select-none pointer-events-none" />
                       <div className="flex-1 leading-normal block">
                         <span className="font-mono text-[9px] font-bold uppercase text-muted-foreground/50 tracking-wide block mb-1 select-none pointer-events-none leading-none">
-                          System Final Settlement Verdict
+                          Final verdict
                         </span>
                         <p className="text-xs text-foreground/80 font-semibold tracking-normal">
                           {disputeItemNode.final_verdict}
