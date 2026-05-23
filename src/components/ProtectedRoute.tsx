@@ -336,7 +336,7 @@ export function useUserRole() {
 
 // Integrated Error Tracking and Telemetry Fallback Adaptations
 function trackError(errorObj: any, contextualMetaBlock: Record<string, any>) {
-  console.error(`[Ecosystem Exception Block Handshake] Fault Context Triggered:`, errorObj, contextualMetaBlock);
+  console.error(`[protected-route] error:`, errorObj, contextualMetaBlock);
 }
 
 function trackEvent(eventNameStr: string, contextualMetaBlock?: Record<string, any>) {

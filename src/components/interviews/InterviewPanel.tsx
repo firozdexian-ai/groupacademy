@@ -254,7 +254,7 @@ export function InterviewPanel({ applicationId, companyId, talentId, actorRole }
                   Designated Title Target
                 </span>
                 <p className="font-extrabold text-sm sm:text-base text-foreground/90 tracking-tight leading-tight truncate pr-1 select-all break-all">
-                  {offer.title || "Academy Specialist Track"}
+                  {offer.title || "Untitled offer"}
                 </p>
               </div>
 

@@ -52,7 +52,7 @@ function buildResearchProtocol(props: Omit<ResearchPromptDialogProps, "open" | "
         .filter(Boolean)
         .map((l) => `• ${l}`)
         .join("\n")}\n`
-    : "\n[PROTOCOL_TALKING_POINTS]: (System_Idle — Initialize comprehensive discovery)\n";
+    : "\n[TALKING_POINTS]: (none yet — explore the topic broadly)\n";
 
   return `SYSTEM_ROLE: Curriculum_Research_Specialist
 INSTITUTIONAL_TARGET: ${academyName} // ${schoolName}
@@ -109,7 +109,7 @@ export default function ResearchPromptDialog(props: ResearchPromptDialogProps) {
     try {
       await navigator.clipboard.writeText(promptPayload);
       setIsCopied(true);
-      toast.success("Ecosystem Research Prompt Synced to Clipboard");
+      toast.success("Research prompt copied to clipboard");
       trackEvent("curriculum_research_protocol_copy_success");
 
       setTimeout(() => setIsCopied(false), 2000);

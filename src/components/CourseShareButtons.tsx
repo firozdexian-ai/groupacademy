@@ -117,7 +117,7 @@ export function CourseShareButtons({ title, url, className }: CourseShareButtons
           className="h-9 rounded-xl border border-border/60 text-muted-foreground font-bold hover:text-foreground hover:bg-accent uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-all gap-1.5 group flex-1 sm:flex-none"
         >
           <LinkIcon className="h-3.5 w-3.5 stroke-[2.5] transform group-hover:rotate-45 transition-transform shrink-0" />
-          <span>{hasNativeWebShareSupport ? "Initialize Share" : "Copy Sync Link"}</span>
+          <span>{hasNativeWebShareSupport ? "Share" : "Copy link"}</span>
         </Button>
 
         {/* Egress Pipeline Block A: Meta Sharing Link Container */}

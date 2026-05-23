@@ -159,8 +159,8 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
 
         if (parsed.experience?.length && (!talent.experience || (talent.experience as any[]).length === 0)) {
           updatePayload.experience = parsed.experience.map((exp) => ({
-            company: exp.company?.trim() || "Ecosystem Business Entity",
-            position: exp.title?.trim() || "Professional Specialization Track",
+            company: exp.company?.trim() || "Company",
+            position: exp.title?.trim() || "Role",
             description: exp.description?.trim() || "",
           }));
         }

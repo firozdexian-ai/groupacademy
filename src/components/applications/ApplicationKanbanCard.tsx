@@ -42,7 +42,7 @@ export function ApplicationKanbanCard({ app, onClick, className }: ApplicationKa
 
   // Clean title conversions normalize layouts natively
   const fallbackTalentName = useMemo(() => {
-    return String(app.talent_name ?? "").trim() || "Anonymous Talent Node";
+    return String(app.talent_name ?? "").trim() || "Anonymous";
   }, [app.talent_name]);
 
   return (
