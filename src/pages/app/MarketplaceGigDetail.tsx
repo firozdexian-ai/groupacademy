@@ -184,11 +184,10 @@ export default function MarketplaceGigDetail() {
             </CardContent>
           </Card>
 
-          {/* Reputation Logic */}
           {reviewManifestCollection.length > 0 && (
             <section className="space-y-4">
               <h3 className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Trust Ledger
+                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Client reviews
               </h3>
               <div className="grid gap-3">
                 {reviewManifestCollection.map((r) => (
