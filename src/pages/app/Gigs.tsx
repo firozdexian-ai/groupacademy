@@ -101,9 +101,7 @@ type TabVariant = "for-you" | "tasks" | "course" | "client" | "work";
 const SKELETON_ROWS_ROSTER = [1, 2, 3, 4];
 
 /**
- * GroUp Academy: Authoritative Gig Hub Center Ecosystem (Gigs)
- * Hardened transaction cockpit processing freelance subtasks, syncing AI listings, and insulating search state inputs.
- * Version: Launch Candidate · Phase Z1 Production Contract Locked
+ * Gigs hub — talent landing page for finding and submitting gig work.
  */
 export default function Gigs() {
   const navigateHook = useNavigate();
