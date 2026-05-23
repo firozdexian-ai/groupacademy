@@ -55,9 +55,9 @@ export default function SavedItems() {
   const [itemDetails, setItemDetails] = useState<Map<string, SavedItemDetails>>(new Map());
   const [loadingDetails, setLoadingDetails] = useState(true);
 
-  // Digital Workforce Anomaly Reporting[cite: 6]
+  // Internal error logger
   const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    console.error(`[app] ${event}`, context);
     await adminSupportAssistant({ type: "saved_items_sync_error", event, context });
   };
 

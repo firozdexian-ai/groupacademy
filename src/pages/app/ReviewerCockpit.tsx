@@ -43,9 +43,9 @@ export default function ReviewerCockpit() {
   const [confidence, setConfidence] = useState(0.8);
   const [working, setWorking] = useState(false);
 
-  // Digital Workforce Anomaly Protocol[cite: 5, 6]
+  // Internal error logger
   const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    console.error(`[app] ${event}`, context);
     try { await adminGigOps({ type: "reviewer_cockpit_error", event, context } as any); } catch {}
   };
 

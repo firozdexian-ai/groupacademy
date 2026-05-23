@@ -47,9 +47,9 @@ export default function TalentDirectory() {
   const [sortBy, setSortBy] = useState<SortBy>("boosted");
   const [boosting, setBoosting] = useState(false);
 
-  // Digital Workforce Anomaly Protocol
+  // Internal error logger
   const reportAnomaly = async (event: string, context: any) => {
-    console.error(`[Digital Workforce Anomaly] ${event}`, context);
+    console.error(`[app] ${event}`, context);
     await adminSupportAssistant({ type: "talent_directory_error", event, context });
   };
 
