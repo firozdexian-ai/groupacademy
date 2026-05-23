@@ -149,7 +149,7 @@ export default function GigDisputes() {
                 <CardContent className="p-3.5 space-y-2 block w-full leading-none select-text">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tight select-none pointer-events-none leading-none tabular-nums w-full shrink-0">
                     <div className="flex items-center gap-1">
-                      <span>Initiation Anchor: </span>
+                      <span>Opened by: </span>
                       <strong className="text-foreground/70 font-sans tracking-normal font-semibold capitalize">
                         {disputeItemNode.opened_by_role}
                       </strong>
