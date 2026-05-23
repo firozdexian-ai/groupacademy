@@ -102,7 +102,7 @@ export default function GigDisputes() {
               <Scale className="h-4 w-4 stroke-[2.2]" />
             </div>
             <p className="text-xs font-semibold text-muted-foreground/40 leading-normal max-w-xs mx-auto block pt-1">
-              You haven't opened any transactional contract disputes under this profile credentials index.
+              You haven't opened any disputes.
             </p>
           </CardContent>
         </Card>
