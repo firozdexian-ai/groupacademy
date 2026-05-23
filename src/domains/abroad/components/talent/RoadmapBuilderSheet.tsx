@@ -98,11 +98,10 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
     },
     onSuccess: async (data) => {
       toast({
-        title: "🔥 Roadmap Generated!",
-        description: `Successfully consumed ${ROADMAP_CREDIT_COST} credits from your profile wallet.`,
+        title: "Roadmap ready",
+        description: `${ROADMAP_CREDIT_COST} credits used from your wallet.`,
       });
 
-      // Synchronize state caches universally via React Query invalidation map keys before redirecting
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["talent-credits-balance"] }),
         queryClient.invalidateQueries({ queryKey: ["roadmap-leads"] }),
@@ -110,8 +109,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
       ]);
 
       setOpen(false);
-
-      // HUD: EXECUTING_PROGRAMMATIC_VIEWPORT_NAVIGATION
       window.location.assign(`/app/abroad/roadmap/${data.roadmap_id}`);
     },
     onError: (err: any) => {
@@ -119,12 +116,11 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
 
       if (msg.includes("INSUFFICIENT_CREDITS") || msg.includes("LEDGER_MUTATION_DENIED")) {
         toast({
-          title: "Wallet Deficit",
-          description: `This automated agent service requires ${ROADMAP_CREDIT_COST} credits. Please top up your balance.`,
+          title: "Not enough credits",
+          description: `This roadmap costs ${ROADMAP_CREDIT_COST} credits. Top up your wallet to continue.`,
           variant: "destructive",
         });
       } else {
-        // Internal error logger
         console.error("[abroad] Roadmap generation failed.", {
           countryCode,
           formData: form,
@@ -166,7 +162,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         <SheetHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-primary" />
-            <SheetTitle className="text-xl font-bold tracking-tight">Build My Career Abroad Roadmap</SheetTitle>
+            <SheetTitle className="text-xl font-bold tracking-tight">Build my study abroad roadmap</SheetTitle>
           </div>
         </SheetHeader>
 
@@ -194,24 +190,24 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Degree selection menu node */}
+          {/* Degree level */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium">Target Degree Level</Label>
+            <Label className="text-sm font-medium">Degree level</Label>
             <select
               disabled={isPending}
               className="w-full h-10 border rounded-md px-3 bg-background font-normal shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               value={form.degree_level}
               onChange={(e) => handleFormChange("degree_level", e.target.value as any)}
             >
-              <option value="bachelors">Bachelors Degree</option>
-              <option value="masters">Masters Degree</option>
-              <option value="phd">PhD Program</option>
+              <option value="bachelors">Bachelor's</option>
+              <option value="masters">Master's</option>
+              <option value="phd">PhD</option>
             </select>
           </div>
 
-          {/* Target Intake input container field node */}
+          {/* Target intake */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium">Target Intake Window</Label>
+            <Label className="text-sm font-medium">Target intake</Label>
             <Input
               value={form.target_intake}
               disabled={isPending}
@@ -220,25 +216,25 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Budget tier selection menu node */}
+          {/* Budget level */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium">Estimated Budget Level</Label>
+            <Label className="text-sm font-medium">Budget level</Label>
             <select
               disabled={isPending}
               className="w-full h-10 border rounded-md px-3 bg-background font-normal shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               value={form.budget_level}
               onChange={(e) => handleFormChange("budget_level", e.target.value as any)}
             >
-              <option value="low">Low Budget Scale</option>
-              <option value="medium">Medium Budget Scale</option>
-              <option value="high">Premium Budget Scale</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">Premium</option>
             </select>
           </div>
 
           {/* Metrics segment grid mapping */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">IELTS Band Score</Label>
+              <Label className="text-sm font-medium">IELTS score</Label>
               <Input
                 type="number"
                 step="0.5"
@@ -250,7 +246,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Current CGPA</Label>
+              <Label className="text-sm font-medium">Current GPA</Label>
               <Input
                 disabled={isPending}
                 value={form.gpa}
@@ -261,9 +257,9 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             </div>
           </div>
 
-          {/* Work experience year index container field node */}
+          {/* Work experience */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium">Professional Work Experience (Years)</Label>
+            <Label className="text-sm font-medium">Work experience (years)</Label>
             <Input
               type="number"
               disabled={isPending}
@@ -273,7 +269,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Transaction submit execution button element */}
+          {/* Submit */}
           <div className="pt-2">
             <Button
               onClick={() => roadmapMutation.mutate()}
@@ -281,7 +277,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
               className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99] disabled:cursor-not-allowed"
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {isPending ? "Building your roadmap..." : `Generate AI Roadmap (${ROADMAP_CREDIT_COST} Credits)`}
+              {isPending ? "Building your roadmap…" : `Generate roadmap (${ROADMAP_CREDIT_COST} credits)`}
             </Button>
           </div>
         </div>

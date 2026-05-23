@@ -5,10 +5,7 @@ import { CheckCircle2, Calendar, Zap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Admissions Trajectory Timeline (V5.6.0)
- * CTO Reference: High-performance data-driven timeline mapping algorithmic progress tracks.
- * Architecture: Stable key structural mapping eliminating layout thrashing and item re-renders.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Study Abroad roadmap timeline — month-by-month plan with completion + active states.
  */
 
 export interface TimelineItem {
@@ -22,7 +19,6 @@ interface RoadmapTimelineProps {
   timeline: TimelineItem[];
   currentMonth?: number;
   onExecutePhase?: (month: number) => void;
-  // State extension mapping to lock button controls while background mutations resolve
   isExecuting?: boolean;
 }
 
@@ -32,7 +28,6 @@ export function RoadmapTimeline({
   onExecutePhase,
   isExecuting = false,
 }: RoadmapTimelineProps) {
-  // Isolate timeline validation matrices to protect layout loops from tracking failures
   const validatedTimeline = useMemo(() => {
     if (!Array.isArray(timeline)) return [];
     return [...timeline].sort((a, b) => Number(a.month ?? 0) - Number(b.month ?? 0));
@@ -44,19 +39,11 @@ export function RoadmapTimeline({
         const itemMonth = Number(item.month ?? 0);
         const isCompleted = itemMonth < currentMonth;
         const isCurrent = itemMonth === currentMonth;
-
-        // Stabilize unique key signatures to ensure clean DOM tree recycling
-        const nodeStableKey = `phase-node-${itemMonth}-${index}`;
-
-        // Safe sanitization handling for localized text conversions
-        const standardizedTitle = useMemo(() => {
-          const rawTitle = String(item.title || "Untitled step");
-          return rawTitle.trim().replace(/\s+/g, "_");
-        }, [item.title]);
+        const stableKey = `phase-node-${itemMonth}-${index}`;
+        const cleanTitle = String(item.title || "Untitled step").trim();
 
         return (
-          <div key={nodeStableKey} className="relative pl-2">
-            {/* HUD: NEURAL_PATH_CONNECTOR */}
+          <div key={stableKey} className="relative pl-2">
             {index < validatedTimeline.length - 1 && (
               <div
                 className={cn(
@@ -77,7 +64,6 @@ export function RoadmapTimeline({
             >
               <CardContent className="p-6">
                 <div className="flex items-start gap-6">
-                  {/* COMPONENT: NODE_STATUS_INDICATOR */}
                   <div
                     className={cn(
                       "flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 shadow-lg",
@@ -99,22 +85,21 @@ export function RoadmapTimeline({
                     )}
                   </div>
 
-                  {/* HUD: NODE_CONTENT_ARRAY */}
                   <div className="flex-1 min-w-0 space-y-4">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic leading-none">
-                          PHASE_MONTH_{itemMonth}
+                          Month {itemMonth}
                         </p>
                         <h4 className="font-black text-lg uppercase italic tracking-tighter text-foreground leading-none">
-                          {standardizedTitle}
+                          {cleanTitle}
                         </h4>
                       </div>
 
                       <div className="flex gap-2">
                         {isCurrent && (
                           <Badge className="bg-primary text-white font-black italic text-[9px] uppercase tracking-widest px-3 h-6 rounded-lg">
-                            ACTIVE_SYNC
+                            Active
                           </Badge>
                         )}
                         {item.deadline && (
@@ -128,12 +113,11 @@ export function RoadmapTimeline({
                       </div>
                     </div>
 
-                    {/* TASK_REGISTRY_MATRIX */}
                     <div className="grid grid-cols-1 gap-2 pt-2 border-t border-border/10">
                       {(item.tasks || []).map((task, taskIndex) => {
-                        const taskStableKey = `task-${itemMonth}-${taskIndex}`;
+                        const taskKey = `task-${itemMonth}-${taskIndex}`;
                         return (
-                          <div key={taskStableKey} className="flex items-start gap-3 group">
+                          <div key={taskKey} className="flex items-start gap-3 group">
                             <div
                               className={cn(
                                 "mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-all group-hover:scale-150",
@@ -155,7 +139,6 @@ export function RoadmapTimeline({
                       })}
                     </div>
 
-                    {/* ACTION INTERFACE TRIGGER GATED BY ACTIVE WORKFLOW STAGES */}
                     {isCurrent && onExecutePhase && (
                       <div className="pt-2 flex justify-end">
                         <button
@@ -167,7 +150,7 @@ export function RoadmapTimeline({
                             isExecuting && "opacity-40 cursor-not-allowed translate-x-0",
                           )}
                         >
-                          {isExecuting ? "SYNCHRONIZING_PHASE_TASKS..." : "EXECUTE_PHASE_TASKS"}
+                          {isExecuting ? "Working…" : "Start this month's tasks"}
                           <ArrowRight className="h-3 w-3" />
                         </button>
                       </div>
