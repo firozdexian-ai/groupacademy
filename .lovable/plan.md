@@ -1,5 +1,15 @@
 # Phase 2 — Surface-Batched Jargon Cleanup
 
+## Progress log
+- **B1 (Auth/Onboarding/Boot)** — done. Only 1 hit (`AuthGate.tsx`) — fixed. Phase 1 already covered this surface.
+- **B2 (Profile + Profile Builder)** — done. 28 hits fixed across 12 files (`CVUploadSection`, `ProfileCompletionMeter`, `PayoutAccountsManager`, `ProfileVerify`, `IdentityDocsUpload`, `ProfileEditDialog`, `ProfileCompletionPrompt`, `ExperienceEditor`, `EducationEditor`, `CoverImageUpload`, `ApplicationHistoryCard`, `ServiceHistoryCard`, `PublicProfileSettings`, `ProfilePhotoUpload`).
+- **Counts:** 277 → **248 hits (T1: 81, T2: 167)**. ~10% remaining T1 cleared in this pass.
+- **Next:** B3 — Learning Hub surface (`LearningHub.tsx`, TalentMirror, MyHub/Tracks/Academy/StudyAbroad views, ModuleQuizRunner, ModuleScenarioRunner, ReviewQueueRunner, NextActionsCard, SkillCredentialsPanel).
+
+---
+
+# Phase 2 — Surface-Batched Jargon Cleanup
+
 Picking up from Phase 1 (33 user-blocking fixes across 7 shared files). Remaining: **91 T1 + 186 T2 = 277 hits** in talent surfaces.
 
 Phase 2 batches the rest by **user surface** so each batch is independently reviewable, ships a coherent UX improvement, and can be cut from v0.5 if Nov 28 slips.
