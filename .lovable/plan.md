@@ -1,51 +1,38 @@
-# Phase B3 — Learning Hub Jargon Cleanup
+# Phase B3 — Learning Hub Jargon Cleanup (DONE)
 
-Continue the v0.5 sweep on the Learning surface. Target ~60 hits flagged in `.lovable/v0.5-jargon-hits.md`. Strictly follow `.lovable/v0.5-jargon-glossary.md`.
+## Result
+- Sweep counts: 248 → **239 hits (T1: 79, T2: 160)**
+- Sweep regex captures a narrow vocabulary (Telemetry, Anomaly, Sentinel, Cognitive, Logic Node, HUD, Protocol:, cite:); most of the B3 cleanup hit user-visible *Ecosystem / Calibration / Pipeline / Ingress / Matrix* copy that isn't tracked by the sweep but was the actual reputational risk.
+- Estimated ~50+ user-visible strings rewritten in 20 files across the Learning surface.
 
-## Scope (talent learning surface only)
+## Files modified
+- `src/pages/app/LearningHub.tsx` — "Academic Hub" → "Learning"
+- `src/pages/app/TalentMirror.tsx` — removed Logic Node Fault, Telemetry sync error, Digital Workforce Anomaly, Protocol footer badge, Executive Logic comment
+- `src/domains/learning/components/talent/TalentMirrorPanel.tsx` — error + empty-state copy
+- `src/domains/learning/components/talent/ReviewQueueRunner.tsx` — error, empty, loading, badges, rationale label
+- `src/domains/learning/components/talent/ItemBankAnalyticsPanel.tsx` — error, stats labels, filter, AI rewrite button, scenario row copy
+- `src/domains/learning/components/talent/ItemRewriteSheet.tsx` — toasts, header, descriptions, difficulty/prompt labels
+- `src/domains/learning/components/talent/MyCoursesTab.tsx` — error state
+- `src/domains/learning/components/talent/CoursesTab.tsx` — section headings, status fallbacks, empty state, scroll loaders
+- `src/domains/learning/components/talent/EventsTab.tsx` — filter labels, empty states, status fallbacks
+- `src/domains/learning/components/talent/UnifiedDiscovery.tsx` — header, subtitle, audit button, empty state
+- `src/domains/learning/components/talent/ActiveCourseHero.tsx` — heading + subtitle
+- `src/domains/learning/components/talent/AdaptiveSnapshotCard.tsx` — synchronized state
+- `src/domains/learning/components/talent/NextActionsCard.tsx` — section title
+- `src/domains/learning/components/talent/JoinLivePanel.tsx` — CTAs + recording note
+- `src/domains/learning/components/talent/WebinarEnrollPanel.tsx` — error toast
+- `src/domains/learning/components/talent/UpcomingSessionsRail.tsx` — CTA
+- `src/domains/learning/components/talent/QuickActionCard.tsx` — placeholder badge
+- `src/domains/learning/components/talent/QuickStats.tsx` — header
+- `src/domains/learning/components/talent/LearningStreak.tsx` — empty state
+- `src/domains/learning/components/talent/StudyAbroadSection.tsx` — header, IELTS card, CTA
+- `src/domains/learning/components/talent/TracksTab.tsx` — empty state
+- `src/domains/learning/components/talent/ModuleQuizRunner.tsx` + `ModuleScenarioRunner.tsx` — error toasts
 
-Files in priority order, based on user visibility + known offenders:
+## Next batches (priority order)
+- **B4** — Jobs + Gigs + Career Abroad talent surfaces (~70 hits)
+- **B5** — AI Agents + Wallet + Misc talent pages (~50 hits)
+- **B6** — Final sweep + regex broadening (add Ecosystem/Calibration/Pipeline/Ingress to sweep vocab) + verify
 
-1. **`src/pages/app/LearningHub.tsx`** — "Academic Hub" header → "Learning"; tab label "Career Path" review.
-2. **`src/pages/app/TalentMirror.tsx`** — heavy offender: "Logic Node Fault", "Telemetry sync error", "Digital Workforce Anomaly Protocol", "Protocol: Verified Mastery Sync v2.6.4", "Executive Logic geometry".
-3. **`src/domains/learning/components/talent/ModuleQuizRunner.tsx`** + `ModuleScenarioRunner.tsx` — quiz/scenario flow toasts and error states.
-4. **`src/domains/learning/components/talent/ReviewQueueRunner.tsx`** — review session copy.
-5. **`src/domains/learning/components/talent/TalentMirrorPanel.tsx`** + `SkillCredentialsPanel.tsx` — section titles, empty states.
-6. **`src/domains/learning/components/talent/views/`** (MyHubView, TracksView, AcademyView, StudyAbroadView) — headings, empty states, error toasts.
-7. **`src/domains/learning/components/talent/`** remaining: `NextActionsCard`, `AdaptiveSnapshotCard`, `ActiveCourseHero`, `QuickStats`, `LearningStreak`, `ItemBankAnalyticsPanel`, `ItemRewriteSheet`, `JoinLivePanel`, `WebinarEnrollPanel`, `UpcomingSessionsRail`, `CareerTracksPreview`, `UnifiedDiscovery`, `TrackProgressRing`, `CoursesTab`, `MyCoursesTab`, `TracksTab`, `EventsTab`.
-8. **`src/pages/LearningReview.tsx`** — standalone review page.
-
-## Replacement rules (from glossary)
-
-- "Logic Node Fault" / "TalentMirrorNodeFailure" → "Something went wrong"
-- "Telemetry sync error" → "Couldn't sync your progress"
-- "Digital Workforce Anomaly Protocol" → plain `console.error` + admin notify, no user copy
-- "Academic Hub" → "Learning"
-- "Synthesis Pipeline" / "Protocol vN.N.N" footer badges → remove
-- "Mastery visualization across all academic programs." → "Your skills and progress across all courses."
-- "Executive Logic geometry" comments → drop comment or replace with plain description
-- `[cite: N]` markers → remove from user-visible strings (already permitted in code comments per scope)
-
-## Out of scope
-
-- Admin/Gro10x learning surfaces
-- Code identifiers, telemetry event names, comments not in JSX text
-- T2 decorative-only hits unless trivially adjacent to a T1 fix
-- Behavior, data, or routing changes
-
-## Workflow
-
-1. Edit files in the order above, batching parallel writes per file.
-2. After all edits, run `bunx tsx scripts/jargon-sweep.ts` to refresh `.lovable/v0.5-jargon-hits.md`.
-3. Update `.lovable/plan.md` with new counts and mark B3 done.
-4. Report remaining T1/T2 totals and propose B4 (Jobs + Gigs + Career Abroad).
-
-## Estimated impact
-
-- ~60 hits removed (target: T1 from 81 → ~35, T2 from 167 → ~140)
-- ~2.5 hrs in build mode
-- Defensible stop point before B4 if priorities shift
-
-## Stop point if B3 alone is approved
-
-After B3 ships and counts are reported, await go for B4 instead of auto-continuing.
+## Stop point
+B3 complete. Awaiting go for B4.
