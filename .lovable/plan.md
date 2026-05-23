@@ -1,38 +1,58 @@
-# Phase B3 — Learning Hub Jargon Cleanup (DONE)
+# B3.1 — Learning Hub Jargon Residue Cleanup
 
-## Result
-- Sweep counts: 248 → **239 hits (T1: 79, T2: 160)**
-- Sweep regex captures a narrow vocabulary (Telemetry, Anomaly, Sentinel, Cognitive, Logic Node, HUD, Protocol:, cite:); most of the B3 cleanup hit user-visible *Ecosystem / Calibration / Pipeline / Ingress / Matrix* copy that isn't tracked by the sweep but was the actual reputational risk.
-- Estimated ~50+ user-visible strings rewritten in 20 files across the Learning surface.
+B3 took the heavy pass last round. The latest sweep still flags 11 user-visible strings inside `src/domains/learning/` that slipped through (mix of T1 toasts and T2 labels). This phase closes them out so the Learning Hub is clean before we move on to B4 (Jobs/Gigs/Abroad).
 
-## Files modified
-- `src/pages/app/LearningHub.tsx` — "Academic Hub" → "Learning"
-- `src/pages/app/TalentMirror.tsx` — removed Logic Node Fault, Telemetry sync error, Digital Workforce Anomaly, Protocol footer badge, Executive Logic comment
-- `src/domains/learning/components/talent/TalentMirrorPanel.tsx` — error + empty-state copy
-- `src/domains/learning/components/talent/ReviewQueueRunner.tsx` — error, empty, loading, badges, rationale label
-- `src/domains/learning/components/talent/ItemBankAnalyticsPanel.tsx` — error, stats labels, filter, AI rewrite button, scenario row copy
-- `src/domains/learning/components/talent/ItemRewriteSheet.tsx` — toasts, header, descriptions, difficulty/prompt labels
-- `src/domains/learning/components/talent/MyCoursesTab.tsx` — error state
-- `src/domains/learning/components/talent/CoursesTab.tsx` — section headings, status fallbacks, empty state, scroll loaders
-- `src/domains/learning/components/talent/EventsTab.tsx` — filter labels, empty states, status fallbacks
-- `src/domains/learning/components/talent/UnifiedDiscovery.tsx` — header, subtitle, audit button, empty state
-- `src/domains/learning/components/talent/ActiveCourseHero.tsx` — heading + subtitle
-- `src/domains/learning/components/talent/AdaptiveSnapshotCard.tsx` — synchronized state
-- `src/domains/learning/components/talent/NextActionsCard.tsx` — section title
-- `src/domains/learning/components/talent/JoinLivePanel.tsx` — CTAs + recording note
-- `src/domains/learning/components/talent/WebinarEnrollPanel.tsx` — error toast
-- `src/domains/learning/components/talent/UpcomingSessionsRail.tsx` — CTA
-- `src/domains/learning/components/talent/QuickActionCard.tsx` — placeholder badge
-- `src/domains/learning/components/talent/QuickStats.tsx` — header
-- `src/domains/learning/components/talent/LearningStreak.tsx` — empty state
-- `src/domains/learning/components/talent/StudyAbroadSection.tsx` — header, IELTS card, CTA
-- `src/domains/learning/components/talent/TracksTab.tsx` — empty state
-- `src/domains/learning/components/talent/ModuleQuizRunner.tsx` + `ModuleScenarioRunner.tsx` — error toasts
+## Scope
 
-## Next batches (priority order)
-- **B4** — Jobs + Gigs + Career Abroad talent surfaces (~70 hits)
-- **B5** — AI Agents + Wallet + Misc talent pages (~50 hits)
-- **B6** — Final sweep + regex broadening (add Ecosystem/Calibration/Pipeline/Ingress to sweep vocab) + verify
+Talent-facing Learning surfaces only. No schema, no business logic. Plain string replacements using the project's plain-English voice already established in the prior B3 sweep.
 
-## Stop point
-B3 complete. Awaiting go for B4.
+## Files & replacements
+
+### T1 — user-blocking copy
+
+1. `src/domains/learning/hooks/useSkillCredentials.ts` — L117
+   - `Cryptographic Ledger Verified: Issued N new skill credentials.` → `Issued N new skill credentials.`
+
+2. `src/domains/learning/components/talent/WebinarEnrollPanel.tsx` — L77
+   - `Ecosytem Capacity Maximum: Selected synchronous channel is fully booked.` → `This session is fully booked.`
+
+3. `src/domains/learning/components/talent/ModuleScenarioRunner.tsx`
+   - L283 tag fallback `Core Competency Vector` → `Skill`
+   - L356 scenario title fallback `Operational Execution Simulation` → `Scenario`
+   - L395 role label `Candidate Operator Input` / `System Environment Response` → `You` / `Scenario`
+
+4. `src/domains/learning/components/talent/TalentMirrorPanel.tsx`
+   - L157 `Tracked Knowledge Vectors` → `Topics tracked`
+   - L158 `Mean Mastery Profile` → `Average mastery`
+
+### T2 — decorative labels
+
+5. `src/domains/learning/hooks/useCohorts.ts` — L110
+   - Internal log string: `[Digital Workforce] SIGNAL: Cohort [..] health status marked CRITICAL. Notifying Dean Agent.` → `[learning] Cohort {id} health critical — notifying admin.`
+
+6. `src/domains/learning/components/talent/CoursesTab.tsx` — L499
+   - `Settlement Pools Staged` → `Prizes announced soon`
+
+7. `src/domains/learning/components/talent/WebinarEnrollPanel.tsx` — L207
+   - Button: `Debit Framework & Lock Pass` / `Acquire Free Entry Pass` → `Enroll for N credits` / `Enroll for free`
+
+8. `src/domains/learning/components/talent/ItemRewriteSheet.tsx` — L468
+   - `Editable Buffer Token` / `Malformed JSON Syntax` → `Editable` / `Invalid JSON`
+
+9. `src/domains/learning/components/talent/EventsTab.tsx` — L25
+   - Filter chip `Study Abroad Track` → `Study Abroad`
+
+10. `src/domains/learning/components/talent/TracksTab.tsx` — L197
+    - Fallback track title `Specialized Core Track` → `Untitled track`
+
+## Verification
+
+- After edits, re-run the jargon sweep and confirm `src/domains/learning/**` shows 0 hits in `.lovable/v0.5-jargon-hits.md`.
+- Spot-check Learning Hub, Talent Mirror, Webinar enroll panel, and Scenario Runner in the preview for any visible regression.
+- Update `.lovable/plan.md` B3 section: mark B3.1 done, restate next batch (B4 Jobs/Gigs/Abroad ~70 hits).
+
+## Out of scope
+
+- B4 surfaces (Jobs, Gigs, Career Abroad) — handled in the next phase.
+- Player/shared components (`src/components/player/**`, `ResearchPromptDialog`, etc.) — those live outside the Learning domain folder and ship with B5.
+- Any logic, state, or styling changes.
