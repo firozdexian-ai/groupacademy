@@ -331,7 +331,7 @@ export default function Gigs() {
           </TabsTrigger>
         </TabsList>
 
-        {/* VIEWPORT CHANNEL A: PERSONAL MATCH TARGET METRICS */}
+        {/* For You */}
         <TabsContent
           value="for-you"
           className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
@@ -340,13 +340,13 @@ export default function Gigs() {
           <GigForYouTab />
           <div className="pt-4 border-t border-border/40 block w-full leading-none">
             <h3 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/50 flex items-center gap-2 mb-4 select-none pointer-events-none">
-              <Briefcase className="h-4 w-4 stroke-[2.2]" /> <span>Browse System Absolute Open Vacancies Pool</span>
+              <Briefcase className="h-4 w-4 stroke-[2.2]" /> <span>Browse all open gigs</span>
             </h3>
             <InfiniteGigsList talentId={resolvedDashboardData?.talent_id ?? talentProfileRecord?.id} />
           </div>
         </TabsContent>
 
-        {/* VIEWPORT CHANNEL B: ONE-TAP MICRO GIGS CONTROLLER PANEL */}
+        {/* Quick tasks */}
         <TabsContent
           value="tasks"
           className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
@@ -355,15 +355,14 @@ export default function Gigs() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
             <Input
               type="search"
-              placeholder="Filter quick micro tasks inventory by structural property title keyword..."
+              placeholder="Search quick tasks..."
               className="w-full h-10 pl-9 pr-3 bg-background border border-border/40 text-xs sm:text-sm font-semibold rounded-lg shadow-none"
               value={textSearchInputStr}
               onChange={(e) => setTextSearchInputStr(e.target.value)}
             />
           </div>
           <p className="font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/40 leading-none select-none pointer-events-none pl-0.5">
-            System Index Strategy: 1-Tap Execution Assignments · Auto-Reviewed Analytics Validation Matrix · Instant
-            Wallet Allocation
+            Fast, one-tap tasks · Auto-reviewed · Instant credit payout
           </p>
 
           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 block w-full align-top">
