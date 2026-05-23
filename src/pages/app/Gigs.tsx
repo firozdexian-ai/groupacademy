@@ -299,14 +299,14 @@ export default function Gigs() {
             value="for-you"
             className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Sparkles className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">Matched Gigs</span>
+            <Sparkles className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">For You</span>
             <span className="sm:hidden">For You</span>
           </TabsTrigger>
           <TabsTrigger
             value="tasks"
             className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Zap className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">Quick Micro Tasks</span>
+            <Zap className="h-3.5 w-3.5 stroke-[2.2]" /> <span className="hidden sm:inline">Quick tasks</span>
             <span className="sm:hidden">Tasks</span>
           </TabsTrigger>
           <TabsTrigger
