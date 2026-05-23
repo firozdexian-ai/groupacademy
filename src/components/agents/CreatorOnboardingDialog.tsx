@@ -375,7 +375,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                {submitMutation.isPending ? "Publishing..." : "Commit to Marketplace"}
+                {submitMutation.isPending ? "Publishing..." : "Publish to marketplace"}
               </Button>
             )}
           </DialogFooter>
