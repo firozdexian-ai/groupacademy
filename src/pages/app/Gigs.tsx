@@ -446,13 +446,13 @@ export default function Gigs() {
                     <div className="min-w-0 flex-1 leading-none space-y-1.5 block">
                       <div className="flex items-center gap-1.5 flex-wrap select-none pointer-events-none leading-none">
                         <Badge className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-transparent bg-primary/5 text-primary tracking-wide pt-0 leading-none shrink-0">
-                          COURSE MATRIX BUNDLE
+                          COURSE GIG
                         </Badge>
                         <Badge
                           variant="outline"
                           className="font-mono text-[8px] font-black uppercase px-1.5 h-4.5 rounded border border-border/40 bg-background text-muted-foreground/60 tracking-wide pt-0 leading-none shrink-0 rounded-xs tabular-nums"
                         >
-                          {projectItem.subtasks.length.toString()} SUBTASKS BOUND
+                          {projectItem.subtasks.length.toString()} SUBTASKS
                         </Badge>
                         <Badge
                           variant="outline"
@@ -467,11 +467,11 @@ export default function Gigs() {
                       <div className="flex items-center gap-3 font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none leading-none pt-0.5 tabular-nums">
                         <span className="flex items-center gap-0.5 font-extrabold text-amber-600 shrink-0">
                           <Coins className="h-3.5 w-3.5 stroke-[2] text-amber-500" />{" "}
-                          {projectItem.totalReward.toLocaleString()} Total Credits
+                          {projectItem.totalReward.toLocaleString()} total credits
                         </span>
                         <span className="opacity-30 block select-none shrink-0">•</span>
                         <span className="text-primary tracking-normal font-semibold">
-                          Inspect Workspace Matrix to Claim Subtasks
+                          Open to claim subtasks
                         </span>
                       </div>
                     </div>
