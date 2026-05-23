@@ -116,8 +116,8 @@ export default function AppOfferDecision() {
           }
         }
       } catch (fatalHandshakeException) {
-        console.error("Dossier Compilation Pipeline Interrupted:", fatalHandshakeException);
-        toast.error("Failed to compile offer document parameters index.");
+        console.error("[offers] Failed to load offer:", fatalHandshakeException);
+        toast.error("Couldn't load the offer.");
       } finally {
         if (isThreadActiveFlag.current) {
           setIsDataLayerLoading(false);

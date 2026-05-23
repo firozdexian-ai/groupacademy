@@ -123,7 +123,7 @@ export function ExternalApplicationPrep({
             jobId,
           });
           throw new Error(
-            "SYNC_TIMEOUT: Form topology structure contains complex nesting records. Switch to Vision Screen Upload mode.",
+            "Timed out reading this form. Switch to screenshot upload mode.",
           );
         }
         throw err;
@@ -268,7 +268,7 @@ export function ExternalApplicationPrep({
           {phase === "loading" && !error && (
             <div className="py-8 animate-in scale-in duration-200 select-none w-full">
               <ProcessingCard
-                title={isScreenshotMode ? "Vision Engine Core Parsing" : "Autonomous Decryption Blueprint Matrix"}
+                title={isScreenshotMode ? "Reading the screenshot" : "Reading the application form"}
                 stages={isScreenshotMode ? SCREENSHOT_STAGES : SCRAPE_STAGES}
                 duration={isScreenshotMode ? 30000 : 45000}
                 className="border border-primary/20 bg-primary/5 rounded-2xl"

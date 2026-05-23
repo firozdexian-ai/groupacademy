@@ -89,8 +89,8 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
     trackEvent("ai_job_insights_match_sync_initiated", { jobId, talentId });
 
     try {
-      const transactionSuccess = await deductCredits("JOB_MATCH_SCORE", jobId, "Identity Sync Analysis");
-      if (!transactionSuccess) throw new Error("Ledger balance reservation processing fault.");
+      const transactionSuccess = await deductCredits("JOB_MATCH_SCORE", jobId, "Job match analysis");
+      if (!transactionSuccess) throw new Error("Couldn't reserve credits.");
 
       // Direct edge routing pass executing predictive competency profiling
       const data = await scoreJobMatch({ jobId, talentId });
@@ -135,8 +135,8 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
     trackEvent("ai_job_insights_market_telemetry_initiated", { jobId });
 
     try {
-      const transactionSuccess = await deductCredits("JOB_MARKET_INSIGHT", jobId, "Market Telemetry");
-      if (!transactionSuccess) throw new Error("Ledger balance reservation processing fault.");
+      const transactionSuccess = await deductCredits("JOB_MARKET_INSIGHT", jobId, "Market insights");
+      if (!transactionSuccess) throw new Error("Couldn't reserve credits.");
 
       // Direct edge routing pass querying macro workforce aggregates
       const data = await analyzeJobMarket({ jobId });
@@ -206,7 +206,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
             {!matchResult ? (
               loadingMatch ? (
                 <div className="w-full animate-in zoom-in-98 duration-200">
-                  <ProcessingCard title="Mapping Competency Alignments" stages={MATCH_STAGES} duration={12000} />
+                  <ProcessingCard title="Analyzing your fit" stages={MATCH_STAGES} duration={12000} />
                 </div>
               ) : (
                 <Button
@@ -352,7 +352,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
             {!marketInsight ? (
               loadingMarket ? (
                 <div className="w-full animate-in zoom-in-98 duration-200">
-                  <ProcessingCard title="Polling Macro Telemetry Logs" stages={MARKET_STAGES} duration={12000} />
+                  <ProcessingCard title="Pulling market insights" stages={MARKET_STAGES} duration={12000} />
                 </div>
               ) : (
                 <Button
@@ -408,15 +408,15 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   <div className="grid grid-cols-2 gap-3 w-full tabular-nums text-left select-none">
                     {[
                       {
-                        label: "Est Active Applicants",
+                        label: "Estimated applicants",
                         val: marketInsight.applicant_count_estimate || "10-25 candidates",
                       },
                       {
-                        label: "Settlement Velocity",
+                        label: "Hiring timeline",
                         val: marketInsight.hiring_timeline_estimate || "2-3 weeks average",
                       },
                       {
-                        label: "Adjacent Network Nodes",
+                        label: "Similar roles",
                         val:
                           marketInsight.similar_jobs_count != null
                             ? `${marketInsight.similar_jobs_count} options active`

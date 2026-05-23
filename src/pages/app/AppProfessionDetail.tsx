@@ -127,7 +127,7 @@ export default function AppProfessionDetail() {
         setCoursesRegistryPayload((coursesData as unknown as Course[]) || []);
       } catch (fatalHandshakeException) {
         if (isThreadActiveFlag.current) {
-          setSynchronizationErrorStr("Track Metadata Synchronization Aborted.");
+          setSynchronizationErrorStr("Couldn't load this career track.");
         }
       } finally {
         if (isThreadActiveFlag.current) {
@@ -391,7 +391,7 @@ export default function AppProfessionDetail() {
                   className="w-full h-9 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider border border-border/60 bg-background/50 hover:bg-accent cursor-pointer transition-colors shadow-2xs gap-1.5 pt-0.5 flex items-center justify-center block text-center"
                 >
                   <MessageSquare className="h-3.5 w-3.5 text-muted-foreground/60 stroke-[2.2] shrink-0" />
-                  <span>{isInstructorChatOpen ? "Terminate Communication Session" : "Establish Encrypted Link"}</span>
+                  <span>{isInstructorChatOpen ? "Close chat" : "Message instructor"}</span>
                 </Button>
               </CardContent>
             </Card>

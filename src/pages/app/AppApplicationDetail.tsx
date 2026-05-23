@@ -397,7 +397,7 @@ export default function AppApplicationDetail() {
             </p>
             <p className="text-[11px] font-semibold text-muted-foreground/70 truncate block select-text leading-tight">
               {applicationDetailState.job.company_name} <span className="font-mono opacity-30 select-none mx-1">·</span>{" "}
-              {applicationDetailState.job.location || "Distributed Grid Network"}
+              {applicationDetailState.job.location || "Remote"}
             </p>
             <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight block leading-none tabular-nums pt-0.5">
               Uplink Logged:{" "}

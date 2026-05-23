@@ -258,17 +258,17 @@ export default function AppJobApplication() {
       await deductCredits(
         "JOB_APPLICATION",
         jobRecordState.id,
-        `Application Protocol Allocation: ${jobRecordState.title}`,
+        `Job application: ${jobRecordState.title}`,
       );
 
       setSubmissionProgressValue(40);
-      setSubmissionProgressMessage("Broadcasting Dossier Parameters to Employer...");
+      setSubmissionProgressMessage("Sending your application to the employer...");
 
       try { await sendJobApplication({ applicationId: applicationInsertPayload.id }); } catch {}
 
       if (jobRecordState.ai_assessment_enabled) {
         setSubmissionProgressValue(65);
-        setSubmissionProgressMessage("Synthesizing Dynamic AI Evaluation Interview Matrix...");
+        setSubmissionProgressMessage("Preparing your AI interview...");
 
         let assessmentResponsePayload: any = null;
         let assessmentGenerationError: any = null;
@@ -623,7 +623,7 @@ export default function AppJobApplication() {
             >
               <span className="relative z-10 flex items-center justify-center gap-1.5">
                 <span>
-                  {isCandidateBalanceSufficient ? "Confirm Transaction & Transmit" : "Acquire Additional Core Balance"}
+                  {isCandidateBalanceSufficient ? "Confirm & Submit" : "Top up credits"}
                 </span>
                 <ArrowRight className="h-4 w-4 stroke-[2.5] transition-transform group-hover:translate-x-1 shrink-0" />
               </span>
