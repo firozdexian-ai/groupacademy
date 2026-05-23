@@ -1,68 +1,51 @@
-# Phase 2 — Surface-Batched Jargon Cleanup
+# Phase B3 — Learning Hub Jargon Cleanup
 
-## Progress log
-- **B1 (Auth/Onboarding/Boot)** — done. Only 1 hit (`AuthGate.tsx`) — fixed. Phase 1 already covered this surface.
-- **B2 (Profile + Profile Builder)** — done. 28 hits fixed across 12 files (`CVUploadSection`, `ProfileCompletionMeter`, `PayoutAccountsManager`, `ProfileVerify`, `IdentityDocsUpload`, `ProfileEditDialog`, `ProfileCompletionPrompt`, `ExperienceEditor`, `EducationEditor`, `CoverImageUpload`, `ApplicationHistoryCard`, `ServiceHistoryCard`, `PublicProfileSettings`, `ProfilePhotoUpload`).
-- **Counts:** 277 → **248 hits (T1: 81, T2: 167)**. ~10% remaining T1 cleared in this pass.
-- **Next:** B3 — Learning Hub surface (`LearningHub.tsx`, TalentMirror, MyHub/Tracks/Academy/StudyAbroad views, ModuleQuizRunner, ModuleScenarioRunner, ReviewQueueRunner, NextActionsCard, SkillCredentialsPanel).
+Continue the v0.5 sweep on the Learning surface. Target ~60 hits flagged in `.lovable/v0.5-jargon-hits.md`. Strictly follow `.lovable/v0.5-jargon-glossary.md`.
 
----
+## Scope (talent learning surface only)
 
-# Phase 2 — Surface-Batched Jargon Cleanup
+Files in priority order, based on user visibility + known offenders:
 
-Picking up from Phase 1 (33 user-blocking fixes across 7 shared files). Remaining: **91 T1 + 186 T2 = 277 hits** in talent surfaces.
+1. **`src/pages/app/LearningHub.tsx`** — "Academic Hub" header → "Learning"; tab label "Career Path" review.
+2. **`src/pages/app/TalentMirror.tsx`** — heavy offender: "Logic Node Fault", "Telemetry sync error", "Digital Workforce Anomaly Protocol", "Protocol: Verified Mastery Sync v2.6.4", "Executive Logic geometry".
+3. **`src/domains/learning/components/talent/ModuleQuizRunner.tsx`** + `ModuleScenarioRunner.tsx` — quiz/scenario flow toasts and error states.
+4. **`src/domains/learning/components/talent/ReviewQueueRunner.tsx`** — review session copy.
+5. **`src/domains/learning/components/talent/TalentMirrorPanel.tsx`** + `SkillCredentialsPanel.tsx` — section titles, empty states.
+6. **`src/domains/learning/components/talent/views/`** (MyHubView, TracksView, AcademyView, StudyAbroadView) — headings, empty states, error toasts.
+7. **`src/domains/learning/components/talent/`** remaining: `NextActionsCard`, `AdaptiveSnapshotCard`, `ActiveCourseHero`, `QuickStats`, `LearningStreak`, `ItemBankAnalyticsPanel`, `ItemRewriteSheet`, `JoinLivePanel`, `WebinarEnrollPanel`, `UpcomingSessionsRail`, `CareerTracksPreview`, `UnifiedDiscovery`, `TrackProgressRing`, `CoursesTab`, `MyCoursesTab`, `TracksTab`, `EventsTab`.
+8. **`src/pages/LearningReview.tsx`** — standalone review page.
 
-Phase 2 batches the rest by **user surface** so each batch is independently reviewable, ships a coherent UX improvement, and can be cut from v0.5 if Nov 28 slips.
+## Replacement rules (from glossary)
 
-## Batching strategy
+- "Logic Node Fault" / "TalentMirrorNodeFailure" → "Something went wrong"
+- "Telemetry sync error" → "Couldn't sync your progress"
+- "Digital Workforce Anomaly Protocol" → plain `console.error` + admin notify, no user copy
+- "Academic Hub" → "Learning"
+- "Synthesis Pipeline" / "Protocol vN.N.N" footer badges → remove
+- "Mastery visualization across all academic programs." → "Your skills and progress across all courses."
+- "Executive Logic geometry" comments → drop comment or replace with plain description
+- `[cite: N]` markers → remove from user-visible strings (already permitted in code comments per scope)
 
-One surface = one batch. After each batch: re-run `scripts/jargon-sweep.ts`, update `.lovable/v0.5-jargon-hits.md`, report counts. Strictly follow `.lovable/v0.5-jargon-glossary.md` — no new replacement variants.
+## Out of scope
 
-## Batches (in priority order)
+- Admin/Gro10x learning surfaces
+- Code identifiers, telemetry event names, comments not in JSX text
+- T2 decorative-only hits unless trivially adjacent to a T1 fix
+- Behavior, data, or routing changes
 
-**B1 — Auth + Onboarding + Boot** (highest reputational risk, every user hits it)
-- `src/pages/AuthCallback.tsx`, `Start.tsx`, `BootGate.tsx`, `auth/*`, `onboarding/*`, `PWAInstallPrompt`, `PWAUpdatePrompt`, `offline.html`
-- Target: 100% of T1 + T2 here. Boot/loading/error copy must be plain language.
-- Est: ~25 hits, 1.5 hrs
+## Workflow
 
-**B2 — Profile + Profile Builder**
-- `src/pages/app/profile*`, `src/domains/profile/components/talent/**`
-- Session replay already flagged "Verifying Core Clearance Tokens" and "Protocol: Verified Mastery Sync v2.6.4" here.
-- Est: ~40 hits (T1+T2), 2 hrs
+1. Edit files in the order above, batching parallel writes per file.
+2. After all edits, run `bunx tsx scripts/jargon-sweep.ts` to refresh `.lovable/v0.5-jargon-hits.md`.
+3. Update `.lovable/plan.md` with new counts and mark B3 done.
+4. Report remaining T1/T2 totals and propose B4 (Jobs + Gigs + Career Abroad).
 
-**B3 — Learning Hub** (LearningHub.tsx, TalentMirror, MyHubView, TracksView, AcademyView, StudyAbroadView, ModuleQuizRunner, ModuleScenarioRunner, ReviewQueueRunner, NextActionsCard, SkillCredentialsPanel)
-- Known offenders: "Logic Node Fault", "Telemetry sync error", "Academic Hub" header is fine but surrounding copy isn't
-- Est: ~60 hits, 2.5 hrs
+## Estimated impact
 
-**B4 — Jobs + Gigs + Career Abroad**
-- `src/pages/app/Jobs*`, `Gigs*`, `Abroad*`, `domains/jobs/components/talent/**`, `domains/gigs/components/talent/**`, `domains/abroad/components/**`
-- Est: ~70 hits, 2.5 hrs
+- ~60 hits removed (target: T1 from 81 → ~35, T2 from 167 → ~140)
+- ~2.5 hrs in build mode
+- Defensible stop point before B4 if priorities shift
 
-**B5 — AI Agents + Wallet + Misc talent pages**
-- `domains/agents/components/talent/**`, `components/wallet/**`, `Connections`, `Notifications`, remaining `src/pages/app/*`
-- Est: ~50 hits, 2 hrs
+## Stop point if B3 alone is approved
 
-**B6 — Final sweep + verify**
-- Re-run sweep; any residual T1 fixed inline; T2 leftovers explicitly deferred to v1.0.1 in `.lovable/plan.md`
-- Visual spot-check via session replay / browser nav on each surface
-- Est: 1 hr
-
-## Out of scope (deferred to v1.0.1)
-- Admin panel + Gro10x panel jargon
-- Code identifiers, comments, telemetry event names, `[cite: N]` markers
-- Footer version badges
-- Awkward-but-grammatical copy not in banned list
-- Cosmetic spacing / color polish
-
-## Timeline
-~11.5 hrs total, fits Days 1–3 of the v0.5 window. No Nov 28 impact. After B3 we have a defensible stop point if priorities shift.
-
-## Deliverables per batch
-1. Edited components (T1 strings replaced; T2 replaced where trivial)
-2. Updated `.lovable/v0.5-jargon-hits.md` with new counts
-3. One-line status note per batch in `.lovable/plan.md`
-
-## Decisions needed
-1. Approve the B1→B6 order, or reprioritize? (e.g. some teams want Learning first since it's most demoed)
-2. T2 inside each batch: fix opportunistically, or strict T1-only and a separate T2 pass later?
-3. Want me to start with B1 immediately on approval, or run the sweep refresh first to confirm current counts?
+After B3 ships and counts are reported, await go for B4 instead of auto-continuing.
