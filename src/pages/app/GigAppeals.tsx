@@ -87,8 +87,7 @@ export default function GigAppeals() {
               <Scale className="h-4 w-4 stroke-[2.2]" />
             </div>
             <p className="text-xs font-semibold text-muted-foreground/40 leading-normal max-w-xs mx-auto block pt-1">
-              No dispute appeals logged. Your verification tracking archive history matches the system clearance base
-              standard.
+              No appeals yet. Your verifications are all in good standing.
             </p>
           </CardContent>
         </Card>
