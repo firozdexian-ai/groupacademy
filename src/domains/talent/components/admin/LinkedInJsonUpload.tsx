@@ -96,7 +96,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
 
           toast.success(`Synthesis Ready: ${result.valid.length} nodes parsed.`);
         } catch (err) {
-          toast.error("Handshake Failed: Invalid JSON logic.");
+          toast.error("Failed: Invalid JSON logic.");
         }
       };
       reader.readAsText(file);

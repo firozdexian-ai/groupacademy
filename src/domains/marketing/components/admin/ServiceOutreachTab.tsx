@@ -130,7 +130,7 @@ export function ServiceOutreachTab() {
       setShareLogs((prev) => prev.filter((l) => l !== newLog));
       toast.error("System Error: Progress synchronization failed.");
     } else {
-      toast.success(`Protocol: Recorded share on ${channel}`);
+      toast.success(`Recorded share on ${channel}`);
     }
   };
 

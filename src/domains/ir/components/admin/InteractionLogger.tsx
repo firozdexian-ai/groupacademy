@@ -73,7 +73,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
       });
     },
     onSuccess: () => {
-      toast.success("Protocol Successful: Interaction logged.");
+      toast.success("Interaction logged.");
       onOpenChange(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["ir-investor-interactions", investorId] });

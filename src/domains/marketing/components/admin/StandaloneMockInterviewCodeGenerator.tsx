@@ -33,7 +33,7 @@ export function StandaloneMockInterviewCodeGenerator() {
 
   const handleGenerate = async () => {
     if (!email.trim()) {
-      toast.error("Protocol Fault: Target email identifier required.");
+      toast.error("Error: Target email identifier required.");
       return;
     }
 
@@ -75,7 +75,7 @@ export function StandaloneMockInterviewCodeGenerator() {
       }
 
       setGeneratedCodes(codes);
-      toast.success(`Protocol Successful: ${codes.length} access node(s) deployed.`);
+      toast.success(`${codes.length} access node(s) deployed.`);
     } catch (error: any) {
       console.error("Access Code Fault:", error);
       toast.error(error.message || "System Error: Key generation failed.");
@@ -161,7 +161,7 @@ export function StandaloneMockInterviewCodeGenerator() {
           {isGenerating ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin" />
-              Synchronizing...
+              Saving…
             </>
           ) : (
             <>

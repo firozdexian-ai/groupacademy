@@ -112,7 +112,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
       await upsertGraphRow(table, payload);
     },
     onSuccess: () => {
-      toast.success("Registry Protocol Updated");
+      toast.success("Updated");
       qc.invalidateQueries({ queryKey: [table] });
       setOpen(false);
       setEditingNode(null);
@@ -496,7 +496,7 @@ export function OrgEventsManager() {
         },
         { key: "starts_at", label: "Start Sequence", type: "datetime-local" },
         { key: "ends_at", label: "End Sequence", type: "datetime-local" },
-        { key: "location", label: "Vector (Location)" },
+        { key: "location", label: "Location" },
         { key: "url", label: "Link (URL)" }, // R4 Fix: URL field added
         { key: "status", label: "Status", type: "select", options: ["planned", "live", "completed", "cancelled"] },
       ]}

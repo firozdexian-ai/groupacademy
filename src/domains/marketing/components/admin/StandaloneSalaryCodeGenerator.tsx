@@ -33,7 +33,7 @@ export function StandaloneSalaryCodeGenerator() {
 
   const handleGenerate = async () => {
     if (!email.trim()) {
-      toast.error("Protocol Fault: Target identifier required.");
+      toast.error("Error: Target identifier required.");
       return;
     }
 
@@ -75,7 +75,7 @@ export function StandaloneSalaryCodeGenerator() {
       }
 
       setGeneratedCodes(codes);
-      toast.success(`Protocol Successful: ${codes.length} access node(s) deployed.`);
+      toast.success(`${codes.length} access node(s) deployed.`);
     } catch (error: any) {
       console.error("Access Code Fault:", error);
       toast.error(error.message || "System Error: Key generation failed.");
@@ -162,7 +162,7 @@ export function StandaloneSalaryCodeGenerator() {
           {isGenerating ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin" />
-              Synchronizing...
+              Saving…
             </>
           ) : (
             <>

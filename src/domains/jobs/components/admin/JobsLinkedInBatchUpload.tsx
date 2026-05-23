@@ -272,7 +272,7 @@ export function JobsLinkedInBatchUpload({
       setStep("preview");
       toast.success("Payload Synthesis Complete");
     } catch (err) {
-      toast.error("Handshake Failed: JSON corruption");
+      toast.error("Invalid JSON");
     } finally {
       setIsProcessingFile(false);
     }
@@ -490,7 +490,7 @@ export function JobsLinkedInBatchUpload({
                   <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto border-4 border-emerald-500/20 rotate-6 shadow-2xl">
                     <CheckCircle2 className="h-10 w-10 text-emerald-500" />
                   </div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Ingestion Synchronized</h3>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Upload complete</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">

@@ -123,7 +123,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
     }
 
     if (!subject.trim() || !body.trim()) {
-      toast.error("Protocol Fault: Transmission requires subject and payload.");
+      toast.error("Error: Transmission requires subject and payload.");
       return;
     }
 

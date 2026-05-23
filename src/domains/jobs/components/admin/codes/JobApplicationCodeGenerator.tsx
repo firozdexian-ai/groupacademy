@@ -47,14 +47,14 @@ export function JobApplicationCodeGenerator() {
 
   const handleExecuteSynthesis = async () => {
     if (!email.trim()) {
-      toast.error("Protocol Fault: Target email identifier required");
+      toast.error("Error: Target email identifier required");
       return;
     }
 
     setIsGenerating(true);
     setGeneratedCodes([]);
     try {
-      const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Auth Handshake Timeout");
+      const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Auth timed out");
 
       const codes: string[] = [];
 

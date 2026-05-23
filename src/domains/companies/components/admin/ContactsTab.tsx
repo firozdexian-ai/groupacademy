@@ -93,7 +93,7 @@ export function ContactsTab() {
       setIsDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error("Handshake failed");
+      toast.error("Failed");
     } finally {
       setSaving(false);
     }

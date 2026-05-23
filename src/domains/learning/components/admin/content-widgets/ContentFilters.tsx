@@ -117,7 +117,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
           <SelectTrigger className="w-[200px] h-11 rounded-xl border-2 bg-card/50 font-black uppercase text-[10px] tracking-widest transition-all hover:border-primary/40 focus:ring-0">
             <div className="flex items-center gap-2">
               <Layers className="w-3.5 h-3.5 text-primary/60" />
-              <SelectValue placeholder="Protocol: All" />
+              <SelectValue placeholder="All" />
             </div>
           </SelectTrigger>
           <SelectContent className="rounded-xl border-2 shadow-2xl">

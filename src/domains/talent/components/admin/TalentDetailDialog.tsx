@@ -60,7 +60,7 @@ export const TalentDetailDialog = ({
 
   const handlePlatformInvite = async () => {
     if (!displayTalent.id) {
-      toast.error("Protocol Fault: Missing Talent Node ID.");
+      toast.error("Error: Missing Talent Node ID.");
       return;
     }
     const toastId = toast.loading("Deploying global activation invite...");
@@ -201,7 +201,7 @@ export const TalentDetailDialog = ({
                     <Briefcase className="h-4 w-4" /> Structural Class
                   </h3>
                   <div className="grid gap-4">
-                    <InfoCard label="Profession Vector" value={displayTalent.custom_profession || "UNCLASSIFIED"} />
+                    <InfoCard label="Profession" value={displayTalent.custom_profession || "UNCLASSIFIED"} />
                     <div className="bg-muted/20 p-5 rounded-[24px] border-2 border-border/5">
                       <p className="text-[9px] text-muted-foreground/40 uppercase font-black tracking-widest">
                         Verified Artifacts

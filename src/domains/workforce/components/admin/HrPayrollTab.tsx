@@ -100,7 +100,7 @@ export function HrPayrollTab() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hr_payroll"] });
-      toast.success("Financial Ledger Updated");
+      toast.success("Payroll updated");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(`Sync Failed: ${e.message}`),
@@ -149,7 +149,7 @@ export function HrPayrollTab() {
         <div className="space-y-1">
           <div className="flex items-center gap-3 text-emerald-600">
             <Banknote className="h-8 w-8" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Payroll Ledger</h2>
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Payroll</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
             Capital Deployment & Yield Registry

@@ -100,7 +100,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
       toast.success("Payload Synced to Clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Handshake Failed: Copy aborted");
+      toast.error("Copy failed");
     }
   };
 
@@ -127,7 +127,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
     const emptyNodes = cards.filter((c) => !c.front.trim() || !c.back.trim());
     if (emptyNodes.length > 0) return toast.error(`Sync Blocked: ${emptyNodes.length} nodes incomplete`);
     onSave?.(getPayloadSynthesis());
-    toast.success("Registry Handshake Verified");
+    toast.success("Saved");
   };
 
   const validCards = cards.filter((c) => c.front.trim() && c.back.trim());

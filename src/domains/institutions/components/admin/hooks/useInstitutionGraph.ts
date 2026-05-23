@@ -30,7 +30,7 @@ export function useInstitutionGraph() {
       upsertGraphRow("institution_types", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["institution_types"] });
-      toast.success("Taxonomy Node Synchronized");
+      toast.success("Saved");
     },
     onError: (e: Error) => toast.error(`Registry Sync Failed: ${e.message}`),
   });

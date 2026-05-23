@@ -152,9 +152,9 @@ export function ContentOutreachTab() {
       window.open(whatsappUrl, "_blank");
 
       setOutreachRecords((prev) => [...prev, { talent_id: talent.id, course_id: selectedContent.id }]);
-      toast.success(`Handshake Synchronized: ${talent.full_name}`);
+      toast.success(`Saved: ${talent.full_name}`);
     } catch (err) {
-      toast.error("Handshake Failed: Registry rejection");
+      toast.error("Failed: Registry rejection");
     } finally {
       setIsSending(null);
     }

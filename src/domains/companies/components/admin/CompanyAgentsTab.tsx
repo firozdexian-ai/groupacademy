@@ -308,7 +308,7 @@ export function CompanyAgentsManager() {
     link.href = url;
     link.setAttribute("download", `Partner_Leads_${new Date().getTime()}.csv`);
     link.click();
-    toast.success("Lead Ledger Exported");
+    toast.success("Leads exported");
   };
 
   // Telemetry Constants
@@ -773,7 +773,7 @@ export function CompanyAgentsManager() {
                   <Select value={leadFilter} onValueChange={setLeadFilter}>
                     <SelectTrigger className="h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
                       <Filter className="h-4 w-4 mr-2 text-primary" />
-                      <SelectValue placeholder="Protocol Filter" />
+                      <SelectValue placeholder="Filter" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-2">
                       <SelectItem value="all" className="font-bold">

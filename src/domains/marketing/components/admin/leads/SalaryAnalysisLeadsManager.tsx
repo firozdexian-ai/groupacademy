@@ -131,7 +131,7 @@ export const SalaryAnalysisLeadsManager = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Protocol: Leads exported to CSV.");
+    toast.success("Leads exported to CSV.");
   };
 
   const completedCount = leads.filter((l) => l.status === "completed").length;

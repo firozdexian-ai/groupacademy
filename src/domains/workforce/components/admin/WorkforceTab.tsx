@@ -125,7 +125,7 @@ export function WorkforceManager() {
 
   const handleAdd = async () => {
     if (!selectedTalent || !formData.team_id || !formData.grade_id) {
-      toast.error("Protocol Fault: Identity, Team, and Grade required.");
+      toast.error("Error: Identity, Team, and Grade required.");
       return;
     }
     setSaving(true);

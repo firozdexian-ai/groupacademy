@@ -88,7 +88,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
       const message = `Hi ${leadName},\n\nYour GroUp Academy Mock Interview retake access code is: ${generatedCode}\n\nThis key is valid for 30 days.\n\nVisit: ${window.location.origin}/mock-interview/setup\n\nBest regards,\nGroUp Academy Admin`;
       navigator.clipboard.writeText(message);
       setCopied(true);
-      toast.success("Protocol: Outreach template copied to clipboard.");
+      toast.success("Outreach template copied to clipboard.");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -173,7 +173,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
                   disabled={generating}
                   className="w-full h-14 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-transform"
                 >
-                  {generating ? "Synchronizing..." : "Initialize Generation"}
+                  {generating ? "Saving…" : "Generate"}
                 </Button>
               </div>
             )}

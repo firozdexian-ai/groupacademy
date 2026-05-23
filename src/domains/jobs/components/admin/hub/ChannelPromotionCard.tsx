@@ -105,7 +105,7 @@ export function ChannelPromotionCard({ job }: Props) {
     }
 
     setPosted((p) => new Set(p).add(channel));
-    toast.success(`Protocol Successful: Syndication logged on ${channel}`);
+    toast.success(`Syndication logged on ${channel}`);
   };
 
   return (

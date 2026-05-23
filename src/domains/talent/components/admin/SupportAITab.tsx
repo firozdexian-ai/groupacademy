@@ -46,7 +46,7 @@ export function SupportAITab() {
   const [dragActive, setDragActive] = useState(false);
 
   const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) return toast.error("Protocol Fault: Image format required.");
+    if (!file.type.startsWith("image/")) return toast.error("Error: Image format required.");
     if (file.size > 10 * 1024 * 1024) return toast.error("Payload Fault: Image must be under 10MB.");
 
     const reader = new FileReader();
@@ -95,7 +95,7 @@ export function SupportAITab() {
     if (!response?.reply) return;
     await navigator.clipboard.writeText(response.reply);
     setCopied(true);
-    toast.success("Protocol: Artifact copied to clipboard.");
+    toast.success("Artifact copied to clipboard.");
     setTimeout(() => setCopied(false), 2000);
   };
 

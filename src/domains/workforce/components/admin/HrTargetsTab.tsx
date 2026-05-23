@@ -74,7 +74,7 @@ export function HrTargetsTab() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hr_targets"] });
-      toast.success("Target Parameters Synchronized");
+      toast.success("Targets saved");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(`Sync Failed: ${e.message}`),

@@ -102,7 +102,7 @@ export default function KeyInfluencersTab() {
       setDialogOpen(false);
       loadRegistry();
     } catch (err: any) {
-      toast.error("Handshake Failed: " + err.message);
+      toast.error("Failed: " + err.message);
     } finally {
       setBusy(false);
     }

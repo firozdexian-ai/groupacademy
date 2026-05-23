@@ -58,7 +58,7 @@ export function ContactUnlocksTab() {
         setRows(enriched);
       }
     } catch (err) {
-      toast.error("Ledger synchronization fault.");
+      toast.error("Could not load.");
     } finally {
       setLoading(false);
     }

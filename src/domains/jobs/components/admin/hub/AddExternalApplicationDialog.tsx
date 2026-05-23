@@ -90,7 +90,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
   };
 
   const handleParse = async () => {
-    if (!jobId) return toast.error("Protocol Fault: Select job target first.");
+    if (!jobId) return toast.error("Error: Select job target first.");
     if (!cvFile && cvText.trim().length < 30) return toast.error("Payload Fault: Insufficient CV data.");
 
     setParsing(true);
@@ -159,7 +159,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
         added_by: uid || null,
       });
 
-      toast.success("Node Synchronized");
+      toast.success("Saved");
       handleClose(false);
       onCreated?.();
     } catch (err: any) {
@@ -285,7 +285,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
               </div>
 
               <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Skill Matrix</Label>
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Skills</Label>
                 <Textarea
                   rows={2}
                   value={skills}

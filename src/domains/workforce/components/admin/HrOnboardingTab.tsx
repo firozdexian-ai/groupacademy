@@ -71,7 +71,7 @@ export function HrOnboardingTab() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hr_onboarding"] });
-      toast.success("Onboarding Protocol Synchronized");
+      toast.success("Onboarding saved");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(`Sync Failed: ${e.message}`),

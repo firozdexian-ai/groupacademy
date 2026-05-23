@@ -137,7 +137,7 @@ export function MockInterviewLeadsManager() {
     link.download = `mock_interview_leads_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("Protocol: Leads exported to CSV.");
+    toast.success("Leads exported to CSV.");
   };
 
   const completedCount = leads.filter((l) => l.status === "completed").length;

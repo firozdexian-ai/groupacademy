@@ -101,7 +101,7 @@ export function IndustriesTab() {
       setRenameDialogOpen(false);
       loadRegistry();
     } catch (err: any) {
-      toast.error("Handshake Failed: " + err.message);
+      toast.error("Failed: " + err.message);
     } finally {
       setIsRenaming(false);
     }
@@ -116,7 +116,7 @@ export function IndustriesTab() {
       // A4 Fix: Single atomic transaction via RPC
       await mergeIndustries(sources, mergeTarget.trim());
 
-      toast.success(`Protocol Committed: ${sources.length} sectors fused into "${mergeTarget}"`);
+      toast.success(`${sources.length} sectors fused into "${mergeTarget}"`);
       setMergeDialogOpen(false);
       setSelected(new Set());
       loadRegistry();

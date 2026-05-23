@@ -75,7 +75,7 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
       if (error) throw error;
 
       setGeneratedCode(code);
-      toast.success("Protocol Successful: Access code deployed.");
+      toast.success("Access code deployed.");
     } catch (error: any) {
       console.error("Access Code Fault:", error);
       const isTimeout = error.message?.includes("timed out");
@@ -90,7 +90,7 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
       const message = `Hi ${leadName}!\n\nYour GroUp Academy Salary Analysis access code is: ${generatedCode}\n\nThis key allows you to access the setup here: ${window.location.origin}/salary-analysis/setup\n\nThis key is valid for 30 days.\n\nBest regards,\nGroUp Academy Team`;
       navigator.clipboard.writeText(message);
       setCopied(true);
-      toast.success("Protocol: Outreach template copied to clipboard.");
+      toast.success("Outreach template copied to clipboard.");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -178,7 +178,7 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Synchronizing...
+                      Saving…
                     </>
                   ) : (
                     <>

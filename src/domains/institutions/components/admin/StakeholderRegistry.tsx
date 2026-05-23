@@ -399,7 +399,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase ml-1">Phone Vector</Label>
+                <Label className="text-[10px] font-black uppercase ml-1">Phone</Label>
                 <Input
                   value={draft.contact_phone ?? ""}
                   onChange={(e) => setDraft({ ...draft, contact_phone: e.target.value })}

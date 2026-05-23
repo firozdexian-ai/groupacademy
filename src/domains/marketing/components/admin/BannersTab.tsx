@@ -111,7 +111,7 @@ export const BannerManager = () => {
     if (!newBanner.image_url) return toast.error("Logic Fault: Image payload missing");
 
     try {
-      const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Auth Handshake Timeout");
+      const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Auth timed out");
       if (!user) throw new Error("Registry Access Denied");
 
       await withTimeout(
@@ -151,7 +151,7 @@ export const BannerManager = () => {
       });
       loadRegistryData();
     } catch (error: any) {
-      toast.error(error.message || "Protocol Error: Deployment failed");
+      toast.error(error.message || "Error: Deployment failed");
     }
   };
 
@@ -161,7 +161,7 @@ export const BannerManager = () => {
       toast.success(`Node ${!isActive ? "Activated" : "Terminated"}`);
       loadRegistryData();
     } catch (error: any) {
-      toast.error("Handshake Failed: State immutable");
+      toast.error("Could not update");
     }
   };
 

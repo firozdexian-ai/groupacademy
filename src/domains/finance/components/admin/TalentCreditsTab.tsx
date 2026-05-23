@@ -166,7 +166,7 @@ export function TalentCreditsTab() {
 
       setTotalCount(result.count || 0);
     } catch (err) {
-      toast.error("Handshake Failed: Registry sync error");
+      toast.error("Failed: Registry sync error");
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +234,7 @@ export function TalentCreditsTab() {
       setAdjustReason("");
       loadData();
     } catch (err: any) {
-      toast.error("Protocol Error: Transaction failed");
+      toast.error("Error: Transaction failed");
     } finally {
       setIsAdjusting(false);
     }

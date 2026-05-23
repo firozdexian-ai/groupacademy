@@ -33,7 +33,7 @@ export function StandaloneAssessmentCodeGenerator() {
 
   const handleGenerate = async () => {
     if (!email.trim()) {
-      toast.error("Protocol Fault: Email identifier required.");
+      toast.error("Error: Email identifier required.");
       return;
     }
 
@@ -75,7 +75,7 @@ export function StandaloneAssessmentCodeGenerator() {
       }
 
       setGeneratedCodes(codes);
-      toast.success(`Protocol Successful: ${codes.length} key(s) deployed.`);
+      toast.success(`${codes.length} key(s) deployed.`);
     } catch (error: any) {
       console.error("Access Code Fault:", error);
       toast.error(error.message || "System Error: Code generation failed.");
@@ -159,7 +159,7 @@ export function StandaloneAssessmentCodeGenerator() {
           {isGenerating ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin" />
-              Synchronizing...
+              Saving…
             </>
           ) : (
             <>

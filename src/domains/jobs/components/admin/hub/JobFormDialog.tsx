@@ -170,7 +170,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
 
   const handleEnhanceDescription = async () => {
     if (form.description.length < 30) {
-      toast.error("Protocol Fault: Min 30 characters required.");
+      toast.error("Error: Min 30 characters required.");
       return;
     }
     setIsEnhancing(true);

@@ -106,7 +106,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (!file.name.toLowerCase().endsWith(".csv")) {
-        toast.error("Protocol Mismatch (CSV Required)");
+        toast.error("CSV format required");
         return;
       }
       setCsvFile(file);

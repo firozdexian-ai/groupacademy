@@ -94,7 +94,7 @@ export function MRRTargetManager() {
       await upsertMonthlyTarget(payload);
     },
     onSuccess: () => {
-      toast.success("Protocol Successful: Target Synchronized");
+      toast.success("Target Synchronized");
       setHasChanges(false);
       queryClient.invalidateQueries({ queryKey: ["ir-target"] });
     },

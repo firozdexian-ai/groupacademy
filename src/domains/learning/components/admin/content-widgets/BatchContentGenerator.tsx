@@ -275,7 +275,7 @@ export function BatchContentGenerator() {
   const runBatchSequence = async () => {
     if (generator.needsSchool && !selectedSchool) return toast.error("Logic Error: School node not selected");
     const session = await getCurrentSession();
-    if (!session) return toast.error("Auth Handshake Failed");
+    if (!session) return toast.error("Sign in required");
 
     setIsRunning(true);
     stopRef.current = false;
@@ -315,7 +315,7 @@ export function BatchContentGenerator() {
           continue;
         }
 
-        if (!response.ok) throw new Error(`Handshake Error: ${response.status}`);
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
 
         const result = await response.json();
         const batchCount = result.inserted || result.updated || result.processed || 0;
