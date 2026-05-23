@@ -141,19 +141,18 @@ export function useCredits() {
       const msg = err.message || "";
       if (msg.includes("INSUFFICIENT_CREDITS") || msg.includes("FISCAL_DEFICIT")) {
         toast({
-          title: "Insufficient Platform Credits",
-          description: "Top up your wallet to activate this service.",
+          title: "Not enough credits",
+          description: "Top up your wallet to use this service.",
           variant: "destructive",
         });
       } else {
-        // Digital Workforce System Interceptor: Pipes system breakdown telemetry straight to Admin Command loops
-        console.error("[Digital Workforce] ANOMALY: deduct_credits database execution failure.", {
+        console.error("[credits] deduct failed", {
           talentId: talent?.id,
           message: msg,
         });
         toast({
-          title: "Transaction Processing Failure",
-          description: "Ledger mapping delayed. Enqueuing system audit trail.",
+          title: "Couldn't process transaction",
+          description: "Please try again in a moment.",
           variant: "destructive",
         });
       }
@@ -187,8 +186,8 @@ export function useCredits() {
       queryClient.invalidateQueries({ queryKey: ["talent-credit-transactions", talent?.id] });
       if (vars.type === "welcome_bonus") {
         toast({
-          title: "Welcome Bonus Activated! 🎉",
-          description: "250 initial credits provisioned to your profile wallet.",
+          title: "Welcome bonus added 🎉",
+          description: "250 credits have been added to your wallet.",
         });
       }
     },

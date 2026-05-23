@@ -96,7 +96,7 @@ export default function AppCareerAssessment() {
       } catch (pipelineException: any) {
         clearTimeout(timeoutToken);
         if (!cancelled) {
-          console.error("Diagnostic Failure: Category Grid Load Exception:", pipelineException);
+          console.error("Failed to load category grid:", pipelineException);
         }
       }
     };
@@ -121,8 +121,8 @@ export default function AppCareerAssessment() {
     try {
       if (!canAfford("CAREER_ASSESSMENT")) {
         toast({
-          title: "Insufficient Wallet Volume",
-          description: `This automated cognitive diagnostic requires ${ASSESSMENT_COST.toString()} active system credits.`,
+          title: "Not enough credits",
+          description: `This assessment requires ${ASSESSMENT_COST.toString()} credits.`,
           variant: "destructive",
         });
         setAssessmentStepState("lead-capture");
@@ -149,8 +149,8 @@ export default function AppCareerAssessment() {
       }
 
       toast({
-        title: "Telemetry Finalized",
-        description: "Your technical evaluation executive mapping dossier is now online.",
+        title: "Assessment complete",
+        description: "Your career assessment is ready.",
       });
 
       recordToolRun({
@@ -373,7 +373,7 @@ export default function AppCareerAssessment() {
         {/* Phase D: Processing Async Computation Evaluation Cards */}
         {assessmentStepState === "processing" && (
           <div className="py-12 block w-full animate-in fade-in duration-300">
-            <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Synchronizing System Profile" />
+            <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Analyzing your responses" />
           </div>
         )}
       </main>

@@ -104,7 +104,7 @@ export default function AppSalaryAnalysisSetup() {
         }
       } catch (pipelineException: any) {
         if (isThreadActive) {
-          console.error("Diagnostic Failure: Profession Configuration Load Exception:", pipelineException);
+          console.error("Failed to load profession categories:", pipelineException);
         }
       }
     };
@@ -122,16 +122,16 @@ export default function AppSalaryAnalysisSetup() {
   const handleSecureCVStorageUploadSequence = async (targetFileObj: File) => {
     if (!targetFileObj.type.includes("pdf") && !targetFileObj.type.includes("document")) {
       toast({
-        title: "Unsupported File Format",
-        description: "Vetting files must conform strictly to PDF, DOC, or DOCX specifications.",
+        title: "Unsupported file format",
+        description: "Please upload a PDF, DOC, or DOCX file.",
         variant: "destructive",
       });
       return;
     }
     if (targetFileObj.size > 10 * 1024 * 1024) {
       toast({
-        title: "Capacity Threshold Bound Exceeded",
-        description: "The transmitted credentials payload must remain below 10.0 MB.",
+        title: "File too large",
+        description: "Please upload a file smaller than 10 MB.",
         variant: "destructive",
       });
       return;
@@ -149,11 +149,11 @@ export default function AppSalaryAnalysisSetup() {
         await updateTalent({ cvUrl: publicUrl });
         await refreshTalent();
       }
-      toast({ title: "Document Artifact Hashed & Secured" });
+      toast({ title: "CV uploaded" });
     } catch (storageExceptionPayload) {
       toast({
-        title: "Subsystem Refused Payload",
-        description: "Fallback verification protocols automatically triggered. Please text paste source parameters.",
+        title: "Upload failed",
+        description: "We couldn't upload your file. Please paste your CV text instead.",
         variant: "destructive",
       });
       setCvInputMode("text");
@@ -168,16 +168,16 @@ export default function AppSalaryAnalysisSetup() {
   const handleCommitSalaryAnalysisSequence = async () => {
     if (!fullNameState.trim() || !candidateEmailState.trim() || !jobDescriptionInputStr.trim()) {
       toast({
-        title: "Incomplete Input Fields",
-        description: "All required structural parameter categories must be filled.",
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
     }
     if (!cvTextInputStr.trim() && !cvSecureUrlStr) {
       toast({
-        title: "Career Record Track Missing",
-        description: "You must supply an operational CV text layout code blueprint or an artifact spec file.",
+        title: "CV required",
+        description: "Please upload a CV file or paste your CV text.",
         variant: "destructive",
       });
       return;
@@ -217,7 +217,7 @@ export default function AppSalaryAnalysisSetup() {
       if (insertPipelineHandshakeError) throw insertPipelineHandshakeError;
       if (talentProfileRecord?.id) await addServiceUsed("salary_analysis");
 
-      toast({ title: "Market Evaluation Run Initiated" });
+      toast({ title: "Salary analysis started" });
       recordToolRun({
         toolKey: "salary",
         costCredits: 50,
@@ -226,8 +226,8 @@ export default function AppSalaryAnalysisSetup() {
       navigateHook(`/salary-analysis/processing/${targetAnalysisIdUUID}`);
     } catch (fatalMutationException) {
       toast({
-        title: "Pipeline Handshake Terminated",
-        description: "Secure transaction token verification logic interrupted. Re-submit data parameters.",
+        title: "Couldn't submit",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {

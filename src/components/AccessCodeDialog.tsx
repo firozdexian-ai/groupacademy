@@ -84,7 +84,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
       )) as any;
 
       if (!accessCodePayloadData) {
-        toast.error("Access Validation Rejected: Specified lookup alphanumeric key is invalid or un-assigned.", {
+        toast.error("This access code isn't valid or hasn't been assigned.", {
           id: dynamicToastTrackerId,
         });
         if (isMountedRef.current) setIsValidating(false);
@@ -93,7 +93,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
 
       // PHASE 2: Temporal & Volume Audits Checks
       if (accessCodePayloadData.expires_at && new Date(accessCodePayloadData.expires_at) < new Date()) {
-        toast.error("Validation Aborted: The temporal validity window for this access token has closed.", {
+        toast.error("This access code has expired.", {
           id: dynamicToastTrackerId,
         });
         if (isMountedRef.current) setIsValidating(false);
@@ -101,7 +101,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
       }
 
       if (Number(accessCodePayloadData.current_uses) >= Number(accessCodePayloadData.max_uses)) {
-        toast.error("Validation Aborted: Key quota threshold overflow. Allocation capacity maximized.", {
+        toast.error("This access code has reached its usage limit.", {
           id: dynamicToastTrackerId,
         });
         if (isMountedRef.current) setIsValidating(false);
@@ -112,7 +112,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
       const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "IDENTITY_CHECK_TIMEOUT");
 
       if (!user) {
-        toast.error("Authentication Matrix Required: Initialize your active browser user login session.", {
+        toast.error("Please sign in to continue.", {
           id: dynamicToastTrackerId,
         });
         if (isMountedRef.current) setIsValidating(false);
@@ -135,7 +135,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
         );
 
         if (!profileInitializationCreatedBool) {
-          throw new Error("Identity Pipeline Fault: Remote engine failed to establish raw student profile references.");
+          throw new Error("We couldn't set up your learner profile. Please try again.");
         }
 
         targetStudentContextNode = { id: await requireStudentIdByUserId(user.id) };

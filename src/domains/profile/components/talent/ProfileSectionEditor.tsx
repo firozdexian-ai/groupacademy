@@ -40,12 +40,12 @@ interface ProfileSectionEditorProps {
 }
 
 const SECTION_META: Record<string, { title: string; icon: any }> = {
-  about: { title: "Personal Narrative Mapping", icon: ShieldCheck },
-  experience: { title: "Professional History Registry", icon: Zap },
-  education: { title: "Academic Ingestion Ledger", icon: Zap },
-  skills: { title: "Psychometric Skill Matrix", icon: Zap },
-  achievements: { title: "Achievement Record Logs", icon: ShieldCheck },
-  languages: { title: "Communication Protocol Nodes", icon: ShieldCheck },
+  about: { title: "About you", icon: ShieldCheck },
+  experience: { title: "Work experience", icon: Zap },
+  education: { title: "Education", icon: Zap },
+  skills: { title: "Skills", icon: Zap },
+  achievements: { title: "Achievements", icon: ShieldCheck },
+  languages: { title: "Languages", icon: ShieldCheck },
 };
 
 /**
@@ -131,7 +131,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
 
     setSaving(true);
     trackEvent("profile_section_save_initiated", { activeSectionType: section });
-    const dynamicToastTrackerId = toast.loading(`Synchronizing ${section} components into the profile index matrix...`);
+    const dynamicToastTrackerId = toast.loading(`Saving ${section}…`);
 
     try {
       let syncPayload: Record<string, any> = {};
@@ -164,7 +164,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
       await queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
       if (isMountedRef.current) {
-        toast.success("Identity variables successfully validated down profile rows.", { id: dynamicToastTrackerId });
+        toast.success("Profile updated.", { id: dynamicToastTrackerId });
         trackEvent("profile_section_save_success", { activeSectionType: section });
         onClose();
       }
@@ -179,7 +179,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
         sectionKey: section
       });
 
-      toast.error(`Ecosystem write validation error: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
+      toast.error(`Couldn't save: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setSaving(false);
@@ -188,7 +188,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
   }, [section, about, experience, education, skills, achievements, languages, onSave, onClose, saving, queryClient]);
 
   const activeMetaNode = useMemo(() => {
-    return section ? (SECTION_META[section] || { title: "Identity Configuration Workspace", icon: ShieldCheck }) : null;
+    return section ? (SECTION_META[section] || { title: "Edit section", icon: ShieldCheck }) : null;
   }, [section]);
 
   const IconComponent = activeMetaNode?.icon || ShieldCheck;
@@ -211,11 +211,11 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
               <IconComponent className="h-4 w-4 text-primary fill-primary/5 stroke-[2.2] animate-pulse" />
             </div>
             <div className="min-w-0 flex flex-col justify-center leading-none flex-1">
-              <SheetTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none">
-                {activeMetaNode ? activeMetaNode.title : "Initializing Input Context Parameters"}
+              <SheetTitle className="text-sm sm:text-base font-bold text-foreground leading-none">
+                {activeMetaNode ? activeMetaNode.title : "Edit profile"}
               </SheetTitle>
-              <SheetDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none pt-1">
-                Synchronizing structural profile identity components into global verification matrices
+              <SheetDescription className="text-xs text-muted-foreground leading-none pt-1">
+                Keep your profile up to date so employers can find you
               </SheetDescription>
             </div>
           </div>

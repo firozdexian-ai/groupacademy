@@ -22,54 +22,46 @@ const errorConfig: Record<
 > = {
   network: {
     icon: WifiOff,
-    defaultTitle: "Sync Blocked: Network Timeout",
-    defaultDescription: "Identity registry connection lost. Verify your local uplink status and retry.",
+    defaultTitle: "Connection lost",
+    defaultDescription: "Check your internet and try again.",
   },
   server: {
     icon: ServerCrash,
-    defaultTitle: "Sync Blocked: Infrastructure Fault",
-    defaultDescription: "Remote computing core exception block. Systems engineers are inspecting the trace.",
+    defaultTitle: "Something went wrong",
+    defaultDescription: "Our team has been notified. Please try again in a moment.",
   },
   timeout: {
     icon: Clock,
-    defaultTitle: "Sync Blocked: Handshake TTL Exceeded",
-    defaultDescription: "The verification sequence timed out before data streams could resolve safely.",
+    defaultTitle: "Request timed out",
+    defaultDescription: "This is taking longer than usual. Please try again.",
   },
   notFound: {
     icon: ShieldAlert,
-    defaultTitle: "Sync Blocked: Missing Logic Node",
-    defaultDescription: "The specified data asset does not reside within the current cluster registry mapping.",
+    defaultTitle: "Not found",
+    defaultDescription: "We couldn't find what you were looking for.",
   },
   generic: {
     icon: AlertCircle,
-    defaultTitle: "Sync Blocked: Unhandled Pipeline Exception",
-    defaultDescription: "An internal security or tracking failure tripped the structural access gateway.",
+    defaultTitle: "Something went wrong",
+    defaultDescription: "Please try again. If the issue continues, contact support.",
   },
 };
 
-/**
- * GroUp Academy: Fault Recovery Protocol Interface Sentinel (ErrorState)
- * Hardened responsive fallback terminal managing layout errors and processing re-synchronization loops.
- * Version: Launch Candidate · Phase Z0 Geometric Balance Lock
- */
 export function ErrorState({
   title,
   description,
   onRetry,
-  retryLabel = "Re-Initialize Handshake",
+  retryLabel = "Try again",
   type = "generic",
   className = "",
   compact = false,
 }: ErrorStateProps) {
-  const currentConfigurationMap = errorConfig[type] || errorConfig.generic;
-  const DiagnosticIconNode = currentConfigurationMap.icon;
+  const config = errorConfig[type] || errorConfig.generic;
+  const Icon = config.icon;
 
-  const displayTitleTextStr = title || currentConfigurationMap.defaultTitle;
-  const displayDescriptionTextStr = description || currentConfigurationMap.defaultDescription;
+  const displayTitle = title || config.defaultTitle;
+  const displayDescription = description || config.defaultDescription;
 
-  // =========================================================================
-  // INTERFACE PROTOCOL RENDER A: INLINE COMPACT HUD RECOVERY ROW GRID
-  // =========================================================================
   if (compact) {
     return (
       <div
@@ -79,14 +71,14 @@ export function ErrorState({
         )}
       >
         <div className="flex items-center justify-center gap-2 text-destructive leading-none w-full shrink-0">
-          <DiagnosticIconNode className="h-4 w-4 stroke-[2.5] shrink-0" />
-          <span className="text-[10px] font-mono font-extrabold uppercase tracking-wide truncate block pt-0.5">
-            {displayTitleTextStr}
+          <Icon className="h-4 w-4 stroke-[2.5] shrink-0" />
+          <span className="text-xs font-semibold truncate block">
+            {displayTitle}
           </span>
         </div>
 
-        <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal block select-text pr-0.5 italic w-full">
-          {displayDescriptionTextStr}
+        <p className="text-xs text-muted-foreground leading-normal block select-text w-full">
+          {displayDescription}
         </p>
 
         {onRetry && (
@@ -95,7 +87,7 @@ export function ErrorState({
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 px-3 mt-1 cursor-pointer transition-colors"
+            className="h-8 rounded-lg text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 px-3 mt-1 cursor-pointer transition-colors"
           >
             <RefreshCw className="h-3 w-3 stroke-[2.5]" />
             <span>{retryLabel}</span>
@@ -105,9 +97,6 @@ export function ErrorState({
     );
   }
 
-  // =========================================================================
-  // INTERFACE PROTOCOL RENDER B: FULL CARD RECOVERY COMPONENT CONTEXT
-  // =========================================================================
   return (
     <Card
       className={cn(
@@ -116,32 +105,29 @@ export function ErrorState({
       )}
     >
       <CardHeader className="text-center p-5 sm:p-6 pb-2 sm:pb-3 border-none flex flex-col items-center justify-center space-y-4 w-full select-none leading-none shrink-0">
-        {/* HUD LEVEL 1: ICON GLOW AND STACK INDEX CONTAINER */}
         <div className="relative h-11 w-11 shrink-0 pointer-events-none select-none">
           <div className="absolute inset-0 bg-destructive/10 rounded-xl rotate-6 animate-pulse" />
           <div className="absolute inset-0 bg-background border border-destructive/15 rounded-xl flex items-center justify-center shadow-xs">
-            <DiagnosticIconNode className="h-5 w-5 text-destructive stroke-[2.2]" />
+            <Icon className="h-5 w-5 text-destructive stroke-[2.2]" />
           </div>
         </div>
 
-        {/* HUD LEVEL 2: COMPOSITE HEADINGS TEXT BOUNDS */}
         <div className="space-y-1.5 w-full block leading-none">
-          <CardTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none pt-0.5">
-            {displayTitleTextStr}
+          <CardTitle className="text-base sm:text-lg font-semibold text-foreground leading-tight pt-0.5">
+            {displayTitle}
           </CardTitle>
-          <CardDescription className="text-[11px] font-semibold text-muted-foreground/60 leading-normal block italic select-text selection:bg-destructive/5 max-w-xs mx-auto pt-0.5">
-            {displayDescriptionTextStr}
+          <CardDescription className="text-sm text-muted-foreground leading-normal block select-text max-w-xs mx-auto pt-0.5">
+            {displayDescription}
           </CardDescription>
         </div>
       </CardHeader>
 
-      {/* HUD LEVEL 3: BUTTON ACTION RE-SYNC INGRESS SECTOR SLOT */}
       {onRetry && (
         <CardContent className="text-center p-5 sm:p-6 pt-2 sm:pt-3 border-none w-full flex justify-center items-center shrink-0">
           <Button
             type="button"
             onClick={onRetry}
-            className="h-10 px-5 w-full sm:w-auto rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm cursor-pointer transform-gpu active:scale-[0.985] transition-transform"
+            className="h-10 px-5 w-full sm:w-auto rounded-xl font-semibold text-sm gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm cursor-pointer transform-gpu active:scale-[0.985] transition-transform"
           >
             <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>{retryLabel}</span>
@@ -152,10 +138,6 @@ export function ErrorState({
   );
 }
 
-/**
- * Full Page Isolated Security & Error Layout Panel (PageErrorState)
- * Locks down total window view space when root handshakes fail to sync downstream parameters.
- */
 export function PageErrorState({
   title,
   description,
@@ -165,8 +147,7 @@ export function PageErrorState({
   showNavbar = false,
 }: ErrorStateProps & { showNavbar?: boolean }) {
   return (
-    <div className="min-h-screen bg-background text-foreground/90 selection:bg-destructive/10 flex flex-col justify-between items-center w-full transform-gpu antialiased select-none font-sans">
-      {/* HUD LEVEL 1: TOP ISOLATED HEADER SIMULATION FILL */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between items-center w-full transform-gpu antialiased font-sans">
       {showNavbar ? (
         <div className="w-full border-b border-border/40 bg-card/60 backdrop-blur-md shrink-0 h-14 flex items-center justify-center select-none pointer-events-none">
           <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 w-full">
@@ -178,7 +159,6 @@ export function PageErrorState({
         <div className="h-1 shrink-0 select-none pointer-events-none" aria-hidden="true" />
       )}
 
-      {/* HUD LEVEL 2: ACTIVE FAULT FRAME CORE DISPATCH CANVAS */}
       <main className="flex-1 w-full flex items-center justify-center p-4 sm:p-6 min-h-0">
         <ErrorState
           title={title}
@@ -190,12 +170,7 @@ export function PageErrorState({
         />
       </main>
 
-      {/* HUD LEVEL 3: STATIC BOTTOM BASE TELEMETRY SECURE INFRASTRUCTURE OMNIPRESENCE MARKER */}
-      <footer className="w-full p-6 sm:p-8 shrink-0 text-center select-none pointer-events-none h-14 flex items-center justify-center">
-        <p className="font-mono text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/20 leading-none">
-          Internal Systems Diagnostic Matrix Core // Operational Exception Block Sealed
-        </p>
-      </footer>
+      <div className="h-6 shrink-0" aria-hidden="true" />
     </div>
   );
 }

@@ -132,7 +132,7 @@ export default function Connections() {
 
         setConnectionsRegistryRows(calculatedReconciledRows);
       } catch (fatalHandshakeException) {
-        console.error("Connections Ledger Fetch Pipeline Disrupted:", fatalHandshakeException);
+        console.error("Failed to load connections:", fatalHandshakeException);
       } finally {
         if (localMountFlag.current) {
           setIsDataLayerLoading(false);
@@ -164,8 +164,8 @@ export default function Connections() {
         const rpcThreadIdResponse = await acceptConnectionAndOpenThread(targetConnectionIdUUID);
 
         toast({
-          title: "Connection Request Finalized",
-          description: "Communication channel link successfully opened.",
+          title: "Connection accepted",
+          description: "You can now message each other.",
         });
         if (rpcThreadIdResponse && isThreadMountedFlag.current) {
           navigateHook(`/app/messages/${String(rpcThreadIdResponse)}`);
@@ -198,14 +198,14 @@ export default function Connections() {
         await respondTalentConnection({ requestId: targetConnectionIdUUID, accept: false });
 
         toast({
-          title: "Connection Request Denied",
-          description: "The source request allocation balance has been safely refunded.",
+          title: "Request declined",
+          description: "Any credits used have been refunded.",
         });
         await loadConnectionsLedgerInventory(isThreadMountedFlag);
       } catch (fatalMutationException: any) {
         toast({
-          title: "Action Handshake Refused",
-          description: fatalMutationException.message || "Failed to decline.",
+          title: "Couldn't decline",
+          description: fatalMutationException.message || "Please try again.",
           variant: "destructive",
         });
       } finally {
