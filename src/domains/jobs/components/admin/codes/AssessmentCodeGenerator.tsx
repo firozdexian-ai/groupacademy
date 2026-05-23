@@ -52,7 +52,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
       const user = await withTimeout(getCurrentUser(), TIMEOUTS.AUTH, "Auth Registry Link Timeout");
 
       if (!user) {
-        toast.error("Handshake Refused: Administrative privileges required.");
+        toast.error("Admin permission required.");
         return;
       }
 
@@ -66,13 +66,13 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         }),
         TIMEOUTS.DEFAULT,
-        "Protocol Registry Sync Timeout",
+        "Request timed out",
       );
 
       if (error) throw error;
 
       setGeneratedCode(code);
-      toast.success("Logic Synchronized: Access code generated.");
+      toast.success("Access code generated.");
     } catch (error: any) {
       console.error("Code Generation Fault:", error);
       toast.error("Transmission Error: Failed to synchronize access node.");
@@ -83,7 +83,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
 
   const handleArtifactExport = () => {
     if (generatedCode) {
-      const message = `Hi ${leadName},\n\nYour Career Readiness Assessment retake access code is: ${generatedCode}\n\nThis code is valid for 30 days.\n\nVisit: ${window.location.origin}/career-assessment\n\nProtocol Secure,\nAcademy Administration`;
+      const message = `Hi ${leadName},\n\nYour Career Readiness Assessment retake access code is: ${generatedCode}\n\nThis code is valid for 30 days.\n\nVisit: ${window.location.origin}/career-assessment\n\nBest,\nAcademy Administration`;
       navigator.clipboard.writeText(message);
       setCopied(true);
       toast.success("Payload exported to clipboard.");

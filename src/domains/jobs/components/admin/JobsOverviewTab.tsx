@@ -29,7 +29,7 @@ export function JobsOverviewTab() {
             </h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Recruitment Telemetry & Pipeline Ledger
+            Recruitment activity & pipeline
           </p>
         </div>
         {totalPendingActions > 0 && (

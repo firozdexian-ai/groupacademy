@@ -234,7 +234,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
 
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
-                    Raw Payload Ingress
+                    Raw text
                   </Label>
                   <Textarea
                     rows={6}
@@ -313,7 +313,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                   onClick={() => setStep("input")}
                   className="font-black uppercase text-[10px] tracking-widest italic opacity-50"
                 >
-                  Back to Ingress
+                  Back
                 </Button>
                 <Button
                   onClick={handleSave}
