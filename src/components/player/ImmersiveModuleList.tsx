@@ -196,7 +196,7 @@ export function ImmersiveModuleList({
                             !isUnlocked && "text-muted-foreground/40 font-medium",
                           )}
                         >
-                          {moduleItem.title ? moduleItem.title.trim() : "Unresolved Curriculum Track Sequence Block"}
+                          {moduleItem.title ? moduleItem.title.trim() : "Untitled module"}
                         </span>
 
                         {isUnlocked && (

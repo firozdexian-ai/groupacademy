@@ -231,8 +231,8 @@ export function LearnStage({ resources = [], onComplete, isCompleted }: LearnSta
             )}
             <span>
               {canComplete
-                ? "Authorize Continuing Track Passage"
-                : "Ingestion Steps Required: Inspect Primary Resource Elements"}
+                ? "Continue"
+                : "Review the main resources to continue"}
             </span>
           </Button>
         </div>

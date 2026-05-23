@@ -148,7 +148,7 @@ export function ModuleList({ modules = [], progress = [], currentModuleId, onMod
                           isNodeComplete && !isCurrent && "text-emerald-600/80 dark:text-emerald-400/80 font-semibold",
                         )}
                       >
-                        {moduleItem.title ? moduleItem.title.trim() : "Unresolved Curriculum Track Module Reference"}
+                        {moduleItem.title ? moduleItem.title.trim() : "Untitled module"}
                       </span>
 
                       {/* Chronology duration elements layout marker badge line */}

@@ -277,7 +277,7 @@ export function DiscussStage({
               <Bot className="h-4 w-4 stroke-[2.5]" />
             )}
             <span>
-              {canComplete ? "Authorize Continuing Track Passage" : "Synthesis Steps Required: Query AI or Play Audio"}
+              {canComplete ? "Continue" : "Ask the AI or play the audio to continue"}
             </span>
           </Button>
         </div>

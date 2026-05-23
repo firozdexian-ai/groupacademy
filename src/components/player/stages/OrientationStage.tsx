@@ -151,7 +151,7 @@ export function OrientationStage({ resources = [], onComplete, isCompleted, fall
                   <div className="flex items-center gap-2 min-w-0">
                     <PlayCircle className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
                     <span className="truncate text-ellipsis">
-                      {videoResource?.title || "Module Orientation Snapshot"}
+                      {videoResource?.title || "Module intro"}
                     </span>
                   </div>
                   {videoWatched && (
@@ -234,7 +234,7 @@ export function OrientationStage({ resources = [], onComplete, isCompleted, fall
             ) : (
               <PlayCircle className="h-4 w-4 stroke-[2.5]" />
             )}
-            <span>{videoWatched ? "Authorize Continuing Track Passage" : "Lock Ingress Orientation Context"}</span>
+            <span>{videoWatched ? "Continue" : "Watch the intro to continue"}</span>
           </Button>
         </div>
       )}

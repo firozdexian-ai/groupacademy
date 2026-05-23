@@ -157,7 +157,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
         <div className="aspect-video bg-black/10 w-full overflow-hidden relative shadow-inner">
           <iframe
             src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&enablejsapi=1&modestbranding=1`}
-            title={title || "Ecosystem Synchronized Video Stream"}
+            title={title || "Video"}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             className="w-full h-full border-none"
@@ -199,7 +199,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
           <div className="aspect-video bg-muted relative w-full overflow-hidden shadow-inner">
             <iframe
               src={viewerUrl}
-              title={title || "Ecosystem Interactive Slide Deck Document"}
+              title={title || "Slides"}
               className="w-full h-full border-none"
               allowFullScreen
             />

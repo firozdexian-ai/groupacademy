@@ -91,7 +91,7 @@ export function ProgressStage({
 
   const handleDownloadKnowledgeNodesClick = () => {
     trackEvent("progress_stage_download_nodes_requested", { moduleId });
-    toast.info("Synchronization Protocol Engaged", {
+    toast.info("Saving progress", {
       description:
         "Assembling verified knowledge schemas and cognitive recall artifacts for your local credential locker.",
     });
@@ -233,7 +233,7 @@ export function ProgressStage({
                     ) : (
                       <AlertCircle className="h-4 w-4 text-amber-500 stroke-[2.2] shrink-0" />
                     )}
-                    <span>{quizPassed ? "Authoritative Pass Verified" : "Readiness Calibrations Fault"}</span>
+                    <span>{quizPassed ? "You passed" : "Not passed yet"}</span>
                   </p>
                 </div>
 
