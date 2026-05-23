@@ -213,7 +213,7 @@ export default function AppCohortDiscussions() {
               <Input
                 type="text"
                 disabled={createThreadMutation.isPending}
-                placeholder="e.g., Memory Optimization Metrics Exception"
+                placeholder="e.g., Help with the week 3 assignment"
                 value={composerFormState.title}
                 onChange={(e) => handleInputChangeAction("title", e.target.value)}
                 className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-sans"

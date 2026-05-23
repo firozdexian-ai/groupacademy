@@ -79,7 +79,7 @@ interface StatusConfigItem {
 
 const STATUS_PRESETS_DIRECTORY: Record<string, StatusConfigItem> = {
   upcoming: { label: "Upcoming Run", color: "bg-blue-500/5 text-blue-600 border-blue-500/10", icon: Calendar },
-  active: { label: "Live Active Arena", color: "bg-emerald-500/5 text-emerald-600 border-emerald-500/10", icon: Zap },
+  active: { label: "Live now", color: "bg-emerald-500/5 text-emerald-600 border-emerald-500/10", icon: Zap },
   judging: { label: "Evaluation Underway", color: "bg-amber-500/5 text-amber-600 border-amber-500/10", icon: Target },
   completed: { label: "Completed Manifest", color: "bg-muted text-muted-foreground border-border/40", icon: CheckCircle },
   cancelled: { label: "Terminated Operation", color: "bg-destructive/5 text-destructive border-destructive/10", icon: ShieldCheck },
@@ -199,7 +199,7 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
     return activeChallengeItem.prizes.map((prizeNodeItem: unknown) => {
       if (typeof prizeNodeItem === "string") return prizeNodeItem;
       const castPrize = prizeNodeItem as PrizeConfigItem;
-      return castPrize?.name || castPrize?.description || "Specialty Corporate Allocation Bundle";
+      return castPrize?.name || castPrize?.description || "Sponsor prize";
     });
   }, [activeChallengeItem?.prizes]);
 
@@ -221,9 +221,9 @@ export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDet
       <div className={cn(PAGE_SHELL, "w-full text-left block antialiased")}>
         <EmptyState
           icon={Target}
-          title="Challenge Arena Closed"
-          description="The requested continuous capability screening competition parameters could not be gathered from tracking registries."
-          action={{ label: "Return to All Arenas", onClick: handleReturnToDirectoryTrigger }}
+          title="Competition not found"
+          description="We couldn't load this competition. It may have ended or been removed."
+          action={{ label: "Back to competitions", onClick: handleReturnToDirectoryTrigger }}
         />
       </div>
     );

@@ -118,9 +118,9 @@ export default function Connections() {
               : rawRowItem.sender_talent_id;
           const profileFallbackMetadata: TalentProfileMetadata = joinedTalentsMap.get(associatedForeignId) ?? {
             id: associatedForeignId,
-            full_name: "Anonymous Academic Profile",
+            full_name: "Unknown member",
             profile_photo_url: null,
-            custom_profession: "Academy Professional Member",
+            custom_profession: "Member",
           };
 
           return {
@@ -287,7 +287,7 @@ export default function Connections() {
                 {connectionRowItem.other.full_name}
               </Link>
               <p className="text-[11px] font-semibold text-muted-foreground/70 truncate block select-text pr-2 leading-tight">
-                {connectionRowItem.other.custom_profession || "Academy Professional Member"}
+                {connectionRowItem.other.custom_profession || "Member"}
               </p>
               <div className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight flex items-center gap-1.5 select-none pointer-events-none leading-none pt-0.5 tabular-nums">
                 <Clock className="h-3 w-3 stroke-[2] shrink-0 text-primary" />

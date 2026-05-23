@@ -1,3 +1,11 @@
+# B4 — Jobs + Gigs + Career Abroad Jargon Cleanup (DONE)
+
+Replaced ~60 user-visible jargon strings across Jobs, Gigs, Career Abroad, IELTS, Competitions, Connections, Career Coach, Career Assessment, Mock Interview, and Cohort Discussions. Anomaly/Telemetry/Pipeline/Ingress/Synthesis/Handshake/Ledger/Matrix/Vector/Node phrasing removed from talent surfaces in scope. Internal console.error logs normalized to `[jobs]` / `[gigs]` / `[abroad]` / `[career-coach]` / `[mock-interview]` / `[app]` prefixes.
+
+Next: **B5** — Agents + Wallet + Player + shared components (~50 hits).
+
+---
+
 # B4 — Jobs + Gigs + Career Abroad Jargon Cleanup
 
 Sweep the remaining talent-facing jargon out of the Jobs, Gigs, Competitions, Career services and Abroad surfaces, using the same plain-English voice locked in by B3/B3.1.

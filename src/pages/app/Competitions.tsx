@@ -259,7 +259,7 @@ export default function Competitions() {
                   <div className="flex items-center gap-3.5 font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight flex-wrap select-none pointer-events-none leading-none pt-1 tabular-nums w-full shrink-0">
                     <span className="flex items-center gap-1 shrink-0">
                       <Calendar className="h-3.5 w-3.5 stroke-[2.2]" />
-                      <span>ONSET: {format(new Date(challengeItemNode.start_date), "MMM d").toUpperCase()}</span>
+                      <span>STARTS: {format(new Date(challengeItemNode.start_date), "MMM d").toUpperCase()}</span>
                     </span>
 
                     {challengeItemNode.status === "active" && (
