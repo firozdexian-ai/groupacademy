@@ -387,7 +387,7 @@ export default function Gigs() {
           </div>
         </TabsContent>
 
-        {/* VIEWPORT CHANNEL C: COURSE BUNDLED BLUEPRINT OPERATIONS */}
+        {/* Course gigs */}
         <TabsContent
           value="course"
           className="space-y-4 focus:outline-none outline-none mt-2 block w-full animate-in fade-in duration-200"
@@ -396,15 +396,14 @@ export default function Gigs() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
             <Input
               type="search"
-              placeholder="Filter master structural courses blueprint series by topic taxonomy title..."
+              placeholder="Search course gigs..."
               className="w-full h-10 pl-9 pr-3 bg-background border border-border/40 text-xs sm:text-sm font-semibold rounded-lg shadow-none"
               value={textSearchInputStr}
               onChange={(e) => setTextSearchInputStr(e.target.value)}
             />
           </div>
           <p className="font-mono text-[9px] font-bold uppercase tracking-tight text-muted-foreground/40 leading-none select-none pointer-events-none pl-0.5">
-            System Production Blueprint Framework: Comprehensive Curriculum Assemblies · Scaled Subtasks Distributions
-            Hierarchy · High-Budgets Draw Payouts
+            Full courses to build · Multi-step subtasks · Higher payouts
           </p>
 
           <div className="space-y-2.5 block w-full align-top">
