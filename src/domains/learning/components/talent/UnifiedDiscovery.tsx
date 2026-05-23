@@ -206,10 +206,10 @@ export function UnifiedDiscovery() {
         <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 flex-1">
           <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground uppercase tracking-wide flex items-center gap-2">
             <Zap className="h-4.5 w-4.5 text-primary fill-primary/10 animate-pulse stroke-[2.2]" />
-            <span>Ecosystem Discovery Matrix</span>
+            <span>Discover</span>
           </h2>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mt-1 leading-none">
-            Synchronize workspace components with specialized institutional knowledge artifacts
+            Explore courses, tracks, and resources tailored for you
           </p>
         </div>
 
@@ -220,7 +220,7 @@ export function UnifiedDiscovery() {
           className="h-8 px-2.5 rounded-xl font-bold uppercase text-[10px] tracking-wider text-muted-foreground/80 hover:text-primary hover:bg-primary/5 cursor-pointer shadow-none shrink-0 flex items-center gap-0.5"
           onClick={handleAuditFullCatalogClick}
         >
-          <span>Audit Full Matrix</span>
+          <span>View all</span>
           <ChevronRight className="h-3.5 w-3.5 stroke-[2.5]" />
         </Button>
       </div>
@@ -270,7 +270,7 @@ export function UnifiedDiscovery() {
             Nothing to discover yet
           </p>
           <p className="text-[11px] font-semibold text-muted-foreground/70 max-w-xs mx-auto leading-normal mt-1.5 italic">
-            No operational knowledge modules conform to this active validation sub-filter right now.
+            Nothing matches this filter right now.
           </p>
         </div>
       ) : (
