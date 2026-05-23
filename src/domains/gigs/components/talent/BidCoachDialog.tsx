@@ -97,7 +97,7 @@ export function BidCoachDialog({
         gigKind,
       });
 
-      toast.error(exceptionMessage || "Ecosystem edge processing connection timeout.");
+      toast.error(exceptionMessage || "Couldn't reach the AI. Please try again.");
     } finally {
       setLoading(false);
     }

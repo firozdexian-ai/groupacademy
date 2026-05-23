@@ -92,10 +92,10 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       try {
         parseRes = await parseCv({ cvUrl: publicUrl, serviceType: "cv_outreach" } as any);
       } catch (parseErr: any) {
-        throw new Error(parseErr?.message || "Ecosystem document parsing extraction failed.");
+        throw new Error(parseErr?.message || "Couldn't read your CV. Please try a different file.");
       }
       if (!parseRes?.success) {
-        throw new Error("Ecosystem document parsing extraction failed.");
+        throw new Error("Couldn't read your CV. Please try a different file.");
       }
 
       setParsedData(parseRes.parsed);
@@ -111,11 +111,11 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
           language: "auto",
         } as any);
       } catch (msgErr: any) {
-        throw new Error(msgErr?.message || "Ecosystem copywriting message generation failed.");
+        throw new Error(msgErr?.message || "Couldn't generate your message. Please try again.");
       }
 
       if (!msgRes?.success) {
-        throw new Error("Ecosystem copywriting message generation failed.");
+        throw new Error("Couldn't generate your message. Please try again.");
       }
 
       setOutreachMessage(msgRes.message);

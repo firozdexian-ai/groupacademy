@@ -79,7 +79,7 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
     },
     onSuccess: () => {
       trackEvent("recommended_bidders_refresh_success", { gigId });
-      toast.success("Ecosystem talent ranking profiles synchronized cleanly");
+      toast.success("Recommended bidders updated");
       
       // Invalidate target keys dynamically across viewport boundaries
       queryClient.invalidateQueries({ queryKey: ["recommended-bidders", gigId, gigKind] });
@@ -91,7 +91,7 @@ export function RecommendedBiddersPanel({ gigId, gigKind = "marketplace" }: Prop
         action: "refresh_gig_matches_mutation",
         gigId
       });
-      toast.error("Ecosystem calculation timeout. Re-trigger model sync.");
+      toast.error("Couldn't refresh recommendations. Please try again.");
     }
   });
 

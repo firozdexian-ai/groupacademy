@@ -160,7 +160,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
         courseId: selected.id,
       });
 
-      toast.error(msg || "Ecosystem registration function timeout.");
+      toast.error(msg || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }

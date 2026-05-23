@@ -434,7 +434,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
             ) : (
               <ShieldCheck className="h-4 w-4" />
             )}
-            <span>Commit To Ecosystem Registry</span>
+            <span>Post job gig</span>
           </Button>
         </div>
       )}
