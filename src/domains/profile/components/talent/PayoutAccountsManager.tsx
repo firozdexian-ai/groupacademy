@@ -147,7 +147,7 @@ export function PayoutAccountsManager() {
     } catch (e: any) {
       const parsedExceptionMsg = e instanceof Error ? e.message : String(e);
       trackError(parsedExceptionMsg, { component: "PayoutAccountsManager", action: "commit_account_registration" });
-      toast.error(`Ledger Handshake Failed: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
+      toast.error(`Couldn't save account: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setBusy(false);
@@ -179,7 +179,7 @@ export function PayoutAccountsManager() {
         action: "assign_primary_flag",
         accountId: targetAccountIdStr,
       });
-      toast.error(`Index Mutation Failed: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
+      toast.error(`Couldn't update: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setBusy(false);
@@ -378,10 +378,10 @@ export function PayoutAccountsManager() {
             <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight">
               <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
                 {method === "paypal"
-                  ? "PayPal Identity Email Identifier *"
+                  ? "PayPal Email *"
                   : method === "bkash"
-                    ? "Mobile bKash Phone Number *"
-                    : "Account Router / IBAN Matrix ID *"}
+                    ? "bKash Phone Number *"
+                    : "Account Number / IBAN *"}
               </Label>
               <Input
                 value={accountNumber}
@@ -392,7 +392,7 @@ export function PayoutAccountsManager() {
                     ? "email@domain.com"
                     : method === "bkash"
                       ? "01XXXXXXXXX"
-                      : "Routing Account String"
+                      : "Account number"
                 }
                 className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block font-mono tracking-wide"
               />
@@ -405,7 +405,7 @@ export function PayoutAccountsManager() {
                 type="button"
                 className="flex-[2] h-10 rounded-xl font-bold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.995] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
               >
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" /> : "Commit Account Vector"}
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" /> : "Save Account"}
               </Button>
               <Button
                 variant="ghost"

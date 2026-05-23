@@ -40,7 +40,7 @@ export default function ProfileVerify() {
   // Logged in `.lovable/known-edge-contract-drift.md`. Replace with real
   // telemetry sink when one is wired up.
   const reportAnomalyToAdmin = async (error: string, context: any) => {
-    console.warn(`[Digital Workforce Anomaly] ${error}`, context);
+    console.warn(`[ProfileVerify] ${error}`, context);
   };
 
   useEffect(() => {

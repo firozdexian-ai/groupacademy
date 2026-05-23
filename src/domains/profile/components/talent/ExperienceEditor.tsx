@@ -227,7 +227,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                           id={`exp-position-node-id-${index}`}
                           value={entryItem.position}
                           onChange={(e) => updateExperienceNodeField(index, "position", e.target.value)}
-                          placeholder="E.g. Senior Backend Cloud Architect"
+                          placeholder="E.g. Senior Software Engineer"
                           className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                         />
                       </div>
@@ -243,7 +243,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                           id={`exp-company-node-id-${index}`}
                           value={entryItem.company}
                           onChange={(e) => updateExperienceNodeField(index, "company", e.target.value)}
-                          placeholder="E.g. Global Distributed Systems Ltd"
+                          placeholder="E.g. Acme Corp"
                           className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                         />
                       </div>

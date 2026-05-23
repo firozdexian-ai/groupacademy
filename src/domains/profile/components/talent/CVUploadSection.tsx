@@ -130,7 +130,7 @@ export function CVUploadSection() {
     // PROTOCOL LOCK: Quantitative Volume Payload Verification Check (Ceiling Standard: 5MB)
     const MAX_CV_BYTE_SIZE_CEILING = 5 * 1024 * 1024;
     if (selectedFileNode.size > MAX_CV_BYTE_SIZE_CEILING) {
-      toast.error("Payload Threshold Exceeded: Max 5MB per file ingestion pass.");
+      toast.error("File too large. Maximum size is 5MB.");
       trackEvent("cv_ingress_size_overflow_intercepted", { fileSize: selectedFileNode.size });
       return;
     }
@@ -218,7 +218,7 @@ export function CVUploadSection() {
 
       if (isMountedRef.current) {
         setUploadProgress(100);
-        toast.success("Identity Matrix Synchronized: Profile variables fully hydrated.");
+        toast.success("CV uploaded. Your profile has been updated.");
       }
     } catch (caughtPipelineExceptionErr: any) {
       clearSyncInterval();

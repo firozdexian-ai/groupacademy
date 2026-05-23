@@ -150,7 +150,7 @@ export function IdentityDocsUpload() {
     } catch (e: any) {
       const parsedExceptionMsg = e instanceof Error ? e.message : String(e);
       trackError(parsedExceptionMsg, { component: "IdentityDocsUpload", action: "commit_identity_docs_pipeline" });
-      toast.error(`Ingress Handshake Failed: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
+      toast.error(`Upload failed: ${parsedExceptionMsg}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setBusy(false);
@@ -192,7 +192,7 @@ export function IdentityDocsUpload() {
           <div className="p-3.5 rounded-xl border border-border/40 bg-background/50 flex items-start justify-between gap-4 w-full min-w-0 leading-none shadow-xs font-bold text-xs">
             <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
               <p className="text-xs font-bold text-foreground/90 uppercase tracking-wide leading-none select-text">
-                {doc.doc_type === "nid" ? "National Identification Card" : "International Passport"}
+                {doc.doc_type === "nid" ? "National ID Card" : "Passport"}
               </p>
               <p className="text-[10px] font-semibold text-muted-foreground/50 tracking-tight leading-none pt-0.5 tabular-nums select-none">
                 Transmission committed on {new Date(doc.created_at).toLocaleDateString()}

@@ -92,10 +92,10 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
       },
       {
         key: "skills",
-        label: "Skill Matrix",
+        label: "Skills",
         icon: Sparkles,
         isComplete: !!(Array.isArray(talent.skills) && talent.skills.length >= 3),
-        action: "Initialize skill matrix (min 3)",
+        action: "Add at least 3 skills",
         priority: 5,
       },
     ];
@@ -284,8 +284,8 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 leading-none w-full">
               <h3 className="font-black text-lg sm:text-xl uppercase italic tracking-wide text-foreground/95 leading-none">
                 {profileComplianceMetrics.percentage >= 100
-                  ? "Identity Alignment Confirmed"
-                  : "Ecosystem System Readiness"}
+                  ? "Profile Complete"
+                  : "Profile Strength"}
               </h3>
               {profileComplianceMetrics.percentage >= 100 && (
                 <Badge
@@ -365,8 +365,8 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
             <Zap className="h-4 w-4 fill-primary-foreground/10 stroke-[2.2] shrink-0 animate-pulse" />
             <span>
               {nextAction
-                ? `Initialize ${nextAction.key.toUpperCase()} Alignment Sync`
-                : "Hydrate Portfolio Identity Elements"}
+                ? `Complete ${nextAction.key.toUpperCase()}`
+                : "Finish your profile"}
             </span>
           </Button>
         )}

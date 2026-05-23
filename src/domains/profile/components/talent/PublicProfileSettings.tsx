@@ -271,7 +271,7 @@ export function PublicProfileSettings() {
                   onClick={onSaveBioProtocol}
                   className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/5 h-7 rounded-xl px-2.5 cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
                 >
-                  {update.isPending ? "Syncing…" : "Save Narrative Bio"}
+                  {update.isPending ? "Saving…" : "Save bio"}
                 </Button>
               </div>
             </div>

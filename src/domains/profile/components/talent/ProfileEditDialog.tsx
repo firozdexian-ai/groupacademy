@@ -109,7 +109,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
   const handleExecutiveSave = async () => {
     const sanitizedFullName = fullName.trim();
     if (!sanitizedFullName) {
-      toast.error("Identity Validation Fault: Full profile name cannot be left blank.");
+      toast.error("Please enter your full name.");
       return;
     }
 
@@ -285,7 +285,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
                       value={customProfession}
                       disabled={isSaving}
                       onChange={(e) => setCustomProfession(e.target.value)}
-                      placeholder="E.g. Principal Cloud Systems Infrastructure Engineer"
+                      placeholder="E.g. Senior Software Engineer"
                       className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                     />
                   </div>

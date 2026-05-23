@@ -244,12 +244,12 @@ export function ApplicationHistoryCard() {
                       <span className="text-xs sm:text-sm font-bold text-foreground/90 uppercase italic tracking-wide truncate text-ellipsis select-text block pr-1 leading-none">
                         {applicationItem.jobTitle
                           ? applicationItem.jobTitle.trim()
-                          : "Unresolved Vocational Placement Openings Title"}
+                          : "Untitled job"}
                       </span>
 
                       <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground/50 uppercase tracking-wider font-mono leading-none pt-0.5 max-w-full">
                         <span className="truncate text-ellipsis block select-text pr-0.5">
-                          {applicationItem.companyName || "Anonymous Host Employer"}
+                          {applicationItem.companyName || "Company"}
                         </span>
                         <span>&bull;</span>
                         <span className="whitespace-nowrap italic text-muted-foreground/40 pl-0.5 shrink-0">

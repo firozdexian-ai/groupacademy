@@ -212,7 +212,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
           className="h-9 px-4 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors gap-1.5 flex items-center justify-center"
         >
           <Camera className="h-4 w-4 stroke-[2.2]" />
-          <span>{previewUrl ? "Update Asset" : "Ingest Identity Profile Token"}</span>
+          <span>{previewUrl ? "Change photo" : "Upload photo"}</span>
         </Button>
 
         {previewUrl && (

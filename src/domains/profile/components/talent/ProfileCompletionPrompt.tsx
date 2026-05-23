@@ -82,7 +82,7 @@ export function ProfileCompletionPrompt({
         key: "experience",
         label: "Professional Ledger",
         icon: Briefcase,
-        action: "Sync Career Trajectory",
+        action: "Add work experience",
         priority: 3,
       });
     }
@@ -92,7 +92,7 @@ export function ProfileCompletionPrompt({
         key: "education",
         label: "Academic Registry",
         icon: GraduationCap,
-        action: "Log Educational Credentials",
+        action: "Add education",
         priority: 4,
       });
     }
@@ -102,7 +102,7 @@ export function ProfileCompletionPrompt({
         key: "skills",
         label: "Skill Matrix",
         icon: Target,
-        action: "Initialize Match Vectors",
+        action: "Add your skills",
         priority: 5,
       });
     }

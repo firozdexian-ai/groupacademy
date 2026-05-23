@@ -100,7 +100,7 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
       }
 
       if (isMountedRef.current) {
-        setError("Ecosystem Handshake Fault: Failed to authenticate session index parameters securely.");
+        setError("We couldn't verify your session. Please sign in again.");
       }
     } finally {
       auditLockBusyRef.current = false;

@@ -196,7 +196,7 @@ export function ServiceHistoryCard() {
                 {/* ELEMENT B: TYPOGRAPHY DESCRIPTION METADATA BOX LAYOUT */}
                 <div className="flex flex-col justify-center leading-none min-w-0 flex-1 text-left space-y-1.5">
                   <span className="text-xs sm:text-sm font-bold text-foreground/90 uppercase italic tracking-wide truncate text-ellipsis select-text block pr-1 leading-none group-hover/item:text-primary transition-colors">
-                    {historyItem.title ? historyItem.title.trim() : "Unresolved Strategic Artifact Reference Node"}
+                    {historyItem.title ? historyItem.title.trim() : "Untitled item"}
                   </span>
 
                   <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground/50 uppercase tracking-wider font-mono leading-none pt-0.5 tabular-nums">

@@ -213,7 +213,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                       id={`edu-institution-node-id-${index}`}
                       value={entryItem.institution}
                       onChange={(e) => updateAcademicNodeField(index, "institution", e.target.value)}
-                      placeholder="E.g. University of Specialized Advanced Science"
+                      placeholder="E.g. University of Dhaka"
                       className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                     />
                   </div>
@@ -246,7 +246,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                         id={`edu-field-node-id-${index}`}
                         value={entryItem.fieldOfStudy}
                         onChange={(e) => updateAcademicNodeField(index, "fieldOfStudy", e.target.value)}
-                        placeholder="E.g. Algorithmic Machine Learning"
+                        placeholder="E.g. Computer Science"
                         className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                       />
                     </div>

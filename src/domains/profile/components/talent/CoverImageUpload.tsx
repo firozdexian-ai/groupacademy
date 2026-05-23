@@ -144,7 +144,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
         {previewUrl ? (
           <img
             src={previewUrl}
-            alt="Ecosystem Profile Cover Visual Sheet Target"
+            alt="Profile cover"
             className="w-full h-full object-cover transition-transform duration-500 ease-out transform group-hover/cover:scale-101 pointer-events-none"
             loading="lazy"
           />
@@ -196,7 +196,7 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
             className="h-9 px-4 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors gap-1.5 flex items-center justify-center"
           >
             <Camera className="h-4 w-4 stroke-[2.2]" />
-            <span>{previewUrl ? "Update Parameter Array" : "Ingest Image Asset"}</span>
+            <span>{previewUrl ? "Change cover" : "Upload cover"}</span>
           </Button>
 
           {previewUrl && (
