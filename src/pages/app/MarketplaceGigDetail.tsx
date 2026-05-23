@@ -245,11 +245,11 @@ export default function MarketplaceGigDetail() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wide">Strategic Narrative</Label>
+                <Label className="text-xs font-bold uppercase tracking-wide">Your pitch</Label>
                 <Textarea
                   value={coverLetterInput}
                   onChange={(e) => setCoverLetterInput(e.target.value)}
-                  placeholder="Your pitch..."
+                  placeholder="Why are you the right fit for this gig?"
                   className="min-h-[150px]"
                 />
               </div>
@@ -263,7 +263,7 @@ export default function MarketplaceGigDetail() {
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                Transmit Proposal
+                Submit proposal
               </Button>
             </Card>
           )}
