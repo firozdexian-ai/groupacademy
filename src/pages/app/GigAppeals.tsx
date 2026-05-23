@@ -106,7 +106,7 @@ export default function GigAppeals() {
                     day: "numeric",
                   })
                   .toUpperCase()
-              : "UNKNOWN REGISTRATION DATE";
+              : "Unknown date";
 
             return (
               <Card
