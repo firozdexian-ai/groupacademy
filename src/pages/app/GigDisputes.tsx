@@ -86,12 +86,11 @@ export default function GigDisputes() {
         <div className="flex items-center gap-2 leading-none w-full block">
           <Scale className="h-4.5 w-4.5 text-primary stroke-[2.2] shrink-0" />
           <h1 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground pt-0.5 block truncate">
-            My Contract Disputes Ledger
+            My disputes
           </h1>
         </div>
         <p className="text-xs sm:text-sm font-semibold text-muted-foreground/60 leading-none block pt-0.5">
-          Track initialized task settlement filings, evaluate resolution status, and review authoritative matrix
-          verdicts.
+          Track your open disputes and review final verdicts.
         </p>
       </header>
 
