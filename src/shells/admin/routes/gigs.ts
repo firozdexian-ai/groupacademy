@@ -16,16 +16,16 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 };
 
 export const TITLES: Record<string, string> = {
-  "gigs-overview": "Gig Economy Overview",
-  "gigs-scoper": "AI Scoper Queue",
-  "gigs-quick-actions": "Quick Action Gigs",
-  "gigs-marketplace": "Marketplace Gigs",
-  "gigs-course-projects": "Course Projects",
-  "gigs-client-projects": "Client Projects",
-  "gigs-managed-projects": "Managed Projects",
-  "gigs-submissions": "Gig Submissions",
-  "gigs-verification": "Verification Queue",
-  "gigs-reviewers": "Reviewer Program",
-  "gigs-matchmaker": "Gig Matchmaker",
-  "gigs-workers-wallet": "Workers Wallet",
+  "gigs-overview": "Gigs overview",
+  "gigs-scoper": "AI scoper queue",
+  "gigs-quick-actions": "Quick action gigs",
+  "gigs-marketplace": "Marketplace gigs",
+  "gigs-course-projects": "Course projects",
+  "gigs-client-projects": "Client projects",
+  "gigs-managed-projects": "Managed projects",
+  "gigs-submissions": "Submissions",
+  "gigs-verification": "Verification queue",
+  "gigs-reviewers": "Reviewer program",
+  "gigs-matchmaker": "Matchmaker",
+  "gigs-workers-wallet": "Workers wallet",
 };
