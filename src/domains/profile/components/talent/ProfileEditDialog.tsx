@@ -115,7 +115,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
 
     setIsSaving(true);
     trackEvent("profile_editor_save_requested");
-    const dynamicToastTrackerId = toast.loading("Synchronizing identity properties across database index ledgers...");
+    const dynamicToastTrackerId = toast.loading("Saving profile…");
 
     try {
       // Pack parameters defensively with explicit cast schema configurations
@@ -141,7 +141,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
       }
 
       if (isMountedRef.current) {
-        toast.success("Identity variables successfully validated down profile rows.", { id: dynamicToastTrackerId });
+        toast.success("Profile saved.", { id: dynamicToastTrackerId });
         trackEvent("profile_editor_save_success");
         onOpenChange(false);
       }
@@ -156,7 +156,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
         action: "commit_profile_editor_save_api",
       });
 
-      toast.error(`Ecosystem write validation error: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
+      toast.error(`Save failed: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setIsSaving(false);
@@ -354,12 +354,12 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
             {isSaving ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                <span>Syncing Ledger Node…</span>
+                <span>Saving…</span>
               </>
             ) : (
               <>
                 <ShieldCheck className="h-4 w-4 stroke-[2.5]" />
-                <span>Authorize Ledger Sync</span>
+                <span>Save profile</span>
               </>
             )}
           </Button>

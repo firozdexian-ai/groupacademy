@@ -68,26 +68,26 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
       },
       {
         key: "cv",
-        label: "Artifact Sync (CV)",
+        label: "Upload CV",
         icon: FileText,
         isComplete: !!talent.cvUrl,
-        action: "Deploy CV artifact",
+        action: "Upload CV",
         priority: 2,
       },
       {
         key: "experience",
-        label: "Professional Ledger",
+        label: "Work experience",
         icon: Briefcase,
         isComplete: !!(Array.isArray(talent.experience) && talent.experience.length > 0),
-        action: "Sync professional history",
+        action: "Add work experience",
         priority: 3,
       },
       {
         key: "education",
-        label: "Academic Registry",
+        label: "Education",
         icon: GraduationCap,
         isComplete: !!(Array.isArray(talent.education) && talent.education.length > 0),
-        action: "Log educational nodes",
+        action: "Add education",
         priority: 4,
       },
       {
@@ -342,7 +342,7 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
                   {checkItem.label}
                 </span>
                 <span className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-wider block leading-none pt-0.5">
-                  {checkItem.isComplete ? "Synchronized Verified" : "Awaiting Ingress"}
+                  {checkItem.isComplete ? "Complete" : "To do"}
                 </span>
               </div>
 

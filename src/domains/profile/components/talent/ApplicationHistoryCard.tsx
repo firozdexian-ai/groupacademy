@@ -195,10 +195,10 @@ export function ApplicationHistoryCard() {
 
             <div className="space-y-1.5 leading-none text-center">
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground/70 leading-none">
-                Pipeline Ledger Vacant
+                No applications yet
               </p>
               <p className="text-[11px] font-semibold text-muted-foreground/40 leading-normal max-w-xs mx-auto italic">
-                No active transmission logs detected. Initialize your professional career trajectory metrics.
+                Apply to your first job to start tracking your applications here.
               </p>
             </div>
 

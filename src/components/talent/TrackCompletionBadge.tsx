@@ -54,7 +54,7 @@ export function TrackCompletionBadge({ count, className }: TrackCompletionBadgeP
         "inline-flex items-center gap-1 px-2 h-5.5 rounded text-[10px] font-extrabold tracking-wide uppercase border border-transparent bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 select-none leading-none shadow-xs shrink-0 cursor-help transform-gpu antialiased font-mono",
         className,
       )}
-      title={`Ingress Record: Mappings verify ${badgingMetricsModel.label.toLowerCase()} successfully committed down profile timeline indices.`}
+      title={`${badgingMetricsModel.label} — verified completion on your profile.`}
     >
       <Layers className="h-3 w-3 stroke-[2.5] shrink-0" />
       <span className="pt-0.5 block">{badgingMetricsModel.label}</span>

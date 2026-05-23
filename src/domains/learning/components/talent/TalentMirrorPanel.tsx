@@ -212,7 +212,7 @@ export function TalentMirrorPanel() {
         <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
           <CardTitle className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-2">
             <Layers className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-            <span>Integrated Specialization Tracks Masteries Ledger</span>
+            <span>Mastery by course</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-3 w-full min-w-0">

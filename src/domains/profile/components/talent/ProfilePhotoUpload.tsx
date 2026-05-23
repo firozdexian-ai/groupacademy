@@ -64,7 +64,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
 
     // VALIDATION PROTOCOL: Image MIME Type Check
     if (!targetedFileItem.type.startsWith("image/")) {
-      toast.error("Format Rejected: Ingress pipeline requires a valid image binary node asset.");
+      toast.error("Please upload a valid image file.");
       trackEvent("profile_photo_invalid_type_intercepted", { fileType: targetedFileItem.type });
       return;
     }
@@ -72,14 +72,14 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
     // VALIDATION PROTOCOL: Quantitative Volume Payload Verification Check (Max 5MB)
     const MAX_AVATAR_BYTE_SIZE_CEILING = 5 * 1024 * 1024;
     if (targetedFileItem.size > MAX_AVATAR_BYTE_SIZE_CEILING) {
-      toast.error("Payload Exceeded: Avatar image binary node configuration must remain < 5MB.");
+      toast.error("Image must be smaller than 5MB.");
       trackEvent("profile_photo_size_overflow_intercepted", { fileSize: targetedFileItem.size });
       return;
     }
 
     setIsUploading(true);
     trackEvent("profile_photo_upload_initiated");
-    const dynamicToastTrackerId = toast.loading("Synchronizing avatar binary asset with storage registry index...");
+    const dynamicToastTrackerId = toast.loading("Uploading photo…");
 
     try {
       const fileExtensionString = targetedFileItem.name.split(".").pop();
@@ -104,7 +104,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
       if (isMountedRef.current) {
         setPreviewUrl(publicUrl);
         onPhotoChange(publicUrl);
-        toast.success("Identity visual token successfully validated down profile rows.", { id: dynamicToastTrackerId });
+        toast.success("Profile photo updated.", { id: dynamicToastTrackerId });
         trackEvent("profile_photo_upload_success");
       }
     } catch (caughtPipelineExceptionErr: any) {
@@ -118,7 +118,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
         action: "commit_profile_photo_storage_ingress_api",
       });
 
-      toast.error(`Ecosystem validation error: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
+      toast.error(`Upload failed: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setIsUploading(false);
@@ -131,7 +131,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
 
   const handleTermination = async () => {
     trackEvent("profile_photo_purge_requested");
-    const dynamicToastTrackerId = toast.loading("Purging asset coefficients from registry indices...");
+    const dynamicToastTrackerId = toast.loading("Removing photo…");
 
     try {
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
@@ -140,11 +140,11 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
       if (isMountedRef.current) {
         setPreviewUrl(null);
         onPhotoChange(null);
-        toast.success("Identity photo path successfully expunged.", { id: dynamicToastTrackerId });
+        toast.success("Profile photo removed.", { id: dynamicToastTrackerId });
       }
     } catch (err) {
       trackError(err, { component: "ProfilePhotoUpload", action: "execute_photo_purge_callback" });
-      toast.error("Ecosystem sync exception: Failed to flush indices.", { id: dynamicToastTrackerId });
+      toast.error("Failed to remove photo. Please try again.", { id: dynamicToastTrackerId });
     }
   };
 

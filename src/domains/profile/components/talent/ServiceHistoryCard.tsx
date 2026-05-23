@@ -126,7 +126,7 @@ export function ServiceHistoryCard() {
         <CardContent className="p-5 py-10 flex flex-col items-center justify-center gap-3 w-full">
           <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
           <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary italic animate-pulse leading-none">
-            Synchronizing historical pipeline records…
+            Loading your service history…
           </p>
         </CardContent>
       </Card>
@@ -140,7 +140,7 @@ export function ServiceHistoryCard() {
           <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.5] mt-0.5" />
           <div className="space-y-1.5 flex-1 min-w-0">
             <p className="text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400 select-none leading-none">
-              Ecosystem Ingress Sync Fault
+              Couldn't load history
             </p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 max-w-full break-words leading-normal font-mono pr-1">
               {queryHistoryError.message}

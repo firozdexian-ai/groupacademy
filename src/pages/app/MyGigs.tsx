@@ -38,9 +38,7 @@ interface ContractRecord {
 }
 
 /**
- * GroUp Academy: Gig Lifecycle Controller (MyGigs)
- * Hardened responsive workspace for bid management, deliverable handshakes, and reputation ledger.
- * Version: Launch Candidate · Phase Z1 Production Contract Locked
+ * My Gigs — manage proposals, active contracts, and delivered work.
  */
 export default function MyGigs() {
   const { talent } = useTalent();
@@ -84,8 +82,8 @@ export default function MyGigs() {
   return (
     <div className={cn(PAGE_SHELL, "max-w-4xl mx-auto py-10 space-y-8")}>
       <header className="space-y-1">
-        <h1 className={PAGE_TITLE}>Output Hub</h1>
-        <p className={PAGE_SUBTITLE}>Professional pipeline management & deliverable handshakes.</p>
+        <h1 className={PAGE_TITLE}>My Gigs</h1>
+        <p className={PAGE_SUBTITLE}>Track your proposals, active gigs, and delivered work.</p>
       </header>
 
       <Tabs defaultValue="bids" className="w-full">

@@ -103,10 +103,10 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
       <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 select-none w-full leading-none shrink-0 h-8">
         <Label className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
           <Target className="h-4 w-4 text-primary stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Core Vector Skill Matrix</span>
+          <span>Your skills</span>
         </Label>
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-          Initialize and map semantic match-vectors to authorize neural global job matching discovery tracks
+          Add skills so we can match you with better jobs and gigs.
         </p>
       </div>
 
@@ -116,7 +116,7 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
           <Input
             value={inputValue}
             onKeyDown={handleTerminalInputKeyDown}
-            placeholder="INPUT TECHNICAL PROFICIENCY ID (E.G. REACT, PYTHON, DEVOPS)..."
+            placeholder="Add a skill (e.g. React, Python, DevOps)…"
             onChange={(e) => setInputValue(e.target.value)}
             className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground pl-9 pr-3 shadow-inner w-full block focus-visible:ring-1 focus-visible:ring-ring select-text uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-medium placeholder:text-muted-foreground/30"
           />
@@ -128,7 +128,7 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
           onClick={addSkillNode}
           disabled={!inputValue.trim()}
           className="h-10 w-10 rounded-xl border border-border/60 text-muted-foreground font-bold hover:text-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transform-gpu active:scale-95 transition-transform flex items-center justify-center p-0"
-          title="Append verified proficiency node down matrix look-up array"
+          title="Add skill"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
         </Button>
@@ -141,7 +141,7 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
           <div className="flex flex-col items-center justify-center gap-2 py-4 mx-auto opacity-40 text-center select-none tracking-normal font-bold text-[10px] text-muted-foreground leading-none">
             <Sparkles className="h-5 w-5 stroke-[2.2] animate-pulse text-muted-foreground/60" />
             <p className="font-mono uppercase tracking-wider block leading-none pt-0.5">
-              Matrix Vector Fields Awaiting Data Ingress
+              No skills added yet
             </p>
           </div>
         ) : (
