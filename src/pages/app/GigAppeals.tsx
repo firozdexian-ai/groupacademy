@@ -66,8 +66,7 @@ export default function GigAppeals() {
           </h1>
         </div>
         <p className="text-xs sm:text-sm font-semibold text-muted-foreground/60 leading-none block pt-0.5">
-          Track individual submitted verification disputes, analyze procedural milestones, and review automated AI
-          verdict indexes.
+          Track your verification appeals and review the latest verdicts.
         </p>
       </header>
 
