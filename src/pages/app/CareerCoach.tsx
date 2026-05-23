@@ -90,7 +90,7 @@ export default function CareerCoach() {
           }
         }
       } catch (fatalHandshakeException) {
-        console.error("Critical Coach Telemetry Assignment Loop Exception:", fatalHandshakeException);
+        console.error("[career-coach] Failed to load coach:", fatalHandshakeException);
       } finally {
         if (isThreadActive) {
           setIsCoachCacheResolving(false);
@@ -140,18 +140,18 @@ export default function CareerCoach() {
   const contextStarterChips = React.useMemo<StarterChipConfig[]>(() => {
     return [
       {
-        label: "Plan My Next 30 Days",
-        prompt: `Build me an authoritative, milestone-oriented 30-day execution plan to ${resolvedGoalLabelStr || "advance my operational positioning boundaries"} safely.`,
+        label: "Plan my next 30 days",
+        prompt: `Build me a clear, milestone-based 30-day plan to ${resolvedGoalLabelStr || "move forward in my career"}.`,
       },
       {
-        label: "Audit My CV Architecture",
+        label: "Review my CV",
         prompt:
-          "Perform a structural code review on my current CV document and isolate 3 critical optimization refactors.",
+          "Review my current CV and give me the 3 most important changes to make.",
       },
       {
-        label: "Target Open Market Roles",
+        label: "Find roles for me",
         prompt:
-          "Identify targeted organizational placement opportunities suited to my skill metrics, along with an entry rationale map.",
+          "Identify open roles that match my skills and explain why each is a fit.",
       },
       {
         label: "Isolate High-Value Competencies",

@@ -26,12 +26,12 @@ interface ProcessingStage {
 }
 
 const ASSESSMENT_PROCESSING_STAGES: ProcessingStage[] = [
-  { progress: 0, message: "Connecting Secure Node..." },
-  { progress: 15, message: "Parsing Logic Artifacts..." },
-  { progress: 35, message: "AI Evaluation Run In Progress..." },
-  { progress: 55, message: "Mapping Competency Gap Vectors..." },
-  { progress: 75, message: "Compiling Executive Report Summary..." },
-  { progress: 90, message: "Committing Data Ledger Maps..." },
+  { progress: 0, message: "Connecting..." },
+  { progress: 15, message: "Reading your answers..." },
+  { progress: 35, message: "Running AI analysis..." },
+  { progress: 55, message: "Mapping your skill gaps..." },
+  { progress: 75, message: "Compiling your report..." },
+  { progress: 90, message: "Saving results..." },
 ];
 
 const STEP_PROGRESS: Record<AssessmentStep, number> = {
@@ -133,9 +133,9 @@ export default function AppCareerAssessment() {
       const isCreditHandshakeSettled = await deductCredits(
         "CAREER_ASSESSMENT",
         undefined,
-        "Career Assessment Diagnostic Evaluation",
+        "Career assessment",
       );
-      if (!isCreditHandshakeSettled) throw new Error("Credit transaction verification loop timeout.");
+      if (!isCreditHandshakeSettled) throw new Error("Couldn't process credits.");
 
       const edgeFunctionResponseData: any = await analyzeCareerAssessment({
         answers: accumulatedAnswersState,

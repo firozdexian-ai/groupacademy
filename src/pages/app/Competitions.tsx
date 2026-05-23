@@ -296,9 +296,9 @@ export default function Competitions() {
         <div className="block w-full">
           <EmptyState
             icon={Trophy}
-            title="Arena Ledger Vacuum"
-            description="No active capability screening tournaments matches are current registered under this criteria sort."
-            action={{ label: "Purge Filtering Parameters Mappings", onClick: handlePurgeFilterCriteria }}
+            title="No competitions found"
+            description="No active competitions match your current filters."
+            action={{ label: "Clear filters", onClick: handlePurgeFilterCriteria }}
           />
         </div>
       )}

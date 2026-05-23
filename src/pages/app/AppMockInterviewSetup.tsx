@@ -169,7 +169,7 @@ export default function AppMockInterviewSetup() {
       } catch (pipelineException: any) {
         clearTimeout(networkSchedulingTimerToken);
         if (pipelineException?.name !== "AbortError") {
-          console.error("Diagnostic Failure: Categories Load Exception:", pipelineException);
+          console.error("[mock-interview] Failed to load categories:", pipelineException);
         }
       }
     };
@@ -187,10 +187,10 @@ export default function AppMockInterviewSetup() {
   const handleTransactionRefundSequence = React.useCallback(async () => {
     if (!talentProfileNode?.id) return;
     try {
-      await addCredits(MOCK_INTERVIEW_COST, "refund", "Refund: automated interview model generation timeline failure");
-      toast.info("Wallet allocations successfully refunded onto your balance.");
+      await addCredits(MOCK_INTERVIEW_COST, "refund", "Refund: mock interview generation failed");
+      toast.info("Credits refunded to your wallet.");
     } catch (suppressedRefundException) {
-      console.error("Critical Refund Pipeline Blockage Exception:", suppressedRefundException);
+      console.error("[mock-interview] Refund failed:", suppressedRefundException);
     }
   }, [talentProfileNode?.id, addCredits]);
 
