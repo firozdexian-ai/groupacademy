@@ -417,7 +417,7 @@ export default function Gigs() {
             ) : filteredCourseProjectsList.length === 0 ? (
               <Card className="rounded-lg border border-dashed border-border/80 bg-muted/5 p-8 text-center select-none block w-full shadow-none pointer-events-none">
                 <CardContent className="p-0 text-xs font-semibold text-muted-foreground/40 leading-normal block">
-                  No open course curriculum build projects match active parameter criteria maps.
+                  No open course gigs match your search.
                 </CardContent>
               </Card>
             ) : (
