@@ -313,20 +313,20 @@ export default function Gigs() {
             value="course"
             className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <BookOpen className="h-3.5 w-3.5 stroke-[2]" /> <span>Course Bundle</span>
+            <BookOpen className="h-3.5 w-3.5 stroke-[2]" /> <span>Course gigs</span>
           </TabsTrigger>
           <TabsTrigger
             value="client"
             className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Briefcase className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">Client Market</span>
+            <Briefcase className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">Client work</span>
             <span className="sm:hidden">Client</span>
           </TabsTrigger>
           <TabsTrigger
             value="work"
             className="rounded-md font-mono text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide h-8 cursor-pointer outline-none pt-0.5 gap-1.5"
           >
-            <Activity className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">My Activity</span>
+            <Activity className="h-3.5 w-3.5 stroke-[2]" /> <span className="hidden sm:inline">My activity</span>
             <span className="sm:hidden">Mine</span>
           </TabsTrigger>
         </TabsList>
