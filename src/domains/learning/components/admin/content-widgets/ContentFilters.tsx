@@ -122,7 +122,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
           </SelectTrigger>
           <SelectContent className="rounded-xl border-2 shadow-2xl">
             <SelectItem value="all" className="font-bold uppercase text-[9px]">
-              Global Protocol
+              All
             </SelectItem>
             {programs.map((p) => (
               <SelectItem key={p.id} value={p.id} className="font-bold">

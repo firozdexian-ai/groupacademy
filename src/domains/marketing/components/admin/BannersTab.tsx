@@ -168,7 +168,7 @@ export const BannerManager = () => {
   const handlePurgeArtifact = async (bannerId: string) => {
     if (!confirm("Authorize permanent artifact purge?")) return;
     try {
-      await withTimeout(deleteBannerRepo(bannerId), TIMEOUTS.DEFAULT, "Purge Protocol Timeout");
+      await withTimeout(deleteBannerRepo(bannerId), TIMEOUTS.DEFAULT, "Delete timed out");
       toast.success("Artifact Purged from Registry");
       loadRegistryData();
     } catch (error: any) {
@@ -240,7 +240,7 @@ export const BannerManager = () => {
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-2">
                       <SelectItem value="none" className="font-bold uppercase text-[10px]">
-                        No Link Protocol
+                        No link
                       </SelectItem>
                       {availableContent.map((c) => (
                         <SelectItem key={c.id} value={c.id} className="font-bold">
@@ -426,7 +426,7 @@ export const BannerManager = () => {
         </CardContent>
       </Card>
 
-      {/* Registry Ledger */}
+      {/* Banners */}
       <Card className="rounded-[40px] border-2 border-border/40 bg-card/10 backdrop-blur-sm overflow-hidden shadow-sm">
         <CardHeader className="p-8 bg-muted/20 border-b border-border/10 flex flex-row items-center justify-between">
           <div className="space-y-1">

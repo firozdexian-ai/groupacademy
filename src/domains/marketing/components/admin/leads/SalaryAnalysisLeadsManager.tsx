@@ -207,7 +207,7 @@ export const SalaryAnalysisLeadsManager = () => {
                 <TableHead className="font-black uppercase text-[10px] tracking-widest py-6 pl-8">Lead Node</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest">Target Role</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest">Structural Class</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest">Protocol Status</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest">Deployment</TableHead>
                 <TableHead className="text-right py-6 pr-8"></TableHead>
               </TableRow>

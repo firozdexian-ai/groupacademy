@@ -315,7 +315,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
                 disabled={!jsonInput.trim()}
                 className="w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20"
               >
-                Authorize Ingestion Protocol
+                Upload
               </Button>
             </CardContent>
           </Card>

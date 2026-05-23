@@ -164,7 +164,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
 
       qc.invalidateQueries({ queryKey: ["ir-email-communications"] });
 
-      toast.success("Protocol Registered: Opening mail client.", { id: toastId });
+      toast.success("Opening mail client…", { id: toastId });
       setSubject("");
       setBody("");
     } catch (error: any) {

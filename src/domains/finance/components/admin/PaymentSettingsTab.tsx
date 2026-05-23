@@ -96,7 +96,7 @@ export function PaymentInfraTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platform-settings-payment"] });
       queryClient.invalidateQueries({ queryKey: ["payment-config"] });
-      toast.success("Payment Protocol Authenticated & Saved");
+      toast.success("Payment settings saved");
     },
     onError: () => toast.error("Failed to commit settings"),
   });
@@ -236,9 +236,9 @@ export function PaymentInfraTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-2 font-bold">
-                    <SelectItem value="whatsapp">WhatsApp Protocol Only</SelectItem>
-                    <SelectItem value="stripe">Stripe Protocol Only</SelectItem>
-                    <SelectItem value="both">Dual Protocol (WhatsApp + Stripe)</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp only</SelectItem>
+                    <SelectItem value="stripe">Stripe only</SelectItem>
+                    <SelectItem value="both">Both (WhatsApp + Stripe)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

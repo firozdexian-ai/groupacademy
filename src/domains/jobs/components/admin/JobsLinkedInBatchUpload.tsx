@@ -333,7 +333,7 @@ export function JobsLinkedInBatchUpload({
                   Registry Ingestion
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
-                  Authorized LinkedIn Payload Synchronizer v2.6
+                  LinkedIn bulk upload
                 </DialogDescription>
               </div>
             </div>

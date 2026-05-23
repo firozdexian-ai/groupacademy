@@ -66,7 +66,7 @@ export function useHrGraph() {
       mutationFn: async (p: Record<string, any>) => upsertGraphRow(table, p),
       onSuccess: () => {
         invalidate();
-        toast.success(`${label} Synchronized`);
+        toast.success(`${label} saved`);
       },
     });
   const makeDelete = (table: string, label: string) =>

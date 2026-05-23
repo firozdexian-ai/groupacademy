@@ -409,7 +409,7 @@ export function InvestorsManager() {
                     Identity Deployment
                   </DialogTitle>
                   <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/60">
-                    Synchronize stakeholder parameters and authority levels
+                    Update investor details
                   </DialogDescription>
                 </div>
               </div>
@@ -529,7 +529,7 @@ export function InvestorsManager() {
               onClick={() => setDialogOpen(false)}
               className="h-14 px-8 rounded-xl border-2 font-black uppercase text-[10px]"
             >
-              Abort Protocol
+              Cancel
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}

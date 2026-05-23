@@ -399,7 +399,7 @@ export function TalentCreditsTab() {
                       {selectedTab === "balances" ? "Logic Endpoint" : "Target Entity"}
                     </TableHead>
                     <TableHead className="text-[10px] font-black uppercase tracking-widest">
-                      {selectedTab === "balances" ? "Current Liquidity" : "Protocol Type"}
+                      {selectedTab === "balances" ? "Current balance" : "Type"}
                     </TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
                       Interrogate
@@ -568,7 +568,7 @@ export function TalentCreditsTab() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                  Protocol Value (Tokens)
+                  Amount (credits)
                 </Label>
                 <Input
                   type="number"

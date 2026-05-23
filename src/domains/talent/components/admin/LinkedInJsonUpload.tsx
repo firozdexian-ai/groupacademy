@@ -175,7 +175,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
 
     setImporting(false);
     setImportResult(stats);
-    toast.success("Ingestion Protocol Finalized");
+    toast.success("Import complete");
     onComplete?.();
   };
 
@@ -309,9 +309,9 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
               <ShieldCheck className="w-10 h-10 text-white" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-3xl font-black uppercase tracking-tighter italic">Registry Synchronized</h3>
+              <h3 className="text-3xl font-black uppercase tracking-tighter italic">Import complete</h3>
               <p className="text-xs font-bold text-emerald-600/60 uppercase tracking-widest">
-                Protocol finalized: {fileName}
+                Imported: {fileName}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-4">

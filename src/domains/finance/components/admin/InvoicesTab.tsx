@@ -233,8 +233,8 @@ export function InvoicesTab() {
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-right">
                       Bundle Payload
                     </TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Status Protocol</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Ingress Date</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Date</TableHead>
                     <TableHead className="text-right py-6 pr-8"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -490,7 +490,7 @@ function ApproveDialog({ open, onOpenChange, invoice, onDone }: any) {
         paymentProofUrl: proofUrl,
         adminNotes: notes || null,
       });
-      if (!result?.success) throw new Error(result?.error || "Protocol Rejected");
+      if (!result?.success) throw new Error(result?.error || "Request rejected");
       toast.success(`Success: ${result.credits_added} Credits Disbursed`, { id: toastId });
       onDone();
     } catch (err: any) {
@@ -586,7 +586,7 @@ function CancelDialog({ open, onOpenChange, invoice, onDone }: any) {
     setSubmitting(true);
     try {
       await cancelInvoice({ invoiceId: invoice.id, reason: reason || null });
-      toast.success("Identity Protocol Terminated");
+      toast.success("Invoice deleted");
       onDone();
     } catch (err: any) {
       toast.error("Fault: " + err.message);

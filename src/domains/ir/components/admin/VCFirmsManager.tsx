@@ -213,7 +213,7 @@ export function VCFirmsManager() {
                     >
                       <div className="flex flex-col items-center gap-4">
                         <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                        Synchronizing institutional nodes...
+                        Loading…
                       </div>
                     </TableCell>
                   </TableRow>
@@ -366,7 +366,7 @@ export function VCFirmsManager() {
                     Identity Deployment
                   </DialogTitle>
                   <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic text-muted-foreground/60">
-                    Synchronize institutional parameters and authority levels
+                    Update firm details
                   </DialogDescription>
                 </div>
               </div>
@@ -504,7 +504,7 @@ export function VCFirmsManager() {
                 onClick={() => setDialogOpen(false)}
                 className="h-14 px-8 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest italic text-muted-foreground hover:text-foreground transition-colors"
               >
-                Abort Protocol
+                Cancel
               </Button>
               <Button
                 onClick={() => saveMutation.mutate()}
@@ -516,7 +516,7 @@ export function VCFirmsManager() {
                 ) : (
                   <ShieldCheck className="h-5 w-5 fill-current" />
                 )}
-                {saveMutation.isPending ? "Syncing..." : "Authorize Deployment"}
+                {saveMutation.isPending ? "Saving…" : "Authorize Deployment"}
               </Button>
             </DialogFooter>
           </div>

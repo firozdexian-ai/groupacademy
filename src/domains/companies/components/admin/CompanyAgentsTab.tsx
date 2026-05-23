@@ -430,7 +430,7 @@ export function CompanyAgentsManager() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                        Expertise Matrix
+                        Expertise
                       </Label>
                       <Input
                         placeholder="Comma-separated domains..."
@@ -571,7 +571,7 @@ export function CompanyAgentsManager() {
                   ) : (
                     <ShieldCheck className="mr-2 h-4 w-4" />
                   )}
-                  {createAgentMutation.isPending ? "Syncing..." : "Authorize Creation"}
+                  {createAgentMutation.isPending ? "Saving…" : "Authorize Creation"}
                 </Button>
               </DialogFooter>
             </div>
@@ -889,7 +889,7 @@ export function CompanyAgentsManager() {
             Partnership Terminal: Authorized Access Only
           </p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-            Protocol: B2B Intel Registry v2.6.4
+            B2B contacts
           </p>
         </div>
         <div className="flex gap-2">

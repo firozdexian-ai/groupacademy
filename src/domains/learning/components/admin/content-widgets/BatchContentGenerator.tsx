@@ -334,7 +334,7 @@ export function BatchContentGenerator() {
         if (!generator.needsSchool) break;
         await new Promise((r) => setTimeout(r, 3000));
       } catch (err: any) {
-        addLog(`❌ Protocol Fault: ${err.message}`);
+        addLog(`❌ Error: ${err.message}`);
         await new Promise((r) => setTimeout(r, 5000));
       }
     }
@@ -582,7 +582,7 @@ export function BatchContentGenerator() {
                           <Eye className="h-6 w-6 text-primary" /> Review Registry
                         </h4>
                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest italic">
-                          {drafts.length} Unverified Artifacts Awaiting Handshake
+                          {drafts.length} drafts awaiting review
                         </p>
                       </div>
                     </div>
@@ -661,7 +661,7 @@ export function BatchContentGenerator() {
                     Autonomous Content Factory v2.6.4
                   </p>
                   <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                    Core: Neural Synchronization Active
+                    AI generation active
                   </p>
                 </div>
                 <div className="flex gap-2">

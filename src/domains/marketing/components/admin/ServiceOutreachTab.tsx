@@ -33,7 +33,7 @@ import {
 
 /**
  * Platform Logic: Service Outreach & Attribution Manager
- * 2026 Standard: Blended Phase 6 UI (Registry Ledger + Distribution Engine)
+ * 2026 Standard: Blended Phase 6 UI (Banners + Distribution Engine)
  */
 
 interface ServiceConfig {

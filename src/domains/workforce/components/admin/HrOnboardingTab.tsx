@@ -112,7 +112,7 @@ export function HrOnboardingTab() {
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
             <ClipboardList className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Onboarding Protocol</h2>
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Onboarding</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
             Deployment Checklists & Orientation Cluster
@@ -132,7 +132,7 @@ export function HrOnboardingTab() {
       {/* W9: Operational Tabs */}
       <div className="flex flex-wrap gap-3 p-1.5 bg-muted/20 rounded-2xl border-2 border-border/40 w-fit">
         <TabBtn
-          label="Active Protocols"
+          label="Active onboardings"
           count={stats.pending}
           active={activeTab === "pending"}
           onClick={() => setActiveTab("pending")}
@@ -261,7 +261,7 @@ export function HrOnboardingTab() {
           <div className="h-2 w-full bg-primary" />
           <div className="p-10 space-y-6 text-left">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black uppercase italic">Protocol Injection</DialogTitle>
+              <DialogTitle className="text-2xl font-black uppercase italic">New onboarding</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -295,7 +295,7 @@ export function HrOnboardingTab() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase ml-1">Protocol Deadline</Label>
+                  <Label className="text-[10px] font-black uppercase ml-1">Deadline</Label>
                   <Input
                     type="date"
                     value={draft.due_date || ""}

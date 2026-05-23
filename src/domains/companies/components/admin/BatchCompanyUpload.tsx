@@ -241,7 +241,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
                   Registry Ingestion
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
-                  Authorized Bulk Synchronization Node v2.6
+                  Bulk company upload
                 </DialogDescription>
               </div>
             </div>

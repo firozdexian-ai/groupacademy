@@ -537,7 +537,7 @@ function PurgeAlert({ targetId, onOpenChange, onConfirm }: any) {
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-8 gap-3">
           <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px] flex-1">
-            Abort Protocol
+            Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}

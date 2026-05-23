@@ -38,7 +38,7 @@ import {
 
 /**
  * Platform Logic: CV Intelligence Terminal & Outreach Ledger
- * 2026 Standard: Blended Phase 6 UI (Registry Ledger + AI Parsing Engine)
+ * 2026 Standard: Blended Phase 6 UI (Banners + AI Parsing Engine)
  */
 
 export function TalentOutreachTab() {

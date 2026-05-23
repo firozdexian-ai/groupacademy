@@ -127,7 +127,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
                   Log Interaction
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
-                  Synchronize meeting artifacts and investor sentiment
+                  Log meeting details
                 </DialogDescription>
               </div>
             </div>
@@ -138,7 +138,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Interaction Protocol
+                    Interaction
                   </Label>
                   <Select
                     value={formData.interaction_type}
@@ -269,7 +269,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
                     htmlFor="followup"
                     className="text-[10px] font-black uppercase italic tracking-widest cursor-pointer"
                   >
-                    Follow-up Protocol Required
+                    Follow-up required
                   </Label>
                 </div>
 
@@ -304,7 +304,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
             ) : (
               <ShieldCheck className="h-5 w-5 fill-current" />
             )}
-            {saveMutation.isPending ? "Syncing..." : "Synchronize Interaction"}
+            {saveMutation.isPending ? "Saving…" : "Save interaction"}
           </Button>
         </DialogFooter>
       </DialogContent>

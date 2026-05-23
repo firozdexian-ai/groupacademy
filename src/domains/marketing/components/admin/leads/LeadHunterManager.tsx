@@ -561,7 +561,7 @@ export function LeadHunterManager() {
                   className="h-14 px-12 rounded-2xl bg-primary font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 gap-3 text-white"
                 >
                   {isSearching ? <Loader2 className="animate-spin h-5 w-5" /> : <Target className="h-5 w-5" />} Launch
-                  Extraction Protocol
+                  Extract
                 </Button>
               </DialogFooter>
             </div>

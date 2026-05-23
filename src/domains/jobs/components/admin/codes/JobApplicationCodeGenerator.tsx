@@ -82,7 +82,7 @@ export function JobApplicationCodeGenerator() {
       }
 
       setGeneratedCodes(codes);
-      toast.success(`Handshake Complete: ${codes.length} keys synthesized`);
+      toast.success(`Done: ${codes.length} keys synthesized`);
     } catch (error: any) {
       console.error("Synthesis Error:", error);
       toast.error(error.message || "Credential Synthesis Failed");
@@ -125,7 +125,7 @@ export function JobApplicationCodeGenerator() {
               Credential Synthesis
             </CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic">
-              Authorization Key Generation Protocol — Batch Limit: 20 Keys
+              Generate up to 20 access codes
             </CardDescription>
           </div>
         </div>
@@ -226,7 +226,7 @@ export function JobApplicationCodeGenerator() {
             <div className="flex items-center gap-2 opacity-20 pt-4">
               <Terminal className="h-3 w-3" />
               <span className="text-[8px] font-black uppercase tracking-widest">
-                Protocol: Verified Batch Synchronization Complete
+                Codes generated
               </span>
             </div>
           </div>

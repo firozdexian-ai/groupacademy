@@ -43,7 +43,7 @@ import {
 
 /**
  * Platform Logic: Market Penetration Terminal (Content Outreach)
- * 2026 Standard: Blended Phase 6 UI (Registry Ledger + Distribution Engine)
+ * 2026 Standard: Blended Phase 6 UI (Banners + Distribution Engine)
  */
 
 interface Content {
@@ -168,7 +168,7 @@ export function ContentOutreachTab() {
     setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
     try {
       await insertContentShareLog({ contentId: selectedContent.id, channel });
-      toast.success(`Protocol Logged: Shared via ${channel}`);
+      toast.success(`Shared via ${channel}`);
     } catch {
       setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
       toast.error("Log Fault: Distribution update failed");
@@ -290,7 +290,7 @@ export function ContentOutreachTab() {
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                Audience Filter Protocol
+                Audience filter
               </Label>
               <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
                 <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
@@ -298,10 +298,10 @@ export function ContentOutreachTab() {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-2">
                   <SelectItem value="not_pitched" className="font-bold text-[10px] uppercase">
-                    Protocol: Zero Pitch Nodes
+                    Skip-pitched leads
                   </SelectItem>
                   <SelectItem value="all" className="font-bold text-[10px] uppercase">
-                    Protocol: Global Talent Pool
+                    All talents
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -342,7 +342,7 @@ export function ContentOutreachTab() {
                     Broad Distribution Node
                   </DialogTitle>
                   <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                    Mass Artifact Promotion Protocols
+                    Bulk promotion
                   </DialogDescription>
                 </div>
               </div>
