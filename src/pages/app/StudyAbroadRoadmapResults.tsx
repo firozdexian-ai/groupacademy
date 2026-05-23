@@ -116,9 +116,9 @@ export default function StudyAbroadRoadmapResults() {
     return (
       <div className="max-w-2xl mx-auto py-20 text-center">
         <AlertCircle className="h-16 w-16 text-destructive/40 mx-auto mb-8" />
-        <h3 className="text-3xl font-black uppercase tracking-tighter italic">Synthesis Interrupted</h3>
+        <h3 className="text-3xl font-black uppercase tracking-tighter italic">Roadmap generation failed</h3>
         <Button onClick={() => navigate("/app/abroad/roadmap")} className="mt-8 rounded-xl">
-          Restart Sequence
+          Try again
         </Button>
       </div>
     );
@@ -132,21 +132,21 @@ export default function StudyAbroadRoadmapResults() {
           <ArrowLeft className="h-6 w-6 text-primary" />
         </Button>
         <div className="space-y-0.5">
-          <h1 className={PAGE_TITLE}>Strategic Roadmap</h1>
+          <h1 className={PAGE_TITLE}>Your roadmap</h1>
           <p className={PAGE_SUBTITLE}>
-            {roadmap.degree_level} in {roadmap.field_of_study || "Generic Field"}
+            {roadmap.degree_level} in {roadmap.field_of_study || "your chosen field"}
           </p>
         </div>
       </header>
 
-      {/* Logic Matrix */}
+      {/* Readiness summary */}
       <Card className={cn(CARD, "relative overflow-hidden")}>
         <CardHeader className="p-10 border-b bg-muted/20">
-          <CardTitle className="text-3xl font-black uppercase italic">Readiness Matrix</CardTitle>
+          <CardTitle className="text-3xl font-black uppercase italic">Your readiness</CardTitle>
         </CardHeader>
         <CardContent className="p-10 grid md:grid-cols-2 gap-12">
           <div className="space-y-6">
-            <h4 className={SECTION_TITLE}>Competitive Assets</h4>
+            <h4 className={SECTION_TITLE}>Your strengths</h4>
             {res.profileSummary.strengths.map((s, i) => (
               <div
                 key={i}
@@ -157,7 +157,7 @@ export default function StudyAbroadRoadmapResults() {
             ))}
           </div>
           <div className="space-y-6">
-            <h4 className={SECTION_TITLE}>Logic Setup Req'd</h4>
+            <h4 className={SECTION_TITLE}>Gaps to close</h4>
             {res.profileSummary.gaps.map((g, i) => (
               <div
                 key={i}
@@ -173,16 +173,16 @@ export default function StudyAbroadRoadmapResults() {
       <Tabs defaultValue="universities" className="w-full space-y-8">
         <TabsList className="grid w-full grid-cols-4 h-16 bg-muted/30 rounded-[32px] p-1.5 shadow-xl">
           <TabsTrigger value="universities" className="rounded-xl font-black text-[9px] uppercase tracking-widest">
-            Artifacts
+            Universities
           </TabsTrigger>
           <TabsTrigger value="timeline" className="rounded-xl font-black text-[9px] uppercase tracking-widest">
-            Temporal
+            Timeline
           </TabsTrigger>
           <TabsTrigger value="documents" className="rounded-xl font-black text-[9px] uppercase tracking-widest">
-            Payload
+            Documents
           </TabsTrigger>
           <TabsTrigger value="budget" className="rounded-xl font-black text-[9px] uppercase tracking-widest">
-            Ledger
+            Budget
           </TabsTrigger>
         </TabsList>
 

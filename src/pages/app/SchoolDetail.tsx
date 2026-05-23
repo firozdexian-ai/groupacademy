@@ -167,7 +167,7 @@ export default function SchoolDetail() {
 
       <div className="space-y-6">
         <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-          Specialized Nodes
+          Career tracks at this school
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {professions.map((profession) => {
@@ -221,7 +221,7 @@ export default function SchoolDetail() {
       <Dialog open={!!openProfession} onOpenChange={(o) => !o && setOpenProfession(null)}>
         <DialogContent className="rounded-[32px] border-2 border-border/40">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tighter italic">Connect Node</DialogTitle>
+            <DialogTitle className="font-black uppercase tracking-tighter italic">Request a connection</DialogTitle>
           </DialogHeader>
           <Textarea
             value={message}
