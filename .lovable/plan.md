@@ -1,120 +1,58 @@
+# Phase 2 — Surface-Batched Jargon Cleanup
 
-# v0.5 Jargon Sweep — Plan
+Picking up from Phase 1 (33 user-blocking fixes across 7 shared files). Remaining: **91 T1 + 186 T2 = 277 hits** in talent surfaces.
 
-**Goal:** Find and fix every embarrassing, user-visible "tech-jargon" string across the talent app before Nov 28, without spending 6 days on it.
+Phase 2 batches the rest by **user surface** so each batch is independently reviewable, ships a coherent UX improvement, and can be cut from v0.5 if Nov 28 slips.
 
-**Scope of v0.5 sweep:** Talent surfaces only — `src/pages/app/**`, `src/domains/**/components/talent/**`, `src/components/**` (shared UI). **Admin + Gro10x are out of scope** for v0.5 (staff-operated; defer to v1.0.1).
+## Batching strategy
 
-**Initial sweep (read-only, just ran):** 448 files match the broad regex. ~60–70% of those are false positives (code identifiers, comments, hook names, admin-side). True user-visible jargon estimate: **~120–160 files, ~250–400 string instances.**
+One surface = one batch. After each batch: re-run `scripts/jargon-sweep.ts`, update `.lovable/v0.5-jargon-hits.md`, report counts. Strictly follow `.lovable/v0.5-jargon-glossary.md` — no new replacement variants.
 
----
+## Batches (in priority order)
 
-## 3-pass methodology
+**B1 — Auth + Onboarding + Boot** (highest reputational risk, every user hits it)
+- `src/pages/AuthCallback.tsx`, `Start.tsx`, `BootGate.tsx`, `auth/*`, `onboarding/*`, `PWAInstallPrompt`, `PWAUpdatePrompt`, `offline.html`
+- Target: 100% of T1 + T2 here. Boot/loading/error copy must be plain language.
+- Est: ~25 hits, 1.5 hrs
 
-### Pass 1 — Tier the hits (Day 1, ~2 hrs)
+**B2 — Profile + Profile Builder**
+- `src/pages/app/profile*`, `src/domains/profile/components/talent/**`
+- Session replay already flagged "Verifying Core Clearance Tokens" and "Protocol: Verified Mastery Sync v2.6.4" here.
+- Est: ~40 hits (T1+T2), 2 hrs
 
-Tighten the regex to **user-visible strings only**: match inside JSX text, `toast(...)`, `title=`, `placeholder=`, `aria-label=`, `<h1-h6>`, `<p>`, `<span>`, plus `description:` / `label:` in config objects.
+**B3 — Learning Hub** (LearningHub.tsx, TalentMirror, MyHubView, TracksView, AcademyView, StudyAbroadView, ModuleQuizRunner, ModuleScenarioRunner, ReviewQueueRunner, NextActionsCard, SkillCredentialsPanel)
+- Known offenders: "Logic Node Fault", "Telemetry sync error", "Academic Hub" header is fine but surrounding copy isn't
+- Est: ~60 hits, 2.5 hrs
 
-Write `scripts/jargon-sweep.ts` that:
-1. Walks talent-scope files
-2. Parses with a lightweight JSX-aware regex (or `@babel/parser` if needed)
-3. Bucketizes hits into:
-   - **T1 — User-blocking** (loading screens, error states, headers, CTAs, toasts)
-   - **T2 — User-visible decoration** (subtitles, footer tags, secondary copy)
-   - **T3 — Code-only** (variable names, comments, telemetry event strings) — defer to v1.0.1
-4. Outputs `.lovable/v0.5-jargon-hits.md` grouped by file + tier + line
+**B4 — Jobs + Gigs + Career Abroad**
+- `src/pages/app/Jobs*`, `Gigs*`, `Abroad*`, `domains/jobs/components/talent/**`, `domains/gigs/components/talent/**`, `domains/abroad/components/**`
+- Est: ~70 hits, 2.5 hrs
 
-**Expected output:** ~50–80 T1 strings, ~150–250 T2 strings, ~rest T3.
+**B5 — AI Agents + Wallet + Misc talent pages**
+- `domains/agents/components/talent/**`, `components/wallet/**`, `Connections`, `Notifications`, remaining `src/pages/app/*`
+- Est: ~50 hits, 2 hrs
 
-### Pass 2 — Batch-fix T1 (Days 1–2, ~4 hrs)
+**B6 — Final sweep + verify**
+- Re-run sweep; any residual T1 fixed inline; T2 leftovers explicitly deferred to v1.0.1 in `.lovable/plan.md`
+- Visual spot-check via session replay / browser nav on each surface
+- Est: 1 hr
 
-T1 = anything blocking comprehension. Examples already confirmed live:
-- `"Verifying Core Clearance Tokens…"` → `"Signing you in…"`
-- `"Logic Node Fault"` → `"Something went wrong"`
-- `"Telemetry sync error. Admin agents notified."` → `"We hit a snag. Our team has been notified."`
-- `"Protocol: Verified Mastery Sync v2.6.4"` → **delete** (footer noise)
-- `"Initialize Synthesis Pipeline"` → `"Start"`
+## Out of scope (deferred to v1.0.1)
+- Admin panel + Gro10x panel jargon
+- Code identifiers, comments, telemetry event names, `[cite: N]` markers
+- Footer version badges
+- Awkward-but-grammatical copy not in banned list
+- Cosmetic spacing / color polish
 
-Process: read the file, fix all T1 strings in one edit per file, move on. No design changes, no restructuring, no telemetry renames. **15–30 files/hour at this bar.**
+## Timeline
+~11.5 hrs total, fits Days 1–3 of the v0.5 window. No Nov 28 impact. After B3 we have a defensible stop point if priorities shift.
 
-### Pass 3 — Batch-fix T2 by surface area (Days 2–3, ~6 hrs)
+## Deliverables per batch
+1. Edited components (T1 strings replaced; T2 replaced where trivial)
+2. Updated `.lovable/v0.5-jargon-hits.md` with new counts
+3. One-line status note per batch in `.lovable/plan.md`
 
-Group T2 hits by talent surface so we touch each route once:
-- Profile / Onboarding / Auth
-- Learning Hub + Course pages + Player
-- Gigs Hub + Marketplace
-- Career Abroad + IELTS
-- AI Agents + Chat
-- Wallet + Transactions + Settings
-- Misc (Blog, Competitions, Connections, Saved)
-
-For each surface: open every flagged file, fix every T2 string, no scope creep.
-
----
-
-## What stays out of v0.5 (explicit)
-
-- **Admin panel jargon** — staff-operated, our team can read it
-- **Gro10x panel jargon** — pilot employers only, hand-walked by staff
-- **Code comments** with `[cite: 6]` and similar — invisible to users
-- **Telemetry event names** (`boot_gate_warmup_skipped_session_active`, etc.) — internal logs only
-- **Variable names** (`useTelemetry`, `cognitiveCore`, etc.) — code-level
-- **Footer "version" badges** that are just slightly weird but not jargon
-
-All of the above → v1.0.1 backlog.
-
----
-
-## Technical section
-
-### Banned-phrase regex (T1 + T2 detector)
-
-```
-\b(Clearance|Telemetry|Anomaly|Sentinel|Synthesis|Synthetic|Cognitive|
-   Executive Logic|Logic Node|Node Failure|Reasoning Pipeline|
-   Verified \w+ Sync|Core (Boot|Clearance|Sync)|Initialize \w+|
-   Protocol:|HUD|Phase [A-Z]\d|cite:\s*\d)\b
-```
-
-Plus heuristic: any JSX text-node string with ≥3 Capitalized Tech-Words in a row (e.g. "Adaptive Synthesis Engine").
-
-### User-visible string detector
-
-Match strings inside:
-- `>...</tag>` text nodes for `h1-h6`, `p`, `span`, `div`, `label`, `button`
-- `toast.error(...)`, `toast.success(...)`, `toast(...)`
-- `title=`, `placeholder=`, `aria-label=`, `alt=`
-- Object literal values for keys: `label`, `title`, `description`, `headline`, `subtitle`, `cta`, `message`, `error`
-
-### Files produced
-
-- `scripts/jargon-sweep.ts` — runnable sweep
-- `.lovable/v0.5-jargon-hits.md` — tiered hit list with file:line
-- `.lovable/v0.5-jargon-glossary.md` — replacement glossary (so fixes stay consistent: e.g. "Clearance" always → "sign-in", "Telemetry" always → "diagnostics")
-
-### Time budget (fits inside the v0.5 6-day window)
-
-| Pass | Effort | Day |
-|---|---|---|
-| Build sweep script + run + tier | 2 hrs | Day 1 |
-| Fix all T1 | 4 hrs | Day 1–2 (overlaps B2) |
-| Fix T2 by surface | 6 hrs | Day 2–3 (overlaps B2/B3) |
-| **Total** | **~12 hrs** | **Within Days 1–3** |
-
-No timeline impact on Nov 28 launch.
-
-### Risk
-
-- **R1:** Sweep script produces 400+ T1 hits → re-tier: only fix the obvious user-blocking ones; remainder → v1.0.1
-- **R2:** Some "jargon" is actually intentional brand voice (e.g. "Mastery", "Credentials") — glossary file prevents over-correction
-- **R3:** AST parsing slow on 600+ files → regex-only mode is fine; false positives go to a "review" bucket
-
----
-
-## Approval needed
-
-1. Approve this sweep methodology + scope (talent-only, T1+T2 only)?
-2. Should I include the **PWA boot screen / loading screens / auth flow** in T1 with extra priority? (They're the first thing every user sees — `"Verifying Core Clearance Tokens"` is on the auth path).
-3. Approve building the sweep script as part of Day 1 work?
-
-Once approved I switch to build mode and start with the sweep script + Pass 1 output.
+## Decisions needed
+1. Approve the B1→B6 order, or reprioritize? (e.g. some teams want Learning first since it's most demoed)
+2. T2 inside each batch: fix opportunistically, or strict T1-only and a separate T2 pass later?
+3. Want me to start with B1 immediately on approval, or run the sweep refresh first to confirm current counts?
