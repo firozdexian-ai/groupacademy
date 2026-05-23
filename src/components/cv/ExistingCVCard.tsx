@@ -145,7 +145,7 @@ export function ExistingCVCard({
                   type="button"
                   variant="ghost"
                   disabled={loading}
-                  aria-label="Download Document Artifact"
+                  aria-label="Download CV"
                   className="h-10 w-10 rounded-xl hover:bg-primary/5 hover:text-primary transition-all p-0 flex items-center justify-center shrink-0"
                   onClick={handleSecureDownloadHandshake}
                 >

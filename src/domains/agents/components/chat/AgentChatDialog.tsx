@@ -45,7 +45,7 @@ export function AgentChatDialog({
 
   // Digital Workforce Anomaly Reporter
   const reportAnomaly = async (error: string, context: string) => {
-    console.error(`[Digital Workforce] Anomaly: ${context}`, error);
+    console.error(`[agents] ${context}`, error);
     try {
       await adminSupportAssistant({
         type: "TECHNICAL_ANOMALY",

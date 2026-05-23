@@ -230,7 +230,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
             <h2
               style={{ fontSize: "22px", fontWeight: 800, margin: "4px 0 14px 0", color: BRAND.dark, lineHeight: 1.2 }}
             >
-              {interview.full_name || "Unverified Candidate User"}
+              {interview.full_name || "Anonymous"}
             </h2>
             <div style={{ display: "flex", gap: "24px" }}>
               <div style={{ textAlign: "left" }}>

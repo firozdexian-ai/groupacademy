@@ -239,7 +239,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
               Target Classroom Node
             </span>
             <p className="text-xs sm:text-sm font-bold text-foreground/90 truncate text-ellipsis block pr-1 leading-none select-text pt-0.5">
-              {contentTitle || "Unspecified Curriculum Track Address"}
+              {contentTitle || "Untitled course"}
             </p>
           </div>
 

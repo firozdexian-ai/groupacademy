@@ -48,7 +48,7 @@ export function AIChatPanel({
   moduleId,
   contentId,
   instructorName = "Neural Instructor",
-  placeholder = "Initialize query regarding trajectory or curriculum...",
+  placeholder = "Ask about your course or progress...",
   className = "",
   onMessageSent,
   mode = "tutor",
@@ -419,7 +419,7 @@ export function AIChatPanel({
                 void handleMessageIngress();
               }
             }}
-            placeholder={isLoading ? "Awaiting engine pipeline serialization..." : "Initialize command..."}
+            placeholder={isLoading ? "Thinking..." : "Type a message..."}
             className="min-h-[48px] max-h-[160px] resize-none border-0 focus-visible:ring-0 bg-transparent italic font-medium py-3 px-4 disabled:opacity-40"
             rows={1}
             disabled={isLoading}

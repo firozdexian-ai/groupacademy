@@ -99,7 +99,7 @@ export function SalaryAnalysisPDFTemplate({ analysis }: Props) {
 
     return {
       syncDateStr: parsedRegistrySyncDateStr,
-      fullName: String(analysis?.full_name || "Anonymous Talent Node").trim(),
+      fullName: String(analysis?.full_name || "Anonymous").trim(),
       jobTitle: String(analysis?.job_title || "GENERAL_CORE_NODE")
         .trim()
         .toUpperCase(),
@@ -443,9 +443,9 @@ export function SalaryAnalysisPDFTemplate({ analysis }: Props) {
 
         <div style={{ display: "flex", gap: "14px" }}>
           {[
-            { label: "Minimum Vector Bounds", val: secureAnalyticsModel.salaryMin, accent: false },
-            { label: "Median Scale Alignment", val: secureAnalyticsModel.salaryMedian, accent: true },
-            { label: "Maximum Ceiling Cap", val: secureAnalyticsModel.salaryMax, accent: false },
+            { label: "Minimum", val: secureAnalyticsModel.salaryMin, accent: false },
+            { label: "Median", val: secureAnalyticsModel.salaryMedian, accent: true },
+            { label: "Maximum", val: secureAnalyticsModel.salaryMax, accent: false },
           ].map((nodeBlock, i) => (
             <div
               key={i}

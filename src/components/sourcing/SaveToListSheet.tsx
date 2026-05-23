@@ -169,7 +169,7 @@ export function SaveToListSheet({ companyId, talentId, talentName, onClose }: Sa
             </div>
             <div className="min-w-0 flex flex-col justify-center leading-none flex-1">
               <SheetTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none block truncate text-ellipsis pr-1">
-                Index {talentName || "Target Talent Node"} to Curation Pipeline
+                Save {talentName || "this talent"} to a list
               </SheetTitle>
               <SheetDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none pt-1">
                 Synchronize talent profile matching vectors within specific corporate vetting buckets

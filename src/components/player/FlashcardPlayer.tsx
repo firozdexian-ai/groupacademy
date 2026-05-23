@@ -174,7 +174,7 @@ export function FlashcardPlayer({ cards = [], title, onComplete, className }: Fl
         <div className="space-y-1 flex flex-col justify-center min-w-0 flex-1 leading-none">
           <h3 className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2 leading-none truncate">
             <ShieldCheck className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-            <span>{title || "Active Spaced Recall Drill"}</span>
+            <span>{title || "Flashcards"}</span>
           </h3>
           <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider block pt-0.5 leading-none italic">
             Cognitive Recall Framework Processing Active

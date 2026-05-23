@@ -295,7 +295,7 @@ export function AssessStage({
 
               <div className="space-y-1 leading-none w-full">
                 <h3 className="text-sm font-extrabold uppercase tracking-widest text-foreground/90 leading-none">
-                  {passed ? "Trajectory Cleared Passthrough" : "Accuracy Target Deficit"}
+                  {passed ? "You passed" : "Try again"}
                 </h3>
                 <p className="text-4xl sm:text-5xl font-black tabular-nums tracking-tighter leading-none pt-1">
                   {score}
@@ -325,7 +325,7 @@ export function AssessStage({
               }}
               className="h-10 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors"
             >
-              {showExplanations ? "Collapse Rationale Explanations" : "Audit Rationale Explanations"}
+              {showExplanations ? "Hide explanations" : "Show explanations"}
             </Button>
             {!passed && (
               <Button

@@ -254,7 +254,7 @@ export function LeadCaptureForm({
                   Identity: Full_Name *
                 </Label>
                 <Input
-                  placeholder="Initialize name entry..."
+                  placeholder="Your name"
                   value={formData.full_name}
                   className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20 disabled:opacity-40"
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
@@ -274,7 +274,7 @@ export function LeadCaptureForm({
                 </Label>
                 <Input
                   type="email"
-                  placeholder="Initialize email sync..."
+                  placeholder="your@email.com"
                   value={formData.email}
                   className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20 disabled:opacity-40"
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}

@@ -105,8 +105,8 @@ export function Footer() {
               {[
                 { label: "Syllabus Courses", path: "/app/learning/courses" },
                 { label: "Career Milestones", path: "/app/learning/tracks" },
-                { label: "Job Opportunity Ledger", path: "/app/jobs" },
-                { label: "Ecosystem Insights Blog", path: "/blog" },
+                { label: "Jobs", path: "/app/jobs" },
+                { label: "Blog", path: "/blog" },
               ].map((linkItem) => (
                 <button
                   key={linkItem.label}
@@ -132,8 +132,8 @@ export function Footer() {
               {[
                 { label: "Psychometric Scorecard", path: "/app/services/assessment" },
                 { label: "AI Interview Simulation", path: "/app/services/mock-interview" },
-                { label: "Fiscal Parity Analysis", path: "/app/services/salary-analysis" },
-                { label: "Dynamic Vector Portfolio", path: "/app/services/portfolio" },
+                { label: "Salary Analysis", path: "/app/services/salary-analysis" },
+                { label: "Digital Portfolio", path: "/app/services/portfolio" },
               ].map((linkItem) => (
                 <button
                   key={linkItem.label}
@@ -157,10 +157,10 @@ export function Footer() {
               aria-label="Footer profile operational synchronization links structure navigation"
             >
               {[
-                { label: "My Learning Track Dashboard", path: "/app/learning/my-courses", isAuthBound: true },
-                { label: "Sign In Identity Token", path: "/auth", isAuthBound: false },
-                { label: "For Enterprise Organizations", path: "/org", isAuthBound: false },
-                { label: "Administrative Registry Terminal", path: "/admin", isAuthBound: false },
+                { label: "My Courses", path: "/app/learning/my-courses", isAuthBound: true },
+                { label: "Sign In", path: "/auth", isAuthBound: false },
+                { label: "For Organizations", path: "/org", isAuthBound: false },
+                { label: "Admin", path: "/admin", isAuthBound: false },
               ].map((linkItem) => (
                 <button
                   key={linkItem.label}

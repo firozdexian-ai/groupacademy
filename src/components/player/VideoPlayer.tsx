@@ -87,7 +87,7 @@ export function VideoPlayer({ module, onComplete, isCompleted }: VideoPlayerProp
         <div className="flex items-start justify-between gap-4 w-full leading-none">
           <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
             <CardTitle className="text-sm sm:text-base font-bold text-foreground/90 uppercase tracking-wide leading-tight truncate text-ellipsis select-text selection:bg-primary/10">
-              {module?.title || "Unresolved Curriculum Video Resource Element"}
+              {module?.title || "Untitled video"}
             </CardTitle>
             {module?.description && (
               <CardDescription className="text-[10px] sm:text-xs font-semibold text-muted-foreground/60 leading-normal italic select-text max-w-2xl break-words block pt-0.5 pr-1">
@@ -120,7 +120,7 @@ export function VideoPlayer({ module, onComplete, isCompleted }: VideoPlayerProp
           {embedUrl ? (
             <iframe
               src={embedUrl}
-              title={module?.title || "Curriculum Stream Frame Ingestion Element"}
+              title={module?.title || "Video"}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="absolute inset-0 h-full w-full border-none bg-background shadow-inner"

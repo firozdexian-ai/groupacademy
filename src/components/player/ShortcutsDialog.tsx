@@ -10,10 +10,10 @@ interface Props {
 }
 
 const SHORTCUTS: { keys: string; label: string }[] = [
-  { keys: "← / →", label: "Previous / Next Stage Track" },
-  { keys: "[ / ]", label: "Previous / Next Module Block" },
-  { keys: "Enter", label: "Commit Stage Completion" },
-  { keys: "?", label: "Toggle Accessibility Guide" },
+  { keys: "← / →", label: "Previous / next stage" },
+  { keys: "[ / ]", label: "Previous / next module" },
+  { keys: "Enter", label: "Complete stage" },
+  { keys: "?", label: "Toggle shortcuts help" },
 ];
 
 /**

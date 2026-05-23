@@ -107,7 +107,7 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
     },
     onError: (err: Error) => {
       console.error("[Digital Workforce] ANOMALY: Stripe checkout session generation failed.", err.message);
-      toast.error(err.message === "AUTH_REQUIRED" ? "Authentication Sync Required." : "Transaction pipeline drop. Contact Faculty Support.");
+      toast.error(err.message === "AUTH_REQUIRED" ? "Please sign in to continue." : "Payment failed. Please contact support.");
     },
     onSettled: () => {
       setActiveProcessingCredits(null);

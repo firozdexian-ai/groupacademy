@@ -73,7 +73,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
       }
 
       // HUD: INVOKING_AGENT_BLUEPRINT_EDGE_ENGINE
-      const data: any = await agentBlueprint({ brief: brief.trim(), name: name.trim() || "New Agent Entity" });
+      const data: any = await agentBlueprint({ brief: brief.trim(), name: name.trim() || "New agent" });
       return (data?.blueprint ?? data ?? null) as BlueprintPayload;
     },
     onSuccess: (generatedBlueprint) => {
@@ -137,7 +137,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
       }
     },
     onSuccess: () => {
-      toast.success("Agent Artifact Submitted", {
+      toast.success("Agent saved", {
         description: "Marketplace verification protocol is currently pending review within 24 hours.",
       });
 
@@ -151,7 +151,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
     },
     onError: (err: Error) => {
       toast.error(
-        err.message === "IDENTITY_SYNC_REQUIRED" ? "Identity Sync Required." : `Ingress Failed: ${err.message}`,
+        err.message === "IDENTITY_SYNC_REQUIRED" ? "Please sign in to continue." : `Failed: ${err.message}`,
       );
     },
   });
@@ -349,7 +349,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 ) : (
                   <Bot className="h-4 w-4 mr-2" />
                 )}
-                {blueprintMutation.isPending ? "Synthesizing Core Parameters..." : "Synthesize Blueprint"}
+                {blueprintMutation.isPending ? "Generating blueprint..." : "Generate blueprint"}
               </Button>
             )}
 
@@ -375,7 +375,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                {submitMutation.isPending ? "Configuring Marketplace Channels..." : "Commit to Marketplace"}
+                {submitMutation.isPending ? "Publishing..." : "Publish to marketplace"}
               </Button>
             )}
           </DialogFooter>

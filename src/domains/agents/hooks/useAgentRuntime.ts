@@ -251,7 +251,7 @@ export function useAgentRuntime(
 
         if (!assistantBuffer) setMessages((prev) => prev.slice(0, -1));
       } catch (err) {
-        console.error("[Digital Workforce] useAgentRuntime Stream Anomaly:", err);
+        console.error("[agents] runtime stream error:", err);
         toast.error("NEURAL_SYNC_FAULT: Connection interrupted");
         setMessages((prev) => prev.slice(0, -1));
       } finally {

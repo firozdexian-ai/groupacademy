@@ -156,7 +156,7 @@ export function AgentTriggers() {
       toast({ title: "Protocol Rejection", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Trigger Node Synchronized" });
+    toast({ title: "Trigger saved" });
     setDialogOpen(false);
     setDraft({
       agent_id: "",
@@ -210,7 +210,7 @@ export function AgentTriggers() {
     } catch (error: any) {
       return toast({ title: "Transaction Rejection", description: error.message, variant: "destructive" });
     }
-    toast({ title: "Burn Cap Synchronized" });
+    toast({ title: "Spend limit updated" });
     load();
   }
 

@@ -167,7 +167,7 @@ export function ApplicationDetailSheet({
           </SheetTitle>
           <div className="text-xs font-medium text-muted-foreground/80 leading-relaxed pt-1 space-y-0.5">
             <p className="italic font-bold text-foreground/70">
-              {application.talent_headline || "Verified Professional Candidate"}
+              {application.talent_headline || "Candidate"}
             </p>
             <p className="text-[11px]">
               Applied for position:{" "}

@@ -127,7 +127,7 @@ export function InboxUnlockCard() {
               <Lock className="h-4 w-4 text-muted-foreground/60 stroke-[2.2] shrink-0" />
             )}
             <h3 className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wide truncate block pt-0.5 leading-none">
-              {unlocked ? "Ingress Channel Active" : "Unlock Messaging Inbox"}
+              {unlocked ? "Inbox unlocked" : "Unlock Messaging Inbox"}
             </h3>
           </div>
 
@@ -188,7 +188,7 @@ export function InboxUnlockCard() {
                   <ShieldCheck className="h-4 w-4 stroke-[2.5]" />
                   <span>
                     {volume >= FIXED_UNLOCK_THRESHOLD_VOLUME
-                      ? "Activate Verified Inbox (Free)"
+                      ? "Unlock inbox (free)"
                       : `Unlock Channel (${FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} cr)`}
                   </span>
                 </>

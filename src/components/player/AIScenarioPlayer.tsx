@@ -118,7 +118,7 @@ Response Protocol: ONLY JSON object matching this schema. Do not prefix or appen
       const parsedStructuredJsonMatch = unparsedRawResponseText.match(/\{[\s\S]*\}/);
 
       if (!parsedStructuredJsonMatch) {
-        throw new Error("Neural Ingestion Fault: Execution engine compiled a fractured data shape pattern.");
+        throw new Error("Failed to load scenario: invalid data.");
       }
 
       const verifiedFeedbackDataObject = JSON.parse(parsedStructuredJsonMatch[0]) as FeedbackResponse;
@@ -248,7 +248,7 @@ Response Protocol: ONLY JSON object matching this schema. Do not prefix or appen
                   showHints ? "fill-amber-500/10 text-amber-500" : "text-current",
                 )}
               />
-              <span>{showHints ? "Hide Reference Hints" : "Expose Reference Hints"}</span>
+              <span>{showHints ? "Hide hints" : "Show hints"}</span>
             </Button>
 
             {showHints && (
@@ -277,7 +277,7 @@ Response Protocol: ONLY JSON object matching this schema. Do not prefix or appen
                 Candidate Proposed Ingress Formulation
               </span>
               <Textarea
-                placeholder="Initialize alignment strategy sequence formulation parameters..."
+                placeholder="Type your response..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={5}

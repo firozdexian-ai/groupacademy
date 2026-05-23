@@ -65,10 +65,10 @@ export function CertificatePDFTemplate({ data }: CertificatePDFTemplateProps) {
   // --- PHASE: LAYOUT_TEXT_NORMALIZATION ---
   const sanitizedStringsLedger = useMemo(() => {
     return {
-      holderNameUppercase: String(data?.holder_name || "Anonymous Talent Node")
+      holderNameUppercase: String(data?.holder_name || "Anonymous")
         .trim()
         .toUpperCase(),
-      courseTitleUppercase: String(data?.course_title || "Core General Curriculum")
+      courseTitleUppercase: String(data?.course_title || "Course")
         .trim()
         .toUpperCase(),
       verifyCodeClean: String(data?.verify_code || "N/A")

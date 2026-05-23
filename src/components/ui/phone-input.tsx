@@ -104,7 +104,7 @@ export function PhoneInput({
                 ))}
               </CommandGroup>
 
-              <CommandGroup heading="Global Handshake Registers">
+              <CommandGroup heading="Countries">
                 {COUNTRIES_WITH_PHONE.filter((c) => !POPULAR_ISO.includes(c.code.toUpperCase())).map((country) => (
                   <CountryItem
                     key={`global-${country.code}`}

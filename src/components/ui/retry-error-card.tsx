@@ -58,7 +58,7 @@ export function RetryErrorCard({
   title,
   description,
   onRetry,
-  retryLabel = "Re-Initialize Handshake",
+  retryLabel = "Try again",
   isRetrying = false,
   className = "",
   compact = false,
@@ -158,7 +158,7 @@ export function RetryErrorCard({
             )}
           >
             <RefreshCw className={cn("h-3.5 w-3.5 stroke-[2.5]", isRetrying && "animate-spin")} />
-            <span>{isRetrying ? "Syncing Platform Registry..." : retryLabel}</span>
+            <span>{isRetrying ? "Retrying..." : retryLabel}</span>
           </Button>
         </CardContent>
       )}

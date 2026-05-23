@@ -253,7 +253,7 @@ export function PracticeStage({
                 <CardHeader className="bg-muted/10 border-b border-border/10 p-3.5 px-4 select-none leading-none w-full">
                   <CardTitle className="text-xs sm:text-sm font-bold text-foreground/90 tracking-tight flex items-center gap-2 leading-none block truncate">
                     <Layers className="h-3.5 w-3.5 text-primary stroke-[2.2] shrink-0" />
-                    <span>{flashcardResource?.title || "Granular Active Recall Board"}</span>
+                    <span>{flashcardResource?.title || "Flashcards"}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 w-full min-w-0">
@@ -389,8 +389,8 @@ export function PracticeStage({
             )}
             <span>
               {canComplete
-                ? "Authorize Continuing Track Passage"
-                : "Active Ingress Required: Complete outstanding sub-nodes"}
+                ? "Continue"
+                : "Complete the remaining steps to continue"}
             </span>
           </Button>
         </div>
