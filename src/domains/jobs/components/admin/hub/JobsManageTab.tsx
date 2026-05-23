@@ -142,22 +142,22 @@ export function JobsManageTab() {
     try {
       await updateJobsBulk(ids, patch);
     } catch (e: any) {
-      return toast.error("Protocol Fault: " + e.message);
+      return toast.error("Could not update: " + e.message);
     }
-    toast.success(`${ids.length} Nodes Synchronized`);
+    toast.success(`${ids.length} jobs updated`);
     setSelected(new Set());
     loadJobs();
   };
 
   const bulkDelete = async () => {
     if (!selected.size) return;
-    if (!confirm(`Confirm unit termination for ${selected.size} nodes?`)) return;
+    if (!confirm(`Delete ${selected.size} jobs?`)) return;
     try {
       await deleteJobsBulk(Array.from(selected));
     } catch {
-      return toast.error("Termination Fault");
+      return toast.error("Delete failed");
     }
-    toast.success("Nodes Decommissioned");
+    toast.success("Jobs deleted");
     setSelected(new Set());
     loadJobs();
   };
@@ -167,7 +167,7 @@ export function JobsManageTab() {
     try {
       await updateJob(id, { [field]: value });
     } catch {
-      toast.error("Protocol Sync Error");
+      toast.error("Could not save change");
       loadJobs();
     }
   };
@@ -319,13 +319,13 @@ export function JobsManageTab() {
                         onCheckedChange={(v) => setSelected(v ? new Set(jobs.map((j) => j.id)) : new Set())}
                       />
                     </TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest py-5">Job Unit</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Source_Node</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest py-5">Job</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Source</TableHead>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">
-                      Protocol_Active
+                      Active
                     </TableHead>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">
-                      Featured_Auth
+                      Featured
                     </TableHead>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">
                       Engagement_Telemetry

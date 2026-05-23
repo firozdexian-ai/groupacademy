@@ -128,18 +128,18 @@ export function JobsApplicationsTab() {
     try {
       await updateApplicationStatus(id, st);
     } catch (error: any) {
-      return toast.error("Protocol Fault: " + error.message);
+      return toast.error("Could not update: " + error.message);
     }
     setApps((prev) => prev.map((a) => (a.id === id ? { ...a, application_status: st } : a)));
-    toast.success("Status Synchronized");
+    toast.success("Status updated");
   };
 
   const handleBulkScore = async () => {
     const unscored = apps.filter((a) => a.ai_match_score == null && a.talent_id);
-    if (!unscored.length) return toast.info("Protocol Redundancy: All nodes already scored.");
+    if (!unscored.length) return toast.info("All applications are already scored.");
     setBulkScoring(true);
     let done = 0;
-    const tid = toast.loading(`Scoring Nodes: 0/${unscored.length}...`);
+    const tid = toast.loading(`Scoring: 0/${unscored.length}...`);
     for (const a of unscored) {
       try {
         const data = await scoreJobMatch({
@@ -154,12 +154,12 @@ export function JobsApplicationsTab() {
           ai_scored_at: new Date().toISOString(),
         });
         done++;
-        toast.loading(`Neural Analysis: ${done}/${unscored.length}...`, { id: tid });
+        toast.loading(`Scoring: ${done}/${unscored.length}...`, { id: tid });
       } catch {
         // Continue processing batch
       }
     }
-    toast.success(`Protocol Finalized: ${done}/${unscored.length} nodes analyzed.`, { id: tid });
+    toast.success(`Scored ${done} of ${unscored.length} applications.`, { id: tid });
     setBulkScoring(false);
     loadApps();
   };
@@ -266,7 +266,7 @@ export function JobsApplicationsTab() {
                 className="h-10 px-4 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
                 onClick={() => setSortByScore((v) => !v)}
               >
-                <Zap className={cn("h-3.5 w-3.5", sortByScore ? "fill-current" : "")} /> Neural_Sort
+                <Zap className={cn("h-3.5 w-3.5", sortByScore ? "fill-current" : "")} /> Sort by score
               </Button>
             </div>
 
@@ -443,7 +443,7 @@ export function JobsApplicationsTab() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between p-6 border-t border-border/10 bg-muted/5">
                   <span className="text-[10px] font-black uppercase italic text-muted-foreground/60 tracking-widest">
-                    Protocol Page {page} of {totalPages}
+                    Page {page} of {totalPages}
                   </span>
                   <div className="flex gap-2">
                     <Button

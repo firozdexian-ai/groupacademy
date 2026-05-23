@@ -53,27 +53,27 @@ export function PendingJobSubmissions() {
         submissionId: id,
         adminNotes: "Rejected via Jobs Hub Verification Gate",
       });
-      toast.success("Submission Node Terminated", { id: toastId });
+      toast.success("Submission removed", { id: toastId });
       qc.invalidateQueries({ queryKey: ["pending-job-submissions"] });
     } catch (error: any) {
-      toast.error("Protocol Fault: " + (error?.message ?? "unknown"), { id: toastId });
+      toast.error("Could not remove: " + (error?.message ?? "unknown"), { id: toastId });
     }
   };
 
   const handlePublished = async () => {
     if (!editing) return;
 
-    const toastId = toast.loading("Finalizing publication & reward protocol...");
+    const toastId = toast.loading("Publishing and rewarding contributor...");
 
-    // ATOMIC SYNC: Approve submission and award fractional credits
+    // Approve submission and award fractional credits
     try {
       await awardGigCredits({
         submissionId: editing.submissionId,
-        adminNotes: "Identity Verified: Published via Recruiter OS",
+        adminNotes: "Verified and published via admin",
       });
-      toast.success("Node Verified & Contributor Rewarded", { id: toastId });
+      toast.success("Published & contributor rewarded", { id: toastId });
     } catch (error: any) {
-      toast.error(`Infra published, but ledger sync failed: ${error?.message ?? "unknown"}`, { id: toastId });
+      toast.error(`Published, but reward failed: ${error?.message ?? "unknown"}`, { id: toastId });
     }
 
     setEditing(null);
@@ -88,17 +88,17 @@ export function PendingJobSubmissions() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-1">
             <CardTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-              <ClipboardCheck className="h-7 w-7 text-primary" /> Verification_Queue
+              <ClipboardCheck className="h-7 w-7 text-primary" /> Verification queue
             </CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
-              Audit community crowdsourced job artifacts before registry deployment
+              Review community-submitted jobs before publishing
             </CardDescription>
           </div>
           <Badge
             variant="outline"
             className="h-10 px-5 rounded-xl border-2 font-black italic gap-2 bg-background/50 uppercase text-primary"
           >
-            <Zap className="h-3.5 w-3.5 fill-current" /> {data?.length || 0} Pending_Nodes
+            <Zap className="h-3.5 w-3.5 fill-current" /> {data?.length || 0} pending
           </Badge>
         </div>
       </CardHeader>
@@ -107,7 +107,7 @@ export function PendingJobSubmissions() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-50">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-[10px] font-black uppercase tracking-widest italic">Synchronizing Queue...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest italic">Loading queue…</p>
           </div>
         ) : !data || data.length === 0 ? (
           <div className="py-16 border-2 border-dashed rounded-[32px] text-center opacity-30 italic font-black uppercase text-xs tracking-widest">

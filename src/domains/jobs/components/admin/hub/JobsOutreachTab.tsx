@@ -70,7 +70,7 @@ export function JobsOutreachTab() {
               variant="outline"
               className="h-10 px-4 rounded-xl border-2 font-black italic gap-2 bg-background/50 uppercase"
             >
-              <Share2 className="h-3.5 w-3.5" /> Growth_Mode
+              <Share2 className="h-3.5 w-3.5" /> Outreach
             </Badge>
           </div>
         </CardHeader>
