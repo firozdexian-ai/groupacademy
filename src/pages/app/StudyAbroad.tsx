@@ -117,10 +117,10 @@ export default function StudyAbroad() {
         <CardContent className="p-3 flex items-center gap-3">
           <div className="flex-1">
             <p className="text-sm font-semibold">{balance} credits</p>
-            <p className={cn(META_TEXT, "mt-0.5")}>Available for Roadmap synthesis</p>
+            <p className={cn(META_TEXT, "mt-0.5")}>Available for your roadmap</p>
           </div>
           <Button size="sm" onClick={() => navigate("/app/agents/study-abroad-advisor")}>
-            <Sparkles className="h-4 w-4 mr-2" /> Consult Advisor
+            <Sparkles className="h-4 w-4 mr-2" /> Talk to advisor
           </Button>
         </CardContent>
       </Card>
@@ -170,8 +170,8 @@ export default function StudyAbroad() {
       ) : isError ? (
         <EmptyState
           icon={Globe}
-          title="Registry unreachable"
-          description="Sync failed. Please retry."
+          title="Couldn't load programs"
+          description="Something went wrong. Please try again."
           action={{ label: "Retry", onClick: () => refetch() }}
         />
       ) : programs?.length ? (
@@ -211,10 +211,10 @@ export default function StudyAbroad() {
       ) : (
         <EmptyState
           icon={Globe}
-          title="No nodes found"
-          description="Adjust your filters."
+          title="No programs match your filters"
+          description="Try adjusting country, degree, or search."
           action={{
-            label: "Reset",
+            label: "Reset filters",
             onClick: () => {
               setSearchTerm("");
               setSelectedCountry("all");

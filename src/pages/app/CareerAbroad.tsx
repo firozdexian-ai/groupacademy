@@ -3,43 +3,32 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 /**
- * GroUp Academy: Career Abroad Deprecation Interceptor (CareerAbroad)
- * Hardened programmatic transition node routing traffic to the active Study Abroad Learning Hub container.
- * Version: Launch Candidate · Phase Z1 Redirect Insulation Sealed
+ * Legacy /app/abroad redirect → Learning Hub abroad events tab.
+ * Preserves existing query params so analytics/filters carry through.
  */
 export default function CareerAbroad() {
-  const navigateHook = useNavigate();
-  const locationHook = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   React.useEffect(() => {
-    // Read and mirror existing parameter matrices to avoid stripping global analytics or filters
-    const currentParamsBuffer = new URLSearchParams(locationHook.search);
+    const params = new URLSearchParams(location.search);
+    params.set("tab", "events");
+    params.set("kind", "abroad");
 
-    // Inject authoritative redirection coordinates matching the 2026 destination directory
-    currentParamsBuffer.set("tab", "events");
-    currentParamsBuffer.set("kind", "abroad");
-
-    // Execute absolute parameter modification using a secure, replaced state frame
-    navigateHook(
-      {
-        pathname: "/app/learning",
-        search: `?${currentParamsBuffer.toString()}`,
-      },
-      {
-        replace: true,
-      },
+    navigate(
+      { pathname: "/app/learning", search: `?${params.toString()}` },
+      { replace: true },
     );
-  }, [navigateHook, locationHook.search]);
+  }, [navigate, location.search]);
 
-  // Provide a clean layout fallback placeholder while the client's routing channels resolve
   return (
     <div
       role="status"
-      className="min-h-screen w-full grid place-items-center bg-background font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/40 select-none antialiased"
+      className="min-h-screen w-full grid place-items-center bg-background text-xs font-medium text-muted-foreground"
     >
-      <div className="flex items-center gap-2.5">
-        <Loader2 className="h-4 w-4定位 animate-spin text-primary shrink-0 stroke-[2.5]" />
-        <span>Rerouting to Study Abroad Ingress...</span>
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+        <span>Taking you to Study Abroad…</span>
       </div>
     </div>
   );

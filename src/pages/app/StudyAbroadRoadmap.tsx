@@ -29,7 +29,7 @@ export default function StudyAbroadRoadmap() {
 
   const handleError = (error: Error) => {
     reportAnomaly("RoadmapIntakeFailure", { error: error.message });
-    toast.error("Roadmap sync interrupted. Admin agents notified.");
+    toast.error("Something went wrong. Please try again.");
   };
 
   return (
@@ -75,7 +75,7 @@ function ErrorBoundary({ children, onError }: { children: React.ReactNode; onErr
     return (
       <div className="p-8 text-center space-y-4">
         <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
-        <p className="text-sm font-medium">An error occurred in the roadmap logic.</p>
+        <p className="text-sm font-medium">Something went wrong. Please refresh and try again.</p>
       </div>
     );
   }
