@@ -87,7 +87,7 @@ export default function MarketplaceGigDetail() {
     enabled: !!gigIdStr,
     queryFn: async (): Promise<GigRecord> => {
       const data = await getMarketplaceGigById(gigIdStr!);
-      if (!data) throw new Error("Gig registry node unreachable.");
+      if (!data) throw new Error("Gig not found.");
       return data as unknown as GigRecord;
     },
   });
