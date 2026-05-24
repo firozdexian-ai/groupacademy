@@ -169,7 +169,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
  phone: `+${row.contact.replace(/\D/g, "")}`,
  city: row.location || null,
  country: "Bangladesh",
- country_code: "BD",
+ country_code: "+880",
  resume_url: row.cv_url && row.cv_url.startsWith("http") ? row.cv_url : null,
  status: "uploaded",
  metadata: {

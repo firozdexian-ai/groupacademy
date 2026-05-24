@@ -405,7 +405,7 @@ const Auth = () => {
               onClick={() => navigate(`/auth?${searchParams.toString()}`)}
               className="text-xs font-medium text-primary hover:underline"
             >
-              Try the chat experience instead
+              Prefer to chat? Sign in with our assistant
             </button>
           </div>
           </div>
