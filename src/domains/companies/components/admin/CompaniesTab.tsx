@@ -65,6 +65,7 @@ import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleto
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
 import { getDexianEmailLink, EMAIL_TEMPLATE_OPTIONS, DexianEmailTemplate } from "@/lib/companyOutreachTemplates";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -495,7 +496,7 @@ export function CompaniesTab() {
  disabled={saving}
  className="rounded-xl px-12 uppercase text-[10px] font-semibold shadow-lg"
  >
- {saving ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4 mr-2" />}{" "}
+ {saving ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4 mr-2" />}{" "}
  Commit Node
  </Button>
  </div>

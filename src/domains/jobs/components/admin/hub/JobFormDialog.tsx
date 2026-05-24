@@ -20,6 +20,7 @@ import { Loader2, Sparkles, Upload, X, ShieldCheck, Zap, Globe, Briefcase } from
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Job Infrastructure Provisioner (V2.1.26)
@@ -264,7 +265,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  <div className="flex-1 overflow-y-auto p-8 pt-0">
  {loading ? (
  <div className="flex flex-col items-center justify-center py-24 gap-4">
- <Loader2 className="h-12 w-12 animate-spin text-primary" />
+ <InlineSpinner size="lg" />
  <p className="text-[10px] font-semibold animate-pulse">
  Ingesting Registry Data...
  </p>
@@ -334,7 +335,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  ) : (
  <label className="h-16 w-16 border border-dashed border-primary/20 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-primary/5 shrink-0 transition-all">
  {isUploadingLogo ? (
- <Loader2 className="h-6 w-6 animate-spin text-primary" />
+ <InlineSpinner size="md" />
  ) : (
  <Upload className="h-6 w-6 text-muted-foreground" />
  )}
@@ -437,7 +438,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  className="h-8 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 font-semibold text-[9px] uppercase italic tracking-widest gap-2"
  >
  {isEnhancing ? (
- <Loader2 className="h-3 w-3 animate-spin" />
+ <InlineSpinner size="sm" />
  ) : (
  <Sparkles className="h-3 w-3 fill-primary/20" />
  )}
@@ -559,7 +560,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  disabled={isSaving || loading}
  className="h-16 px-12 rounded-xl font-semibold font-medium text-xl gap-3 shadow-sm transition-all active:scale-95"
  >
- {isSaving ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6 fill-current" />}
+ {isSaving ? <InlineSpinner size="md" /> : <ShieldCheck className="h-6 w-6 fill-current" />}
  {jobId ? "Commit Updates" : "Initialize Deployment"}
  </Button>
  </DialogFooter>

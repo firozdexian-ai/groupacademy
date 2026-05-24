@@ -11,6 +11,7 @@ import { recordToolRun } from "@/hooks/useToolRuns";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { toast } from "sonner";
 import { generateApplicationAnswers } from "@/domains/jobs/api/jobsApi";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Application Answer Sheet — paste application questions, get tailored answers
@@ -99,7 +100,7 @@ export default function ApplicationHelper() {
  <Coins className="h-3 w-3 text-amber-500" /> {cost} credits
  </Badge>
  <Button onClick={handleRun} disabled={running} size="sm" className="h-9 rounded-lg">
- {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+ {running ? <InlineSpinner size="sm" className="mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
  {running ? "Drafting..." : "Generate answers"}
  </Button>
  </div>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Search, Sparkles, Star, Coins, Loader2, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -163,7 +164,7 @@ export default function AgentMarketplace() {
  role="status"
  className="w-full flex items-center justify-center py-16 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none pointer-events-none gap-2.5"
  >
- <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+ <InlineSpinner size="sm" />
  <span>Loading agents...</span>
  </div>
  ) : processedFilteredAgentsArray.length === 0 ? (

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, Check } from "lucide-react";
 import { toast } from "sonner";
 import { callContentAI, type AIContext } from "@/lib/contentAI";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Props {
  open: boolean;
@@ -45,7 +46,7 @@ export function AICoverImageSheet({ open, onOpenChange, context, onApply }: Prop
  <div className="mt-6 space-y-4">
  {!prompts && (
  <Button onClick={loadPrompts} disabled={generating} className="w-full">
- {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+ {generating ? <InlineSpinner size="sm" className="mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
  Generate 3 prompt options
  </Button>
  )}
@@ -53,7 +54,7 @@ export function AICoverImageSheet({ open, onOpenChange, context, onApply }: Prop
  <div key={i} className="border rounded-2xl p-4 space-y-3">
  <p className="text-sm">{p}</p>
  <Button size="sm" onClick={() => generateImage(i)} disabled={picking !== null} className="w-full">
- {picking === i ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Check className="h-3 w-3 mr-2" />}
+ {picking === i ? <InlineSpinner size="sm" className="mr-2" /> : <Check className="h-3 w-3 mr-2" />}
  Use this prompt
  </Button>
  </div>

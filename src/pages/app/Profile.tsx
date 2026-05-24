@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { enhanceCoverLetter } from "@/domains/jobs/api/jobsApi";
 import { trackError } from "@/lib/errorTracking";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 type EditableSection =
  | "about"
@@ -95,7 +96,7 @@ export default function Profile() {
  if (isTalentLoading) {
  return (
  <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
- <Loader2 className="w-8 h-8 animate-spin text-primary" />
+ <InlineSpinner size="lg" />
  <p className="text-sm text-muted-foreground">Loading your profile…</p>
  </div>
  );
@@ -467,7 +468,7 @@ export default function Profile() {
  <Button onClick={handleEnhanceWithAI} disabled={isEnhancing}>
  {isEnhancing ? (
  <>
- <Loader2 className="h-4 w-4 animate-spin mr-2" /> Rewriting…
+ <InlineSpinner size="sm" className="mr-2" /> Rewriting…
  </>
  ) : (
  <>

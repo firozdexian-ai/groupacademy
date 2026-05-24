@@ -13,6 +13,7 @@ import {
   hideModerationTarget,
   type ModerationTable,
 } from "@/domains/learning/repo/learningRepo";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const SCOPE_TO_TABLE: Record<string, ModerationTable> = {
   post: "discussion_posts",
@@ -44,7 +45,7 @@ export function LearningModerationTab() {
   };
 
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  if (loading) return <InlineSpinner size="lg" />;
 
   return (
     <div className="space-y-2">

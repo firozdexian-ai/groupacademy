@@ -15,6 +15,7 @@ import { PAGE_SHELL } from "@/lib/uiTokens";
 import { listTalentSystemFeedNotifications } from "@/domains/talent/repo/talentRepo";
 import { getAgentByKey } from "@/domains/agents/repo/agentsRepo";
 import { getMessageThreadIdByTalentAndAgent, ensureSystemThread } from "@/domains/messaging/repo/messagingRepo";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -138,9 +139,7 @@ export default function MessageThread() {
  {/* HUD LEVEL 2: MESSAGING VIEWPORT */}
  <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6 bg-muted/10 space-y-4">
  {isBootstrapping ? (
- <div className="flex justify-center py-12">
- <Loader2 className="h-6 w-6 animate-spin text-primary" />
- </div>
+ <InlineSpinner size="lg" />
  ) : isSystemThread ? (
  systemNotifications.length === 0 ? (
  <div className="text-center text-xs text-muted-foreground py-10">No telemetry alerts present.</div>
@@ -163,7 +162,7 @@ export default function MessageThread() {
  ))}
  {isStreaming && (
  <div className="flex items-center gap-2 px-3 py-2 text-[10px] uppercase font-bold text-muted-foreground animate-pulse">
- <Loader2 className="h-3 w-3 animate-spin" /> {headerLabel} is generating...
+ <InlineSpinner size="sm" /> {headerLabel} is generating...
  </div>
  )}
  </>

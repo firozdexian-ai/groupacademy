@@ -12,6 +12,7 @@ import { CheckCircle2, XCircle, Eye, Loader2, ShieldCheck, Users, Zap, Clipboard
 import { toast } from "sonner";
 import { JobFormDialog, type JobFormState } from "./JobFormDialog";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Community Submission Gatekeeper
@@ -106,7 +107,7 @@ export function PendingJobSubmissions() {
       <CardContent className="p-8 space-y-4">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-50">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <InlineSpinner size="lg" />
             <p className="text-[10px] font-semibold">Loading queue…</p>
           </div>
         ) : !data || data.length === 0 ? (

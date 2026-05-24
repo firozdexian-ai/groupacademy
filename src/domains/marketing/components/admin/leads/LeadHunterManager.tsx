@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getOutreachWhatsAppLink, getOutreachEmailLink, getOutreachLinkedInMessage } from "@/lib/outreachTemplates";
 import { extractFirstName, cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Lead Hunter Terminal (Lead Extraction)
@@ -560,7 +561,7 @@ export function LeadHunterManager() {
  }
  className="h-10 px-4 rounded-xl bg-primary font-semibold text-[11px] shadow-sm gap-3 text-white"
  >
- {isSearching ? <Loader2 className="animate-spin h-5 w-5" /> : <Target className="h-5 w-5" />} Launch
+ {isSearching ? <InlineSpinner size="md" /> : <Target className="h-5 w-5" />} Launch
  Extract
  </Button>
  </DialogFooter>

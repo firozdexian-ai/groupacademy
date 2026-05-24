@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL, CARD } from "@/lib/uiTokens";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -167,7 +168,7 @@ export default function LanguagePracticePage() {
  {isInferenceProcessing && (
  <div className="flex justify-start">
  <div className="rounded-lg px-4 py-3 bg-muted/60 text-muted-foreground border border-border/20">
- <Loader2 className="h-4 w-4 animate-spin" />
+ <InlineSpinner size="sm" />
  </div>
  </div>
  )}

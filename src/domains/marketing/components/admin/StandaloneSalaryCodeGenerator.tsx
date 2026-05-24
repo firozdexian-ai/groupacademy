@@ -10,6 +10,7 @@ import { Copy, Download, Loader2, Plus, TrendingUp, Zap, ShieldCheck, Mail, Hash
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: AI Salary Analysis Access Deployment
@@ -161,7 +162,7 @@ export function StandaloneSalaryCodeGenerator() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <InlineSpinner size="md" />
               Saving…
             </>
           ) : (

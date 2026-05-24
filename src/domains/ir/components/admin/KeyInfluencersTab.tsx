@@ -29,6 +29,7 @@ import {
 import { listInfluencers, upsertInfluencer, deleteInfluencer } from "@/domains/ir/repo/irRepo";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Influencer {
  id: string;
@@ -306,7 +307,7 @@ export default function KeyInfluencersTab() {
  disabled={busy}
  className="w-full h-10 rounded-xl font-semibold uppercase text-[11px] gap-2 shadow-sm bg-primary"
  >
- {busy ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}{" "}
+ {busy ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4" />}{" "}
  {editingNode ? "Commit Calibration" : "Authorize Node"}
  </Button>
  </DialogFooter>

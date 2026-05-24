@@ -9,6 +9,7 @@ import { useThread, useReplyToThread, useReportContent } from "@/hooks/useDiscus
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -96,7 +97,7 @@ export default function AppDiscussionThread() {
  className="min-h-[50vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none antialiased"
  >
  <div className="flex items-center gap-2.5">
- <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+ <InlineSpinner size="sm" />
  <span>Synchronizing Conversation Logs...</span>
  </div>
  </div>

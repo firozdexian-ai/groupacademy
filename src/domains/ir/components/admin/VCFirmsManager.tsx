@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { IR_CONFIG } from "@/lib/irConfig";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Institutional Capital Registry (VCFirmsManager)
@@ -512,7 +513,7 @@ export function VCFirmsManager() {
  className="flex-1 h-14 rounded-xl font-semibold text-lg gap-3 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
  >
  {saveMutation.isPending ? (
- <Loader2 className="h-5 w-5 animate-spin" />
+ <InlineSpinner size="md" />
  ) : (
  <ShieldCheck className="h-5 w-5 fill-current" />
  )}
@@ -557,7 +558,7 @@ export function VCFirmsManager() {
  className="flex-1 h-14 rounded-xl font-medium text-[10px] tracking-tight shadow-lg shadow-destructive/20 gap-2"
  >
  {deleteMutation.isPending ? (
- <Loader2 className="h-4 w-4 animate-spin" />
+ <InlineSpinner size="sm" />
  ) : (
  <Trash2 className="h-4 w-4" />
  )}

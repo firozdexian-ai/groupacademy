@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { aiSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Global CRM Support AI
@@ -198,7 +199,7 @@ export function SupportAITab() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" /> Processing Registry...
+                    <InlineSpinner size="md" /> Processing Registry...
                   </>
                 ) : (
                   <>

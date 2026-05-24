@@ -23,6 +23,7 @@ import {
   Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Payment Infrastructure Manager (Pay Infra)
@@ -145,9 +146,7 @@ export function PaymentInfraTab() {
 
   if (isLoading)
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
+      <InlineSpinner size="lg" />
     );
 
   return (
@@ -171,7 +170,7 @@ export function PaymentInfraTab() {
           className="h-10 px-4 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-3"
         >
           {saveMutation.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <InlineSpinner size="sm" className="mr-2" />
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}{" "}
@@ -372,7 +371,7 @@ export function PaymentInfraTab() {
                     disabled={!stripeUsed || !secretKey || savingSecret}
                     className="h-14 px-6 rounded-2xl font-black text-[10px]"
                   >
-                    {savingSecret ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vault Key"}
+                    {savingSecret ? <InlineSpinner size="sm" /> : "Vault Key"}
                   </Button>
                 </div>
               </div>
@@ -403,7 +402,7 @@ export function PaymentInfraTab() {
                     disabled={!stripeUsed || !webhookSecret || savingWebhook}
                     className="h-14 px-6 rounded-2xl font-black text-[10px]"
                   >
-                    {savingWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vault Webhook"}
+                    {savingWebhook ? <InlineSpinner size="sm" /> : "Vault Webhook"}
                   </Button>
                 </div>
               </div>

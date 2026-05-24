@@ -13,6 +13,7 @@ import { PendingJobSubmissions } from "./PendingJobSubmissions";
 import { JobsLinkedInBatchUpload } from "@/domains/jobs/components/admin/JobsLinkedInBatchUpload";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Job Data Ingress Orchestrator (JobsUploadTab)
@@ -129,7 +130,7 @@ export function JobsUploadTab() {
                   disabled={parsing || !rawText.trim()}
                   className="h-16 px-10 rounded-xl font-semibold uppercase italic tracking-tight text-xl gap-3 shadow-xl shadow-primary/20 active:scale-95 transition-all"
                 >
-                  {parsing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Zap className="h-6 w-6 fill-current" />}
+                  {parsing ? <InlineSpinner size="md" /> : <Zap className="h-6 w-6 fill-current" />}
                   Parse with AI
                 </Button>
                 <Button

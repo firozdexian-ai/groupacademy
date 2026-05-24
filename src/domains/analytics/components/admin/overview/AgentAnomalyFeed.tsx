@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, AlertTriangle, Target, ArrowUpRight, ShieldAlert, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface PlatformEvent {
   id: string;
@@ -98,7 +99,7 @@ export function AgentAnomalyFeed() {
         <div className="divide-y divide-border/10 flex-1 overflow-y-auto max-h-[400px]">
           {isLoading ? (
             <div className="p-20 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <InlineSpinner size="lg" />
               <p className="text-[10px] font-black">Scanning Agents...</p>
             </div>
           ) : events.length > 0 ? (

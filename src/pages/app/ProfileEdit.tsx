@@ -28,6 +28,7 @@ import { uploadPortfolioFile } from "@/domains/profile/repo/profileRepo";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { parseCv } from "@/domains/jobs/api/jobsApi";
 import { trackError } from "@/lib/errorTracking";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface LanguageEntry {
  language: string;
@@ -558,7 +559,7 @@ export default function ProfileEdit() {
  <Button type="submit" className="flex-1" disabled={saving}>
  {saving ? (
  <>
- <Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving…
+ <InlineSpinner size="sm" className="mr-2" /> Saving…
  </>
  ) : (
  <>

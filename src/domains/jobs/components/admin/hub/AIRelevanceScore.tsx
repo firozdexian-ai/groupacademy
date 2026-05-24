@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, Loader2, Zap, Target, ShieldCheck, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: AI Relevance Scoring Node
@@ -86,7 +87,7 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
             loading ? "animate-pulse opacity-50" : "",
           )}
         >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 fill-current" />}
+          {loading ? <InlineSpinner size="sm" /> : <Zap className="h-3 w-3 fill-current" />}
           <span>{score}%</span>
           <span className="opacity-60 hidden sm:inline">· {scoreLabel(score)}</span>
         </button>

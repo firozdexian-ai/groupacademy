@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { IdentityDocsUpload } from "@/domains/profile/components/talent/IdentityDocsUpload";
 import { PayoutAccountsManager } from "@/domains/profile/components/talent/PayoutAccountsManager";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Check {
  key: string;
@@ -119,9 +120,7 @@ export default function ProfileVerify() {
 
  if (isLoading) {
  return (
- <div className="flex items-center justify-center min-h-[60vh]">
- <Loader2 className="h-8 w-8 animate-spin text-primary" />
- </div>
+ <InlineSpinner size="lg" />
  );
  }
 

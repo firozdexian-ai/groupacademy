@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Plus, Phone, MessageCircle, Trash2, Network, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Channel {
   id: string;
@@ -204,7 +205,7 @@ export function MessagingChannelsTab({
                 disabled={creating}
                 className="w-full sm:w-auto h-12 rounded-xl px-6 font-bold text-[10px]"
               >
-                {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Phone className="h-4 w-4 mr-2" />}
+                {creating ? <InlineSpinner size="sm" className="mr-2" /> : <Phone className="h-4 w-4 mr-2" />}
                 Connect WhatsApp
               </Button>
               <p className="text-xs text-muted-foreground">
@@ -234,7 +235,7 @@ export function MessagingChannelsTab({
                   variant="secondary"
                   className="h-12 rounded-xl px-6 font-bold text-[10px]"
                 >
-                  {verifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  {verifying ? <InlineSpinner size="sm" className="mr-2" /> : null}
                   Verify
                 </Button>
               </div>
@@ -258,9 +259,7 @@ export function MessagingChannelsTab({
           </CardHeader>
           <CardContent className="p-6 flex-1 overflow-y-auto">
             {loading ? (
-              <div className="py-12 flex justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/30" />
-              </div>
+              <InlineSpinner size="lg" />
             ) : channels.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[200px] border-2 border-dashed border-border/40 rounded-2xl bg-muted/5">
                 <Phone className="h-8 w-8 text-muted-foreground/30 mb-3" />
@@ -317,7 +316,7 @@ export function MessagingChannelsTab({
                           disabled={reconciling}
                           className="h-8 rounded-lg text-xs"
                         >
-                          {reconciling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                          {reconciling ? <InlineSpinner size="sm" className="mr-1" /> : null}
                           Reconcile
                         </Button>
                       )}

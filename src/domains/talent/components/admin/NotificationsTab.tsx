@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BellRing, Send, ChevronLeft, ChevronRight, Loader2, Activity, Users, User } from "lucide-react";
 import { format } from "date-fns";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -257,7 +258,7 @@ export function NotificationsTab() {
  disabled={isSending}
  className="w-full h-10 rounded-xl font-semibold text-[11px] gap-2 shadow-sm bg-primary hover:bg-primary/90"
  >
- {isSending ? <Loader2 className="animate-spin h-5 w-5" /> : <Activity className="h-5 w-5" />}
+ {isSending ? <InlineSpinner size="md" /> : <Activity className="h-5 w-5" />}
  Execute Dispatch
  </Button>
  </DialogFooter>

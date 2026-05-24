@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMarkAttendance } from "@/domains/learning";
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -117,7 +118,7 @@ export default function AppSessionJoin() {
  className="min-h-[60vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/40 select-none antialiased"
  >
  <div className="flex items-center gap-2.5">
- <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+ <InlineSpinner size="sm" />
  <span>Authenticating Pipeline Handshake Token...</span>
  </div>
  </div>

@@ -35,6 +35,7 @@ import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleto
 import { AIRelevanceScore } from "./AIRelevanceScore";
 import { AddExternalApplicationDialog } from "./AddExternalApplicationDialog";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Job Application Intelligence Tab
@@ -278,7 +279,7 @@ export function JobsApplicationsTab() {
                 disabled={bulkScoring}
                 className="flex-1 sm:flex-none h-10 px-4 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-2"
               >
-                {bulkScoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {bulkScoring ? <InlineSpinner size="sm" /> : <Sparkles className="h-4 w-4" />}
                 Bulk_Analyze
               </Button>
               <Button

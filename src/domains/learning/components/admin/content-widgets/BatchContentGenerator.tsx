@@ -49,6 +49,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Autonomous Content Factory
@@ -531,7 +532,7 @@ export function BatchContentGenerator() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         {isRunning ? (
-                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <InlineSpinner size="md" />
                         ) : (
                           <ShieldCheck className="h-6 w-6 text-emerald-500" />
                         )}

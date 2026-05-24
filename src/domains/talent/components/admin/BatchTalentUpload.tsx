@@ -32,6 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LinkedInJsonUpload } from "./LinkedInJsonUpload";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Talent Registry Ingestion Node
@@ -424,7 +425,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
  className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-sm group relative overflow-hidden"
  >
  <span className="relative z-10 flex items-center gap-3">
- {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload className="h-5 w-5" />}
+ {isUploading ? <InlineSpinner size="md" /> : <Upload className="h-5 w-5" />}
  Authorize URL Ingestion
  </span>
  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -486,7 +487,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
  className="w-full h-16 rounded-[20px] font-semibold uppercase tracking-[0.3em] text-[11px] shadow-sm group"
  >
  {uploadingFiles ? (
- <Loader2 className="animate-spin mr-3 h-5 w-5" />
+ <InlineSpinner size="md" className="mr-3" />
  ) : (
  <ShieldCheck className="mr-3 h-5 w-5" />
  )}
@@ -526,7 +527,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
  disabled={isUploading || !csvFile}
  className="w-full h-16 rounded-[20px] font-semibold uppercase tracking-[0.3em] text-[11px] shadow-sm shadow-blue-500/30 bg-blue-600 hover:bg-blue-700 text-white group"
  >
- {isUploading ? <Loader2 className="animate-spin mr-3 h-5 w-5" /> : <Database className="mr-3 h-5 w-5" />}
+ {isUploading ? <InlineSpinner size="md" className="mr-3" /> : <Database className="mr-3 h-5 w-5" />}
  Execute CSV Agent Sync
  </Button>
  </TabsContent>

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Social Syndication Node
@@ -183,7 +184,7 @@ export function ChannelPromotionCard({ job }: Props) {
               disabled={generating}
             >
               {generating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <InlineSpinner size="sm" />
               ) : (
                 <Sparkles className="h-4 w-4 text-primary fill-primary/20" />
               )}

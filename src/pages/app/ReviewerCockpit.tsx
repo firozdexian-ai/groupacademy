@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { adminGigOps, aiReviewerBrief } from "@/domains/gigs/api/gigsApi";
 import { getReviewerCockpit } from "@/domains/gigs/repo/gigsRepo";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Production Data Contracts[cite: 8]
 interface ReviewerProfile {
@@ -132,9 +133,7 @@ export default function ReviewerCockpit() {
 
  if (loading)
  return (
- <div className="p-10 flex justify-center">
- <Loader2 className="h-8 w-8 animate-spin text-primary" />
- </div>
+ <InlineSpinner size="lg" />
  );
 
  if (!profile) {

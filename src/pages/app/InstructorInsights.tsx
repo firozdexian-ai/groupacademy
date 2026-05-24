@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, AlertTriangle, Sparkles, ArrowLeft } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // 1. Define explicit contracts for your data
 interface AuthoringTrends {
@@ -54,9 +55,7 @@ export default function InstructorInsights() {
  if (!instructorId) return null;
  if (isLoading)
  return (
- <div className="flex justify-center p-12">
- <Loader2 className="animate-spin" />
- </div>
+ <InlineSpinner size="lg" />
  );
  if (!trends) return <div className="p-6 text-center text-muted-foreground">No insights available.</div>;
 

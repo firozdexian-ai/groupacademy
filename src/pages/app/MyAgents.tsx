@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CreatorOnboardingDialog } from "@/components/agents/CreatorOnboardingDialog";
 import { PayoutDialog } from "@/components/agents/PayoutDialog"; // Recommended extraction
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC CONTRACTS
@@ -59,9 +60,7 @@ export default function MyAgents() {
 
  if (isLoading)
  return (
- <div className="flex justify-center p-12">
- <Loader2 className="animate-spin" />
- </div>
+ <InlineSpinner size="lg" />
  );
  if (!dashboardData) return null;
 

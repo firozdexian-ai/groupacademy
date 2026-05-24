@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Send, RefreshCw, Sparkles, BrainCircuit, UserSearch, MessageSquareQuote, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface TalentRow {
   id: string;
@@ -187,7 +188,7 @@ export function TalentOutreachConsoleTab() {
               onClick={generateOutreach}
               disabled={generating || !selectedTalent}
             >
-              {generating ? <Loader2 className="animate-spin h-3 w-3 mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
+              {generating ? <InlineSpinner size="sm" className="mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
               Propose Hook
             </Button>
           </div>
@@ -207,7 +208,7 @@ export function TalentOutreachConsoleTab() {
               onClick={handleSend}
               className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2"
             >
-              {sending ? <Loader2 className="animate-spin h-4 w-4" /> : <Send className="h-4 w-4" />}
+              {sending ? <InlineSpinner size="sm" /> : <Send className="h-4 w-4" />}
               Dispatch Outreach
             </Button>
           </div>

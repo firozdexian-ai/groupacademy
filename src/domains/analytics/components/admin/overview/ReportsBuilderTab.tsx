@@ -25,6 +25,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Section {
   kind: "kpi" | "bar" | "line" | "pie" | "note";
@@ -129,7 +130,7 @@ export function ReportsBuilderTab() {
             disabled={loading || !brief.trim()}
             className="rounded-2xl h-12 px-8 font-semibold text-xs gap-2"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {loading ? <InlineSpinner size="sm" /> : <Sparkles className="h-4 w-4" />}
             Compile Leadership Report
           </Button>
         </CardContent>

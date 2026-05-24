@@ -9,6 +9,7 @@ import { BrowseView } from "@/domains/jobs/components/views/BrowseView";
 import { CompaniesView } from "@/domains/jobs/components/views/CompaniesView";
 import { LocationsView } from "@/domains/jobs/components/views/LocationsView";
 import { ToolsView } from "@/domains/jobs/components/views/ToolsView";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 type TabKey = "browse" | "company" | "country" | "tools";
 
@@ -29,7 +30,7 @@ export default function JobsHub() {
  if (isLoading) {
  return (
  <div className="max-w-4xl mx-auto px-4 py-12 flex flex-col items-center gap-4">
- <Loader2 className="h-8 w-8 animate-spin text-primary" />
+ <InlineSpinner size="lg" />
  </div>
  );
  }

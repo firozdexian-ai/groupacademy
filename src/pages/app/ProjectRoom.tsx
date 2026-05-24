@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { adminGigOps } from "@/domains/gigs/api/gigsApi";
 import { getProjectRoomBundle, insertProjectMessage } from "@/domains/gigs/repo/gigsRepo";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Production Type Definitions[cite: 8]
 interface Project {
@@ -168,7 +169,7 @@ export default function ProjectRoom() {
  disabled={submitting}
  >
  {submitting ? (
- <Loader2 className="animate-spin h-3 w-3 mr-2" />
+ <InlineSpinner size="sm" className="mr-2" />
  ) : (
  <ShieldCheck className="h-3 w-3 mr-2" />
  )}

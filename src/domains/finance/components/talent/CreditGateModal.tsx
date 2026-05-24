@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface CreditGateModalProps {
   isOpen: boolean;
@@ -207,7 +208,7 @@ export function CreditGateModal({
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2 font-mono">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
+                    <InlineSpinner size="sm" />
                     DEBIT_IN_TRANSIT...
                   </span>
                 ) : (

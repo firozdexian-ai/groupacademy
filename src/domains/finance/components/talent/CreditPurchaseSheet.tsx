@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface CreditPurchaseSheetProps {
   isOpen: boolean;
@@ -213,7 +214,7 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
                           )}
                         >
                           {isThisCardLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            <InlineSpinner size="md" />
                           ) : (
                             <Coins className="h-5 w-5 fill-current opacity-80" />
                           )}
@@ -273,7 +274,7 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
                 onClick={() => handleBundleSelectionHandshake(500, 9)}
               >
                 {whatsappSyncMutation.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <InlineSpinner size="md" />
                 ) : (
                   <MessageCircle className="h-5 w-5 fill-current opacity-40" />
                 )}

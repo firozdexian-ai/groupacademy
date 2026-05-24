@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAIGeneralChat } from "@/hooks/useAIGeneralChat";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface ChatMessage {
  id?: string;
@@ -229,11 +230,8 @@ export default function AIGeneral() {
 
  {/* Dynamic Chunk Streaming Activity Loader */}
  {isStreaming && typedMessagesRoster[typedMessagesRoster.length - 1]?.role === "user" && (
- <div className="flex gap-3 justify-start items-center select-none pointer-events-none block animate-pulse">
  <div className="h-8 w-8 rounded-md bg-muted border border-border/40 flex items-center justify-center shrink-0 block">
- <Loader2 className="h-4 w-4 animate-spin text-primary opacity-40" />
- </div>
- <div className="bg-muted/40 h-8 w-20 rounded-xl rounded-tl-none block border border-border/5" />
+ <InlineSpinner size="sm" />
  </div>
  )}
 

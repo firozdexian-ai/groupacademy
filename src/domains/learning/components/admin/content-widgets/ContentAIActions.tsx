@@ -4,6 +4,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callContentAI, type AIMode, type AIContext } from "@/lib/contentAI";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Props {
   mode: AIMode;
@@ -34,7 +35,7 @@ export function AIActionButton({ mode, context, onResult, label = "AI", classNam
   return (
     <Button type="button" variant="outline" size={size} disabled={busy} onClick={run}
       className={cn("h-7 px-2 text-[10px] font-bold  gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10", className)}>
-      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+      {busy ? <InlineSpinner size="sm" /> : <Sparkles className="h-3 w-3" />}
       {label}
     </Button>
   );

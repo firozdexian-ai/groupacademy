@@ -10,6 +10,7 @@ import { Copy, Download, Loader2, Plus, MessageSquare, Zap, ShieldCheck, Mail, H
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: AI Mock Interview Access Deployment
@@ -160,7 +161,7 @@ export function StandaloneMockInterviewCodeGenerator() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <InlineSpinner size="md" />
               Saving…
             </>
           ) : (

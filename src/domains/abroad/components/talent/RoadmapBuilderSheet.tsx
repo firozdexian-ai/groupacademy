@@ -8,6 +8,7 @@ import { aiDestinationAgent } from "@/domains/abroad/api/abroadApi";
 import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Globe } from "lucide-react";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Career Abroad Roadmap Builder Sheet (V5.6.0)
@@ -276,7 +277,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
               disabled={isPending}
               className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99] disabled:cursor-not-allowed"
             >
-              {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isPending && <InlineSpinner size="sm" className="mr-2" />}
               {isPending ? "Building your roadmap…" : `Generate roadmap (${ROADMAP_CREDIT_COST} credits)`}
             </Button>
           </div>

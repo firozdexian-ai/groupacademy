@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Mic, Square, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -187,7 +188,7 @@ export default function IELTSMockRunner() {
  >
  {isSubmissionPending ? (
  <div className="flex items-center gap-2">
- <Loader2 className="h-4 w-4 animate-spin" /> <span>Submitting for grading...</span>
+ <InlineSpinner size="sm" /> <span>Submitting for grading...</span>
  </div>
  ) : (
  <div className="flex items-center gap-2">

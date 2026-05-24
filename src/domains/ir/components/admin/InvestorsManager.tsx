@@ -40,6 +40,7 @@ import { LinkedInJsonUpload } from "@/domains/talent/components/admin/LinkedInJs
 import { IR_CONFIG } from "@/lib/irConfig";
 import { InvestorDetailSheet } from "./InvestorDetailSheet";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Investor {
  id: string;
@@ -537,7 +538,7 @@ export function InvestorsManager() {
  className="h-14 px-10 rounded-xl font-semibold text-lg shadow-primary/20 flex-1 bg-primary text-primary-foreground"
  >
  {saveMutation.isPending ? (
- <Loader2 className="h-5 w-5 animate-spin" />
+ <InlineSpinner size="md" />
  ) : (
  <ShieldCheck className="h-5 w-5" />
  )}{" "}
@@ -580,7 +581,7 @@ export function InvestorsManager() {
  className="flex-1 h-14 rounded-xl font-medium text-[10px] shadow-destructive/20 gap-2"
  >
  {deleteMutation.isPending ? (
- <Loader2 className="h-4 w-4 animate-spin" />
+ <InlineSpinner size="sm" />
  ) : (
  <Trash2 className="h-4 w-4" />
  )}{" "}

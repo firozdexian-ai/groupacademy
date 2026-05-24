@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Key, Copy, Check, Loader2, Zap, ShieldCheck, Mail } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Salary Analysis Access Deployment
@@ -177,7 +178,7 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
  >
  {isGenerating ? (
  <>
- <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+ <InlineSpinner size="md" className="mr-2" />
  Saving…
  </>
  ) : (

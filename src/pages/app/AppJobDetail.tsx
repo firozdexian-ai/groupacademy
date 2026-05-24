@@ -36,6 +36,7 @@ import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/li
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { scoreJobMatch } from "@/domains/jobs/api/jobsApi";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Job {
  id: string;
@@ -398,7 +399,7 @@ export default function AppJobDetail() {
  <CardContent className="p-3.5 flex items-center gap-3">
  <div className="h-10 w-10 rounded-lg bg-background border border-primary/10 flex items-center justify-center shrink-0">
  {scoring ? (
- <Loader2 className="h-4 w-4 text-primary animate-spin" />
+ <InlineSpinner size="sm" />
  ) : score !== null ? (
  <span className="text-sm font-bold text-primary tabular-nums">
  {Math.round(score)}%
@@ -438,7 +439,7 @@ export default function AppJobDetail() {
  disabled={scoring}
  className="shrink-0"
  >
- {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : "Score me"}
+ {scoring ? <InlineSpinner size="sm" /> : "Score me"}
  </Button>
  )}
  </CardContent>
