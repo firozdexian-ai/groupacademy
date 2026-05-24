@@ -12,6 +12,26 @@ import { useTalent } from "@/hooks/useTalent";
 import { AccountUpgradeModal } from "@/components/auth/AccountUpgradeModal";
 import { PhoneCaptureModal } from "@/components/onboarding/PhoneCaptureModal";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
+import { ComingSoonGate } from "@/components/launch/ComingSoonGate";
+
+// v0.5 launch: destination pages share one gate keyed by country slug.
+function DestinationGate() {
+  const { country } = useParams<{ country: string }>();
+  const slug = (country ?? "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  const featureKey = `abroad-country-${slug || "unknown"}`;
+  const label = country
+    ? country.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "this destination";
+  return (
+    <ComingSoonGate
+      featureKey={featureKey}
+      title={`Study in ${label}`}
+      description={`We're onboarding partner agents for ${label}. Join the waitlist to be the first to hear when they go live.`}
+      secondaryCtaLabel="Explore Study Abroad"
+      secondaryCtaHref="/app/abroad"
+    />
+  );
+}
 
 // Shell + guards (eager — small, used everywhere)
 import { ProtectedRoute } from "./components/ProtectedRoute";
