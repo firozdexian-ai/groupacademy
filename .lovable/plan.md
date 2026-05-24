@@ -1,68 +1,41 @@
-# Phase A13: Admin Dialog & Sheet Chrome Polish
+# Phase A14: Admin Empty-State Consolidation
 
-After A11 (buttons/inputs) and A12 (cards/tables), the last remaining visual outlier in the admin surface is **modal chrome**: `<Dialog>`, `<Sheet>`, `<AlertDialog>`, and `<Popover>` instances still ship with heavy `rounded-3xl`, `shadow-2xl`, `border-2`, `bg-card/80 backdrop-blur-2xl` styling that no longer matches the flat card system.
+With chrome unified across buttons (A11), cards/tables (A12), and modals (A13), the largest remaining inconsistency in the admin shell is **empty-state panels**. ~30 admin tabs each ship a hand-rolled 100–200 line "no data yet" block with custom illustrations, gradients, and copy tone. A shared component already exists at `src/components/common/EmptyState.tsx` but isn't used in admin.
 
 ## Scope (in)
 
-Files: `src/domains/*/components/admin/**` + `src/platform/admin/**` + `src/shells/admin/**` (~60–90 files touched).
-
-Regex-only className sweeps on Dialog/Sheet/AlertDialog/Popover/DropdownMenu content:
-
-- `rounded-3xl` → `rounded-2xl` (modal containers)
-- `rounded-[28px]` / `rounded-[32px]` on modals → `rounded-2xl`
-- `shadow-2xl` / `shadow-xl` on modal content → `shadow-lg`
-- `border-2 border-border/*` on modals → `border border-border/60`
-- `bg-card/80 backdrop-blur-2xl` / `bg-card/60 backdrop-blur-xl` → `bg-card` (keep `backdrop-blur-sm` only on the overlay scrim, not the content panel)
-- DialogHeader / SheetHeader: drop `border-b-2`, `tracking-[0.2em]`, `text-[11px] font-black uppercase` → `text-base font-semibold` titles, `text-sm text-muted-foreground` descriptions
-- DialogFooter / SheetFooter: drop `border-t-2 pt-8` → `border-t pt-4`
-- Close buttons / `<X>` icons: standardize to `h-8 w-8 rounded-md` ghost
-
-Inline form elements *inside* modals already covered by A11/A12 — no re-sweep needed.
+- Audit all `src/domains/*/components/admin/**` tabs for inline empty-state JSX (patterns: `items.length === 0 ? (...)` returning a centered div with an icon + heading + description + optional CTA).
+- Replace each with `<EmptyState icon={Icon} title="…" description="…" action={<Button …>} />`.
+- Normalize copy: drop jargon ("Registry is empty", "No artifacts ingested", "Telemetry void") in favor of plain language ("No companies yet", "No applications to review", "Nothing here yet").
+- Standardize CTA placement (single primary button, no double "Refresh + Add" pairs).
+- Estimated ~25–35 files touched, net code reduction ~1500–2500 lines.
 
 ## Scope (out)
 
-- No changes to the shared `src/components/ui/dialog.tsx` / `sheet.tsx` primitives (shadcn baseline stays).
-- No changes to talent/gro10x/public app modals.
-- No layout, grid, spacing-rhythm, copy, or behavior changes.
-- No replacement of custom modals with the primitive — purely className polish on existing ones.
+- No changes to `EmptyState.tsx` API itself unless a missing prop blocks a tab (e.g. add optional `secondaryAction` only if needed).
+- No changes to loading skeletons or error states (those have their own components).
+- No talent/gro10x/public empty states.
+- No layout, table, or filter logic changes — only the "zero rows" branch.
 
 ## Approach
 
-1. `rg -l "DialogContent|SheetContent|AlertDialogContent|PopoverContent" src/domains/*/components/admin src/platform/admin src/shells/admin` to enumerate.
-2. `rg -n "rounded-3xl|shadow-2xl|backdrop-blur-2xl|backdrop-blur-xl|border-2 border-border|tracking-\[0\.2em\]|text-\[11px\] font-black"` scoped to those files for the audit baseline.
-3. Run three regex passes (modal radius/shadow, header/footer chrome, blur removal) via `line_replace`.
-4. Spot-check at `/dashboard?tab=jobs-applications` (JobFormDialog), `/dashboard?tab=ir-dashboard` (InvestorDetailSheet), `/dashboard?tab=talent-pool` (TalentDetailDialog).
-5. Re-run audit; expect 0 hits inside admin domains/shells after.
-
-## Files most affected (sampling)
-
-- `src/domains/jobs/components/admin/hub/JobFormDialog.tsx`
-- `src/domains/jobs/components/admin/hub/AddExternalApplicationDialog.tsx`
-- `src/domains/ir/components/admin/InvestorDetailSheet.tsx`
-- `src/domains/ir/components/admin/EmailComposer.tsx`
-- `src/domains/ir/components/admin/InteractionLogger.tsx`
-- `src/domains/talent/components/admin/TalentDetailDialog.tsx`
-- `src/domains/learning/components/admin/modules/FlashcardEditor.tsx`
-- `src/domains/learning/components/admin/modules/QuizResultsViewer.tsx`
-- `src/domains/marketing/components/admin/leads/*Manager.tsx` (5 files with detail sheets)
-- `src/domains/companies/components/admin/CompanyAgentsTab.tsx` (config drawer)
-- `src/domains/gtm/components/admin/ConfirmPurge.tsx` (AlertDialog)
+1. Read `src/components/common/EmptyState.tsx` to confirm current API.
+2. `rg -n "length === 0|length == 0|!.*\.length" src/domains/*/components/admin --type tsx -l` to enumerate candidates, then spot-check each for the inline empty-state pattern.
+3. For each file:
+   - Identify the empty branch
+   - Pick the closest matching icon from existing imports (or import from `lucide-react`)
+   - Write plain-language title + description
+   - Preserve the existing CTA action (e.g. "Add company", "Import LinkedIn")
+   - Replace ~30–80 lines of JSX with a 5-line `<EmptyState …/>`
+4. Spot-check at `/dashboard?tab=companies`, `/dashboard?tab=jobs-applications`, `/dashboard?tab=ir-investors`, `/dashboard?tab=abroad-leads` with an empty filter to render the state.
 
 ## Acceptance
 
-- 0 hits for `rounded-3xl`, `shadow-2xl`, `backdrop-blur-2xl`, `backdrop-blur-xl`, `border-2 border-border`, `tracking-[0.2em]`, `text-[11px] font-black` across admin modals.
-- Modals visually match A12 cards (`rounded-2xl border border-border/60 bg-card shadow-lg`).
-- No behavioral regressions — every Dialog still opens, submits, closes.
+- All admin tabs render empty state via the shared `EmptyState` component.
+- Copy is plain English, no "Registry/Artifact/Telemetry/Void/Ingest" jargon.
+- Net LOC reduction documented in plan log.
+- No behavioral regressions; CTA actions still fire.
 
-## Why this phase next
+## Why this phase
 
-A11 + A12 normalized 90% of admin surface area but modals are the last "loud" element. After A13, the entire admin shell shares one chrome vocabulary, unblocking the lower-priority empty-state and JSDoc sweeps as pure cleanup.
-
----
-
-## A13 — Executed
-
-- Swept 76 admin files containing Dialog/Sheet/AlertDialog/Popover content.
-- Normalized: `rounded-3xl`→`rounded-2xl`, `shadow-2xl`/`shadow-xl`→`shadow-lg`/`shadow-sm`, removed `backdrop-blur-{xl,2xl,md}` from modal panels, `border-2 border-*`→`border border-*/60`, `border-b-2`/`border-t-2`→`border-b`/`border-t`, `tracking-[0.2em]`→`tracking-tight`.
-- Header/footer text: `text-[10px] font-bold italic`→`text-sm text-muted-foreground`, `text-[10px] font-bold`/`text-[11px] font-black`→`text-sm font-medium`, `font-black uppercase italic tracking-tighter`→`font-semibold`.
-- Final audit: 0 hits across 76 files.
+A11–A13 normalized populated states; A14 finishes the visual language by unifying the "zero data" state. After A14, the admin shell has a single vocabulary across all four UI states (loading, empty, populated, error) — closing out the admin polish initiative and unblocking pure-cleanup work (JSDoc, identifier renames).
