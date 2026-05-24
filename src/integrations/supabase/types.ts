@@ -6398,6 +6398,39 @@ export type Database = {
           },
         ]
       }
+      feature_waitlist: {
+        Row: {
+          created_at: string
+          email: string | null
+          feature_key: string
+          id: string
+          metadata: Json
+          source_path: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          feature_key: string
+          id?: string
+          metadata?: Json
+          source_path?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          feature_key?: string
+          id?: string
+          metadata?: Json
+          source_path?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       feed_interactions: {
         Row: {
           created_at: string | null
@@ -18157,6 +18190,16 @@ export type Database = {
         Args: { p_company_id?: string; p_job_id?: string; p_limit?: number }
         Returns: Json
       }
+      get_feature_waitlist_signals: {
+        Args: { _limit?: number }
+        Returns: {
+          feature_key: string
+          last_24h: number
+          last_7d: number
+          latest_at: string
+          total: number
+        }[]
+      }
       get_feed_engagement: {
         Args: { _post_ids: string[]; _talent_id?: string }
         Returns: {
@@ -18502,6 +18545,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      join_feature_waitlist: {
+        Args: {
+          _email?: string
+          _feature_key: string
+          _metadata?: Json
+          _source_path?: string
+        }
+        Returns: Json
       }
       mark_payout_paid: {
         Args: { p_notes?: string; p_request_id: string }
