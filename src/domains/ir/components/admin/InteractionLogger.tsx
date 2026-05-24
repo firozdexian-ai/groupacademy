@@ -21,6 +21,7 @@ import { IR_CONFIG } from "@/lib/irConfig";
 import { Zap, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Investor Interaction Intelligence Logger
@@ -300,7 +301,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
  className="h-14 px-10 rounded-xl font-semibold font-medium text-lg gap-3 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
  >
  {saveMutation.isPending ? (
- <Loader2 className="h-5 w-5 animate-spin" />
+ <InlineSpinner size="md" />
  ) : (
  <ShieldCheck className="h-5 w-5 fill-current" />
  )}

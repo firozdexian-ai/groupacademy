@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { KeyRound, Copy, Check, Loader2, ShieldCheck, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Cryptographic Handshake Node
@@ -189,7 +190,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  className="w-full h-16 rounded-[20px] font-medium tracking-[0.3em] text-[11px] shadow-sm group relative overflow-hidden"
  >
  <span className="relative z-10 flex items-center gap-3">
- {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <KeyRound className="h-5 w-5" />}
+ {generating ? <InlineSpinner size="md" /> : <KeyRound className="h-5 w-5" />}
  {generating ? "SYNCING..." : "INITIALIZE HANDSHAKE"}
  </span>
  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />

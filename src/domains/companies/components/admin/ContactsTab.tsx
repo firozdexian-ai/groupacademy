@@ -46,6 +46,7 @@ import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleto
 import { getDexianWhatsAppLink } from "@/lib/companyOutreachTemplates";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/components/ProtectedRoute";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -275,7 +276,7 @@ export function ContactsTab() {
  disabled={saving}
  className="w-full h-12 rounded-xl font-semibold uppercase text-[10px] gap-2"
  >
- {saving ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />} Commit
+ {saving ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4" />} Commit
  Changes
  </Button>
  </DialogFooter>

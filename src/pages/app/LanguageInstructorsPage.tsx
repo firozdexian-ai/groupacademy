@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ShieldCheck, Calendar, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL, CARD, META_TEXT } from "@/lib/uiTokens";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -115,7 +116,7 @@ export default function LanguageInstructorsPage() {
  onClick={() => handleBookingTransaction(instructor)}
  disabled={isBookingPending}
  >
- {isBookingPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Book Session"}
+ {isBookingPending ? <InlineSpinner size="sm" /> : "Book Session"}
  </Button>
  </div>
  </div>

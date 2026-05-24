@@ -17,6 +17,7 @@ import {
 import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC CONTRACT INTERFACES
@@ -102,7 +103,7 @@ export default function InstructorCourseSessions() {
  className="min-h-[50vh] w-full grid place-items-center font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none antialiased"
  >
  <div className="flex items-center gap-2.5">
- <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+ <InlineSpinner size="sm" />
  <span>Loading sessions...</span>
  </div>
  </div>
@@ -232,7 +233,7 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: CohortSessionsPr
 
  {isSessionsLoading ? (
  <div className="w-full flex items-center justify-center py-8 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
- <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
+ <InlineSpinner size="sm" />
  <span>Compiling Session Syllabus...</span>
  </div>
  ) : typedSessionsArray.length === 0 ? (
@@ -680,7 +681,7 @@ function AttendanceSheet({ sessionId, onClose }: AttendanceSheetProps) {
 
  {isAttendanceResolving ? (
  <div className="w-full flex items-center justify-center py-12 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
- <Loader2 className="h-3 w-3 animate-spin text-primary" />
+ <InlineSpinner size="sm" />
  <span>Resolving Enrolled Records...</span>
  </div>
  ) : (

@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, MessageSquare } from "lucide-react";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 export function AnalystChatTab() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function AnalystChatTab() {
           <MessageSquare className="h-10 w-10 text-primary animate-pulse" />
         </div>
         <div className="absolute -bottom-2 -right-2">
-          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <InlineSpinner size="lg" />
         </div>
       </div>
 

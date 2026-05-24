@@ -32,6 +32,7 @@ import {
   type CompanyData,
 } from "@/lib/linkedinJsonParser";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Registry Ingestion Terminal (LinkedIn JSON)
@@ -282,7 +283,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
                   disabled={importing || !selectedIndices.size}
                   className="flex-1 h-10 rounded-xl font-semibold text-[11px] shadow-sm"
                 >
-                  {importing ? <Loader2 className="animate-spin h-5 w-5" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
+                  {importing ? <InlineSpinner size="md" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
                   Authorize Ingestion Sequence
                 </Button>
                 <Button

@@ -14,6 +14,7 @@ import {
 import { useTalent } from "@/hooks/useTalent";
 import { AgentReviewSection } from "@/components/agents/AgentReviewSection";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -388,7 +389,7 @@ export default function AgentProfile() {
  className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block"
  >
  {isTransactionConnecting ? (
- <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+ <InlineSpinner size="sm" />
  ) : (
  <MessageCircle className="h-4 w-4 stroke-[2.5] shrink-0" />
  )}

@@ -11,6 +11,7 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { Gift, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Comment {
   id: string;
@@ -180,7 +181,7 @@ export function CommentList({ postId }: CommentListProps) {
       {/* Dynamic Viewport Pipeline Resolution */}
       {loading ? (
         <div className="flex items-center justify-center py-8 text-xs text-muted-foreground/80 font-medium tracking-wide">
-          <Loader2 className="h-4 w-4 animate-spin mr-2.5 text-primary" /> Loading conversational stream…
+          <InlineSpinner size="sm" className="mr-2.5" /> Loading conversational stream…
         </div>
       ) : comments.length === 0 ? (
         <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border/40 bg-muted/5 select-none">

@@ -8,6 +8,7 @@ import { ADMIN_AGENTS_BY_KEY } from "@/lib/adminAgents";
 import { useAgentRuntimeThread } from "./hooks/useAgentRuntimeThread";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface ChatThreadProps {
   agentKey: string;
@@ -88,7 +89,7 @@ export function ChatThread({ agentKey, onAfterSend }: ChatThreadProps) {
       <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-background/30">
         {loading && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading conversation…
+            <InlineSpinner size="sm" /> Loading conversation…
           </div>
         )}
 
@@ -166,7 +167,7 @@ export function ChatThread({ agentKey, onAfterSend }: ChatThreadProps) {
 
         {sending && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" /> {agent.name} is typing…
+            <InlineSpinner size="sm" /> {agent.name} is typing…
           </div>
         )}
         <div ref={endRef} />

@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, Loader2, MapPin, Wallet, Sparkles, Zap, Shie
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Admissions Trajectory Orchestrator (V5.6.0)
@@ -391,7 +392,7 @@ export function RoadmapIntakeForm() {
             className="h-14 flex-1 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.3)] hover:shadow-primary/40 gap-3 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
-              <Loader2 className="animate-spin h-5 w-5" />
+              <InlineSpinner size="md" />
             ) : (
               <>
                 <Sparkles className="h-5 w-5" /> Generate roadmap

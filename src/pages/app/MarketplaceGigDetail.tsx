@@ -33,6 +33,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PAGE_SHELL, CARD, META_TEXT } from "@/lib/uiTokens";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -259,7 +260,7 @@ export default function MarketplaceGigDetail() {
  disabled={isSubmitPending || !coverLetterInput.trim()}
  >
  {isSubmitPending ? (
- <Loader2 className="animate-spin h-4 w-4 mr-2" />
+ <InlineSpinner size="sm" className="mr-2" />
  ) : (
  <Send className="h-4 w-4 mr-2" />
  )}

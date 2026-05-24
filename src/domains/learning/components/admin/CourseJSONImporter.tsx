@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { UploadCloud, Loader2 } from "lucide-react";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Strict type definitions matching our Supabase schema enums
 type ContentType = "batch_class" | "free_video" | "live_webinar" | "offline_seminar" | "recorded_course";
@@ -155,7 +156,7 @@ export const CourseJSONImporter = () => {
         <Button onClick={handleImport} disabled={busy} className="min-w-[150px]">
           {busy ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <InlineSpinner size="sm" className="mr-2" />
               Processing...
             </>
           ) : (

@@ -18,6 +18,7 @@ import { logOutreachAndEmail, listIrEmailCommunications } from "@/domains/ir/rep
 import { Send, X, ShieldCheck, Mail, Loader2, ExternalLink, History, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface EmailComposerProps {
   selectedInvestor?: { id?: string; email: string; full_name?: string };
@@ -267,7 +268,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
               : "bg-gradient-to-r from-primary via-blue-600 to-primary hover:scale-[1.02] text-white shadow-primary/20",
           )}
         >
-          {isDeploying ? <Loader2 className="h-5 w-5 animate-spin" /> : <ExternalLink className="h-5 w-5 fill-current" />}
+          {isDeploying ? <InlineSpinner size="md" /> : <ExternalLink className="h-5 w-5 fill-current" />}
           {isDeploying ? "Committing..." : "Log Outreach & Open Client"}
         </Button>
       </div>

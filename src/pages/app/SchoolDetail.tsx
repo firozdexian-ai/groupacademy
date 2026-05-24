@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { getIcon } from "@/lib/iconMap";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Production Data Contracts[cite: 8]
 interface School {
@@ -232,7 +233,7 @@ export default function SchoolDetail() {
  />
  <DialogFooter>
  <Button onClick={submitRequest} disabled={submitting}>
- {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : "Transmit Request"}
+ {submitting ? <InlineSpinner size="sm" className="mr-2" /> : "Transmit Request"}
  </Button>
  </DialogFooter>
  </DialogContent>

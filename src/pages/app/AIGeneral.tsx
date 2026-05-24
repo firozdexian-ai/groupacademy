@@ -231,7 +231,7 @@ export default function AIGeneral() {
  {/* Dynamic Chunk Streaming Activity Loader */}
  {isStreaming && typedMessagesRoster[typedMessagesRoster.length - 1]?.role === "user" && (
  <div className="h-8 w-8 rounded-md bg-muted border border-border/40 flex items-center justify-center shrink-0 block">
- <Loader2 className="h-4 w-4 animate-spin text-primary opacity-40" />
+ <InlineSpinner size="sm" />
  </div>
  )}
 

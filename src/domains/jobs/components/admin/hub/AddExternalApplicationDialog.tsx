@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: External Application Ingress Terminal
@@ -251,7 +252,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  disabled={parsing || !jobId}
  className="w-full h-20 rounded-2xl font-semibold font-medium text-2xl gap-4 shadow-sm hover:scale-[1.01] active:scale-95 transition-transform"
  >
- {parsing ? <Loader2 className="h-8 w-8 animate-spin" /> : <Sparkles className="h-8 w-8 fill-current" />}
+ {parsing ? <InlineSpinner size="lg" /> : <Sparkles className="h-8 w-8 fill-current" />}
  Initialize Neural Extraction
  </Button>
  </div>

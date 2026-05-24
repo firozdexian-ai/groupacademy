@@ -8,6 +8,7 @@ import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE, CARD } from "@/lib/uiTokens
 import { cn } from "@/lib/utils";
 import { adminSupportAssistant } from "@/domains/agents/api/agentsApi";
 import { handleEmailUnsubscribe } from "@/domains/messaging/api/messagingApi";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Production Data Contracts[cite: 8]
 type Status = "loading" | "valid" | "already_unsubscribed" | "invalid" | "success" | "error";
@@ -95,7 +96,7 @@ export default function Unsubscribe() {
  disabled={processing}
  className="w-full h-10 rounded-xl font-black uppercase tracking-widest"
  >
- {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+ {processing ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
  Authorize Unsubscribe
  </Button>
  </div>

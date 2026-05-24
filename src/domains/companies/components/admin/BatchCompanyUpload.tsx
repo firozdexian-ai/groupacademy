@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Registry Ingestion Node (Batch Import)
@@ -263,7 +264,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
  <div className="space-y-6">
  <div className="h-20 w-20 rounded-xl bg-muted/50 flex items-center justify-center mx-auto border border-border/60 group-hover:rotate-6 transition-transform">
  {isUploading ? (
- <Loader2 className="h-10 w-10 animate-spin text-primary" />
+ <InlineSpinner size="lg" />
  ) : (
  <FileSpreadsheet className="h-10 w-10 text-muted-foreground" />
  )}
@@ -322,7 +323,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
  className="h-10 px-4 rounded-xl font-semibold text-[11px] shadow-sm"
  >
  {isImporting ? (
- <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+ <InlineSpinner size="md" className="mr-3" />
  ) : (
  <Zap className="mr-3 h-5 w-5 fill-current" />
  )}

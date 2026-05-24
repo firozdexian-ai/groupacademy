@@ -11,6 +11,7 @@ import { Wallet, Loader2, Clock, ArrowUpRight, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Withdrawal Ledger (Liquidity Output)
@@ -212,7 +213,7 @@ export function WithdrawalsTab() {
                           disabled={processingId === r.id}
                           className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase text-[10px] tracking-wider"
                         >
-                          {processingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                          {processingId === r.id ? <InlineSpinner size="sm" /> : "Approve"}
                         </Button>
                         <Button
                           size="sm"
@@ -221,7 +222,7 @@ export function WithdrawalsTab() {
                           variant="destructive"
                           className="flex-1 rounded-xl font-bold uppercase text-[10px] tracking-wider"
                         >
-                          {processingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reject (Refund)"}
+                          {processingId === r.id ? <InlineSpinner size="sm" /> : "Reject (Refund)"}
                         </Button>
                       </div>
                     </div>
@@ -235,7 +236,7 @@ export function WithdrawalsTab() {
                         disabled={processingId === r.id}
                         className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold uppercase text-[10px] tracking-tight shadow-lg shadow-emerald-500/20"
                       >
-                        {processingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Execute Fiat Payout"}{" "}
+                        {processingId === r.id ? <InlineSpinner size="sm" /> : "Execute Fiat Payout"}{" "}
                         <ArrowUpRight className="h-4 w-4 ml-2" />
                       </Button>
                     </div>

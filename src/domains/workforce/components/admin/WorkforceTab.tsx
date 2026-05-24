@@ -45,6 +45,7 @@ import {
 import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { cn } from "@/lib/utils";
 import { useHrGraph } from "./hooks/useHrGraph";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const ROLE_LABELS: Record<string, string> = {
  country_director: "Country Director",
@@ -416,7 +417,7 @@ export function WorkforceManager() {
  disabled={saving || !selectedTalent}
  className="h-12 px-10 rounded-2xl font-semibold uppercase italic text-[11px] gap-2 shadow-sm bg-primary text-primary-foreground"
  >
- {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Authorize
+ {saving ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4" />} Authorize
  Deployment
  </Button>
  </DialogFooter>

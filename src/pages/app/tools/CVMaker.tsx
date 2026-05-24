@@ -262,7 +262,7 @@ export default function CVMaker() {
  <Coins className="h-3 w-3 text-amber-500" /> {cost} credits on download
  </Badge>
  <Button onClick={() => buildPdf()} disabled={building} size="sm" className="h-9 rounded-lg">
- {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+ {building ? <InlineSpinner size="sm" className="mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
  {building ? "Building..." : "Build preview"}
  </Button>
  </div>
@@ -302,7 +302,7 @@ export default function CVMaker() {
  disabled={building || downloading}
  className="h-9 rounded-lg flex-1"
  >
- {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+ {building ? <InlineSpinner size="sm" className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
  Rebuild
  </Button>
  <Button
@@ -311,7 +311,7 @@ export default function CVMaker() {
  size="sm"
  className="h-9 rounded-lg flex-1"
  >
- {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+ {downloading ? <InlineSpinner size="sm" className="mr-2" /> : <Download className="h-4 w-4 mr-2" />}
  {downloading ? "Saving..." : `Download (${cost} cr)`}
  </Button>
  </div>

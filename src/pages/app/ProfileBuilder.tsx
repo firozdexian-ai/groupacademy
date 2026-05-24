@@ -8,6 +8,7 @@ import { getCurrentSession } from "@/lib/auth";
 import { useTalent } from "@/hooks/useTalent";
 import { computeReadiness } from "@/lib/talentReadiness";
 import { toast } from "sonner";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Production interfaces aligned with Onboarding/Agent protocols[cite: 6, 8]
 interface OnboardingMessage {
@@ -150,7 +151,7 @@ export default function ProfileBuilder() {
  {sending && (
  <div className="flex justify-start">
  <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
- <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+ <InlineSpinner size="sm" />
  </div>
  </div>
  )}

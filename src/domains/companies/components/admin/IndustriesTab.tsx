@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -330,7 +331,7 @@ export function IndustriesTab() {
  disabled={isRenaming}
  className="w-full h-10 rounded-xl font-semibold uppercase text-xs gap-2 shadow-sm"
  >
- {isRenaming ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />} Commit
+ {isRenaming ? <InlineSpinner size="sm" /> : <ShieldCheck className="h-4 w-4" />} Commit
  Change
  </Button>
  </DialogFooter>
@@ -367,7 +368,7 @@ export function IndustriesTab() {
  disabled={isMerging}
  className="w-full h-10 rounded-xl font-semibold uppercase text-xs gap-2 shadow-sm"
  >
- {isMerging ? <Loader2 className="animate-spin h-4 w-4" /> : <Activity className="h-4 w-4" />} Execute
+ {isMerging ? <InlineSpinner size="sm" /> : <Activity className="h-4 w-4" />} Execute
  Fusion
  </Button>
  </DialogFooter>

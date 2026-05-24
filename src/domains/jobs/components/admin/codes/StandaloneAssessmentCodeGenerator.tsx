@@ -10,6 +10,7 @@ import { Copy, Download, Loader2, Plus, ClipboardCheck, Zap, ShieldCheck, Mail, 
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * GroUp Academy: Career Assessment Access Deployment
@@ -158,7 +159,7 @@ export function StandaloneAssessmentCodeGenerator() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <InlineSpinner size="md" />
               Saving…
             </>
           ) : (

@@ -162,7 +162,7 @@ export default function MessageThread() {
  ))}
  {isStreaming && (
  <div className="flex items-center gap-2 px-3 py-2 text-[10px] uppercase font-bold text-muted-foreground animate-pulse">
- <Loader2 className="h-3 w-3 animate-spin" /> {headerLabel} is generating...
+ <InlineSpinner size="sm" /> {headerLabel} is generating...
  </div>
  )}
  </>

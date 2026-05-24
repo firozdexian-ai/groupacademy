@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 export function AgentRedirectStub({ agentKey }: { agentKey: string }) {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export function AgentRedirectStub({ agentKey }: { agentKey: string }) {
         </p>
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" /> Redirecting…
+        <InlineSpinner size="sm" /> Redirecting…
       </div>
       <Button
         variant="outline"

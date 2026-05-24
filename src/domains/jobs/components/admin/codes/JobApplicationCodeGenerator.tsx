@@ -22,6 +22,7 @@ import {
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
  * Platform Logic: Credential Synthesis Terminal (Access Codes)
@@ -167,7 +168,7 @@ export function JobApplicationCodeGenerator() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="mr-3 h-5 w-5 animate-spin" /> Synthesizing Logic Nodes...
+              <InlineSpinner size="md" className="mr-3" /> Synthesizing Logic Nodes...
             </>
           ) : (
             <>

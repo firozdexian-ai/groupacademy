@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDiscussionThreads, useCreateThread } from "@/hooks/useDiscussions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // =========================================================================
 // DETERMINISTIC COMPONENT DATA TYPE CONTRACTS
@@ -131,7 +132,7 @@ export default function AppCohortDiscussions() {
  role="status"
  className="w-full flex items-center justify-center py-12 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2"
  >
- <Loader2 className="h-4 w-4 animate-spin text-primary" />
+ <InlineSpinner size="sm" />
  <span>Compiling Active Manifests...</span>
  </div>
  ) : typedThreadsArray.length === 0 ? (

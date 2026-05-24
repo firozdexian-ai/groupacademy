@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner";
 import { DashboardTableSkeleton } from "@/platform/admin/chrome/DashboardSkeleton";
 import { JobsLinkedInBatchUpload } from "./JobsLinkedInBatchUpload";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
@@ -511,7 +512,7 @@ export function JobsManagerLegacyTab() {
  </div>
  ) : (
  <label className="h-14 w-14 border border-dashed border-border rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
- {isUploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+ {isUploadingLogo ? <InlineSpinner size="sm" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
  </label>
  )}
@@ -573,7 +574,7 @@ export function JobsManagerLegacyTab() {
  <div className="flex items-center justify-between">
  <Label>Description *</Label>
  <Button type="button" variant="ghost" size="sm" onClick={handleEnhanceDescription} disabled={isEnhancing}>
- {isEnhancing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+ {isEnhancing ? <InlineSpinner size="sm" className="mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
  AI Enhance
  </Button>
  </div>
@@ -640,7 +641,7 @@ export function JobsManagerLegacyTab() {
  <DialogFooter>
  <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
  <Button onClick={handleSave} disabled={isSaving}>
- {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+ {isSaving && <InlineSpinner size="sm" className="mr-2" />}
  {editingJobId ? "Save Changes" : "Create Job"}
  </Button>
  </DialogFooter>

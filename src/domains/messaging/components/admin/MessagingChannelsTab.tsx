@@ -205,7 +205,7 @@ export function MessagingChannelsTab({
                 disabled={creating}
                 className="w-full sm:w-auto h-12 rounded-xl px-6 font-bold text-[10px]"
               >
-                {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Phone className="h-4 w-4 mr-2" />}
+                {creating ? <InlineSpinner size="sm" className="mr-2" /> : <Phone className="h-4 w-4 mr-2" />}
                 Connect WhatsApp
               </Button>
               <p className="text-xs text-muted-foreground">
@@ -235,7 +235,7 @@ export function MessagingChannelsTab({
                   variant="secondary"
                   className="h-12 rounded-xl px-6 font-bold text-[10px]"
                 >
-                  {verifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  {verifying ? <InlineSpinner size="sm" className="mr-2" /> : null}
                   Verify
                 </Button>
               </div>
@@ -316,7 +316,7 @@ export function MessagingChannelsTab({
                           disabled={reconciling}
                           className="h-8 rounded-lg text-xs"
                         >
-                          {reconciling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                          {reconciling ? <InlineSpinner size="sm" className="mr-1" /> : null}
                           Reconcile
                         </Button>
                       )}

@@ -38,6 +38,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { TalentDetailDialog } from "./TalentDetailDialog";
 import { downloadFile } from "@/lib/downloadFile";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 // Define the strict union type for Portfolio Status [cite: 40, 43]
 type PortfolioStatus = "pending" | "contacted" | "in_progress" | "completed" | "cancelled";
@@ -501,7 +502,7 @@ export default function PortfolioRequestsManager() {
  Cancel
  </Button>
  <Button onClick={handleUpdate} disabled={isUpdating}>
- {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Changes
+ {isUpdating && <InlineSpinner size="sm" className="mr-2" />}Save Changes
  </Button>
  </DialogFooter>
  </DialogContent>

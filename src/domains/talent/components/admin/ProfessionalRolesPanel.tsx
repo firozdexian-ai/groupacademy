@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, Trash2, Loader2, Briefcase, LayoutList, Tags } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 interface Category {
   id: string;
@@ -236,7 +237,7 @@ export function ProfessionalRolesPanel() {
                 disabled={saving || !newRole.trim() || !activeCat}
                 className="h-12 rounded-xl px-6 font-bold text-[10px]"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                {saving ? <InlineSpinner size="sm" /> : <Plus className="h-4 w-4 mr-2" />}
                 Add Role
               </Button>
             </div>
