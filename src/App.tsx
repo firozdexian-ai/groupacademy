@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,13 +11,16 @@ import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { useTalent } from "@/hooks/useTalent";
 import { AccountUpgradeModal } from "@/components/auth/AccountUpgradeModal";
 import { PhoneCaptureModal } from "@/components/onboarding/PhoneCaptureModal";
-import ProfileBuilder from "@/pages/app/ProfileBuilder";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
-// Components
+// Shell + guards (eager — small, used everywhere)
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { TalentAppShell } from "./layouts/TalentAppShell";
+import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
+import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
+import { IS_GRO10X } from "./lib/host";
 
-// Public Pages
+// First-paint pages stay eager so initial render has no Suspense flash.
 import Index from "./pages/Index";
 import AuthChat from "./pages/AuthChat";
 import AuthClassic from "./pages/AuthClassic";
@@ -25,170 +28,167 @@ import AuthCallback from "./pages/AuthCallback";
 import Start from "./pages/Start";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import PublicJobDetail from "./pages/PublicJobDetail";
-import CareerAssessment from "./pages/CareerAssessment";
-import AssessmentResults from "./pages/AssessmentResults";
-import PortfolioRequest from "./pages/PortfolioRequest";
-import PortfolioStatus from "./pages/PortfolioStatus";
-import CourseDetail from "./pages/CourseDetail";
-import PublicServiceLanding from "./pages/PublicServiceLanding";
-import PublicServices from "./pages/PublicServices";
-// Legacy B2B pages removed — all B2B traffic now flows through /gro10x
-import PublicCourses from "./pages/PublicCourses";
-import ServiceLanding from "./pages/ServiceLanding";
-import VerifyCertificate from "./pages/VerifyCertificate";
-import VerifySkillCredential from "./pages/VerifySkillCredential";
-import IRDocumentViewer from "./pages/ir/IRDocumentViewer";
-import PublicTalentProfile from "./pages/public/PublicTalentProfile";
-import WebinarLanding from "./pages/public/WebinarLanding";
-import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
-import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
-// Admin Pages
-import Dashboard from "./pages/Dashboard";
-import DashboardChat from "./pages/DashboardChat";
-import AdminMessagingInbox from "./pages/AdminMessagingInbox";
-// CompanyPortal retired — /company now redirects to /gro10x
-import Students from "./pages/Students";
-import Enrollments from "./pages/Enrollments";
-import Instructors from "./pages/Instructors";
-import InstructorNew from "./pages/InstructorNew";
-import InstructorEdit from "./pages/InstructorEdit";
-import Sessions from "./pages/Sessions";
-import SessionNew from "./pages/SessionNew";
-import SessionEdit from "./pages/SessionEdit";
-import ContentNew from "./pages/ContentNew";
-import ContentEdit from "./pages/ContentEdit";
-import QuizManagement from "./pages/QuizManagement";
-import ModuleManagement from "./pages/ModuleManagement";
-import ModuleResourcesManager from "./pages/ModuleResourcesManager";
-import Organization from "./pages/Organization";
-import WorkforceFleet from "./pages/admin/WorkforceFleet";
-import AdminLiveInbox from "./pages/AdminLiveInbox";
+// Everything else is lazy. Grouped by area for readability only.
 
-// App/Dashboard Pages
-import Feed from "./pages/app/Feed";
-import PostDetail from "./pages/app/PostDetail";
-import CreatorAnalytics from "./pages/app/CreatorAnalytics";
-import LearningHub from "./pages/app/LearningHub";
-import LearningReview from "./pages/LearningReview";
-import ServicesHub from "./pages/app/ServicesHub";
-import JobsHub from "./pages/app/JobsHub";
-import CareerAbroad from "./pages/app/CareerAbroad";
-import AIAgents from "./pages/app/AIAgents";
-import MyAgents from "./pages/app/MyAgents";
-import AgentMarketplace from "./pages/app/AgentMarketplace";
-import AgentChat from "./pages/app/AgentChat";
-import AIGeneral from "./pages/app/AIGeneral";
-import CareerCoach from "./pages/app/CareerCoach";
-import Profile from "./pages/app/Profile";
-import ProfileEdit from "./pages/app/ProfileEdit";
-import TalentHome from "./pages/app/TalentHome";
-import TalentPitches from "./pages/app/TalentPitches";
-import Notifications from "./pages/app/Notifications";
-import Messages from "./pages/app/Messages";
-import MessageThread from "./pages/app/MessageThread";
-import AgentProfile from "./pages/app/AgentProfile";
-import MyResults from "./pages/app/MyResults";
-import MyApplications from "./pages/app/MyApplications";
-import AppApplicationDetail from "./pages/app/AppApplicationDetail";
-import AppInterviewSchedule from "./pages/app/AppInterviewSchedule";
-import AppOfferDecision from "./pages/app/AppOfferDecision";
-import SavedItems from "./pages/app/SavedItems";
-import Gigs from "./pages/app/Gigs";
-import NewGigWizard from "./pages/app/NewGigWizard";
-import GigAppeals from "./pages/app/GigAppeals";
-import GigDisputes from "./pages/app/GigDisputes";
-import ReviewerCockpit from "./pages/app/ReviewerCockpit";
-import MyProjects from "./pages/app/MyProjects";
-import ProjectRoom from "./pages/app/ProjectRoom";
-import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
-import Transactions from "./pages/app/Transactions";
-import Withdrawals from "./pages/app/Withdrawals";
-import TalentDirectory from "./pages/app/TalentDirectory";
-import TalentPublicProfile from "./pages/app/TalentPublicProfile";
-import Connections from "./pages/app/Connections";
-import ProfileVerify from "./pages/app/ProfileVerify";
+// Public pages
+const PublicJobDetail = lazy(() => import("./pages/PublicJobDetail"));
+const CareerAssessment = lazy(() => import("./pages/CareerAssessment"));
+const AssessmentResults = lazy(() => import("./pages/AssessmentResults"));
+const PortfolioRequest = lazy(() => import("./pages/PortfolioRequest"));
+const PortfolioStatus = lazy(() => import("./pages/PortfolioStatus"));
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+const PublicServices = lazy(() => import("./pages/PublicServices"));
+const PublicCourses = lazy(() => import("./pages/PublicCourses"));
+const ServiceLanding = lazy(() => import("./pages/ServiceLanding"));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
+const VerifySkillCredential = lazy(() => import("./pages/VerifySkillCredential"));
+const IRDocumentViewer = lazy(() => import("./pages/ir/IRDocumentViewer"));
+const PublicTalentProfile = lazy(() => import("./pages/public/PublicTalentProfile"));
+const WebinarLanding = lazy(() => import("./pages/public/WebinarLanding"));
+const PublicCompanyPage = lazy(() => import("./pages/public/PublicCompanyPage"));
+const CompanyBrandedCatalog = lazy(() => import("./pages/public/CompanyBrandedCatalog"));
+const PublicProjectsIndex = lazy(() => import("./pages/public/PublicProjectsIndex"));
+const PublicProjectDetail = lazy(() => import("./pages/public/PublicProjectDetail"));
+const PublicLeaderboard = lazy(() => import("./pages/public/PublicLeaderboard"));
+const CompanyPublicProjects = lazy(() => import("./pages/public/CompanyPublicProjects"));
+const PublicBlog = lazy(() => import("./pages/PublicBlog"));
+const PublicBlogPost = lazy(() => import("./pages/PublicBlogPost"));
 
-import CVMaker from "./pages/app/tools/CVMaker";
-import ApplicationHelper from "./pages/app/tools/ApplicationHelper";
+// Gro10x shell (entire B2B super-app)
+const Gro10xRoutes = lazy(() =>
+  import("./gro10x/Gro10xRoutes").then((m) => ({ default: m.Gro10xRoutes }))
+);
 
-// Feature Details
-import AppJobs from "./pages/app/AppJobs";
-import AppJobDetail from "./pages/app/AppJobDetail";
-import CourseProjectDetail from "./pages/app/CourseProjectDetail";
-import AppJobApplication from "./pages/app/AppJobApplication";
-import AppCourses from "./pages/app/AppCourses";
-import AppCourseDetail from "./pages/app/AppCourseDetail";
-import AppMyLearning from "./pages/app/AppMyLearning";
-import TalentMirror from "./pages/app/TalentMirror";
-import InstructorReviewQueue from "./pages/app/InstructorReviewQueue";
-import InstructorInsights from "./pages/app/InstructorInsights";
-import InstructorShell from "./pages/app/instructor/InstructorShell";
-import InstructorCourseSessions from "./pages/app/instructor/InstructorCourseSessions";
-import AppCohortHome from "./pages/app/AppCohortHome";
-import AppSessionJoin from "./pages/app/AppSessionJoin";
-import AppCohortDiscussions from "./pages/app/AppCohortDiscussions";
-import AppDiscussionThread from "./pages/app/AppDiscussionThread";
-import AppReviewQueue from "./pages/app/AppReviewQueue";
-import AppSubmissionDetail from "./pages/app/AppSubmissionDetail";
-import AppProfessions from "./pages/app/AppProfessions";
-import AppProfessionDetail from "./pages/app/AppProfessionDetail";
-import SchoolDetail from "./pages/app/SchoolDetail";
-import AppEvents from "./pages/app/AppEvents";
-import ImmersiveCoursePlayer from "./pages/ImmersiveCoursePlayer";
-import Quiz from "./pages/Quiz";
-import ReportCard from "./pages/ReportCard";
-import JobAssessment from "./pages/app/JobAssessment";
-import JobAssessmentResults from "./pages/app/JobAssessmentResults";
+// Admin pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardChat = lazy(() => import("./pages/DashboardChat"));
+const AdminMessagingInbox = lazy(() => import("./pages/AdminMessagingInbox"));
+const Students = lazy(() => import("./pages/Students"));
+const Enrollments = lazy(() => import("./pages/Enrollments"));
+const Instructors = lazy(() => import("./pages/Instructors"));
+const InstructorNew = lazy(() => import("./pages/InstructorNew"));
+const InstructorEdit = lazy(() => import("./pages/InstructorEdit"));
+const Sessions = lazy(() => import("./pages/Sessions"));
+const SessionNew = lazy(() => import("./pages/SessionNew"));
+const SessionEdit = lazy(() => import("./pages/SessionEdit"));
+const ContentNew = lazy(() => import("./pages/ContentNew"));
+const ContentEdit = lazy(() => import("./pages/ContentEdit"));
+const QuizManagement = lazy(() => import("./pages/QuizManagement"));
+const ModuleManagement = lazy(() => import("./pages/ModuleManagement"));
+const ModuleResourcesManager = lazy(() => import("./pages/ModuleResourcesManager"));
+const Organization = lazy(() => import("./pages/Organization"));
+const WorkforceFleet = lazy(() => import("./pages/admin/WorkforceFleet"));
+const AdminLiveInbox = lazy(() => import("./pages/AdminLiveInbox"));
 
-// Services Internal
-import AppCareerAssessment from "./pages/app/AppCareerAssessment";
-import AppMockInterviewSetup from "./pages/app/AppMockInterviewSetup";
-import AppSalaryAnalysisSetup from "./pages/app/AppSalaryAnalysisSetup";
-import AppPortfolioRequest from "./pages/app/AppPortfolioRequest";
+// Talent app pages (all lazy)
+const Feed = lazy(() => import("./pages/app/Feed"));
+const PostDetail = lazy(() => import("./pages/app/PostDetail"));
+const CreatorAnalytics = lazy(() => import("./pages/app/CreatorAnalytics"));
+const LearningHub = lazy(() => import("./pages/app/LearningHub"));
+const LearningReview = lazy(() => import("./pages/LearningReview"));
+const JobsHub = lazy(() => import("./pages/app/JobsHub"));
+const AIAgents = lazy(() => import("./pages/app/AIAgents"));
+const MyAgents = lazy(() => import("./pages/app/MyAgents"));
+const AgentMarketplace = lazy(() => import("./pages/app/AgentMarketplace"));
+const AgentChat = lazy(() => import("./pages/app/AgentChat"));
+const AIGeneral = lazy(() => import("./pages/app/AIGeneral"));
+const CareerCoach = lazy(() => import("./pages/app/CareerCoach"));
+const Profile = lazy(() => import("./pages/app/Profile"));
+const ProfileEdit = lazy(() => import("./pages/app/ProfileEdit"));
+const ProfileBuilder = lazy(() => import("@/pages/app/ProfileBuilder"));
+const TalentHome = lazy(() => import("./pages/app/TalentHome"));
+const TalentPitches = lazy(() => import("./pages/app/TalentPitches"));
+const Messages = lazy(() => import("./pages/app/Messages"));
+const MessageThread = lazy(() => import("./pages/app/MessageThread"));
+const AgentProfile = lazy(() => import("./pages/app/AgentProfile"));
+const MyResults = lazy(() => import("./pages/app/MyResults"));
+const MyApplications = lazy(() => import("./pages/app/MyApplications"));
+const AppApplicationDetail = lazy(() => import("./pages/app/AppApplicationDetail"));
+const AppInterviewSchedule = lazy(() => import("./pages/app/AppInterviewSchedule"));
+const AppOfferDecision = lazy(() => import("./pages/app/AppOfferDecision"));
+const SavedItems = lazy(() => import("./pages/app/SavedItems"));
+const Gigs = lazy(() => import("./pages/app/Gigs"));
+const NewGigWizard = lazy(() => import("./pages/app/NewGigWizard"));
+const GigAppeals = lazy(() => import("./pages/app/GigAppeals"));
+const GigDisputes = lazy(() => import("./pages/app/GigDisputes"));
+const ReviewerCockpit = lazy(() => import("./pages/app/ReviewerCockpit"));
+const MyProjects = lazy(() => import("./pages/app/MyProjects"));
+const ProjectRoom = lazy(() => import("./pages/app/ProjectRoom"));
+const MarketplaceGigDetail = lazy(() => import("./pages/app/MarketplaceGigDetail"));
+const Transactions = lazy(() => import("./pages/app/Transactions"));
+const Withdrawals = lazy(() => import("./pages/app/Withdrawals"));
+const TalentDirectory = lazy(() => import("./pages/app/TalentDirectory"));
+const TalentPublicProfile = lazy(() => import("./pages/app/TalentPublicProfile"));
+const Connections = lazy(() => import("./pages/app/Connections"));
+const ProfileVerify = lazy(() => import("./pages/app/ProfileVerify"));
+const CVMaker = lazy(() => import("./pages/app/tools/CVMaker"));
+const ApplicationHelper = lazy(() => import("./pages/app/tools/ApplicationHelper"));
+const AppJobs = lazy(() => import("./pages/app/AppJobs"));
+const AppJobDetail = lazy(() => import("./pages/app/AppJobDetail"));
+const CourseProjectDetail = lazy(() => import("./pages/app/CourseProjectDetail"));
+const AppJobApplication = lazy(() => import("./pages/app/AppJobApplication"));
+const AppCourses = lazy(() => import("./pages/app/AppCourses"));
+const AppCourseDetail = lazy(() => import("./pages/app/AppCourseDetail"));
+const AppMyLearning = lazy(() => import("./pages/app/AppMyLearning"));
+const TalentMirror = lazy(() => import("./pages/app/TalentMirror"));
+const InstructorReviewQueue = lazy(() => import("./pages/app/InstructorReviewQueue"));
+const InstructorInsights = lazy(() => import("./pages/app/InstructorInsights"));
+const InstructorShell = lazy(() => import("./pages/app/instructor/InstructorShell"));
+const InstructorCourseSessions = lazy(() => import("./pages/app/instructor/InstructorCourseSessions"));
+const AppCohortHome = lazy(() => import("./pages/app/AppCohortHome"));
+const AppSessionJoin = lazy(() => import("./pages/app/AppSessionJoin"));
+const AppCohortDiscussions = lazy(() => import("./pages/app/AppCohortDiscussions"));
+const AppDiscussionThread = lazy(() => import("./pages/app/AppDiscussionThread"));
+const AppReviewQueue = lazy(() => import("./pages/app/AppReviewQueue"));
+const AppSubmissionDetail = lazy(() => import("./pages/app/AppSubmissionDetail"));
+const AppProfessions = lazy(() => import("./pages/app/AppProfessions"));
+const AppProfessionDetail = lazy(() => import("./pages/app/AppProfessionDetail"));
+const SchoolDetail = lazy(() => import("./pages/app/SchoolDetail"));
+const AppEvents = lazy(() => import("./pages/app/AppEvents"));
+const ImmersiveCoursePlayer = lazy(() => import("./pages/ImmersiveCoursePlayer"));
+const Quiz = lazy(() => import("./pages/Quiz"));
+const ReportCard = lazy(() => import("./pages/ReportCard"));
+const JobAssessment = lazy(() => import("./pages/app/JobAssessment"));
+const JobAssessmentResults = lazy(() => import("./pages/app/JobAssessmentResults"));
 
-// Mock Interview & Salary Public/Private
-import MockInterview from "./pages/MockInterview";
-import MockInterviewSetup from "./pages/MockInterviewSetup";
-import MockInterviewQuestions from "./pages/MockInterviewQuestions";
-import MockInterviewCapture from "./pages/MockInterviewCapture";
-import MockInterviewResults from "./pages/MockInterviewResults";
-import SalaryAnalysis from "./pages/SalaryAnalysis";
-import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
-import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
-import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
+// Services
+const AppCareerAssessment = lazy(() => import("./pages/app/AppCareerAssessment"));
+const AppMockInterviewSetup = lazy(() => import("./pages/app/AppMockInterviewSetup"));
+const AppSalaryAnalysisSetup = lazy(() => import("./pages/app/AppSalaryAnalysisSetup"));
+const AppPortfolioRequest = lazy(() => import("./pages/app/AppPortfolioRequest"));
 
-// Study Abroad & Blog
-import StudyAbroad from "./pages/app/StudyAbroad";
-import StudyAbroadDetail from "./pages/app/StudyAbroadDetail";
-import StudyAbroadRoadmapResults from "./pages/app/StudyAbroadRoadmapResults";
-import IELTSPrep from "./pages/app/IELTSPrep";
-import AbroadHub from "./pages/app/AbroadHub";
-import DestinationAgentPage from "./pages/app/DestinationAgentPage";
-import AbroadApplications from "./pages/app/AbroadApplications";
-import AbroadCounsellor from "./pages/app/AbroadCounsellor";
-import IELTSCoach from "./pages/app/IELTSCoach";
-import IELTSMockRunner from "./pages/app/IELTSMockRunner";
-import IELTSResults from "./pages/app/IELTSResults";
-import LanguagesHub from "./pages/app/LanguagesHub";
-import LanguagePracticePage from "./pages/app/LanguagePracticePage";
-import LanguageInstructorsPage from "./pages/app/LanguageInstructorsPage";
-import Competitions from "./pages/app/Competitions";
-import CompetitionDetail from "./pages/app/CompetitionDetail";
-import Blog from "./pages/app/Blog";
-import BlogPost from "./pages/app/BlogPost";
-import PublicBlog from "./pages/PublicBlog";
-import PublicBlogPost from "./pages/PublicBlogPost";
-import Unsubscribe from "./pages/app/Unsubscribe";
-import { Gro10xRoutes } from "./gro10x/Gro10xRoutes";
-import { IS_GRO10X } from "./lib/host";
-import PublicCompanyPage from "./pages/public/PublicCompanyPage";
-import CompanyBrandedCatalog from "./pages/public/CompanyBrandedCatalog";
-import PublicProjectsIndex from "./pages/public/PublicProjectsIndex";
-import PublicProjectDetail from "./pages/public/PublicProjectDetail";
-import PublicLeaderboard from "./pages/public/PublicLeaderboard";
-import CompanyPublicProjects from "./pages/public/CompanyPublicProjects";
+// Mock interview + salary public flows
+const MockInterview = lazy(() => import("./pages/MockInterview"));
+const MockInterviewSetup = lazy(() => import("./pages/MockInterviewSetup"));
+const MockInterviewQuestions = lazy(() => import("./pages/MockInterviewQuestions"));
+const MockInterviewCapture = lazy(() => import("./pages/MockInterviewCapture"));
+const MockInterviewResults = lazy(() => import("./pages/MockInterviewResults"));
+const SalaryAnalysis = lazy(() => import("./pages/SalaryAnalysis"));
+const SalaryAnalysisSetup = lazy(() => import("./pages/SalaryAnalysisSetup"));
+const SalaryAnalysisProcessing = lazy(() => import("./pages/SalaryAnalysisProcessing"));
+const SalaryAnalysisResults = lazy(() => import("./pages/SalaryAnalysisResults"));
+
+// Study abroad + blog
+const StudyAbroad = lazy(() => import("./pages/app/StudyAbroad"));
+const StudyAbroadDetail = lazy(() => import("./pages/app/StudyAbroadDetail"));
+const StudyAbroadRoadmapResults = lazy(() => import("./pages/app/StudyAbroadRoadmapResults"));
+const IELTSPrep = lazy(() => import("./pages/app/IELTSPrep"));
+const AbroadHub = lazy(() => import("./pages/app/AbroadHub"));
+const DestinationAgentPage = lazy(() => import("./pages/app/DestinationAgentPage"));
+const AbroadApplications = lazy(() => import("./pages/app/AbroadApplications"));
+const AbroadCounsellor = lazy(() => import("./pages/app/AbroadCounsellor"));
+const IELTSCoach = lazy(() => import("./pages/app/IELTSCoach"));
+const IELTSMockRunner = lazy(() => import("./pages/app/IELTSMockRunner"));
+const IELTSResults = lazy(() => import("./pages/app/IELTSResults"));
+const LanguagesHub = lazy(() => import("./pages/app/LanguagesHub"));
+const LanguagePracticePage = lazy(() => import("./pages/app/LanguagePracticePage"));
+const LanguageInstructorsPage = lazy(() => import("./pages/app/LanguageInstructorsPage"));
+const Competitions = lazy(() => import("./pages/app/Competitions"));
+const CompetitionDetail = lazy(() => import("./pages/app/CompetitionDetail"));
+const Blog = lazy(() => import("./pages/app/Blog"));
+const BlogPost = lazy(() => import("./pages/app/BlogPost"));
+const Unsubscribe = lazy(() => import("./pages/app/Unsubscribe"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,9 +226,6 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/app/profile-builder" replace />;
   }
 
-  // Legacy upgrade gate: completed onboarding but missing the new career-stage
-  // FK. Institution can legitimately be null (freeform-entered universities)
-  // so we don't gate on it.
   const needsUpgrade = !!talent && !!talent.onboardingCompletedAt && !talent.careerStageId;
 
   if (needsUpgrade) {
@@ -240,8 +237,6 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Mandatory phone capture gate: completed onboarding but no phone on file
-  // (covers OAuth signups and legacy rows). Per global product policy phone is required.
   const needsPhone =
     !!talent &&
     !!talent.onboardingCompletedAt &&
@@ -263,7 +258,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {/* FIX: Added React Router v7 future flags */}
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <BootGate>
             <ImpersonationProvider>
@@ -274,6 +268,7 @@ export default function App() {
                 <PWAInstallPrompt />
                 <PWAUpdatePrompt />
 
+                <Suspense fallback={<PageLoadingSkeleton />}>
                 <Routes>
                   {/* ================= PUBLIC ROUTES ================= */}
                   <Route path="/" element={IS_GRO10X ? <Navigate to="/gro10x" replace /> : <Index />} />
@@ -390,110 +385,19 @@ export default function App() {
                   {/* Legacy company portal — redirect to Gro10x */}
                   <Route path="/company" element={<Navigate to="/gro10x" replace />} />
                   <Route path="/company/*" element={<Navigate to="/gro10x" replace />} />
-                  <Route
-                    path="/students"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <Students />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/enrollments"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <Enrollments />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/instructors"
-                    element={
-                      <ProtectedRoute>
-                        <Instructors />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/instructors/new"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <InstructorNew />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/instructors/:id/edit"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <InstructorEdit />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/sessions"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <Sessions />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/sessions/new"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <SessionNew />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/sessions/:id/edit"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <SessionEdit />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/content/new"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <ContentNew />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/content/:id/edit"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <ContentEdit />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/quiz-manage/:contentId"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <QuizManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/content/:contentId/modules"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <ModuleManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/content/:contentId/modules/:moduleId/resources"
-                    element={
-                      <ProtectedRoute requireAdmin>
-                        <ModuleResourcesManager />
-                      </ProtectedRoute>
-                    }
-                  />
+                  <Route path="/students" element={<ProtectedRoute requireAdmin><Students /></ProtectedRoute>} />
+                  <Route path="/enrollments" element={<ProtectedRoute requireAdmin><Enrollments /></ProtectedRoute>} />
+                  <Route path="/instructors" element={<ProtectedRoute><Instructors /></ProtectedRoute>} />
+                  <Route path="/instructors/new" element={<ProtectedRoute requireAdmin><InstructorNew /></ProtectedRoute>} />
+                  <Route path="/instructors/:id/edit" element={<ProtectedRoute requireAdmin><InstructorEdit /></ProtectedRoute>} />
+                  <Route path="/sessions" element={<ProtectedRoute requireAdmin><Sessions /></ProtectedRoute>} />
+                  <Route path="/sessions/new" element={<ProtectedRoute requireAdmin><SessionNew /></ProtectedRoute>} />
+                  <Route path="/sessions/:id/edit" element={<ProtectedRoute requireAdmin><SessionEdit /></ProtectedRoute>} />
+                  <Route path="/content/new" element={<ProtectedRoute requireAdmin><ContentNew /></ProtectedRoute>} />
+                  <Route path="/content/:id/edit" element={<ProtectedRoute requireAdmin><ContentEdit /></ProtectedRoute>} />
+                  <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin><QuizManagement /></ProtectedRoute>} />
+                  <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin><ModuleManagement /></ProtectedRoute>} />
+                  <Route path="/content/:contentId/modules/:moduleId/resources" element={<ProtectedRoute requireAdmin><ModuleResourcesManager /></ProtectedRoute>} />
                   <Route path="/org" element={<Organization />} />
 
                   {/* ================= MAIN APP ROUTES (Protected) ================= */}
@@ -610,7 +514,7 @@ export default function App() {
                     <Route path="transactions" element={<Transactions />} />
                     <Route path="withdrawals" element={<Withdrawals />} />
                     <Route path="profile/verify" element={<ProfileVerify />} />
-                    
+
                     <Route path="tools/cv-maker" element={<CVMaker />} />
                     <Route path="tools/application-helper" element={<ApplicationHelper />} />
                     <Route path="tools/assessment" element={<AppCareerAssessment />} />
@@ -634,6 +538,7 @@ export default function App() {
                   {/* 404 Handler */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
               </TooltipProvider>
             </TalentProvider>
             </ImpersonationProvider>

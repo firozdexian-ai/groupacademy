@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => ({
           'vendor-pdf': ['jspdf', 'html2canvas'],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-icons': ['lucide-react'],
         },
       },
     },

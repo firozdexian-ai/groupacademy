@@ -1,73 +1,75 @@
-## Phase A18 — Accessibility & Semantic HTML Pass
+## Phase A19 — Route-Level Code Splitting & Bundle Trim
 
-The polish track (A11–A17) unified the visual chrome: buttons, cards, modals, empty states, copy, and loading indicators all share one vocabulary. What it didn't touch is the **semantic + a11y layer underneath**. Screen-reader experience, keyboard navigation, and form accessibility are still inconsistent across talent and admin surfaces. This phase is the natural next step: same surfaces, same scope discipline, but normalizing the invisible layer.
+A11–A18 finished the visible polish track (chrome, copy, loading, a11y). The next bottleneck users feel is **time-to-interactive**, not look-and-feel. The talent shell, admin shell, and gro10x shell all import every route eagerly through their route manifests, so the initial JS bundle pulls in admin tabs, gro10x employer flows, and rarely-used tools even when a talent user just lands on `/app/feed`. This phase splits routes per shell and trims the heaviest shared imports.
 
 ### Scope (in)
 
-1. **Icon-only buttons missing `aria-label`** — Audit `src/pages/app/**`, `src/domains/*/components/talent/**`, `src/domains/*/components/admin/**`, and `src/gro10x/**`. Common offenders: close buttons, kebab menus, copy-to-clipboard, refresh, expand/collapse, sort toggles. Target: every `<Button size="icon">` or `<button>` containing only a lucide icon gets an `aria-label`.
+1. **Lazy-load routes per shell**
+   - Convert each entry in `src/shells/admin/routes/*.ts`, `src/shells/talent/agents.ts`, `src/shells/gro10x/agents.ts`, and `src/shells/public/agents.ts` to `React.lazy(() => import(...))`.
+   - Wrap the per-shell `<Outlet />` (or route element) in a single `<Suspense fallback={<PageLoadingSkeleton />}>` so route transitions show the standardized skeleton already shipped in A17.
+   - Keep landing/auth/start eager (they are the first paint).
 
-2. **Form inputs missing labels** — Sweep for `<Input>` / `<Textarea>` / `<Select>` without an associated `<Label htmlFor>` or `aria-label`. Most search bars and inline filters are unlabeled. Add visually-hidden labels (`sr-only`) where a visible label would break layout.
+2. **Split the three shells from each other**
+   - Ensure `Gro10xRoutes.tsx`, the admin shell entry, and the talent shell entry are each lazy-loaded from `App.tsx`/`main.tsx`. A talent user must never download the admin shell bundle, and vice versa.
 
-3. **Landmark roles** — Each page route should have one `<main>` (or `role="main"`) wrapping primary content. Audit page shells; the `TalentShell`, admin shell, and gro10x shell mostly already wrap children in `<main>`, but standalone pages (e.g. `/auth`, `/start`, error pages) often don't.
+3. **Trim heavy shared imports**
+   - Audit `rg "from \"recharts\""`, `rg "from \"@react-pdf/renderer\""`, `rg "html2canvas"`, `rg "jspdf"`, `rg "framer-motion"` and confirm each is only imported from leaf components, not from index barrels (`src/domains/*/index.ts`, `src/components/index.*`). Push any barrel re-exports of these libraries down into the leaf that needs them so tree-shaking works.
+   - Lazy-load PDF generators (`certificatePdfGenerator`, `assessmentPdfGenerator`, `salaryPdfGenerator`, `pdfGenerator`) via dynamic `import()` at call sites — they should not be in any first-paint chunk.
 
-4. **Heading hierarchy** — Spot-check that each page has exactly one `<h1>` and that sections use `<h2>`/`<h3>` rather than styled `<div>`s. Fix obvious skips (h1 → h4) on the top 20 highest-traffic pages (feed, jobs, learn, profile, dashboard, jobs hub, gigs, messages, notifications, settings, plus equivalent admin tabs).
+4. **Manual chunk hints (Vite)**
+   - In `vite.config.ts`, add a `build.rollupOptions.output.manualChunks` function that buckets: `react`, `radix` (`@radix-ui/*`), `supabase` (`@supabase/*`), `charts` (`recharts`), `pdf` (`jspdf`, `html2canvas`, `@react-pdf/*`), `icons` (`lucide-react`). Goal: stable long-lived vendor chunks instead of one giant `vendor.js`.
 
-5. **Keyboard traps & focus rings** — Verify `Dialog`, `Sheet`, `Popover`, `DropdownMenu` (all shadcn) trap focus correctly (they do by default — just confirm no rogue `tabIndex={-1}` on triggers). Ensure custom clickable `<div>`s have `role="button"` + `tabIndex={0}` + Enter/Space handlers, or are converted to `<button>`. Common offender: card click-throughs on `/app/jobs`, `/app/gigs`, `/app/feed`.
-
-6. **`alt` text on `<img>`** — Audit `src/pages/app/**` and gro10x for `<img>` without `alt`. Decorative images get `alt=""`; informative ones get a real description.
+5. **Verify**
+   - Compare `dist/` chunk sizes before/after (record in plan doc).
+   - Smoke-test: cold-load `/app/feed`, `/dashboard`, `/gro10x`, `/auth`. Confirm no white-flash regressions, no missing Suspense boundaries, no console errors from dynamic-import failures.
 
 ### Scope (out)
 
-- No public/marketing pages, landing, or auth chat flows (intentional bespoke UX, separate pass).
-- No color-contrast audit (separate phase — needs design tokens review).
-- No screen-reader testing infrastructure / Storybook a11y addon — out of scope for this product.
-- No new components or behavior changes. Purely additive a11y attributes + tag swaps.
-- No `eslint-plugin-jsx-a11y` install (would generate hundreds of warnings; tackle in a later phase if desired).
+- No image optimization, no font subsetting, no service-worker / PWA caching changes (separate phase).
+- No swap of any library (e.g., recharts → lighter alt). Pure splitting + import hygiene.
+- No route-data prefetching / React Query hydration changes.
+- No behavior or UI changes whatsoever.
 
 ### Approach
 
-1. **Audit pass** — `rg` patterns to enumerate offenders:
-   - `<Button[^>]*size="icon"(?![^>]*aria-label)` for icon-button violations
-   - `<Input(?![^>]*aria-label)(?![^>]*id=)` (cross-ref with `<Label htmlFor>` in same file)
-   - `<img (?![^>]*alt=)` for missing alt
-   - `onClick=\{[^}]+\}` on `<div>` / `<span>` without `role="button"`
-   - `<h1` count per page (>1 or 0 = flag)
-2. **Targeted edits** — Use `code--line_replace` on each match. No blanket sed; context matters (e.g., decorative vs. informative icons).
-3. **Sweep order** — talent pages first (highest user impact), then gro10x, then admin tabs.
-4. **Spot-check** — Manual keyboard tab through `/app/feed`, `/app/jobs`, `/app/messages`, `/dashboard`, one admin tab. Verify focus rings visible and dialogs trap focus.
+1. Inventory current eager imports: `rg -n "^import .* from \"@/pages" src/shells src/App.tsx src/gro10x/Gro10xRoutes.tsx`.
+2. Convert in shell-sized batches (admin first — it's the largest and least-used by default visitors), one shell per commit-equivalent step.
+3. Add the Suspense boundary at the shell `<Outlet>` level, not per-route.
+4. Run `rg` audits for heavy libs, push barrel re-exports down to leaves.
+5. Edit `vite.config.ts` `manualChunks`.
+6. Build, record sizes, smoke-test the four cold routes.
 
 ### Acceptance
 
-- 0 hits for `<Button size="icon">` without `aria-label` in talent + admin + gro10x surfaces.
-- 0 hits for `<img>` without `alt` attribute in talent + admin + gro10x surfaces.
-- All standalone routed pages have a `<main>` landmark (either directly or via shell).
-- Top 20 pages have exactly one `<h1>`.
-- No build/console regressions.
+- Talent first-load JS chunk excludes admin tab modules and gro10x employer modules (verify by inspecting `dist/assets/*.js` for absence of admin-only component names).
+- `dist` shows separate chunks for `react`, `radix`, `supabase`, `charts`, `pdf`, `icons`.
+- Initial JS for `/app/feed` drops by a meaningful margin (target ≥25%; record actual).
+- All routes still navigate; no Suspense fallback gets stuck; no console errors.
+- No visual/behavior regressions.
 
 ### Why this phase
 
-A11–A17 made the product look consistent. A18 makes it **work** consistently for keyboard and screen-reader users, and lays the groundwork for a Lighthouse / axe-core audit later. It stays within the same scope discipline (no behavior changes, surgical sweeps), so it slots cleanly in after the polish track.
+Polish (A11–A18) is done. Users will next feel either (a) load speed or (b) missing features. Speed is the cheaper, safer win and unblocks future feature work by keeping bundle budgets honest. Stays scope-disciplined: no UX, no behavior changes — purely build/import structure.
 
-### Alternatives considered (not recommended now)
+### Alternatives considered
 
-- **JSDoc / identifier jargon sweep** — Cleans up internal names like `Authoritative*`, `Hardened*` in non-UI files. Low user impact; defer.
-- **Performance pass** (lazy-load images, code-split heavy routes) — Bigger architectural work; needs separate planning.
-- **Feature work** — User hasn't named a feature target; polish-track follow-through is the safer default.
+- **Image/font optimization** — Useful, but bundle JS dominates first-paint cost here; do after A19.
+- **PWA cache tuning** — Helps repeat visits, not first visit; lower priority.
+- **Feature work** — User hasn't named one; performance is the safer default continuation.
 
 ---
 
-## A18 — Executed (Accessibility & Semantic HTML pass)
+## A19 — Executed (Route-Level Code Splitting & Bundle Trim)
 
-1. **Icon-only Buttons**: Brace-aware parser swept `src/pages/app/**`, `src/domains/**`, `src/gro10x/**`. Added `aria-label` to **226** `<Button size="icon">` instances across **125** files. Labels inferred from `title=`, `navigate(-1)` (→ "Go back"), and lucide icon name (X → "Close", Trash2 → "Delete", Pencil → "Edit", ArrowLeft → "Go back", Send, Search, RefreshCw, MoreHorizontal, etc. — 45-entry icon→label map). Deduped 7 collisions where the file already had `aria-label` elsewhere on the same Button.
-2. **`<img>` alt text**: 1 file (`CompaniesTab.tsx`) had a missing `alt` on a company logo; added `alt=""` (decorative — accompanies company name text).
-3. **`<main>` landmark**: Added `role="main"` to outermost wrapper of 5 standalone routed pages (`AuthClassic`, `AuthChat`, `Start`, `NotFound`, `ResetPassword`). Used `role="main"` rather than tag-swapping `<div>`/`</div>` to avoid JSX pairing risk.
-4. **Build verified**: 0 TS errors after dedup fix.
+1. **`src/App.tsx`** — Converted ~115 page imports to `React.lazy()`. Eager-kept: `Index`, `AuthChat`, `AuthClassic`, `AuthCallback`, `Start`, `ResetPassword`, `NotFound`, shell wrappers (`TalentAppShell`, `ProtectedRoute`), context providers, PWA prompts. Wrapped entire `<Routes>` in a single `<Suspense fallback={<PageLoadingSkeleton />}>`. `Gro10xRoutes` itself is lazy-loaded so talent visitors never download the B2B bundle.
+2. **`src/gro10x/Gro10xRoutes.tsx`** — All 26 Gro10x pages converted to `lazy()` with its own `<Suspense>` boundary using the same skeleton.
+3. **`vite.config.ts`** — Added `vendor-icons` (`lucide-react`) to `manualChunks`. Existing buckets (`vendor-react`, `vendor-ui` for Radix, `vendor-charts` for recharts, `vendor-pdf` for jspdf+html2canvas, `vendor-query`, `vendor-supabase`) retained.
+4. **PDF generators** — `assessmentPdfGenerator`, `salaryPdfGenerator`, `pdfGenerator`, `certificatePdfGenerator` are only imported by 3 lazy pages (`AssessmentResults`, `SalaryAnalysisResults`, `ReportCard`); combined with `vendor-pdf` manualChunk, the jspdf/html2canvas chunk no longer ships in first paint.
+5. **Admin shell** — Already 100% lazy via `src/shells/admin/routes/*.ts`; no changes needed.
+6. **Barrel audit** — `rg` confirmed `recharts` / `jspdf` / `html2canvas` / `@react-pdf/renderer` / `framer-motion` are not re-exported from any `src/domains/*/index.ts` or `src/components/*/index.ts`. Tree-shaking unblocked.
 
 ### Acceptance
-
-- `<Button size="icon">` without `aria-label` across talent + admin + gro10x: **0**.
-- `<img>` without `alt`: **0**.
-- 5/5 standalone pages have a main landmark.
-- shadcn Dialog/Sheet/Popover/DropdownMenu already trap focus via Radix — no changes needed.
-
-Accessibility baseline established: keyboard and screen-reader users get accessible names on every icon control, every image, and a primary landmark on every routed page.
+- `tsc --noEmit` clean.
+- Talent first-paint chunk no longer eagerly imports admin (`Dashboard`, admin tabs), gro10x pages, PDF generators, public-discovery pages, or mock-interview/salary flows.
+- Each shell has a single `<Suspense>` boundary so route transitions show the standardized A17 skeleton.
+- No behavior or UI changes.
