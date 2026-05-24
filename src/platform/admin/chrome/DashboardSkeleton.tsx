@@ -13,16 +13,16 @@ import { cn } from "@/lib/utils";
 
 export function DashboardCardSkeleton() {
   return (
-    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden">
+    <Card className="rounded-2xl border border-border/60 bg-card overflow-hidden">
       <CardHeader className="p-6">
-        <Skeleton className="h-6 w-48 bg-muted/20" />
-        <Skeleton className="h-4 w-32 mt-2 bg-muted/10" />
+        <Skeleton className="h-6 w-48 bg-muted/30" />
+        <Skeleton className="h-4 w-32 mt-2 bg-muted/20" />
       </CardHeader>
       <CardContent className="p-6 pt-0">
         <div className="space-y-4">
-          <Skeleton className="h-10 w-full rounded-xl bg-muted/10" />
-          <Skeleton className="h-10 w-full rounded-xl bg-muted/10" />
-          <Skeleton className="h-10 w-full rounded-xl bg-muted/10" />
+          <Skeleton className="h-10 w-full rounded-xl bg-muted/20" />
+          <Skeleton className="h-10 w-full rounded-xl bg-muted/20" />
+          <Skeleton className="h-10 w-full rounded-xl bg-muted/20" />
         </div>
       </CardContent>
     </Card>
@@ -31,42 +31,40 @@ export function DashboardCardSkeleton() {
 
 export function DashboardTableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
-      <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+    <Card className="rounded-2xl border border-border/60 overflow-hidden bg-card">
+      <CardHeader className="p-6 border-b border-border/40 bg-muted/10">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-64 bg-muted/20 rounded-lg" />
-          <Skeleton className="h-10 w-32 bg-primary/10 rounded-xl" />
+          <Skeleton className="h-6 w-64 bg-muted/30 rounded-md" />
+          <Skeleton className="h-9 w-28 bg-primary/10 rounded-lg" />
         </div>
-        <div className="flex gap-4 mt-6">
-          <Skeleton className="h-12 flex-1 rounded-2xl bg-muted/10" />
-          <Skeleton className="h-12 w-48 rounded-2xl bg-muted/10" />
+        <div className="flex gap-3 mt-4">
+          <Skeleton className="h-10 flex-1 rounded-lg bg-muted/20" />
+          <Skeleton className="h-10 w-40 rounded-lg bg-muted/20" />
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="border-t border-border/5">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-transparent border-b-2">
-                {Array.from({ length: columns }).map((_, i) => (
-                  <TableHead key={i} className="py-6 px-8">
-                    <Skeleton className="h-3 w-24 bg-muted/20 rounded-full" />
-                  </TableHead>
+        <Table>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="hover:bg-transparent border-b">
+              {Array.from({ length: columns }).map((_, i) => (
+                <TableHead key={i} className="py-4 px-6">
+                  <Skeleton className="h-3 w-24 bg-muted/30 rounded-full" />
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: rows }).map((_, rowIndex) => (
+              <TableRow key={rowIndex} className="border-b border-border/30">
+                {Array.from({ length: columns }).map((_, colIndex) => (
+                  <TableCell key={colIndex} className="py-4 px-6">
+                    <Skeleton className={cn("h-4 bg-muted/20 rounded-md", colIndex === 0 ? "w-full" : "w-2/3")} />
+                  </TableCell>
                 ))}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: rows }).map((_, rowIndex) => (
-                <TableRow key={rowIndex} className="border-b border-border/5">
-                  {Array.from({ length: columns }).map((_, colIndex) => (
-                    <TableCell key={colIndex} className="py-6 px-8">
-                      <Skeleton className={cn("h-4 bg-muted/10 rounded-md", colIndex === 0 ? "w-full" : "w-2/3")} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
