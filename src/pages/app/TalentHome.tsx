@@ -129,37 +129,8 @@ export default function TalentHome() {
  {/* Quick actions — personalized AI agent shortcuts */}
  <QuickActionsGrid />
 
- {/* Pitches */}
- <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4`}>
- <div className="flex items-center justify-between mb-3">
- <div className="flex items-center gap-2.5">
- <div className="h-8 w-8 rounded-full bg-[#33E1E4]/15 grid place-items-center">
- <Sparkles className="h-4 w-4 text-[#33E1E4]" />
- </div>
- <div>
- <h2 className="text-sm font-semibold">Employer pitches</h2>
- <p className={`text-[11px] ${GRO10X_MUTED}`}>
- {pitchesLoading
- ? "Checking…"
- : `${dispatchedCount} ${dispatchedCount === 1 ? "message" : "messages"} from employers`}
- </p>
- </div>
- </div>
- </div>
- {pitches.map((p: Pitch) => (
- <button
- key={p.id}
- onClick={() => navigate("/app/pitches")}
- className="w-full text-left p-3 rounded-xl bg-black/20 hover:bg-white/5 border border-white/5 mt-2"
- >
- <div className="flex items-center gap-2 mb-1.5">
- <Building2 className="h-4 w-4 text-slate-400" />
- <span className="text-xs font-semibold truncate">{p.company_name}</span>
- </div>
- <p className={`text-xs ${GRO10X_MUTED} line-clamp-2`}>{p.message}</p>
- </button>
- ))}
- </div>
+                {/* B6: Employer pitches surface hidden — route /app/pitches still resolves via deep link. */}
+
 
  {/* Credentials */}
  <button
