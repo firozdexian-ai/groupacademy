@@ -1,61 +1,79 @@
-# B4 — Wire `<ComingSoonGate>` to the waitlist RPC
+# B5 — Apply ComingSoonGate to "coming-soon" surfaces (Batch 1)
 
-Scope: one file edit (`src/components/launch/ComingSoonGate.tsx`). Replace the stubbed `setTimeout` submit with a real call to `join_feature_waitlist`. No new files, no schema, no nav changes.
+Scope: wrap defer-matrix routes whose action is **coming-soon** with `<ComingSoonGate>`. No new components, no schema, no nav edits (B6 handles hide-nav and admin widget).
 
-## 1. What changes in the component
+To keep blast radius small, B5 ships in **two batches**. This plan covers **Batch 1 only** (8 surfaces). Batch 2 = remaining surfaces + dynamic abroad-country gating.
 
-- Import `supabase` from `@/integrations/supabase/client`.
-- On submit, call `supabase.rpc('join_feature_waitlist', { _feature_key, _email, _source_path, _metadata })`.
-  - `_feature_key`: from prop.
-  - `_email`: only send when user is **not** logged in (RPC uses `auth.uid()` when present).
-  - `_source_path`: `window.location.pathname + window.location.search`.
-  - `_metadata`: `{ ua: navigator.userAgent.slice(0, 500), referrer: document.referrer || null }`.
-- Read current session once on mount via `supabase.auth.getSession()` to decide which UI to show:
-  - **Logged in** → no email input; primary button = "Notify me" (one-click join).
-  - **Logged out** → email input + "Notify me", plus a secondary `Link to "/auth?redirect=…"` row labeled "Sign up for full updates".
-- Handle RPC response:
-  - `{ status: 'joined' }` → success toast "You're on the list — we'll email you when it opens."
-  - `{ status: 'already_joined' }` → neutral toast "You're already on the list."
-  - Either way → set `joined=true` and persist `localStorage` key (already in B2).
-- Error path → `toast.error(error.message || 'Could not join…')`, keep button enabled for retry.
+## Batch 1 — 8 surfaces
 
-## 2. Cross-device dedup (logged-in only)
+Each is a single-line wrapper at the **page component top-level** (not in `App.tsx`). This keeps lazy-loading + route layout untouched, and means dynamic params (e.g. `:country`) are available inside the gate's source-path metadata.
 
-On mount, if a session exists **and** `localStorage` flag is missing, do one cheap check:
-```ts
-supabase.from('feature_waitlist').select('id').eq('feature_key', featureKey).limit(1)
+| # | Page file | featureKey | Title / description |
+|---|---|---|---|
+| 1 | `src/pages/app/ReviewerCockpit.tsx` | `reviewer-program` | "Community Reviewer Program" / "Earn credits by reviewing submissions. Applications open soon." |
+| 2 | `src/pages/app/MyProjects.tsx` | `managed-projects` | "Managed Projects" / "Escrow-backed multi-talent projects. Coming soon for talents." |
+| 3 | `src/pages/app/TalentDirectory.tsx` | `talent-directory` | "Talent Directory" / "Browse public talent profiles. Opening once enough talents go public." |
+| 4 | `src/pages/app/LanguagesHub.tsx` | `languages-hub` | "Languages Hub" / "Practice rooms + verified language instructors. Coming soon." |
+| 5 | `src/pages/app/LanguagePracticePage.tsx` | `languages-practice` | "Language Practice" / same theme |
+| 6 | `src/pages/app/LanguageInstructorsPage.tsx` | `languages-instructors` | "Language Instructors" / same theme |
+| 7 | `src/pages/app/Competitions.tsx` | `competitions` | "Competitions" / "Time-boxed challenges with prizes. Next season opens soon." |
+| 8 | `src/pages/app/DestinationAgentPage.tsx` | `abroad-country-${country}` | "Study in {Country}" / "We're onboarding partner agents for {Country}." — uses `useParams().country` for slug + label |
+
+For #8 the `featureKey` must satisfy the RPC regex `^[a-z0-9][a-z0-9-]{0,79}$`. We'll normalize: `country.toLowerCase().replace(/[^a-z0-9-]/g, "-")` and prefix with `abroad-country-`. If empty after normalization → fallback to `abroad-country-unknown`.
+
+## Per-page wrapper pattern
+
+Each page becomes:
+
+```tsx
+import { ComingSoonGate } from "@/components/launch/ComingSoonGate";
+
+export default function ReviewerCockpit() {
+  return (
+    <ComingSoonGate
+      featureKey="reviewer-program"
+      title="Community Reviewer Program"
+      description="Earn credits by reviewing submissions. Applications open soon."
+      secondaryCtaLabel="Explore gigs"
+      secondaryCtaHref="/app/gigs"
+    >
+      {/* …existing render… */}
+    </ComingSoonGate>
+  );
+}
 ```
-RLS allows users to read their own rows. If a row comes back → set `joined=true` and write the localStorage flag. Skip this call entirely for logged-out users (would just hit RLS and return empty).
 
-## 3. `showWhen` predicate (unchanged from B2)
+If a page already does work in its `default export` body (hooks etc.), we'll split into an inner `*Inner` component so hooks don't run behind the gate. Pattern:
 
-Already in B2. No change. B5 will pass it for leaderboards-style threshold gating.
+```tsx
+function ReviewerCockpitInner() { /* original body */ }
+export default function ReviewerCockpit() {
+  return <ComingSoonGate ...><ReviewerCockpitInner /></ComingSoonGate>;
+}
+```
 
-## 4. Behavior unchanged
+This avoids wasted RPC calls / data fetches while gated.
 
-- Mobile-first layout, semantic tokens, focus management, dedup via localStorage — all preserved from B2.
-- Component remains pure (no router-state changes, no global side effects beyond the RPC call + toast).
+## Verification
 
-## 5. Out of scope
+- Build passes (auto).
+- Manual smoke (1 surface): user navigates to `/app/reviewer` in preview → sees gate → submit email → `supabase--read_query` confirms row in `feature_waitlist`.
+- After Batch 1 sign-off, plan Batch 2 (gigs Marketplace sub-tab, leaderboards threshold mode, hide-nav items).
 
-- B5 surface rollout (no routes wrapped in this step).
-- B6 admin signals widget.
-- Email confirmation to waitlist subscribers.
-- Captcha/turnstile on anon submits.
+## Out of scope for Batch 1
 
-## 6. Verification
+- Gigs Marketplace **sub-tab** gating (it's a tab inside `/app/gigs`, not its own route) — Batch 2.
+- Leaderboards threshold gating (`showWhen` predicate against snapshot count) — Batch 2.
+- Hide-nav surfaces (`/app/gigs/appeals`, `/app/gigs/disputes`, `/app/pitches`, `/app/creator/analytics`, `/app/blog`, `/app/abroad/ielts-legacy`) — B6.
+- Admin signals widget — B6.
+- Nav/sidebar pruning — B6.
 
-- Manual: open `/app/reviewer` *after* B5 wraps it… no — that's B5. For B4 verification, temporarily mount `<ComingSoonGate featureKey="reviewer-program" />` on a throwaway test route? **No — skip.** Instead verify by:
-  1. TypeScript build passes (auto by harness).
-  2. `supabase--read_query` after a manual smoke (user clicks once in preview after B5 ships) confirms a row in `feature_waitlist`.
-- Defer live smoke to end of B5 to avoid noise.
+## Risks
 
-## 7. Risks
-
-- RPC name typo → caught by build + first smoke test.
-- `auth.getSession()` race on first render → handled by storing `sessionReady` flag; form disabled until known.
-- Anon user submitting without email → already blocked client-side; RPC also blocks server-side.
+- Per-page split may break a page that exports named helpers from the same file. Mitigation: only split the default export, leave other exports untouched.
+- A page that relies on a specific URL search param for state may not get to read it. Mitigation: gate is at top-level so `useParams`/`useSearchParams` inside `…Inner` still works once gate releases (which is currently always closed in v0.5 launch posture, so this is moot for Batch 1).
+- `DestinationAgentPage` country slug — confirm `useParams<{country: string}>()` is the existing convention before edit (will verify in first file read of build phase).
 
 ---
 
-Awaiting "go" to switch to build mode and apply the single edit.
+Awaiting "go" to switch to build mode and apply 8 file edits.
