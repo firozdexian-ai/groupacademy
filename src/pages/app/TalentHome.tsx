@@ -3,16 +3,12 @@ import { useNavigate } from "react-router-dom";
 import {
  CheckCircle2,
  AlertTriangle,
- Sparkles,
- Building2,
- ChevronRight,
  Award,
  Eye,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useTalent } from "@/hooks/useTalent";
-import { useTalentPitches } from "@/domains/profile/hooks/useTalentPitches";
 import { useSkillCredentials } from "@/domains/learning";
 import { computeReadiness } from "@/lib/talentReadiness";
 import { boostProfile, getTalentBoostUntil } from "@/domains/talent/repo/talentRepo";
@@ -21,19 +17,11 @@ import { GRO10X_BG, GRO10X_PANEL, GRO10X_TEXT, GRO10X_MUTED } from "@/gro10x/lib
 import { trackError } from "@/lib/errorTracking";
 import { QuickActionsGrid } from "@/domains/feed/components/talent/QuickActionsGrid";
 
-interface Pitch {
- id: string;
- company_name: string | null;
- company_logo: string | null;
- message: string;
- created_at: string;
-}
-
 export default function TalentHome() {
  const navigate = useNavigate();
  const { talent, isLoading: talentLoading } = useTalent();
- const { pitches, isLoading: pitchesLoading } = useTalentPitches(5);
  const { data: credentials = [], isLoading: credsLoading } = useSkillCredentials(talent?.id);
+
 
  const [boosting, setBoosting] = useState(false);
  const [boostUntil, setBoostUntil] = useState<string | null>(null);
@@ -53,7 +41,7 @@ export default function TalentHome() {
 
  const readiness = useMemo(() => computeReadiness(talent), [talent]);
  const isBoosted = useMemo(() => boostUntil && new Date(boostUntil) > new Date(), [boostUntil]);
- const dispatchedCount = pitches.filter((p: any) => p.dispatched).length;
+
 
  const boost = async () => {
  setBoosting(true);
