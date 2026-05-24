@@ -29,6 +29,9 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
   "overview-reports": React.lazy(() =>
     import("@/domains/analytics/components/admin/overview/ReportsBuilderTab").then((m) => ({ default: m.ReportsBuilderTab })),
   ),
+  "signals-waitlist": React.lazy(() =>
+    import("@/domains/analytics/components/admin/overview/DemandSignalsTab").then((m) => ({ default: m.DemandSignalsTab })),
+  ),
 };
 
 export const TITLES: Record<string, string> = {
@@ -38,4 +41,5 @@ export const TITLES: Record<string, string> = {
   "overview-quarter": "Quarterly overview",
   "overview-analyst": "Business analyst",
   "overview-reports": "Report builder",
+  "signals-waitlist": "Demand signals",
 };

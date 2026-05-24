@@ -1,33 +1,31 @@
-# B5 Batch 2 — Shipped
-
-Wrapped remaining **coming-soon** surfaces from the defer matrix.
+# B6 — Hide-Nav, Demand Signals, Sidebar Pruning — Shipped
 
 ## Changes
 
-1. **Gigs Marketplace sub-tab** (`src/pages/app/Gigs.tsx`)
-   - Wrapped the `client` `<TabsContent>` body with `<ComingSoonGate featureKey="gigs-marketplace">`.
-   - For-You tab untouched. Other tabs untouched.
+1. **TalentHome (`src/pages/app/TalentHome.tsx`)** — removed Employer Pitches block. Cleaned unused imports (`Sparkles`, `Building2`, `useTalentPitches`, `Pitch` type, `dispatchedCount`). Deep link `/app/pitches` still resolves.
 
-2. **Leaderboards threshold gate** (`src/pages/public/PublicLeaderboard.tsx`)
-   - Renamed page body to `PublicLeaderboardInner`.
-   - New default export wraps inner with `<ComingSoonGate featureKey="leaderboards-${kind}">`.
-   - `showWhen={hasEnough === true}` — `hasEnough` is set to `true` only when `getLeaderboard({ kind, period: "alltime" })` returns ≥ 10 rows.
-   - While `hasEnough === null` (loading) → gate shows (safe default).
+2. **TalentAppShell (`src/layouts/TalentAppShell.tsx`)** — removed Creator Analytics menu item from More-sheet; dropped now-unused `BarChart3` import. Deep link `/app/creator/analytics` still resolves.
 
-## Notes
+3. **Admin Demand Signals widget**
+   - New: `src/domains/analytics/components/admin/overview/DemandSignalsTab.tsx`
+   - Registered tab key `signals-waitlist` (title: "Demand signals") in `src/shells/admin/routes/overview.ts`.
+   - Reads `feature_waitlist` directly via admin RLS; aggregates per `feature_key`: total, unique (user_id || email), last 7d, last 24h. "Hot" badge when 7d ≥ 10.
+   - Empty + error states handled.
 
-- Did **not** extend `ComingSoonGate` for async `showWhen`. Used a wrapper component that resolves the async check into a sync boolean — simpler, no shared-component churn.
-- featureKeys used: `gigs-marketplace`, `leaderboards-talents`, `leaderboards-companies`, `leaderboards-reviewers`.
+## Audit (no nav entries found — kept as deep-link-only)
+
+- `/app/gigs/appeals`
+- `/app/gigs/disputes`
+- `/app/blog` (in-app duplicate of `/app/learning/blog`)
+- `/app/abroad/ielts-legacy`
+- `Gro10xSideNav` / `Gro10xBottomNav` — clean of deferred routes.
 
 ## Verification
 
 - TS compile clean.
-- Manual smoke (preview):
-  - `/app/gigs` → For-You tab opens normally; switch to Marketplace tab → see gate.
-  - `/leaderboards/talents` → gate (zero `leaderboard_snapshots` rows currently).
+- `/dashboard?tab=signals-waitlist` → renders Demand Signals widget.
+- TalentHome no longer shows Pitches card; More-menu no longer shows Creator Analytics; all 6 deferred deep links still resolve.
 
-## Next: B6
+## v0.5 Defer Matrix — COMPLETE
 
-- Hide-nav routes: `/app/gigs/appeals`, `/app/gigs/disputes`, `/app/pitches`, `/app/creator/analytics`, `/app/blog`, `/app/abroad/ielts-legacy`.
-- Admin demand-signals widget reading `feature_waitlist` aggregates.
-- Nav/sidebar pruning to match defer matrix.
+B1 (matrix) → B2 (gate) → B3 (DB) → B5 (apply gates) → B6 (prune nav + signals) all shipped.
