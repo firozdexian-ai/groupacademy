@@ -389,7 +389,7 @@ export default function AppJobApplication() {
  <Inbox className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Registry Key Error</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Error</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
  The targeting position operational parameters could not be gathered from tracking metadata blocks.
  </p>

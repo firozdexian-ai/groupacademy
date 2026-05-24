@@ -660,7 +660,7 @@ export default function AppPortfolioRequest() {
  </div>
  <div className="flex justify-between items-center leading-none w-full block">
  <span className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none">Transmitted Curriculum Record Log</span>
- <span className="text-foreground text-xs font-bold uppercase tracking-wide">{resolvedEffectiveCvUrlStr ? "Artifact Document Track Attached" : "Pending Manual Core Synthesis"}</span>
+ <span className="text-foreground text-xs font-bold uppercase tracking-wide">{resolvedEffectiveCvUrlStr ? "CV attached" : "Pending"}</span>
  </div>
  <div className="flex justify-between items-center leading-none w-full block">
  <span className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none">Specialty Vertical Target Sector</span>

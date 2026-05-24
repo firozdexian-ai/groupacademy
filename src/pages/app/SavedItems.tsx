@@ -198,7 +198,7 @@ export default function SavedItems() {
  <ArrowLeft className="h-6 w-6" />
  </Button>
  <div>
- <h1 className="text-3xl font-black uppercase tracking-tighter italic">Signal Registry</h1>
+ <h1 className="text-3xl font-black uppercase tracking-tighter italic">Saved items</h1>
  <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
  {savedItems.length} {savedItems.length === 1 ? "node" : "nodes"} anchored
  </p>
@@ -228,7 +228,7 @@ export default function SavedItems() {
  ) : getItemsByType(tab as SavedItemType | "all").length === 0 ? (
  <Card className="py-20 text-center border-dashed border-2 rounded-2xl">
  <Bookmark className="h-12 w-12 text-muted-foreground/20 mx-auto mb-6" />
- <h3 className="font-black uppercase italic tracking-tighter text-lg">Registry Empty</h3>
+ <h3 className="font-black uppercase italic tracking-tighter text-lg">Nothing saved yet</h3>
  <p className="text-xs text-muted-foreground mt-2 italic">No logic nodes anchored.</p>
  <Button className="mt-6 rounded-xl" onClick={() => navigate("/app/feed")}>
  Sync Feed

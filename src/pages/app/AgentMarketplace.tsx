@@ -164,7 +164,7 @@ export default function AgentMarketplace() {
  className="w-full flex items-center justify-center py-16 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none pointer-events-none gap-2.5"
  >
  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
- <span>Syncing Global Registry Manifest...</span>
+ <span>Loading agents...</span>
  </div>
  ) : processedFilteredAgentsArray.length === 0 ? (
  <Card className="rounded-xl border border-dashed border-border/60 bg-card/20 p-10 text-center select-none block mt-2">

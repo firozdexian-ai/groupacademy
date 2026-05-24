@@ -103,7 +103,7 @@ export default function InstructorCourseSessions() {
  >
  <div className="flex items-center gap-2.5">
  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
- <span>Synchronizing Classroom Registry...</span>
+ <span>Loading sessions...</span>
  </div>
  </div>
  );

@@ -127,7 +127,7 @@ export default function MyResults() {
  <div className={cn(PAGE_SHELL, "max-w-3xl mx-auto space-y-6")}>
  <header>
  <h1 className={PAGE_TITLE}>Performance Archive</h1>
- <p className={PAGE_SUBTITLE}>Telemetry from your career assessments and mocks.</p>
+ <p className={PAGE_SUBTITLE}>Results from your career assessments and mock interviews.</p>
  </header>
 
  {isLoading ? (

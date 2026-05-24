@@ -190,7 +190,7 @@ export default function CreatorAnalytics() {
  </Button>
  <div className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wide text-foreground pt-0.5">
  <BarChart3 className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
- <span>Creative Telemetry Diagnostics</span>
+ <span>Creative analytics</span>
  </div>
  </div>
  </div>

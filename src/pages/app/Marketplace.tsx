@@ -141,7 +141,7 @@ export default function Marketplace() {
  ) : filteredGigsRegistry.length === 0 ? (
  <div className="text-center py-20 border-2 border-dashed border-border/40 rounded-2xl">
  <Target className="h-10 w-10 text-muted-foreground/20 mx-auto mb-4" />
- <h3 className="text-sm font-bold uppercase tracking-wide">Registry Vacuum</h3>
+ <h3 className="text-sm font-bold uppercase tracking-wide">Nothing here yet</h3>
  <p className={META_TEXT}>No gig artifacts match this query sequence.</p>
  </div>
  ) : (
