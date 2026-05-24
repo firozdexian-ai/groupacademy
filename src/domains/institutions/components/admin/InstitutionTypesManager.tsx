@@ -200,7 +200,7 @@ export function InstitutionTypesManager() {
  <ShieldCheck className="h-5 w-5 text-primary" />
  </div>
  <div>
- <DialogTitle>Taxonomy Node</DialogTitle>
+ <DialogTitle>Institution type</DialogTitle>
  <DialogDescription>
  Define global institution classification
  </DialogDescription>

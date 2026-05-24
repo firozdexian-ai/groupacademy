@@ -189,7 +189,7 @@ export function LeadHunterManager() {
  }
  };
 
- if (error) return <DashboardErrorState title="Registry Connection Fault" message={error} onRetry={loadRegistry} />;
+ if (error) return <DashboardErrorState title="Couldn't load leads" message={error} onRetry={loadRegistry} />;
 
  if (selectedSession) {
  return (

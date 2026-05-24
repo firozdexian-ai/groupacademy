@@ -158,7 +158,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
         <SelectTrigger className="w-[180px] h-11 rounded-xl border-2 bg-card font-black uppercase text-[10px] tracking-widest transition-all hover:border-primary/40 focus:ring-0">
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-primary/60" />
-            <SelectValue placeholder="Status: Telemetry" />
+            <SelectValue placeholder="Status" />
           </div>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-2 shadow-sm">

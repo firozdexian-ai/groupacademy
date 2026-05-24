@@ -200,9 +200,9 @@ export function NotificationsTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent className="font-semibold uppercase text-[10px]">
- <SelectItem value="all">Global Network</SelectItem>
- <SelectItem value="category">Profession Segment</SelectItem>
- <SelectItem value="single">Single Node ID</SelectItem>
+ <SelectItem value="all">Everyone</SelectItem>
+ <SelectItem value="category">By profession</SelectItem>
+ <SelectItem value="single">Single user</SelectItem>
  </SelectContent>
  </Select>
  </div>

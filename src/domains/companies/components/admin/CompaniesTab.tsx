@@ -254,11 +254,11 @@ export function CompaniesTab() {
  </div>
  <Select value={industryFilter} onValueChange={setIndustryFilter}>
  <SelectTrigger className="w-[240px] h-10 rounded-xl border font-semibold uppercase text-[10px] bg-muted/5">
- <SelectValue placeholder="Industry Filter" />
+ <SelectValue placeholder="Industry filter" />
  </SelectTrigger>
  <SelectContent className="font-semibold text-[10px] uppercase">
- <SelectItem value="all">Global Sector</SelectItem>
- <SelectItem value="none">Unclassed Nodes</SelectItem>
+ <SelectItem value="all">All industries</SelectItem>
+ <SelectItem value="none">Unclassified</SelectItem>
  {industryOptions.map((opt) => (
  <SelectItem key={opt.industry} value={opt.industry}>
  {opt.industry}

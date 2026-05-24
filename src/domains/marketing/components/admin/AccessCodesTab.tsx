@@ -109,10 +109,10 @@ export function AccessCodesTab() {
             <CardContent className="p-6 space-y-4">
               <div className="grid lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2 space-y-2">
-                  <Label>Target Curriculum Node</Label>
+                  <Label>Target course</Label>
                   <Select value={selectedContentId} onValueChange={setSelectedContentId}>
                     <SelectTrigger className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic">
-                      <SelectValue placeholder="Select_Paid_Content..." />
+                      <SelectValue placeholder="Select a paid course..." />
                     </SelectTrigger>
                     <SelectContent>
                       {paidContent?.map((c: any) => (
@@ -124,7 +124,7 @@ export function AccessCodesTab() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Use Quota</Label>
+                  <Label>Max uses</Label>
                   <Input
                     type="number"
                     min={1}
@@ -135,11 +135,11 @@ export function AccessCodesTab() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Administrative Notes</Label>
+                <Label>Internal notes</Label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Student_ID, Payment_Ref..."
+                  placeholder="Student ID, payment reference..."
                   className="h-14 bg-muted/20 border-2 rounded-2xl italic font-bold"
                 />
               </div>
@@ -153,7 +153,7 @@ export function AccessCodesTab() {
                 ) : (
                   <ShieldCheck className="h-5 w-5" />
                 )}
-                INITIALIZE REGISTRY KEY
+                CREATE ACCESS CODE
               </Button>
             </CardContent>
           </Card>
@@ -163,9 +163,9 @@ export function AccessCodesTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cipher</TableHead>
+                    <TableHead>Code</TableHead>
                     <TableHead>Usage</TableHead>
-                    <TableHead>Target Node</TableHead>
+                    <TableHead>Target course</TableHead>
                     <TableHead className="text-right">Manage</TableHead>
                   </TableRow>
                 </TableHeader>

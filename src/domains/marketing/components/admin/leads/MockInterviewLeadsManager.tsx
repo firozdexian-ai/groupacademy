@@ -147,7 +147,7 @@ export function MockInterviewLeadsManager() {
       : 0;
 
   if (loading) return <DashboardTableSkeleton rows={8} columns={8} />;
-  if (error) return <DashboardErrorState title="Telemetry Failure" message={error} onRetry={loadLeads} />;
+  if (error) return <DashboardErrorState title="Couldn't load leads" message={error} onRetry={loadLeads} />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">

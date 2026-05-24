@@ -185,7 +185,7 @@ export const BannerManager = () => {
     );
 
   if (loadError)
-    return <DashboardErrorState title="Registry Sync Failure" message={loadError} onRetry={loadRegistryData} />;
+    return <DashboardErrorState title="Couldn't load banners" message={loadError} onRetry={loadRegistryData} />;
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000">
@@ -199,10 +199,10 @@ export const BannerManager = () => {
             </div>
             <div className="space-y-0.5">
               <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">
-                Initialize Artifact
+                Add a banner
               </CardTitle>
               <CardDescription className="text-[10px] font-bold text-muted-foreground/60 italic">
-                1536×512PX Registry Injection (3:1 Ratio)
+                1536×512px image (3:1 ratio)
               </CardDescription>
             </div>
           </div>
@@ -212,7 +212,7 @@ export const BannerManager = () => {
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-[10px] font-black text-primary ml-1">
-                  Visual Payload (Image)
+                  Banner image
                 </Label>
                 <div className="p-4 rounded-xl border-2 border-dashed border-border/40 bg-muted/5 group transition-all hover:border-primary/40">
                   <ImageUpload
@@ -229,14 +229,14 @@ export const BannerManager = () => {
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black text-primary ml-1">
-                    Logic Link (Optional)
+                    Link to course (optional)
                   </Label>
                   <Select
                     value={newBanner.link_content_id}
                     onValueChange={(v) => setNewBanner({ ...newBanner, link_content_id: v })}
                   >
                     <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-background/50">
-                      <SelectValue placeholder="Uplink to Academic Node..." />
+                      <SelectValue placeholder="Link to a course..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-2">
                       <SelectItem value="none" className="font-bold uppercase text-[10px]">

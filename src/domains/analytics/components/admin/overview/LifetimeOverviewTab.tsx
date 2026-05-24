@@ -171,11 +171,11 @@ export function LifetimeOverviewTab() {
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Talent Registry"
+          title="Total talents"
           value={stats.totalTalents.toLocaleString()}
           icon={Users}
-          trend={`${stats.registeredRate}% SYNC'D`}
-          trendLabel="Registration delta"
+          trend={`${stats.registeredRate}% registered`}
+          trendLabel="Sign-up rate"
         />
         {/* F5: Correct BDT Currency & USD Subtitle */}
         <StatsCard

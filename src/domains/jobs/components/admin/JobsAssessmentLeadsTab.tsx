@@ -149,7 +149,7 @@ export function JobsAssessmentLeadsTab() {
 
   if (loading) return <DashboardTableSkeleton rows={5} columns={7} />;
 
-  if (error) return <DashboardErrorState title="Registry Sync Failure" message={error} onRetry={loadRegistryLeads} />;
+  if (error) return <DashboardErrorState title="Couldn't load leads" message={error} onRetry={loadRegistryLeads} />;
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 

@@ -334,7 +334,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
  {isImporting && (
  <div className="space-y-4 p-8 rounded-2xl border bg-primary/5 border-primary/20">
  <div className="flex justify-between text-[10px] font-semibold text-primary">
- <span>Registry Mapping...</span>
+ <span>Importing rows...</span>
  <span>{importProgress}%</span>
  </div>
  <Progress value={importProgress} className="h-3 rounded-full bg-primary/10" />

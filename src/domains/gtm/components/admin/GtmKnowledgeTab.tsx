@@ -54,7 +54,7 @@ export function GtmKnowledgeTab() {
  <Table>
  <TableHeader>
  <TableRow>
- <TableHead>Content Node (Title)</TableHead>
+ <TableHead>Title</TableHead>
  <TableHead>Target Country</TableHead>
  <TableHead>Classification</TableHead>
  <TableHead>Status</TableHead>

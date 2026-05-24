@@ -224,7 +224,7 @@ export function ProfessionsTab() {
 
  {/* CRUD Dialogs (B1 & B2 Fix) */}
  <StructuralDialog
- title="School Node"
+ title="School"
  open={schoolDialog}
  setOpen={setSchoolDialog}
  onSave={(e) => handleSave(e, "schools", setSchoolDialog)}
@@ -254,14 +254,14 @@ export function ProfessionsTab() {
  </Select>
  </div>
  <div className="grid gap-2">
- <Label>Executive Goal</Label>
+ <Label>Capability goal</Label>
  <Input name="executive_capability_goal" defaultValue={editingItem?.executive_capability_goal} />
  </div>
  </div>
  </StructuralDialog>
 
  <StructuralDialog
- title="Program Node"
+ title="Program"
  open={professionDialog}
  setOpen={setProfessionDialog}
  onSave={(e) => handleSave(e, "profession_categories", setProfessionDialog)}

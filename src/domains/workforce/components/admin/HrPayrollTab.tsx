@@ -197,9 +197,9 @@ export function HrPayrollTab() {
  <Table>
  <TableHeader className="bg-muted/10 text-[10px] font-black">
  <TableRow className="border-b">
- <TableHead className="py-5 pl-8">Beneficiary Node</TableHead>
- <TableHead>Temporal Window</TableHead>
- <TableHead>Financial Yield</TableHead>
+ <TableHead className="py-5 pl-8">Beneficiary</TableHead>
+ <TableHead>Period</TableHead>
+ <TableHead>Amount</TableHead>
  <TableHead>Status</TableHead>
  <TableHead className="text-right pr-8">Actions</TableHead>
  </TableRow>
