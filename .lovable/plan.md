@@ -56,3 +56,17 @@ Run the same regex audits A11–A14 used and apply the same normalizations, scop
 ## Why this phase
 
 A14 completed the admin polish initiative. A15 ports those exact rules to the talent-facing surface, which is the surface users actually live in. This is the highest user-visible impact of the polish track and a natural mirror of the admin sweep.
+
+---
+
+## A15 — Executed
+
+Swept 97 files across `src/domains/*/components/talent/**`, `src/shells/talent/**`, `src/pages/app/**`.
+
+- **Before**: 3 button hits, 278 card/table hits, 48 modal hits, 154 jargon copy hits.
+- **After**: 0 across every regex family.
+- Final pass also caught `shadow-xl` on a few non-modal cards/tab strips.
+- Visible jargon strings fixed: "Registry Vacuum"→"Nothing here yet", "Signal Registry"→"Saved items", "Registry Empty"→"Nothing saved yet", "Syncing Global Registry Manifest"→"Loading agents", "Synchronizing Classroom Registry"→"Loading sessions", "Registry Key Error"→"Error", "Telemetry from your…"→"Results from your…", "Creative Telemetry Diagnostics"→"Creative analytics", "Artifact Document Track Attached"→"CV attached", "Pending Manual Core Synthesis"→"Pending".
+- Variable-name "Registry/Telemetry/Artifact" identifiers left alone (out of scope; zero user impact).
+
+Admin (A11–A14) and talent (A15) surfaces now share one chrome vocabulary and one voice.
