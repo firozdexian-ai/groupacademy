@@ -169,7 +169,7 @@ export const BannerManager = () => {
     if (!confirm("Authorize permanent artifact purge?")) return;
     try {
       await withTimeout(deleteBannerRepo(bannerId), TIMEOUTS.DEFAULT, "Delete timed out");
-      toast.success("Artifact Purged from Registry");
+      toast.success("Deleted");
       loadRegistryData();
     } catch (error: any) {
       toast.error("Purge Failed: Artifact locked by protocol");
@@ -235,7 +235,7 @@ export const BannerManager = () => {
                     value={newBanner.link_content_id}
                     onValueChange={(v) => setNewBanner({ ...newBanner, link_content_id: v })}
                   >
-                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-background/50">
+                    <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-background/50">
                       <SelectValue placeholder="Uplink to Academic Node..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-2">
@@ -260,7 +260,7 @@ export const BannerManager = () => {
                       value={newBanner.placement}
                       onValueChange={(v: PlacementType) => setNewBanner({ ...newBanner, placement: v })}
                     >
-                      <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-background/50">
+                      <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-background/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-2">
@@ -284,7 +284,7 @@ export const BannerManager = () => {
                       type="number"
                       value={newBanner.display_order}
                       onChange={(e) => setNewBanner({ ...newBanner, display_order: parseInt(e.target.value) || 0 })}
-                      className="h-14 rounded-2xl border-2 font-bold bg-background/50"
+                      className="h-10 rounded-xl border-2 font-bold bg-background/50"
                     />
                   </div>
                 </div>
@@ -414,7 +414,7 @@ export const BannerManager = () => {
 
               <Button
                 type="submit"
-                className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+                className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-sm group relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-3">
                   <ShieldCheck className="h-5 w-5" /> Register Artifact

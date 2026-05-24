@@ -77,7 +77,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
         </div>
         <Button
           onClick={() => onNavigate("ir-targets")}
-          className="h-14 px-8 rounded-2xl font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg"
+          className="h-10 px-4 rounded-xl font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg"
         >
           <Target className="h-4 w-4" /> {telemetry?.target ? "Update targets" : "Set targets"}
         </Button>

@@ -126,7 +126,7 @@ export const TalentDetailDialog = ({
             <Button
               onClick={handlePlatformInvite}
               disabled={!displayTalent.id || !!displayTalent.user_id}
-              className="bg-primary hover:bg-primary/90 text-white font-semibold uppercase italic tracking-widest h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 gap-3"
+              className="bg-primary hover:bg-primary/90 text-white font-semibold uppercase italic tracking-widest h-10 px-4 rounded-xl shadow-xl shadow-primary/20 gap-3"
             >
               <UserPlus className="h-5 w-5" />
               {displayTalent.user_id ? "Activation Verified" : "Deploy Invite"}
@@ -134,7 +134,7 @@ export const TalentDetailDialog = ({
 
             <Button
               variant="secondary"
-              className="h-14 px-8 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3"
+              className="h-10 px-4 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3"
               onClick={() => window.open(`mailto:${displayTalent.email}`)}
             >
               <Mail className="h-5 w-5" /> Email Node
@@ -143,7 +143,7 @@ export const TalentDetailDialog = ({
             {displayTalent.phone && (
               <Button
                 variant="outline"
-                className="h-14 px-8 rounded-2xl border-2 border-green-500/30 text-green-600 font-semibold uppercase text-[10px] tracking-widest hover:bg-green-50 gap-3"
+                className="h-10 px-4 rounded-xl border-2 border-green-500/30 text-green-600 font-semibold uppercase text-[10px] tracking-widest hover:bg-green-50 gap-3"
                 onClick={() => window.open(`https://wa.me/${displayTalent.phone.replace(/\D/g, "")}`, "_blank")}
               >
                 <Phone className="h-5 w-5" /> WhatsApp Direct

@@ -117,7 +117,7 @@ export function JobsManageTab() {
       setTotalCount(count || 0);
       if (rows.length) fetchEngagement(rows.map((j: any) => j.id));
     } catch (err: any) {
-      toast.error("Registry Ingestion Fault: " + err.message);
+      toast.error("Save failed: " + err.message);
     } finally {
       setLoading(false);
     }

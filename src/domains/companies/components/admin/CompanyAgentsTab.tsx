@@ -369,7 +369,7 @@ export function CompanyAgentsManager() {
                     Partnership Entity *
                   </Label>
                   <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                    <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20">
                       <SelectValue placeholder="Select target registry..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-2">
@@ -564,7 +564,7 @@ export function CompanyAgentsManager() {
                 <Button
                   onClick={() => createAgentMutation.mutate({ ...formData, company_id: selectedCompany })}
                   disabled={createAgentMutation.isPending || !selectedCompany || !formData.name.trim()}
-                  className="h-14 px-12 rounded-2xl font-semibold text-[11px] shadow-2xl shadow-primary/30"
+                  className="h-10 px-4 rounded-xl font-semibold text-[11px] shadow-sm"
                 >
                   {createAgentMutation.isPending ? (
                     <Loader2 className="animate-spin mr-2" />

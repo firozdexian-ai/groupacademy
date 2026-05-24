@@ -181,7 +181,7 @@ export function VCFirmsManager() {
               resetForm();
               setDialogOpen(true);
             }}
-            className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg shadow-primary/20"
+            className="h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg shadow-primary/20"
           >
             <Plus className="h-4 w-4" /> Deploy Firm
           </Button>

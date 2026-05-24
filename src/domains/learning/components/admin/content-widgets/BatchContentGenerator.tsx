@@ -428,7 +428,7 @@ export function BatchContentGenerator() {
                       <Button
                         onClick={runBatchSequence}
                         disabled={GENERATORS[key].needsSchool && !selectedSchool}
-                        className="rounded-xl h-14 px-10 font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/20 gap-3 group"
+                        className="rounded-xl h-14 px-10 font-black uppercase text-[10px] tracking-widest shadow-sm gap-3 group"
                       >
                         <Play className="w-5 h-5 group-hover:scale-110 transition-transform" /> Initialize Synthesis
                       </Button>
@@ -447,7 +447,7 @@ export function BatchContentGenerator() {
                           Target Faculty Node
                         </Label>
                         <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={isRunning}>
-                          <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                          <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20">
                             <SelectValue placeholder="Select faculty source..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-2">

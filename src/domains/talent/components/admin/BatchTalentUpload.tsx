@@ -338,7 +338,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
             clearInterval(pollInterval);
             setIsUploading(false);
             if (batch.status === "completed") {
-              toast.success("Registry Sync Complete");
+              toast.success("Saved");
               onComplete?.();
             }
           }
@@ -421,7 +421,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
             <Button
               onClick={uploadUrlsAndProcess}
               disabled={isUploading || !urlsInput.trim()}
-              className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+              className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-sm group relative overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-3">
                 {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload className="h-5 w-5" />}
@@ -483,7 +483,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
             <Button
               onClick={uploadFilesAndProcess}
               disabled={isUploading || selectedFiles.length === 0}
-              className="w-full h-16 rounded-[20px] font-semibold uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 group"
+              className="w-full h-16 rounded-[20px] font-semibold uppercase tracking-[0.3em] text-[11px] shadow-sm group"
             >
               {uploadingFiles ? (
                 <Loader2 className="animate-spin mr-3 h-5 w-5" />

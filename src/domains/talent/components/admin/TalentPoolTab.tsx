@@ -135,11 +135,11 @@ export function TalentPoolTab() {
                 placeholder="Search node IDs, names, or handles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[10px] tracking-widest bg-muted/10"
+                className="h-10 rounded-xl border-2 pl-12 font-bold uppercase text-[10px] tracking-widest bg-muted/10"
               />
             </div>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
-              <SelectTrigger className="w-full md:w-[240px] h-14 rounded-2xl border-2 font-semibold uppercase text-[9px] tracking-widest bg-muted/10">
+              <SelectTrigger className="w-full md:w-[240px] h-10 rounded-xl border-2 font-semibold uppercase text-[9px] tracking-widest bg-muted/10">
                 <SelectValue placeholder="GLOBAL SECTOR" />
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-2">

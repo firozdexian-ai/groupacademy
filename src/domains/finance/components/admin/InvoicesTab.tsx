@@ -370,7 +370,7 @@ export function InvoicesTab() {
                 {selected.talents?.phone && (
                   <Button
                     variant="outline"
-                    className="h-14 px-8 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-2"
+                    className="h-10 px-4 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
                       const phone = selected.talents!.phone!.replace(/[^0-9]/g, "");
                       const msg = encodeURIComponent(
@@ -393,7 +393,7 @@ export function InvoicesTab() {
                     </Button>
                     <Button
                       onClick={() => setApproveOpen(true)}
-                      className="flex-1 h-14 rounded-2xl font-semibold uppercase italic tracking-tight text-xl gap-3 shadow-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                      className="flex-1 h-10 rounded-xl font-semibold uppercase italic tracking-tight text-xl gap-3 shadow-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
                     >
                       <ShieldCheck className="h-6 w-6 fill-current" /> Authorize & Disburse
                     </Button>

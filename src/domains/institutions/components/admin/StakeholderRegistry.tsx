@@ -165,7 +165,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
             setDraft({ type: typeOptions[0], status: "prospect" });
             setOpen(true);
           }}
-          className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-xl bg-primary text-primary-foreground"
+          className="h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-xl bg-primary text-primary-foreground"
         >
           <Plus className="h-4 w-4" /> Deploy Node
         </Button>
@@ -178,11 +178,11 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
             placeholder="FILTER REGISTRY BY IDENTITY..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/30"
+            className="h-10 rounded-xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/30"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full md:w-[220px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] bg-background">
+          <SelectTrigger className="w-full md:w-[220px] h-10 rounded-xl border-2 font-black uppercase text-[10px] bg-background">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="STATUS" />
           </SelectTrigger>
@@ -430,7 +430,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
               <Button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="h-14 px-10 rounded-2xl font-black uppercase italic text-lg flex-1 shadow-lg bg-primary"
+                className="h-10 px-4 rounded-xl font-black uppercase italic text-lg flex-1 shadow-lg bg-primary"
               >
                 {saveMutation.isPending ? "Syncing..." : editingRow ? "Commit Recalibration" : "Authorize Deployment"}
               </Button>

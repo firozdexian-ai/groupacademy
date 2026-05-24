@@ -111,7 +111,7 @@ export function JobsApplicationsTab() {
       setApps(rows as any);
       setTotalCount(count);
     } catch (err: any) {
-      toast.error("Registry Ingestion Fault: " + err.message);
+      toast.error("Save failed: " + err.message);
     } finally {
       setLoading(false);
     }

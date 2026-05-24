@@ -161,7 +161,7 @@ export const SalaryAnalysisLeadsManager = () => {
           <Button
             onClick={exportToCSV}
             variant="outline"
-            className="h-14 px-8 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3"
+            className="h-10 px-4 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3"
           >
             <Download className="h-4 w-4" /> Export Registry
           </Button>
@@ -180,11 +180,11 @@ export const SalaryAnalysisLeadsManager = () => {
                 placeholder="Search registry by name, email, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest"
+                className="h-10 rounded-xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px] h-14 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest">
+              <SelectTrigger className="w-[200px] h-10 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest">
                 <SelectValue placeholder="STATUS FILTER" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2">

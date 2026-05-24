@@ -135,7 +135,7 @@ export function StandaloneMockInterviewCodeGenerator() {
               placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-14 rounded-2xl border-2 font-bold bg-card/50"
+              className="h-10 rounded-xl border-2 font-bold bg-card/50"
             />
           </div>
           <div className="space-y-2 text-left">
@@ -148,7 +148,7 @@ export function StandaloneMockInterviewCodeGenerator() {
               max={20}
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="h-14 rounded-2xl border-2 font-semibold text-lg"
+              className="h-10 rounded-xl border-2 font-semibold text-lg"
             />
           </div>
         </div>

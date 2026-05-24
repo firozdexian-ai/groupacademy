@@ -168,7 +168,7 @@ export function PaymentInfraTab() {
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="h-14 px-10 rounded-2xl font-black text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
+          className="h-10 px-4 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-3"
         >
           {saveMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -232,7 +232,7 @@ export function PaymentInfraTab() {
                   Active Gateway Router
                 </Label>
                 <Select value={gateway} onValueChange={(v) => setGateway(v as GatewayOption)}>
-                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                  <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-2 font-bold">
@@ -264,7 +264,7 @@ export function PaymentInfraTab() {
                   Global Currency Base
                 </Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20 w-full sm:w-1/2">
+                  <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20 w-full sm:w-1/2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-2 font-bold">
@@ -350,7 +350,7 @@ export function PaymentInfraTab() {
                   value={stripeKey}
                   onChange={(e) => setStripeKey(e.target.value)}
                   disabled={!stripeUsed}
-                  className="h-14 rounded-2xl border-2 font-mono text-xs bg-muted/20"
+                  className="h-10 rounded-xl border-2 font-mono text-xs bg-muted/20"
                 />
               </div>
 
@@ -365,7 +365,7 @@ export function PaymentInfraTab() {
                     value={secretKey}
                     onChange={(e) => setSecretKey(e.target.value)}
                     disabled={!stripeUsed || savingSecret}
-                    className="h-14 rounded-2xl border-2 font-mono text-xs bg-muted/20 flex-1"
+                    className="h-10 rounded-xl border-2 font-mono text-xs bg-muted/20 flex-1"
                   />
                   <Button
                     onClick={handleSaveSecretKey}
@@ -396,7 +396,7 @@ export function PaymentInfraTab() {
                     value={webhookSecret}
                     onChange={(e) => setWebhookSecret(e.target.value)}
                     disabled={!stripeUsed || savingWebhook}
-                    className="h-14 rounded-2xl border-2 font-mono text-xs bg-muted/20 flex-1"
+                    className="h-10 rounded-xl border-2 font-mono text-xs bg-muted/20 flex-1"
                   />
                   <Button
                     onClick={handleSaveWebhookSecret}

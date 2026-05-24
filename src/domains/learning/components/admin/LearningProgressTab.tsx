@@ -179,7 +179,7 @@ export function LearningProgressTab() {
           </p>
         </div>
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-          <SelectTrigger className="w-full md:w-[320px] h-14 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest bg-card/50 shadow-inner">
+          <SelectTrigger className="w-full md:w-[320px] h-10 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest bg-card/50 shadow-inner">
             <Layers className="w-4 h-4 mr-2 text-primary" />
             <SelectValue placeholder="Logic Context" />
           </SelectTrigger>

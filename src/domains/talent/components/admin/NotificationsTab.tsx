@@ -255,7 +255,7 @@ export function NotificationsTab() {
               <Button
                 onClick={executeBroadcast}
                 disabled={isSending}
-                className="w-full h-14 rounded-2xl font-semibold text-[11px] gap-2 shadow-xl bg-primary hover:bg-primary/90"
+                className="w-full h-10 rounded-xl font-semibold text-[11px] gap-2 shadow-xl bg-primary hover:bg-primary/90"
               >
                 {isSending ? <Loader2 className="animate-spin h-5 w-5" /> : <Activity className="h-5 w-5" />}
                 Execute Dispatch

@@ -558,7 +558,7 @@ export function LeadHunterManager() {
                   disabled={
                     isSearching || (huntMode === "select" && !selectedJobId) || (huntMode === "paste" && !rawJD)
                   }
-                  className="h-14 px-12 rounded-2xl bg-primary font-semibold text-[11px] shadow-2xl shadow-primary/30 gap-3 text-white"
+                  className="h-10 px-4 rounded-xl bg-primary font-semibold text-[11px] shadow-sm gap-3 text-white"
                 >
                   {isSearching ? <Loader2 className="animate-spin h-5 w-5" /> : <Target className="h-5 w-5" />} Launch
                   Extract

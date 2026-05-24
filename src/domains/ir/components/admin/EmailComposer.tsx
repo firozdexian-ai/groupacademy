@@ -118,7 +118,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
 
   const handleLogAndOpenClient = async () => {
     if (!selectedInvestor?.email) {
-      toast.error("Registry Fault: Recipient identity undefined.");
+      toast.error("Error: Recipient identity undefined.");
       return;
     }
 
@@ -182,7 +182,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
             <h3 className="text-2xl font-semibold uppercase italic tracking-tight flex items-center gap-3">
               <ShieldCheck className="h-6 w-6 text-primary" /> Investor Pulse
             </h3>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            <p className="text-xs font-medium tracking-[0.3em] text-muted-foreground/60 italic">
               Phase IR-Z1.1 · dual-logged to outreach & comms history
             </p>
           </div>
@@ -222,7 +222,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
             </label>
             <Input
               placeholder="ENTER STRATEGIC HEADLINE..."
-              className="h-14 rounded-2xl border-2 font-semibold uppercase italic text-sm tracking-widest bg-card/50 focus-visible:border-primary/40 focus-visible:ring-0 transition-colors"
+              className="h-10 rounded-xl border-2 font-semibold uppercase italic text-sm tracking-widest bg-card/50 focus-visible:border-primary/40 focus-visible:ring-0 transition-colors"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
             />

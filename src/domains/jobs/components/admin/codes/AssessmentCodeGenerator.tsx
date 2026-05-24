@@ -151,7 +151,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
                     <Input
                       value={generatedCode}
                       readOnly
-                      className="h-14 rounded-2xl bg-primary/5 border-2 border-primary/20 font-mono text-2xl font-black tracking-[0.3em] text-center text-primary shadow-inner"
+                      className="h-10 rounded-xl bg-primary/5 border-2 border-primary/20 font-mono text-2xl font-black tracking-[0.3em] text-center text-primary shadow-inner"
                     />
                     <Button
                       variant="outline"
@@ -186,7 +186,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
                 <Button
                   onClick={handleGenerateHandshake}
                   disabled={generating}
-                  className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+                  className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-sm group relative overflow-hidden"
                 >
                   <span className="relative z-10 flex items-center gap-3">
                     {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <KeyRound className="h-5 w-5" />}

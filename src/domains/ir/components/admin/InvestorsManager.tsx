@@ -234,11 +234,11 @@ export function InvestorsManager() {
             placeholder="SEARCH STAKEHOLDER REGISTRY..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/30 focus-visible:border-primary/40"
+            className="h-10 rounded-xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/30 focus-visible:border-primary/40"
           />
         </div>
         <Select value={filterFirmId} onValueChange={setFilterFirmId}>
-          <SelectTrigger className="w-full md:w-[260px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-background">
+          <SelectTrigger className="w-full md:w-[260px] h-10 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest bg-background">
             <SelectValue placeholder="GLOBAL FIRMS" />
           </SelectTrigger>
           <SelectContent className="rounded-xl border-2">
@@ -603,7 +603,7 @@ export function InvestorsManager() {
                   <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none">
                     Neural Import
                   </DialogTitle>
-                  <DialogDescription className="text-[10px] font-bold uppercase italic text-muted-foreground/60">
+                  <DialogDescription className="text-xs font-medium italic text-muted-foreground/60">
                     Scraper Artifact Bulk Provisioning
                   </DialogDescription>
                 </div>

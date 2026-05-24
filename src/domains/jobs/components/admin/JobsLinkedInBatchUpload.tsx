@@ -566,7 +566,7 @@ export function JobsLinkedInBatchUpload({
               <Button
                 onClick={handleImportSequence}
                 disabled={newJobs.length === 0}
-                className="h-14 px-12 rounded-2xl font-semibold text-[11px] shadow-2xl shadow-primary/30 group"
+                className="h-10 px-4 rounded-xl font-semibold text-[11px] shadow-sm group"
               >
                 Authorize Registry Injection{" "}
                 <ChevronRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -579,7 +579,7 @@ export function JobsLinkedInBatchUpload({
                   reset();
                   onClose();
                 }}
-                className="h-14 px-12 rounded-2xl font-semibold text-[11px] shadow-2xl shadow-primary/30"
+                className="h-10 px-4 rounded-xl font-semibold text-[11px] shadow-sm"
               >
                 Terminate Session
               </Button>

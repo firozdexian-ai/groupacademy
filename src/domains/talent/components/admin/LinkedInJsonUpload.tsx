@@ -280,7 +280,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
                 <Button
                   onClick={handleImportProtocol}
                   disabled={importing || !selectedIndices.size}
-                  className="flex-1 h-14 rounded-2xl font-semibold text-[11px] shadow-2xl shadow-primary/30"
+                  className="flex-1 h-10 rounded-xl font-semibold text-[11px] shadow-sm"
                 >
                   {importing ? <Loader2 className="animate-spin h-5 w-5" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
                   Authorize Ingestion Sequence
@@ -291,7 +291,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
                     setParsed([]);
                     setFileName(null);
                   }}
-                  className="h-14 px-8 rounded-2xl font-semibold uppercase text-[10px] tracking-widest text-muted-foreground/40 hover:text-destructive"
+                  className="h-10 px-4 rounded-xl font-semibold uppercase text-[10px] tracking-widest text-muted-foreground/40 hover:text-destructive"
                 >
                   Abort
                 </Button>
@@ -333,7 +333,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
                 setParsed([]);
                 setImportResult(null);
               }}
-              className="w-full h-14 rounded-2xl border-2 font-semibold uppercase text-[11px] tracking-widest"
+              className="w-full h-10 rounded-xl border-2 font-semibold uppercase text-[11px] tracking-widest"
               variant="outline"
             >
               Initialize Next Ingestion

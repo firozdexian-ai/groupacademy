@@ -143,7 +143,7 @@ export function JobApplicationCodeGenerator() {
               placeholder="identify_target@entity.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-14 rounded-2xl border-2 font-bold tracking-tight bg-muted/20 focus-visible:ring-primary/20"
+              className="h-10 rounded-xl border-2 font-bold tracking-tight bg-muted/20 focus-visible:ring-primary/20"
             />
           </div>
           <div className="space-y-3 text-left">
@@ -155,7 +155,7 @@ export function JobApplicationCodeGenerator() {
               max={20}
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="h-14 rounded-2xl border-2 font-semibold text-xl bg-muted/20"
+              className="h-10 rounded-xl border-2 font-semibold text-xl bg-muted/20"
             />
           </div>
         </div>
@@ -163,7 +163,7 @@ export function JobApplicationCodeGenerator() {
         <Button
           onClick={handleExecuteSynthesis}
           disabled={isGenerating}
-          className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
         >
           {isGenerating ? (
             <>

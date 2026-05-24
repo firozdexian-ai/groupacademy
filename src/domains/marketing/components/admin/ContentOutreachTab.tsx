@@ -154,7 +154,7 @@ export function ContentOutreachTab() {
       setOutreachRecords((prev) => [...prev, { talent_id: talent.id, course_id: selectedContent.id }]);
       toast.success(`Saved: ${talent.full_name}`);
     } catch (err) {
-      toast.error("Failed: Registry rejection");
+      toast.error("Failed: Rejected");
     } finally {
       setIsSending(null);
     }
@@ -275,7 +275,7 @@ export function ContentOutreachTab() {
                 value={selectedContent?.id || ""}
                 onValueChange={(v) => setSelectedContent(contents.find((x) => x.id === v) || null)}
               >
-                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20">
                   <SelectValue placeholder="Identify content node..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-2">
@@ -293,7 +293,7 @@ export function ContentOutreachTab() {
                 Audience filter
               </Label>
               <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
-                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                <SelectTrigger className="h-10 rounded-xl border-2 font-bold bg-muted/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-2">
@@ -320,7 +320,7 @@ export function ContentOutreachTab() {
               </div>
               <Button
                 onClick={() => setIsShareOpen(true)}
-                className="h-14 px-8 rounded-2xl font-semibold uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30 group"
+                className="h-10 px-4 rounded-xl font-semibold uppercase text-[10px] tracking-widest shadow-sm group"
               >
                 <Share2 className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" /> Broad Distribution
               </Button>
@@ -407,7 +407,7 @@ export function ContentOutreachTab() {
                       </div>
                     </div>
                     <Button
-                      className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-2xl shadow-primary/30 group"
+                      className="w-full h-16 rounded-[20px] font-semibold text-[11px] shadow-sm group"
                       onClick={() => handleSocialShare(activeTab as any)}
                     >
                       <ExternalLink className="w-5 h-5 mr-3" /> Authorize Channel Sync
@@ -446,7 +446,7 @@ export function ContentOutreachTab() {
                     </div>
                     <Button
                       variant="outline"
-                      className="w-full h-14 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest"
+                      className="w-full h-10 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest"
                       onClick={() => recordShare(customChannel || "custom")}
                     >
                       <ShieldCheck className="w-4 h-4 mr-3" /> Commit Share Record

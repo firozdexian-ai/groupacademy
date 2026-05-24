@@ -254,7 +254,7 @@ export function LifetimeOverviewTab() {
               </div>
               <Button
                 variant="default"
-                className="w-full h-14 rounded-2xl justify-between shadow-lg font-semibold uppercase text-[10px] tracking-[0.2em] px-6"
+                className="w-full h-10 rounded-xl justify-between shadow-lg font-semibold uppercase text-[10px] tracking-[0.2em] px-6"
                 // F1: canonical learning-progress route
                 onClick={() => navigate("/dashboard?tab=learning-progress")}
               >

@@ -103,7 +103,7 @@ export function WorkforceManager() {
         totalAssigned: data?.reduce((s: number, m: any) => s + (m.assigned_count || 0), 0) || 0,
       });
     } catch (err: any) {
-      toast.error("Telemetry Fault: Registry Sync Failed");
+      toast.error("Failed to load");
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export function WorkforceManager() {
           </Button>
           <Button
             onClick={() => setShowAddDialog(true)}
-            className="h-14 px-8 rounded-2xl font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg bg-primary text-primary-foreground"
+            className="h-10 px-4 rounded-xl font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg bg-primary text-primary-foreground"
           >
             <Plus className="h-4 w-4" /> Deploy Member
           </Button>
@@ -202,11 +202,11 @@ export function WorkforceManager() {
               placeholder="SEARCH WORKFORCE REGISTRY..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/50"
+              className="h-10 rounded-xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/50"
             />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-full lg:w-[240px] h-14 rounded-2xl border-2 font-semibold uppercase text-[10px] bg-background">
+            <SelectTrigger className="w-full lg:w-[240px] h-10 rounded-xl border-2 font-semibold uppercase text-[10px] bg-background">
               <SelectValue placeholder="FILTER ROLE" />
             </SelectTrigger>
             <SelectContent>

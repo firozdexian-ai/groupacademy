@@ -171,7 +171,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
                 <Button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="w-full h-14 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-transform"
+                  className="w-full h-10 rounded-xl font-black uppercase italic tracking-tighter text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-transform"
                 >
                   {generating ? "Saving…" : "Generate"}
                 </Button>

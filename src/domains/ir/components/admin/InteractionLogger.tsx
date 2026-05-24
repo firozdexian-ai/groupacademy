@@ -144,7 +144,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
                     value={formData.interaction_type}
                     onValueChange={(v) => setFormData({ ...formData, interaction_type: v })}
                   >
-                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs bg-muted/20">
+                    <SelectTrigger className="h-10 rounded-xl border-2 font-bold uppercase text-xs bg-muted/20">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-2">
@@ -166,7 +166,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
                     Investor Sentiment
                   </Label>
                   <Select value={formData.sentiment} onValueChange={(v) => setFormData({ ...formData, sentiment: v })}>
-                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs bg-muted/20">
+                    <SelectTrigger className="h-10 rounded-xl border-2 font-bold uppercase text-xs bg-muted/20">
                       <SelectValue placeholder="NEUTRAL" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-2">
@@ -195,7 +195,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   placeholder="E.G. Q2 EQUITY ROUND INITIAL REVIEW..."
-                  className="h-14 rounded-2xl border-2 font-semibold uppercase italic text-sm tracking-widest bg-muted/10 focus-visible:border-primary/40 transition-colors"
+                  className="h-10 rounded-xl border-2 font-semibold uppercase italic text-sm tracking-widest bg-muted/10 focus-visible:border-primary/40 transition-colors"
                 />
               </div>
 

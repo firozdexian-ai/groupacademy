@@ -32,7 +32,7 @@ export function useInstitutionGraph() {
       queryClient.invalidateQueries({ queryKey: ["institution_types"] });
       toast.success("Saved");
     },
-    onError: (e: Error) => toast.error(`Registry Sync Failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`Failed to save: ${e.message}`),
   });
 
   const deleteType = useMutation({

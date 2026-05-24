@@ -81,7 +81,7 @@ export function IndustriesTab() {
       setIndustries(rollupData || []);
       setUnassignedCount(unassignedCountVal);
     } catch (err: any) {
-      toast.error("Registry Sync Failed: " + err.message);
+      toast.error("Failed to save: " + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -328,7 +328,7 @@ export function IndustriesTab() {
               <Button
                 onClick={executeRename}
                 disabled={isRenaming}
-                className="w-full h-14 rounded-2xl font-semibold uppercase text-[11px] tracking-widest gap-2 shadow-xl"
+                className="w-full h-10 rounded-xl font-semibold uppercase text-[11px] tracking-widest gap-2 shadow-xl"
               >
                 {isRenaming ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />} Commit
                 Change
@@ -365,7 +365,7 @@ export function IndustriesTab() {
               <Button
                 onClick={executeMerge}
                 disabled={isMerging}
-                className="w-full h-14 rounded-2xl font-semibold uppercase text-[11px] tracking-widest gap-2 shadow-xl"
+                className="w-full h-10 rounded-xl font-semibold uppercase text-[11px] tracking-widest gap-2 shadow-xl"
               >
                 {isMerging ? <Loader2 className="animate-spin h-4 w-4" /> : <Activity className="h-4 w-4" />} Execute
                 Fusion

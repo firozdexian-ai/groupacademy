@@ -203,7 +203,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
 
     setImportStats(stats);
     setIsImporting(false);
-    toast.success("Registry Sync Complete");
+    toast.success("Saved");
   };
 
   const handleClose = () => {
@@ -319,7 +319,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
                     <Button
                       onClick={handleImportSequence}
                       disabled={isImporting}
-                      className="h-14 px-10 rounded-2xl font-semibold text-[11px] shadow-2xl shadow-primary/30"
+                      className="h-10 px-4 rounded-xl font-semibold text-[11px] shadow-sm"
                     >
                       {isImporting ? (
                         <Loader2 className="mr-3 h-5 w-5 animate-spin" />

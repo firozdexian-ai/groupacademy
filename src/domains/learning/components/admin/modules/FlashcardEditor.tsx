@@ -117,7 +117,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
 
       updateRegistry(newCards);
       setActiveTab("visual");
-      toast.success(`Ingested ${newCards.length} Registry Artifacts`);
+      toast.success(`Imported ${newCards.length} cards`);
     } catch (err: any) {
       toast.error(err.message || "Invalid Logic Schema");
     }
@@ -150,7 +150,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
         <Button
           onClick={handleCommit}
           disabled={validCards.length === 0}
-          className="h-12 px-8 rounded-xl font-black text-[11px] shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+          className="h-12 px-8 rounded-xl font-black text-[11px] shadow-sm transition-all hover:scale-105 active:scale-95"
         >
           <ShieldCheck className="mr-2 h-4 w-4" /> Commit Registry
         </Button>
@@ -313,7 +313,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
               <Button
                 onClick={ingestPayload}
                 disabled={!jsonInput.trim()}
-                className="w-full h-14 rounded-2xl font-black text-[11px] shadow-xl shadow-primary/20"
+                className="w-full h-10 rounded-xl font-black text-[11px] shadow-xl shadow-primary/20"
               >
                 Upload
               </Button>

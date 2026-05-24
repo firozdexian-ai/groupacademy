@@ -113,11 +113,11 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
         try {
           data = await getJobById(jobId);
         } catch {
-          toast.error("Registry Ingestion Fault: Node not found.");
+          toast.error("Save failed: Record not found.");
           return;
         }
         if (!data) {
-          toast.error("Registry Ingestion Fault: Node not found.");
+          toast.error("Save failed: Record not found.");
           return;
         }
 
@@ -233,7 +233,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
       onOpenChange(false);
       onSaved?.();
     } catch (err: any) {
-      toast.error("Registry Persistence Fault: " + err.message);
+      toast.error("Save failed: " + err.message);
     } finally {
       setIsSaving(false);
     }
@@ -286,7 +286,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       value={form.title}
                       onChange={(e) => updateField("title", e.target.value)}
                       placeholder="E.G. LEAD FRONTEND ENGINEER"
-                      className="h-14 rounded-2xl border-2 font-bold"
+                      className="h-10 rounded-xl border-2 font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -296,7 +296,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     <Input
                       value={form.company_name}
                       onChange={(e) => updateField("company_name", e.target.value)}
-                      className="h-14 rounded-2xl border-2 font-bold"
+                      className="h-10 rounded-xl border-2 font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -307,7 +307,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       value={form.location}
                       onChange={(e) => updateField("location", e.target.value)}
                       placeholder="DHAKA, BANGLADESH"
-                      className="h-14 rounded-2xl border-2 font-bold"
+                      className="h-10 rounded-xl border-2 font-bold"
                     />
                   </div>
                 </div>
@@ -392,7 +392,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       type="number"
                       value={form.salary_range_min}
                       onChange={(e) => updateField("salary_range_min", e.target.value)}
-                      className="h-14 rounded-2xl border-2 font-bold"
+                      className="h-10 rounded-xl border-2 font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -403,13 +403,13 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       type="number"
                       value={form.salary_range_max}
                       onChange={(e) => updateField("salary_range_max", e.target.value)}
-                      className="h-14 rounded-2xl border-2 font-bold"
+                      className="h-10 rounded-xl border-2 font-bold"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-semibold uppercase text-primary italic ml-2">Currency Node</Label>
                     <Select value={form.salary_currency} onValueChange={(v) => updateField("salary_currency", v)}>
-                      <SelectTrigger className="h-14 rounded-2xl border-2 font-bold">
+                      <SelectTrigger className="h-10 rounded-xl border-2 font-bold">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-2">
@@ -463,7 +463,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     value={form.application_type}
                     onValueChange={(v) => updateField("application_type", v as any)}
                   >
-                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-[10px] bg-background">
+                    <SelectTrigger className="h-10 rounded-xl border-2 font-bold uppercase text-[10px] bg-background">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-2">
@@ -484,7 +484,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       type="email"
                       value={form.application_email}
                       onChange={(e) => updateField("application_email", e.target.value)}
-                      className="h-14 rounded-2xl border-2 font-bold bg-background"
+                      className="h-10 rounded-xl border-2 font-bold bg-background"
                     />
                   </div>
                 )}
@@ -497,7 +497,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                       type="url"
                       value={form.application_url}
                       onChange={(e) => updateField("application_url", e.target.value)}
-                      className="h-14 rounded-2xl border-2 font-bold bg-background"
+                      className="h-10 rounded-xl border-2 font-bold bg-background"
                     />
                   </div>
                 )}
@@ -511,7 +511,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     min="1"
                     value={form.vacancies}
                     onChange={(e) => updateField("vacancies", e.target.value)}
-                    className="h-14 rounded-2xl border-2 font-bold"
+                    className="h-10 rounded-xl border-2 font-bold"
                   />
                 </div>
                 <div className="space-y-2">
@@ -520,7 +520,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     type="date"
                     value={form.deadline}
                     onChange={(e) => updateField("deadline", e.target.value)}
-                    className="h-14 rounded-2xl border-2 font-bold"
+                    className="h-10 rounded-xl border-2 font-bold"
                   />
                 </div>
                 <div className="md:col-span-2 flex flex-wrap gap-8 pt-4 justify-end">
@@ -573,7 +573,7 @@ function SelectNode({ label, value, options, onChange }: any) {
     <div className="space-y-2">
       <Label className="text-[10px] font-semibold uppercase text-primary italic ml-2">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-[10px]">
+        <SelectTrigger className="h-10 rounded-xl border-2 font-bold uppercase text-[10px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="rounded-xl border-2">

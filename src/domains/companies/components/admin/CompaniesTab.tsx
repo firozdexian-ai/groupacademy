@@ -128,7 +128,7 @@ export function CompaniesTab() {
         setOutreachHistory(history);
       }
     } catch (err) {
-      toast.error("Registry synchronization failure");
+      toast.error("Save failed");
     } finally {
       setIsLoading(false);
     }
@@ -246,13 +246,13 @@ export function CompaniesTab() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
             <Input
               placeholder="Search by identity or identifier..."
-              className="pl-12 h-14 rounded-2xl border-2 bg-muted/5 font-bold"
+              className="pl-12 h-10 rounded-xl border-2 bg-muted/5 font-bold"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <Select value={industryFilter} onValueChange={setIndustryFilter}>
-            <SelectTrigger className="w-[240px] h-14 rounded-2xl border-2 font-semibold uppercase text-[10px] bg-muted/5">
+            <SelectTrigger className="w-[240px] h-10 rounded-xl border-2 font-semibold uppercase text-[10px] bg-muted/5">
               <SelectValue placeholder="Industry Filter" />
             </SelectTrigger>
             <SelectContent className="font-semibold text-[10px] uppercase">

@@ -393,7 +393,7 @@ export function ServiceOutreachTab() {
                         placeholder="e.g. UNIVERSITY_NEWSLETTER_Q2"
                         value={customChannel}
                         onChange={(e) => setCustomChannel(e.target.value)}
-                        className="h-14 rounded-2xl border-2 font-semibold uppercase text-xs tracking-widest"
+                        className="h-10 rounded-xl border-2 font-semibold uppercase text-xs tracking-widest"
                       />
                     </div>
                     <div className="space-y-3">
@@ -404,7 +404,7 @@ export function ServiceOutreachTab() {
                         <Input
                           readOnly
                           value={selectedService ? getShareLink(selectedService, customChannel || "custom") : ""}
-                          className="h-14 rounded-2xl border-2 font-mono text-[10px] bg-muted/30"
+                          className="h-10 rounded-xl border-2 font-mono text-[10px] bg-muted/30"
                         />
                         <Button
                           variant="outline"

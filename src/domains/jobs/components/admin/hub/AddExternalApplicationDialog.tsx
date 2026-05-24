@@ -198,7 +198,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                   <ShieldCheck className="h-3.5 w-3.5" /> Target Post Selection *
                 </Label>
                 <Select value={jobId} onValueChange={setJobId}>
-                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
+                  <SelectTrigger className="h-10 rounded-xl border-2 font-bold uppercase text-xs">
                     <SelectValue placeholder="SELECT TARGET INFRASTRUCTURE" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-2">
@@ -221,7 +221,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                       type="file"
                       accept=".pdf,.doc,.docx"
                       onChange={(e) => setCvFile(e.target.files?.[0] || null)}
-                      className="h-14 rounded-2xl border-2 border-dashed bg-muted/10 cursor-pointer file:hidden pr-12 font-bold"
+                      className="h-10 rounded-xl border-2 border-dashed bg-muted/10 cursor-pointer file:hidden pr-12 font-bold"
                     />
                     <Upload className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     {cvFile && (

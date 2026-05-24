@@ -74,7 +74,7 @@ export function ContactsTab() {
       setContacts(contactsRes.rows);
       setTotalCount(contactsRes.count);
     } catch (error) {
-      toast.error("Registry sync fault");
+      toast.error("Save failed");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ export function ContactsTab() {
     setSaving(true);
     try {
       await upsertContact(formData);
-      toast.success("Registry synchronized");
+      toast.success("Saved");
       setIsDialogOpen(false);
       loadData();
     } catch (err) {

@@ -77,7 +77,7 @@ export function JobsUploadTab() {
             setPrefill(undefined);
             setShowForm(true);
           }}
-          className="h-14 px-8 rounded-2xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg group"
+          className="h-10 px-4 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest gap-3 shadow-lg group"
         >
           <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" /> Add job manually
         </Button>

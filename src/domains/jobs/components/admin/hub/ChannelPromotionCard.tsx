@@ -101,7 +101,7 @@ export function ChannelPromotionCard({ job }: Props) {
         caption: captions[channel] || null,
       });
     } catch (error: any) {
-      return toast.error("Registry Fault: " + error.message);
+      return toast.error("Error: " + error.message);
     }
 
     setPosted((p) => new Set(p).add(channel));
