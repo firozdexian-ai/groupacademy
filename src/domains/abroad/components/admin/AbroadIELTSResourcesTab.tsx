@@ -13,210 +13,210 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export function AbroadIELTSResourcesTab() {
-  const {
-    abroadGraphQuery,
-    mutations: { upsertIeltsResource, deleteIeltsResource },
-  } = useAbroadGraph();
-  const { data, isLoading } = abroadGraphQuery;
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<any>({ status: "active", resource_type: "pdf" });
+ const {
+ abroadGraphQuery,
+ mutations: { upsertIeltsResource, deleteIeltsResource },
+ } = useAbroadGraph();
+ const { data, isLoading } = abroadGraphQuery;
+ const [open, setOpen] = useState(false);
+ const [draft, setDraft] = useState<any>({ status: "active", resource_type: "pdf" });
 
-  return (
-    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
-        <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-orange-500">
-            <BookOpen className="h-8 w-8 text-orange-500 fill-orange-500/20" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
-              IELTS Resources
-            </h2>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Language Prep Material Catalog
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setDraft({ status: "active", resource_type: "pdf" });
-            setOpen(true);
-          }}
-          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <Plus className="h-4 w-4" /> Add Resource
-        </Button>
-      </header>
+ return (
+ <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
+ <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
+ <div className="space-y-1 text-left">
+ <div className="flex items-center gap-3 text-orange-500">
+ <BookOpen className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+ <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
+ IELTS Resources
+ </h2>
+ </div>
+ <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/60 italic">
+ Language Prep Material Catalog
+ </p>
+ </div>
+ <Button
+ onClick={() => {
+ setDraft({ status: "active", resource_type: "pdf" });
+ setOpen(true);
+ }}
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 text-white"
+ >
+ <Plus className="h-4 w-4" /> Add Resource
+ </Button>
+ </header>
 
-      <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-        <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500" />
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/10 border-b border-border/20">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest py-5 pl-8">
-                    Resource Title
-                  </TableHead>
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Type</TableHead>
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
-                  <TableHead className="text-right py-5 pr-8">Manage</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-border/5">
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-20 text-center">
-                      <Skeleton className="h-8 w-32 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                ) : data?.ieltsResources?.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="py-20 text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground/50 italic"
-                    >
-                      Zero resources detected.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data?.ieltsResources?.map((row) => (
-                    <TableRow key={row.id} className="group hover:bg-orange-500/[0.02]">
-                      <TableCell className="py-6 pl-8">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
-                            <BookOpen className="h-3 w-3 text-orange-500" />
-                          </div>
-                          <span className="font-black text-sm uppercase italic tracking-tight">{row.title}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-[9px] border-2">
-                          {row.resource_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn(
-                            "font-bold text-[9px]  border-none px-3",
-                            row.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-amber-500/10 text-amber-600",
-                          )}
-                        >
-                          {row.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setDraft(row);
-                              setOpen(true);
-                            }}
-                            className="hover:bg-orange-500/10 hover:text-orange-600"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              if (confirm("Purge Resource?")) deleteIeltsResource.mutate(row.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+ <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+ <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500" />
+ <CardContent className="p-0">
+ <div className="overflow-x-auto">
+ <Table>
+ <TableHeader className="bg-muted/10 border-b border-border/20">
+ <TableRow className="hover:bg-transparent">
+ <TableHead className="font-medium text-xs py-5 pl-8">
+ Resource Title
+ </TableHead>
+ <TableHead className="font-medium text-xs">Type</TableHead>
+ <TableHead className="font-medium text-xs">Status</TableHead>
+ <TableHead className="text-right py-5 pr-8">Manage</TableHead>
+ </TableRow>
+ </TableHeader>
+ <TableBody className="divide-y divide-border/5">
+ {isLoading ? (
+ <TableRow>
+ <TableCell colSpan={4} className="py-20 text-center">
+ <Skeleton className="h-8 w-32 mx-auto" />
+ </TableCell>
+ </TableRow>
+ ) : data?.ieltsResources?.length === 0 ? (
+ <TableRow>
+ <TableCell
+ colSpan={4}
+ className="py-20 text-center font-medium text-xs text-muted-foreground/50 italic"
+ >
+ Zero resources detected.
+ </TableCell>
+ </TableRow>
+ ) : (
+ data?.ieltsResources?.map((row) => (
+ <TableRow key={row.id} className="group hover:bg-orange-500/[0.02]">
+ <TableCell className="py-6 pl-8">
+ <div className="flex items-center gap-3">
+ <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
+ <BookOpen className="h-3 w-3 text-orange-500" />
+ </div>
+ <span className="font-black text-sm font-medium">{row.title}</span>
+ </div>
+ </TableCell>
+ <TableCell>
+ <Badge variant="outline" className="font-mono text-[9px] border">
+ {row.resource_type}
+ </Badge>
+ </TableCell>
+ <TableCell>
+ <Badge
+ className={cn(
+ "font-bold text-[9px] border-none px-3",
+ row.status === "active"
+ ? "bg-emerald-500/10 text-emerald-600"
+ : "bg-amber-500/10 text-amber-600",
+ )}
+ >
+ {row.status}
+ </Badge>
+ </TableCell>
+ <TableCell className="text-right pr-8">
+ <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+ <Button
+ variant="ghost"
+ size="icon"
+ onClick={() => {
+ setDraft(row);
+ setOpen(true);
+ }}
+ className="hover:bg-orange-500/10 hover:text-orange-600"
+ >
+ <Pencil className="h-4 w-4" />
+ </Button>
+ <Button
+ variant="ghost"
+ size="icon"
+ className="text-destructive hover:bg-destructive/10"
+ onClick={() => {
+ if (confirm("Purge Resource?")) deleteIeltsResource.mutate(row.id);
+ }}
+ >
+ <Trash2 className="h-4 w-4" />
+ </Button>
+ </div>
+ </TableCell>
+ </TableRow>
+ ))
+ )}
+ </TableBody>
+ </Table>
+ </div>
+ </CardContent>
+ </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-orange-500 flex items-center gap-2">
-              <BookOpen className="h-6 w-6" /> Inject Resource
-            </DialogTitle>
-            <DialogDescription className="text-[10px] font-bold italic">
-              Update IELTS prep material catalog.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black text-primary ml-1">
-                Resource Title
-              </Label>
-              <Input
-                placeholder="e.g. Master Class Writing Task 2"
-                value={draft.title || ""}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="h-14 rounded-xl border-2 font-bold"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black text-primary ml-1">Asset Type</Label>
-                <Select value={draft.resource_type} onValueChange={(v) => setDraft({ ...draft, resource_type: v })}>
-                  <SelectTrigger className="h-14 rounded-xl border-2 font-bold text-xs uppercase">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf" className="font-bold text-xs">
-                      PDF
-                    </SelectItem>
-                    <SelectItem value="video" className="font-bold text-xs">
-                      Video
-                    </SelectItem>
-                    <SelectItem value="audio" className="font-bold text-xs">
-                      Audio
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black text-primary ml-1">
-                  Catalog Status
-                </Label>
-                <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
-                  <SelectTrigger className="h-14 rounded-xl border-2 font-bold text-xs uppercase">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active" className="font-bold text-xs text-emerald-500">
-                      Active
-                    </SelectItem>
-                    <SelectItem value="inactive" className="font-bold text-xs text-amber-500">
-                      Inactive
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <Button
-            disabled={!draft.title || upsertIeltsResource.isPending}
-            onClick={() => {
-              const payload = { ...draft, content_type: draft.resource_type, is_active: draft.status === "active" };
-              delete payload.resource_type;
-              delete payload.status;
-              upsertIeltsResource.mutate(payload, { onSuccess: () => setOpen(false) });
-            }}
-            className="h-14 rounded-xl font-black uppercase bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Resource
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+ <Dialog open={open} onOpenChange={setOpen}>
+ <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
+ <DialogHeader>
+ <DialogTitle className="text-2xl font-semibold text-orange-500 flex items-center gap-2">
+ <BookOpen className="h-6 w-6" /> Inject Resource
+ </DialogTitle>
+ <DialogDescription className="text-sm text-muted-foreground">
+ Update IELTS prep material catalog.
+ </DialogDescription>
+ </DialogHeader>
+ <div className="space-y-4 py-4">
+ <div className="space-y-2">
+ <Label className="text-[10px] font-black text-primary ml-1">
+ Resource Title
+ </Label>
+ <Input
+ placeholder="e.g. Master Class Writing Task 2"
+ value={draft.title || ""}
+ onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+ className="h-14 rounded-xl border font-bold"
+ />
+ </div>
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label className="text-[10px] font-black text-primary ml-1">Asset Type</Label>
+ <Select value={draft.resource_type} onValueChange={(v) => setDraft({ ...draft, resource_type: v })}>
+ <SelectTrigger className="h-14 rounded-xl border font-bold text-xs uppercase">
+ <SelectValue />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="pdf" className="font-bold text-xs">
+ PDF
+ </SelectItem>
+ <SelectItem value="video" className="font-bold text-xs">
+ Video
+ </SelectItem>
+ <SelectItem value="audio" className="font-bold text-xs">
+ Audio
+ </SelectItem>
+ </SelectContent>
+ </Select>
+ </div>
+ <div className="space-y-2">
+ <Label className="text-[10px] font-black text-primary ml-1">
+ Catalog Status
+ </Label>
+ <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+ <SelectTrigger className="h-14 rounded-xl border font-bold text-xs uppercase">
+ <SelectValue />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="active" className="font-bold text-xs text-emerald-500">
+ Active
+ </SelectItem>
+ <SelectItem value="inactive" className="font-bold text-xs text-amber-500">
+ Inactive
+ </SelectItem>
+ </SelectContent>
+ </Select>
+ </div>
+ </div>
+ </div>
+ <Button
+ disabled={!draft.title || upsertIeltsResource.isPending}
+ onClick={() => {
+ const payload = { ...draft, content_type: draft.resource_type, is_active: draft.status === "active" };
+ delete payload.resource_type;
+ delete payload.status;
+ upsertIeltsResource.mutate(payload, { onSuccess: () => setOpen(false) });
+ }}
+ className="h-14 rounded-xl font-medium bg-orange-500 hover:bg-orange-600 text-white"
+ >
+ <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Resource
+ </Button>
+ </DialogContent>
+ </Dialog>
+ </div>
+ );
 }
 
 export default AbroadIELTSResourcesTab;
