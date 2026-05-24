@@ -28,7 +28,7 @@ interface LeaderboardTab {
  * Hardened responsive page node isolating metadata handshakes and securing component mapping hooks from structural drift.
  * Version: Launch Candidate · Phase Z0 Lifecycle Integration Hardened
  */
-export default function PublicLeaderboard() {
+function PublicLeaderboardInner() {
   const { kind: unverifiedRouteKindParamStr } = useParams<{ kind: Kind }>();
 
   // Defensively isolate parameter lookups to protect data pipelines from undefined parameters
