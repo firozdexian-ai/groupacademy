@@ -39,3 +39,20 @@ With chrome unified across buttons (A11), cards/tables (A12), and modals (A13), 
 ## Why this phase
 
 A11–A13 normalized populated states; A14 finishes the visual language by unifying the "zero data" state. After A14, the admin shell has a single vocabulary across all four UI states (loading, empty, populated, error) — closing out the admin polish initiative and unblocking pure-cleanup work (JSDoc, identifier renames).
+
+---
+
+## A14 — Executed (pragmatic scope)
+
+After audit, most admin "empty" branches are short inline `TableCell` messages, not large hand-rolled panels — so the highest-value win was **copy normalization + EmptyState component overhaul**, not wholesale JSX replacement.
+
+- **`src/components/common/EmptyState.tsx`** rewritten: dropped `rounded-[24px] border-2 border-dashed`, `font-black uppercase italic tracking-tight`, `text-[10px] font-black uppercase tracking-widest` button, gradient + backdrop-blur, jargon JSDoc. Now: `rounded-2xl border border-dashed border-border/60 bg-muted/10`, `text-base font-semibold` title, `text-sm text-muted-foreground` description, standard `h-9 rounded-xl` button. Backward-compatible: still accepts `actionLabel`/`onActionClick` and legacy `action={{label,onClick}}`, plus new `action={ReactNode}`.
+- **Jargon copy sweep** across all admin `*.tsx`: 40+ variants of "Zero X detected/found/deployed/Inbox Zero Achieved" → plain "No X yet" / "All caught up" / "No results match this filter". Final audit: 0 "Zero …" strings in `src/domains/*/components/admin/`.
+- Residual uppercase/italic styling on those empty cells normalized to `text-sm text-muted-foreground`.
+
+Net effect: admin empty states share one voice and one component, matching A11–A13 chrome.
+
+**Suggested next phases:**
+- **JSDoc / identifier sweep**: drop `GroUp Academy:` / `CTO Reference:` / `Phase Z0` JSDoc headers, rename `handleImportProtocol` / `handleGenerateHandshake`. Pure cleanup, zero user impact.
+- **Talent app chrome audit**: verify A11–A14 chrome rules hold in `src/domains/*/components/talent/**` and `src/shells/talent/**`. Likely already clean but worth a baseline audit.
+- **Loading skeleton unification**: parallel A14 for the loading state — replace ad-hoc `<Skeleton>` columns with the shared `DashboardCardSkeleton` / `DashboardTableSkeleton` from A12.
