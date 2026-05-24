@@ -92,10 +92,10 @@ export function QuizResultsViewer() {
  (attempt: any): QuizAttempt => ({
  id: attempt.id,
  studentId: attempt.student_id,
- studentName: attempt.students?.full_name || "NULL_ENTITY",
+ studentName: attempt.students?.full_name || "Unknown student",
  studentEmail: attempt.students?.email || "N/A",
  contentId: attempt.content_id,
- contentTitle: attempt.content?.title || "UNCLASSED_NODE",
+ contentTitle: attempt.content?.title || "Untitled course",
  score: attempt.score || 0,
  totalQuestions: attempt.total_questions || 0,
  passed: attempt.passed || false,
@@ -290,7 +290,7 @@ export function QuizResultsViewer() {
  attempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
  )}
  >
- {attempt.passed ? "SUCCESS_SYNC" : "LOGIC_FAULT"}
+ {attempt.passed ? "PASSED" : "FAILED"}
  </Badge>
  </TableCell>
  <TableCell className="text-sm font-medium text-muted-foreground/40 italic text-left">
@@ -364,7 +364,7 @@ export function QuizResultsViewer() {
  selectedAttempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
  )}
  >
- {selectedAttempt.passed ? "AUTHORIZED" : "REJECTED"}
+ {selectedAttempt.passed ? "PASSED" : "FAILED"}
  </Badge>
  </div>
 

@@ -84,7 +84,7 @@ export function LearningProgressTab() {
  if (!statsMap.has(contentId)) {
  statsMap.set(contentId, {
  contentId,
- title: content?.title || "UNCLASSED_NODE",
+ title: content?.title || "Untitled course",
  totalEnrollments: 0,
  activeEnrollments: 0,
  completedEnrollments: 0,

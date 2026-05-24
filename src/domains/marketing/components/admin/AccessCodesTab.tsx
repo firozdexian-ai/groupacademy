@@ -60,7 +60,7 @@ export function AccessCodesTab() {
   };
 
   const handleInitializeKey = () => {
-    if (!selectedContentId) return toast.error("TARGET_NODE_REQUIRED");
+    if (!selectedContentId) return toast.error("Please pick a target course first.");
     const newHash = generateAlphanumericHash();
     upsertAccessCode.mutate(
       { code: newHash, content_id: selectedContentId, max_uses: maxUses, notes: notes || null },

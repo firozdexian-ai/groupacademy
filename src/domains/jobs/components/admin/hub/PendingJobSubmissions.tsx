@@ -129,17 +129,17 @@ export function PendingJobSubmissions() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge className="bg-primary/10 text-primary text-[8px] font-semibold border-none uppercase px-2 py-0">
-                        GIG_SYNC
+                        GIG
                       </Badge>
                       <p className="font-semibold text-sm uppercase italic tracking-tight truncate">
-                        {cd.title || ai.title || "NULL_ARTIFACT_TITLE"}
+                        {cd.title || ai.title || "Untitled job"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground italic">
                       <Users className="h-3 w-3" />
-                      <span className="truncate">{cd.company || ai.company_name || "UNKNOWN_CORP"}</span>
+                      <span className="truncate">{cd.company || ai.company_name || "Unknown company"}</span>
                       <span className="opacity-30">|</span>
-                      <span className="text-primary/70">BY: {sub.talents?.full_name || "ANONYMOUS_NODE"}</span>
+                      <span className="text-primary/70">BY: {sub.talents?.full_name || "Anonymous"}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

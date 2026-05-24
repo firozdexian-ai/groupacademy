@@ -120,8 +120,8 @@ export function GtmKnowledgeTab() {
  <div className="flex items-center gap-3">
  <FileText className="h-6 w-6 text-indigo-600" />
  <div>
- <DialogTitle>Content Deployment</DialogTitle>
- <DialogDescription>Inject country-scoped Markdown into the platform.</DialogDescription>
+ <DialogTitle>Publish content</DialogTitle>
+ <DialogDescription>Add country-scoped Markdown to the platform.</DialogDescription>
  </div>
  </div>
  </DialogHeader>

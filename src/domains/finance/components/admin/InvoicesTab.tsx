@@ -80,12 +80,12 @@ const STATUS_BADGE: Record<string, { label: string; className: string; icon: Rea
  icon: MessageCircle,
  },
  paid: {
- label: "TRANSACTION_SETTLED",
- className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
- icon: CheckCircle2,
- },
- cancelled: { label: "NODE_TERMINATED", className: "bg-muted text-muted-foreground", icon: XCircle },
- refunded: { label: "CAPITAL_REVERTED", className: "bg-muted text-muted-foreground", icon: XCircle },
+  label: "PAID",
+  className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  icon: CheckCircle2,
+  },
+  cancelled: { label: "CANCELLED", className: "bg-muted text-muted-foreground", icon: XCircle },
+  refunded: { label: "REFUNDED", className: "bg-muted text-muted-foreground", icon: XCircle },
 };
 
 export function InvoicesTab() {

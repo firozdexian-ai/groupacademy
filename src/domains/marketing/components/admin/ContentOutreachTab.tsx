@@ -516,7 +516,7 @@ export function ContentOutreachTab() {
  isPitched(talent.id) ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
  )}
  >
- {isPitched(talent.id) ? "SYNC'D PITCH" : "PENDING NODE"}
+ {isPitched(talent.id) ? "PITCHED" : "PENDING"}
  </Badge>
  {!isPitched(talent.id) && talent.phone && (
  <Button

@@ -140,7 +140,7 @@ export function TalentPoolTab() {
             </div>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
               <SelectTrigger className="w-full md:w-[240px] h-10 rounded-xl border-2 font-semibold uppercase text-[9px] tracking-widest bg-muted/10">
-                <SelectValue placeholder="GLOBAL SECTOR" />
+                <SelectValue placeholder="ALL MARKETS" />
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-2">
                 <SelectItem value="all" className="font-bold text-[10px]">
@@ -165,10 +165,10 @@ export function TalentPoolTab() {
             <Table>
               <TableHeader className="bg-muted/5">
                 <TableRow>
-                  <TableHead className="font-semibold uppercase text-[10px] py-6 pl-8">Talent Identity</TableHead>
-                  <TableHead className="font-semibold uppercase text-[10px]">Market</TableHead>
-                  <TableHead className="font-semibold uppercase text-[10px]">Registry</TableHead>
-                  <TableHead className="font-semibold uppercase text-[10px]">Engagement Pulse</TableHead>
+                  <TableHead className="font-semibold uppercase text-[10px] py-6 pl-8">Talent</TableHead>
+                  <TableHead className="font-semibold uppercase text-[10px]">Country</TableHead>
+                  <TableHead className="font-semibold uppercase text-[10px]">Status</TableHead>
+                  <TableHead className="font-semibold uppercase text-[10px]">Outreach</TableHead>
                   <TableHead className="text-right pr-8" />
                 </TableRow>
               </TableHeader>
@@ -199,7 +199,7 @@ export function TalentPoolTab() {
                             talent.user_id ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600",
                           )}
                         >
-                          {talent.user_id ? "REGISTERED" : "LEAD_NODE"}
+                          {talent.user_id ? "REGISTERED" : "LEAD"}
                         </Badge>
                       </TableCell>
                       <TableCell>

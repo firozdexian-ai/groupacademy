@@ -257,7 +257,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  </DialogDescription>
  </div>
  <Badge variant="outline" className="font-semibold text-[9px] border uppercase italic px-3 py-1">
- {jobId ? "NODE_EDIT_MODE" : "NODE_PROVISIONING"}
+ {jobId ? "EDIT MODE" : "NEW JOB"}
  </Badge>
  </div>
  </DialogHeader>
