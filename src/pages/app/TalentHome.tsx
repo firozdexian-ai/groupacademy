@@ -5,6 +5,7 @@ import {
  AlertTriangle,
  Award,
  Eye,
+ ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
