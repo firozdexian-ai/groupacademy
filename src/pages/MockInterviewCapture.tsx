@@ -110,7 +110,7 @@ export default function MockInterviewCapture() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-tight text-muted-foreground">Synchronizing Session</p>
+        <p className="text-[10px] font-black uppercase tracking-tight text-muted-foreground">Loading session</p>
       </div>
     );
 

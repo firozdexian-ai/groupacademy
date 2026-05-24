@@ -123,7 +123,7 @@ export default function Sessions() {
                 <CalendarIcon className="h-10 w-10 text-muted-foreground/30" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black tracking-tighter uppercase">Registry Empty</h3>
+                <h3 className="text-2xl font-black tracking-tighter uppercase">Nothing here yet</h3>
                 <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest max-w-[280px]">
                   No course sessions are currently logged in the central ledger.
                 </p>

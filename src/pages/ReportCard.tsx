@@ -178,7 +178,7 @@ export default function ReportCard() {
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Curriculum Hub
             </Button>
-            <h1 className="text-4xl font-black tracking-tighter">Academic Artifact</h1>
+            <h1 className="text-4xl font-black tracking-tighter">Report card</h1>
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-tight">
               {reportData?.content.title}
             </p>

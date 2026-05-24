@@ -133,7 +133,7 @@ export default function CompanyBrandedCatalog() {
       >
         <div className="flex items-center gap-2">
           <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-muted-foreground/80 animate-spin shrink-0" />
-          <span>Synchronizing Catalog Matrix...</span>
+          <span>Loading catalog.../span>
         </div>
       </div>
     );

@@ -104,7 +104,7 @@ export default function CompanyPublicProjects() {
       >
         <div className="flex items-center gap-2.5">
           <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-          <span>Syncing Portfolio Registry...</span>
+          <span>Loading projects.../span>
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ export default function CompanyPublicProjects() {
             <Building2 className="h-4 w-4 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Registry Fault</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Error</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
               The portfolio workspace container configuration could not be resolved from standard system nodes.
             </p>

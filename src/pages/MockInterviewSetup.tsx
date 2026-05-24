@@ -228,7 +228,7 @@ function MockInterviewSetupContent() {
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
                 <BriefcaseIcon className="w-6 h-6 text-primary" />
               </div>
-              <CardTitle className="text-2xl font-black tracking-tighter uppercase">JD Ingestion</CardTitle>
+              <CardTitle className="text-2xl font-black tracking-tighter uppercase">Job description</CardTitle>
               <CardDescription className="text-xs font-medium tracking-widest uppercase">
                 Paste the target Job Description to begin neural mapping
               </CardDescription>

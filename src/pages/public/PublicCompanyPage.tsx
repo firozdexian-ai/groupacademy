@@ -214,7 +214,7 @@ export default function PublicCompanyPage() {
             <Building2 className="h-5 w-5 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Registry Identity Missing</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Company not found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
               The targeted company mirror profile instance could not be tracked within verified system records.
             </p>

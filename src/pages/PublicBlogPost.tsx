@@ -160,7 +160,7 @@ export default function PublicBlogPost() {
             <div className="h-20 w-20 rounded-2xl bg-muted flex items-center justify-center mx-auto">
               <FileText className="h-10 w-10 text-muted-foreground/40" />
             </div>
-            <h2 className="text-2xl font-black tracking-tighter uppercase">Artifact Missing</h2>
+            <h2 className="text-2xl font-black tracking-tighter uppercase">Post not found</h2>
             <Button
               onClick={() => navigate("/blog")}
               className="rounded-xl font-black uppercase text-[10px] tracking-widest"
