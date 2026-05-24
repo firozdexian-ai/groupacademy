@@ -146,7 +146,7 @@ export function AccessCodesTab() {
               <Button
                 onClick={handleInitializeKey}
                 disabled={upsertAccessCode.isPending || !selectedContentId}
-                className="w-full h-10 rounded-xl font-semibold uppercase italic tracking-[0.2em] gap-3 bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="w-full h-10 rounded-xl font-semibold uppercase italic tracking-tight gap-3 bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 {upsertAccessCode.isPending ? (
                   <RefreshCw className="h-5 w-5 animate-spin" />

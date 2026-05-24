@@ -261,9 +261,9 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
           onClick={handleLogAndOpenClient}
           disabled={isDeploying || !subject.trim() || !body.trim() || !selectedInvestor?.email}
           className={cn(
-            "w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] text-[11px] gap-3 shadow-2xl transition-all",
+            "w-full h-16 rounded-xl text-sm font-medium gap-3 shadow-sm transition-all",
             isDeploying || !subject.trim() || !body.trim() || !selectedInvestor?.email
-              ? "bg-muted text-muted-foreground border-2 border-border/40 cursor-not-allowed"
+              ? "bg-muted text-muted-foreground border border-border/40 cursor-not-allowed"
               : "bg-gradient-to-r from-primary via-blue-600 to-primary hover:scale-[1.02] text-white shadow-primary/20",
           )}
         >

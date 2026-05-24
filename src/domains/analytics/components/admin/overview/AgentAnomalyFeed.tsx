@@ -148,7 +148,7 @@ export function AgentAnomalyFeed() {
         <div className="p-6 bg-muted/5 mt-auto border-t border-border/10">
           <Button
             onClick={() => navigate("/dashboard/chat")}
-            className="w-full h-12 rounded-xl justify-between font-black uppercase text-[10px] tracking-[0.2em] px-6 shadow-lg hover:shadow-primary/20 transition-all"
+            className="w-full h-12 rounded-xl justify-between font-black uppercase text-[10px] tracking-tight px-6 shadow-lg hover:shadow-primary/20 transition-all"
           >
             Enter Agent OS Chat <ArrowUpRight className="h-4 w-4" />
           </Button>

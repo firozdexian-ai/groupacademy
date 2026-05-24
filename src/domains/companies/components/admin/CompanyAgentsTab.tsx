@@ -663,7 +663,7 @@ export function CompanyAgentsManager() {
                 <Card
                   key={ca.id}
                   className={cn(
-                    "rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden transition-all duration-500 hover:border-primary/40 group",
+                    "rounded-2xl border border-border/40 bg-card overflow-hidden transition-all duration-500 hover:border-primary/40 group",
                     !ca.is_active && "opacity-60 grayscale-[0.5]",
                   )}
                 >
@@ -838,7 +838,7 @@ export function CompanyAgentsManager() {
                           </div>
                           <Badge
                             className={cn(
-                              "rounded-lg font-black text-[9px]  px-4 py-1.5 border-none",
+                              "rounded-lg font-black text-[9px] px-4 py-1.5 border-none",
                               lead.status === "new" ? "bg-primary text-white" : "bg-muted text-muted-foreground",
                             )}
                           >

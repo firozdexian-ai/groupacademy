@@ -215,7 +215,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
                 >
                   <div className="flex justify-between items-start mb-5">
                     <div className="space-y-1.5">
-                      <p className="text-[11px] font-semibold uppercase italic tracking-[0.2em] group-hover:text-primary transition-colors">
+                      <p className="text-[11px] font-semibold uppercase italic tracking-tight group-hover:text-primary transition-colors">
                         {service.label}
                       </p>
                       <p className="text-xs font-mono font-bold text-muted-foreground/70">

@@ -440,7 +440,7 @@ function KpiNode({ label, value, subtext, icon: Icon, color }: any) {
       <CardContent className="p-6 flex items-center gap-4">
         <div
           className={cn(
-            "p-3 rounded-2xl bg-muted/50 border-2 border-border/10 group-hover:rotate-6 transition-transform",
+            "p-3 rounded-2xl bg-muted/50 border border-border/40 group-hover:rotate-6 transition-transform",
             color,
           )}
         >

@@ -91,14 +91,14 @@ export function JobsKanbanPipelineTab() {
                 {/* Column Header */}
                 <div
                   className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border-2 backdrop-blur-md",
+                    "flex items-center justify-between p-4 rounded-2xl border-2 ",
                     stage.bg,
                     stage.border,
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <StageIcon className={cn("h-5 w-5", stage.color)} />
-                    <h3 className={cn("font-black  text-xs", stage.color)}>{stage.label}</h3>
+                    <h3 className={cn("font-black text-xs", stage.color)}>{stage.label}</h3>
                   </div>
                   <Badge className={cn("font-mono font-black", stage.color, stage.bg, "border-none")}>
                     {columnApps.length}

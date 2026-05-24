@@ -160,7 +160,7 @@ export function MRRTargetManager() {
                       <AlertDialogCancel className="h-14 rounded-xl border-2 font-semibold uppercase text-[10px] tracking-widest px-8">
                         Cancel
                       </AlertDialogCancel>
-                      <AlertDialogAction className="h-14 rounded-xl bg-destructive hover:bg-destructive/90 font-semibold uppercase text-[10px] tracking-[0.2em] px-10 shadow-lg shadow-destructive/20 gap-2">
+                      <AlertDialogAction className="h-14 rounded-xl bg-destructive hover:bg-destructive/90 font-semibold uppercase text-[10px] tracking-tight px-10 shadow-lg shadow-destructive/20 gap-2">
                         <Lock className="h-4 w-4" /> Confirm Termination
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -280,7 +280,7 @@ export function MRRTargetManager() {
           </div>
           <Badge
             className={cn(
-              "font-semibold px-4 py-2 border-2 text-[10px]  rounded-xl shrink-0",
+              "font-semibold px-4 py-2 border-2 text-[10px] rounded-xl shrink-0",
               totalMixPercent === 100
                 ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                 : "bg-amber-500/10 text-amber-600 border-amber-500/20",

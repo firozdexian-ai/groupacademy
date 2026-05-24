@@ -149,7 +149,7 @@ export function SupportAITab() {
               ) : (
                 <div
                   className={cn(
-                    "border-4 border-dashed rounded-[32px] p-12 text-center cursor-pointer transition-all duration-500 min-h-[300px] flex flex-col items-center justify-center",
+                    "border-4 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-500 min-h-[300px] flex flex-col items-center justify-center",
                     dragActive
                       ? "border-cyan-500 bg-cyan-500/5 scale-[0.98]"
                       : "border-border/40 hover:border-cyan-500/40 bg-muted/10 hover:bg-muted/20",
@@ -194,7 +194,7 @@ export function SupportAITab() {
               <Button
                 onClick={analyze}
                 disabled={!imagePreview || loading}
-                className="w-full h-16 rounded-xl font-semibold uppercase italic tracking-[0.2em] text-sm gap-3 shadow-xl bg-cyan-600 hover:bg-cyan-700 text-white transition-all"
+                className="w-full h-16 rounded-xl font-semibold uppercase italic tracking-tight text-sm gap-3 shadow-xl bg-cyan-600 hover:bg-cyan-700 text-white transition-all"
               >
                 {loading ? (
                   <>
@@ -246,7 +246,7 @@ export function SupportAITab() {
                     variant="outline"
                     onClick={copyReply}
                     className={cn(
-                      "h-12 px-6 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest italic shadow-md transition-all",
+                      "h-12 px-6 rounded-xl border-2 text-xs font-medium italic shadow-md transition-all",
                       copied
                         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                         : "hover:bg-cyan-500/10 hover:text-cyan-600 hover:border-cyan-500/30",

@@ -347,7 +347,7 @@ export function TalentCreditsTab() {
               <button
                 onClick={() => setSelectedTab("balances")}
                 className={cn(
-                  "px-6 py-2 rounded-xl text-[10px] font-black  transition-all",
+                  "px-6 py-2 rounded-xl text-[10px] font-black transition-all",
                   selectedTab === "balances"
                     ? "bg-blue-600 text-white shadow-lg"
                     : "hover:bg-muted/50 text-muted-foreground",
@@ -358,7 +358,7 @@ export function TalentCreditsTab() {
               <button
                 onClick={() => setSelectedTab("transactions")}
                 className={cn(
-                  "px-6 py-2 rounded-xl text-[10px] font-black  transition-all",
+                  "px-6 py-2 rounded-xl text-[10px] font-black transition-all",
                   selectedTab === "transactions"
                     ? "bg-blue-600 text-white shadow-lg"
                     : "hover:bg-muted/50 text-muted-foreground",
@@ -461,7 +461,7 @@ export function TalentCreditsTab() {
                           <TableCell className="text-left">
                             <Badge
                               className={cn(
-                                "rounded-lg font-black text-[8px]  px-3 py-1 border-none",
+                                "rounded-lg font-black text-[8px] px-3 py-1 border-none",
                                 tx.amount > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
                               )}
                             >
@@ -603,7 +603,7 @@ export function TalentCreditsTab() {
                 onClick={handleAdjustCredits}
                 disabled={isAdjusting || !adjustAmount}
                 className={cn(
-                  "h-10 px-4 rounded-xl font-black  text-[11px] shadow-2xl flex items-center gap-3 text-white",
+                  "h-10 px-4 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-3 text-white",
                   adjustDialog.type === "add"
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                     : "bg-destructive hover:bg-destructive/90 shadow-destructive/20",

@@ -195,7 +195,7 @@ export function StandaloneSalaryCodeGenerator() {
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary italic">
                       #{index + 1}
                     </div>
-                    <span className="font-mono text-lg font-semibold tracking-[0.2em]">{code}</span>
+                    <span className="font-mono text-lg font-semibold tracking-tight">{code}</span>
                   </div>
                   <Button
                     variant="ghost"

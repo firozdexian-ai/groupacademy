@@ -465,7 +465,7 @@ export function LeadHunterManager() {
                 <Button
                   variant={huntMode === "select" ? "default" : "outline"}
                   className={cn(
-                    "h-20 rounded-[24px] border-2 flex flex-col gap-2 font-black uppercase text-[10px] tracking-widest",
+                    "h-20 rounded-xl border-2 flex flex-col gap-2 text-xs font-medium",
                     huntMode === "select"
                       ? "shadow-xl bg-primary text-white border-primary"
                       : "opacity-40 hover:opacity-100",
@@ -477,7 +477,7 @@ export function LeadHunterManager() {
                 <Button
                   variant={huntMode === "paste" ? "default" : "outline"}
                   className={cn(
-                    "h-20 rounded-[24px] border-2 flex flex-col gap-2 font-black uppercase text-[10px] tracking-widest",
+                    "h-20 rounded-xl border-2 flex flex-col gap-2 text-xs font-medium",
                     huntMode === "paste"
                       ? "shadow-xl bg-primary text-white border-primary"
                       : "opacity-40 hover:opacity-100",

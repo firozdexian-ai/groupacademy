@@ -233,7 +233,7 @@ export function WithdrawalsTab() {
                         size="sm"
                         onClick={() => processWithdrawal(r.id, "paid")}
                         disabled={processingId === r.id}
-                        className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-emerald-500/20"
+                        className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold uppercase text-[10px] tracking-tight shadow-lg shadow-emerald-500/20"
                       >
                         {processingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Execute Fiat Payout"}{" "}
                         <ArrowUpRight className="h-4 w-4 ml-2" />

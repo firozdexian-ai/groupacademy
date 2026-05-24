@@ -53,10 +53,10 @@ export function PipelineCard({ investor, index, onSelect }: Props) {
           {...provided.dragHandleProps}
           onClick={() => onSelect?.(investor)}
           className={cn(
-            "group rounded-[24px] border-2 bg-card p-4 shadow-sm transition-all cursor-grab active:cursor-grabbing",
+            "group rounded-xl border-2 bg-card p-4 shadow-sm transition-all cursor-grab active:cursor-grabbing",
             "hover:border-primary/40 hover:shadow-md",
             snapshot.isDragging
-              ? "rotate-2 shadow-2xl border-primary bg-background scale-105 z-50"
+              ? "rotate-2 shadow-sm border-primary bg-background scale-105 z-50"
               : "border-border/20",
           )}
         >
@@ -81,7 +81,7 @@ export function PipelineCard({ investor, index, onSelect }: Props) {
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span
               className={cn(
-                "flex items-center gap-1 text-[8px] font-black  px-2 py-0.5 rounded-md border",
+                "flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-md border",
                 lead.className,
               )}
             >

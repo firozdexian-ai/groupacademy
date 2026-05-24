@@ -430,7 +430,7 @@ export function JobsApplicationsTab() {
                     <TableRow>
                       <TableCell
                         colSpan={7}
-                        className="text-center py-20 font-semibold uppercase text-xs tracking-[0.2em] opacity-30"
+                        className="text-center py-20 font-semibold uppercase text-xs tracking-tight opacity-30"
                       >
                         Zero nodes detected in current filter range
                       </TableCell>

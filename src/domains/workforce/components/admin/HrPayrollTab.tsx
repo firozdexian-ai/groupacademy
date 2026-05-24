@@ -159,7 +159,7 @@ export function HrPayrollTab() {
           <Button
             variant="outline"
             onClick={exportToCSV}
-            className="h-12 px-6 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+            className="h-12 px-6 rounded-xl border-2 text-xs font-medium gap-2"
           >
             <FileSpreadsheet className="h-4 w-4" /> Export CSV
           </Button>
@@ -168,7 +168,7 @@ export function HrPayrollTab() {
               setDraft({ status: "draft", currency: "USD", base_amount: 0, incentive_amount: 0 });
               setOpen(true);
             }}
-            className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+            className="h-12 px-8 rounded-xl text-xs font-medium gap-2 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none"
           >
             <Plus className="h-4 w-4" /> New Entry
           </Button>
@@ -379,7 +379,7 @@ function KpiTile({ icon: Icon, label, value, accent }: any) {
     <Card className="rounded-2xl border border-border/60 bg-card p-6 flex items-center gap-5">
       <div
         className={cn(
-          "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-border/10 shadow-inner bg-background",
+          "h-14 w-14 rounded-2xl flex items-center justify-center border border-border/40 shadow-inner bg-background",
         )}
       >
         <Icon className={cn("h-7 w-7", accentText)} />

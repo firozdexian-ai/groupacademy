@@ -377,7 +377,7 @@ export function QuizResultsViewer() {
                       <Card
                         key={index}
                         className={cn(
-                          "rounded-[24px] border-2 bg-muted/5 overflow-hidden",
+                          "rounded-xl border-2 bg-muted/5 overflow-hidden",
                           answer.isCorrect ? "border-emerald-500/20" : "border-destructive/20",
                         )}
                       >

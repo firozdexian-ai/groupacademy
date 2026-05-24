@@ -283,7 +283,7 @@ export function PaymentInfraTab() {
         <div className="space-y-8">
           <Card
             className={cn(
-              "rounded-[40px] border-2 border-border/40 shadow-xl overflow-hidden bg-card/30 backdrop-blur-md transition-opacity duration-500",
+              "rounded-2xl border border-border/40 shadow-xl overflow-hidden bg-card transition-opacity duration-500",
               !stripeUsed && "opacity-40 grayscale pointer-events-none",
             )}
           >
