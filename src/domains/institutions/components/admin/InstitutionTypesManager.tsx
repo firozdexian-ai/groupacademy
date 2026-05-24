@@ -89,7 +89,7 @@ export function InstitutionTypesManager() {
  <div className="flex items-center gap-2">
  <Button
  variant="outline"
- size="icon" aria-label="Refresh"
+ size="icon"
  onClick={() => typesQuery.refetch()}
  disabled={typesQuery.isRefetching}
  className="h-12 w-12 rounded-xl border bg-background/50 hover:bg-primary/5 shrink-0 shadow-sm"
@@ -165,7 +165,7 @@ export function InstitutionTypesManager() {
  <div className="flex items-center justify-end gap-1">
  <Button
  variant="ghost"
- size="icon" aria-label="Edit"
+ size="icon"
  onClick={() => handleOpenDialog(type)}
  className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
  aria-label="Edit"
@@ -174,7 +174,7 @@ export function InstitutionTypesManager() {
  </Button>
  <Button
  variant="ghost"
- size="icon" aria-label="Delete"
+ size="icon"
  onClick={() => handleDelete(type.id)}
  className="h-9 w-9 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
  aria-label="Delete"

@@ -192,7 +192,7 @@ export function GigForYouTab() {
                 {/* Dismiss Vector Control Anchor */}
                 <Button
                   variant="ghost"
-                  size="icon" aria-label="Close"
+                  size="icon"
                   type="button"
                   disabled={dismiss.isPending}
                   className="h-7 w-7 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer active:scale-90 transition-all select-none"

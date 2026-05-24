@@ -253,7 +253,7 @@ export default function JobAssessmentResults() {
  <div className="flex items-center gap-5">
  <Button
  variant="ghost"
- size="icon" aria-label="Go back"
+ size="icon"
  className="rounded-xl h-11 w-11 hover:bg-primary/5"
  onClick={() => navigate("/app/applications")}
  aria-label="Back to applications"

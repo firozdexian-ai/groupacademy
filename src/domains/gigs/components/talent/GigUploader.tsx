@@ -284,7 +284,7 @@ export function GigUploader({
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon" aria-label="Close"
+                  size="icon"
                   className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer active:scale-90 transition-all"
                   onClick={(e) => {
                     e.preventDefault();
