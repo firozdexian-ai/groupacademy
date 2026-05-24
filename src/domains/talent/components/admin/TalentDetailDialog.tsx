@@ -99,7 +99,7 @@ export const TalentDetailDialog = ({
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+              <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground/60 italic">
                 <span className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5 text-primary" />
                   LOGGED: {displayTalent.created_at ? new Date(displayTalent.created_at).toLocaleDateString() : "N/A"}
@@ -240,7 +240,7 @@ export const TalentDetailDialog = ({
             <TabsContent value="cv" className="animate-in slide-in-from-right-10 duration-500 text-left">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-[0.2em] text-primary italic">
+                  <h3 className="font-black text-xs text-primary italic">
                     AI_PARSED_TELEMETRY
                   </h3>
                   {displayTalent.cv_text && (

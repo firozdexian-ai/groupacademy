@@ -179,7 +179,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
                   <p className="text-sm font-medium italic text-muted-foreground/80">
                     Authorize retake protocol for this user identifier.
                   </p>
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">
+                  <p className="text-[9px] font-black text-primary/40">
                     Temporal Span: 720 Hours
                   </p>
                 </div>

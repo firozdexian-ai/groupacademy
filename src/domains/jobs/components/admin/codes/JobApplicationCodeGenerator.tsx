@@ -124,7 +124,7 @@ export function JobApplicationCodeGenerator() {
             <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">
               Credential Synthesis
             </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+            <CardDescription className="text-[10px] font-bold text-muted-foreground/60 italic">
               Generate up to 20 access codes
             </CardDescription>
           </div>
@@ -163,7 +163,7 @@ export function JobApplicationCodeGenerator() {
         <Button
           onClick={handleExecuteSynthesis}
           disabled={isGenerating}
-          className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          className="w-full h-16 rounded-[20px] font-black text-[11px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
         >
           {isGenerating ? (
             <>

@@ -280,7 +280,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
                 <Button
                   onClick={handleImportProtocol}
                   disabled={importing || !selectedIndices.size}
-                  className="flex-1 h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                  className="flex-1 h-14 rounded-2xl font-black text-[11px] shadow-2xl shadow-primary/30"
                 >
                   {importing ? <Loader2 className="animate-spin h-5 w-5" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
                   Authorize Ingestion Sequence

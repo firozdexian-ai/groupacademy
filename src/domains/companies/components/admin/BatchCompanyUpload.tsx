@@ -319,7 +319,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
                     <Button
                       onClick={handleImportSequence}
                       disabled={isImporting}
-                      className="h-14 px-10 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                      className="h-14 px-10 rounded-2xl font-black text-[11px] shadow-2xl shadow-primary/30"
                     >
                       {isImporting ? (
                         <Loader2 className="mr-3 h-5 w-5 animate-spin" />

@@ -41,7 +41,7 @@ function MetricTile({ label, value, delta, suffix = "", invert = false }: any) {
     <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-xl overflow-hidden hover:border-primary/30 transition-colors">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic w-2/3 leading-tight">
+          <p className="text-[10px] font-black text-muted-foreground italic w-2/3 leading-tight">
             {label}
           </p>
           <DeltaBadge value={delta} invert={invert} />

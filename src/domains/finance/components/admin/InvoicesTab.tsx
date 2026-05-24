@@ -314,7 +314,7 @@ export function InvoicesTab() {
                     <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
                       <Zap className="h-8 w-8 text-fuchsia-500 fill-fuchsia-500/20" /> {selected.invoice_number}
                     </DialogTitle>
-                    <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
+                    <DialogDescription className="text-[10px] font-bold mt-1">
                       Transaction Audit Protocol Active
                     </DialogDescription>
                   </div>

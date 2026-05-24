@@ -174,7 +174,7 @@ export function WithdrawalsTab() {
 
                   <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
                     <div className="space-y-1 flex-1">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                      <p className="text-[9px] font-black text-muted-foreground/60 italic">
                         Requested Capital
                       </p>
                       <p className="text-2xl font-black italic tracking-tighter text-foreground leading-none">
@@ -182,7 +182,7 @@ export function WithdrawalsTab() {
                       </p>
                     </div>
                     <div className="space-y-1 flex-1 border-l border-border/50 pl-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                      <p className="text-[9px] font-black text-muted-foreground/60 italic">
                         Routing
                       </p>
                       <p className="text-sm font-bold truncate">{r.method}</p>
@@ -243,7 +243,7 @@ export function WithdrawalsTab() {
 
                   {r.admin_notes && (
                     <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-1">
+                      <p className="text-[9px] font-black text-muted-foreground/60 italic mb-1">
                         Audit Trail
                       </p>
                       <p className="text-xs text-foreground/80">{r.admin_notes}</p>

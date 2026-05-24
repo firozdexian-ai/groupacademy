@@ -152,7 +152,7 @@ export function MRRTargetManager() {
                       <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-destructive leading-none">
                         Terminate Period?
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/80 mt-2">
+                      <AlertDialogDescription className="text-[10px] font-bold italic text-muted-foreground/80 mt-2">
                         This will finalize actual revenue nodes and lock the registry for this month.
                       </AlertDialogDescription>
                     </AlertDialogHeader>

@@ -603,7 +603,7 @@ export function TalentCreditsTab() {
                 onClick={handleAdjustCredits}
                 disabled={isAdjusting || !adjustAmount}
                 className={cn(
-                  "h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl flex items-center gap-3 text-white",
+                  "h-14 px-12 rounded-2xl font-black  text-[11px] shadow-2xl flex items-center gap-3 text-white",
                   adjustDialog.type === "add"
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                     : "bg-destructive hover:bg-destructive/90 shadow-destructive/20",

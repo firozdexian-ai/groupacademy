@@ -300,7 +300,7 @@ function MetricTile({ label, value, icon: Icon, color, bg }: any) {
           <Icon className="h-6 w-6" />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic">{label}</p>
+          <p className="text-[10px] font-black text-muted-foreground italic">{label}</p>
           <p className="text-3xl font-black italic tracking-tighter text-foreground">{value}</p>
         </div>
       </div>

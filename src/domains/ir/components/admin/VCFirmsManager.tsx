@@ -536,7 +536,7 @@ export function VCFirmsManager() {
                 <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-destructive leading-none">
                   Terminate Node
                 </DialogTitle>
-                <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/80">
+                <DialogDescription className="text-[10px] font-bold italic text-muted-foreground/80">
                   This will permanently purge the institutional identity from the registry.
                 </DialogDescription>
               </div>

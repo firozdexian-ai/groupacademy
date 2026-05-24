@@ -194,7 +194,7 @@ export function PeriodOverviewTab({ mode }: { mode: PeriodMode }) {
               <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full blur-3xl opacity-10 group-hover:opacity-20 bg-gradient-to-br from-primary to-blue-600" />
               <CardHeader className="p-6 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                  <CardTitle className="text-[10px] font-black text-muted-foreground/60 italic">
                     {r.label}
                   </CardTitle>
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center border-2 shadow-inner border-primary/20 text-primary bg-gradient-to-br from-primary/20 to-blue-600/20">

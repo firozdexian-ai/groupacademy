@@ -248,7 +248,7 @@ export function JobsAssessmentLeadsTab() {
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="text-center py-32 text-muted-foreground/40 italic uppercase tracking-[0.2em] font-black"
+                      className="text-center py-32 text-muted-foreground/40 italic font-black"
                     >
                       No entities detected in current logic path.
                     </TableCell>
@@ -285,7 +285,7 @@ export function JobsAssessmentLeadsTab() {
                       <TableCell>
                         <Badge
                           className={cn(
-                            "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] border-2 px-3 py-1 shadow-inner",
+                            "rounded-lg font-black text-[8px]  border-2 px-3 py-1 shadow-inner",
                             readinessColors[lead.readiness_level],
                           )}
                         >

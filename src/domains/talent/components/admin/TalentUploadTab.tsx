@@ -71,7 +71,7 @@ export function TalentUploadTab() {
           </Card>
 
           <Card className="rounded-[32px] border-2 border-border/40 bg-muted/5 p-6">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-3">
+            <p className="text-[9px] font-black text-muted-foreground/60 italic mb-3">
               Ingestion Telemetry
             </p>
             <div className="space-y-2">

@@ -408,7 +408,7 @@ export function InvestorsManager() {
                   <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none text-foreground">
                     Identity Deployment
                   </DialogTitle>
-                  <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/60">
+                  <DialogDescription className="text-[10px] font-bold italic text-muted-foreground/60">
                     Update investor details
                   </DialogDescription>
                 </div>
@@ -560,7 +560,7 @@ export function InvestorsManager() {
                 <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-destructive">
                   Terminate Node
                 </DialogTitle>
-                <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic text-muted-foreground/60">
+                <DialogDescription className="text-[10px] font-bold italic text-muted-foreground/60">
                   This cycle cannot be reverted.
                 </DialogDescription>
               </div>

@@ -145,7 +145,7 @@ export function ReportsBuilderTab() {
                   {spec.title}
                 </CardTitle>
                 {spec.period?.from && (
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mt-1">
+                  <p className="text-[10px] font-black text-muted-foreground/60 italic mt-1">
                     Telemetry: {new Date(spec.period.from).toLocaleDateString()} —{" "}
                     {new Date(spec.period.to ?? "").toLocaleDateString()}
                   </p>
@@ -169,7 +169,7 @@ function SectionRender({ section, payload }: { section: Section; payload: any })
   if (section.kind === "note") {
     return (
       <div className="p-6 rounded-[24px] bg-muted/30 border border-border/30">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-2">
+        <p className="text-[10px] font-black text-muted-foreground/60 italic mb-2">
           {section.title}
         </p>
         <p className="text-sm text-foreground/80 leading-relaxed">{section.note}</p>
@@ -183,7 +183,7 @@ function SectionRender({ section, payload }: { section: Section; payload: any })
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
           <FileBarChart className="h-12 w-12 text-primary" />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+        <p className="text-[10px] font-black text-muted-foreground/60 italic">
           {section.title}
         </p>
         <p className="text-6xl font-black italic tracking-tighter text-primary mt-4 leading-none">
@@ -200,7 +200,7 @@ function SectionRender({ section, payload }: { section: Section; payload: any })
 
   return (
     <div className="p-6 rounded-[32px] border-2 border-border/40 bg-card/50">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-6">
+      <p className="text-[10px] font-black text-muted-foreground/60 italic mb-6">
         {section.title}
       </p>
       <div className="h-80">

@@ -421,7 +421,7 @@ export function BatchTalentUpload({ onComplete, singleMode }: BatchTalentUploadP
             <Button
               onClick={uploadUrlsAndProcess}
               disabled={isUploading || !urlsInput.trim()}
-              className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+              className="w-full h-16 rounded-[20px] font-black text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-3">
                 {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload className="h-5 w-5" />}

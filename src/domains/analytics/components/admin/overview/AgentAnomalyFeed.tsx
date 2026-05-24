@@ -89,7 +89,7 @@ export function AgentAnomalyFeed() {
         <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
           <Bot className="h-5 w-5 text-primary" /> Agent Anomaly Feed
         </CardTitle>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+        <p className="text-[10px] font-black text-muted-foreground/60 italic">
           Triaging automated interventions
         </p>
       </CardHeader>

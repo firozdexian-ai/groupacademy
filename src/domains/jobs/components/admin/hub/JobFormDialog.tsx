@@ -275,7 +275,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
               <section className="space-y-6">
                 <div className="flex items-center gap-2 mb-4 border-b border-border/10 pb-2">
                   <ShieldCheck className="h-4 w-4 text-primary" />
-                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] italic">Core Identity</h4>
+                  <h4 className="text-[11px] font-black italic">Core Identity</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 md:col-span-2">
@@ -360,7 +360,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
               <section className="space-y-6">
                 <div className="flex items-center gap-2 mb-4 border-b border-border/10 pb-2">
                   <Zap className="h-4 w-4 text-primary" />
-                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] italic">Technical Specs</h4>
+                  <h4 className="text-[11px] font-black italic">Technical Specs</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <SelectNode

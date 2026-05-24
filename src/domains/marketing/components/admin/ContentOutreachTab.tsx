@@ -407,7 +407,7 @@ export function ContentOutreachTab() {
                       </div>
                     </div>
                     <Button
-                      className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 group"
+                      className="w-full h-16 rounded-[20px] font-black text-[11px] shadow-2xl shadow-primary/30 group"
                       onClick={() => handleSocialShare(activeTab as any)}
                     >
                       <ExternalLink className="w-5 h-5 mr-3" /> Authorize Channel Sync

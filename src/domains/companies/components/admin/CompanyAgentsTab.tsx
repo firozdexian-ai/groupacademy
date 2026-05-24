@@ -564,7 +564,7 @@ export function CompanyAgentsManager() {
                 <Button
                   onClick={() => createAgentMutation.mutate({ ...formData, company_id: selectedCompany })}
                   disabled={createAgentMutation.isPending || !selectedCompany || !formData.name.trim()}
-                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                  className="h-14 px-12 rounded-2xl font-black text-[11px] shadow-2xl shadow-primary/30"
                 >
                   {createAgentMutation.isPending ? (
                     <Loader2 className="animate-spin mr-2" />

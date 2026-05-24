@@ -213,7 +213,7 @@ export function MessagingChannelsTab({
             </div>
 
             <div className="border-t border-border/20 pt-6 space-y-3 mt-auto">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic flex items-center gap-2">
+              <Label className="text-[10px] font-black text-muted-foreground italic flex items-center gap-2">
                 <QrCode className="h-3 w-3" /> Already scanned? Paste account ID
               </Label>
               <p className="text-xs text-muted-foreground">

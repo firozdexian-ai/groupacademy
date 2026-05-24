@@ -68,7 +68,7 @@ export default function CoursePerformanceDashboard({ contentId, contentTitle }: 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <h2 className="text-xs font-black text-muted-foreground">
           Performance overview
         </h2>
         <Button
@@ -91,7 +91,7 @@ export default function CoursePerformanceDashboard({ contentId, contentTitle }: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="rounded-3xl border-border/40">
           <CardHeader className="bg-muted/30 border-b border-border/20 pb-3">
-            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+            <CardTitle className="text-xs font-black flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" /> Enrollment funnel
             </CardTitle>
           </CardHeader>
@@ -102,7 +102,7 @@ export default function CoursePerformanceDashboard({ contentId, contentTitle }: 
 
         <Card className="rounded-3xl border-border/40">
           <CardHeader className="bg-muted/30 border-b border-border/20 pb-3">
-            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+            <CardTitle className="text-xs font-black flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" /> Recent activity
             </CardTitle>
           </CardHeader>
@@ -114,7 +114,7 @@ export default function CoursePerformanceDashboard({ contentId, contentTitle }: 
 
       <Card className="rounded-3xl border-border/40">
         <CardHeader className="bg-muted/30 border-b border-border/20 pb-3">
-          <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+          <CardTitle className="text-xs font-black flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" /> Per-module drop-off
           </CardTitle>
         </CardHeader>
@@ -125,7 +125,7 @@ export default function CoursePerformanceDashboard({ contentId, contentTitle }: 
 
       <Card className="rounded-3xl border-border/40">
         <CardHeader className="bg-muted/30 border-b border-border/20 pb-3">
-          <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+          <CardTitle className="text-xs font-black flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" /> AI pool health
           </CardTitle>
         </CardHeader>

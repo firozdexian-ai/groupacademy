@@ -142,7 +142,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
           </div>
           <div>
             <h3 className="text-xl font-black uppercase tracking-tighter italic leading-none">Knowledge Ingestion</h3>
-            <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em] mt-1 italic">
+            <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 italic">
               Registry Depth: {cards.length} Logic Artifacts
             </p>
           </div>
@@ -313,7 +313,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
               <Button
                 onClick={ingestPayload}
                 disabled={!jsonInput.trim()}
-                className="w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20"
+                className="w-full h-14 rounded-2xl font-black text-[11px] shadow-xl shadow-primary/20"
               >
                 Upload
               </Button>

@@ -230,7 +230,7 @@ function MetricTile({ label, value, icon: Icon, color, bg }: any) {
           <Icon className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic mb-1 truncate">
+          <p className="text-[10px] font-black text-muted-foreground italic mb-1 truncate">
             {label}
           </p>
           <p className="text-4xl font-black italic tracking-tighter leading-none text-foreground/90">

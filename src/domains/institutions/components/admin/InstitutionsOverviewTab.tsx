@@ -97,7 +97,7 @@ function MetricTile({ title, value, icon: Icon, hint, color, bg }: any) {
   return (
     <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-xl overflow-hidden hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 group">
       <CardHeader className="flex flex-row items-center justify-between pb-2 p-6">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic group-hover:text-foreground transition-colors">
+        <p className="text-[10px] font-black text-muted-foreground italic group-hover:text-foreground transition-colors">
           {title}
         </p>
         <div

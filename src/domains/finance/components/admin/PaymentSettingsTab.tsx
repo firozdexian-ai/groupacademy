@@ -168,7 +168,7 @@ export function PaymentInfraTab() {
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="h-14 px-10 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
+          className="h-14 px-10 rounded-2xl font-black text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
         >
           {saveMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -115,7 +115,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
                     <ShieldCheck className="h-8 w-8 text-primary shrink-0" />
                     <span className="truncate">{investor.full_name}</span>
                   </SheetTitle>
-                  <SheetDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic truncate">
+                  <SheetDescription className="text-[10px] font-bold text-muted-foreground/60 italic truncate">
                     {investor.title ? `${investor.title.toUpperCase()} @ ` : ""}
                     <span className="text-primary">{investor.vc_firm?.name?.toUpperCase() || "INDEPENDENT_NODE"}</span>
                   </SheetDescription>
