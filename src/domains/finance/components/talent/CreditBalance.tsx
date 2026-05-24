@@ -99,7 +99,7 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
           <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 group transition-all hover:border-emerald-500/30">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600/80">Earned_Assets</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600/80">Earned</span>
             </div>
             <span className="font-black italic tabular-nums text-emerald-500 text-sm">
               {ledgerMetrics.earnedBalance}
@@ -109,7 +109,7 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
           <div className="flex items-center justify-between p-3 rounded-xl bg-sky-500/5 border border-sky-500/10 group transition-all hover:border-sky-500/30">
             <div className="flex items-center gap-2">
               <Zap className="h-3.5 w-3.5 text-sky-500 fill-current shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-sky-600/80">Grant_Ingress</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-sky-600/80">Free credits</span>
             </div>
             <span className="font-black italic tabular-nums text-sky-500 text-sm">{ledgerMetrics.freeBalance}</span>
           </div>

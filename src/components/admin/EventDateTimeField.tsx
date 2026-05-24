@@ -119,7 +119,7 @@ export function EventDateTimeField({
             </span>
           </div>
           <div className="flex justify-between items-center px-0.5 border-t pt-1 border-border/10">
-            <span className="font-semibold uppercase tracking-wide">🌐 Universal Ledger Ingress (UTC):</span>
+            <span className="font-semibold uppercase tracking-wide">🌐 Stored time (UTC):</span>
             <span className="font-bold text-primary">{formatEventTime(utcValue, "UTC")}</span>
           </div>
         </div>

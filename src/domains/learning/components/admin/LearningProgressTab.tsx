@@ -172,10 +172,10 @@ export function LearningProgressTab() {
  <div className="space-y-1 text-left">
  <div className="flex items-center gap-3 text-primary">
  <Activity className="h-8 w-8" />
- <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none">Progression HUD</h2>
+ <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none">Learner progress</h2>
  </div>
  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
- Real-time Learner Velocity & Curriculum Yield Registry
+ Real-time learner pace and course completion
  </p>
  </div>
  <Select value={selectedCourse} onValueChange={setSelectedCourse}>

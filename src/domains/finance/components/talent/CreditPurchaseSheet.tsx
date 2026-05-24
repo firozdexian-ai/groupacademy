@@ -256,13 +256,13 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
           <div className="flex items-start gap-4 p-5 bg-muted/20 border-2 border-border/10 rounded-2xl">
             <ShieldCheck className="h-5 w-5 text-primary shrink-0 opacity-40 mt-0.5" />
             <p className="text-[10px] font-medium leading-relaxed italic text-muted-foreground/80">
-              Institutional capital ingress is protected via{" "}
-              <span className="text-primary font-black not-italic font-mono">AES-256</span> encryption protocols. Yield parameters are securely balanced across real-time diagnostic ledger lines seamlessly.
+              Payments are protected with{" "}
+              <span className="text-primary font-black not-italic font-mono">AES-256</span> encryption. Your balance updates in real time after a successful payment.
             </p>
           </div>
         </div>
 
-        {/* HUD: FALLBACK_WHATSAPP_MANUAL_LEDGER_TRIGGER */}
+        {/* Fallback: WhatsApp manual top-up */}
         {showWhatsApp && (
           <div className="p-8 pt-4 border-t-2 border-border/10 bg-muted/5">
             <div className="flex flex-col gap-4">
@@ -278,11 +278,11 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
                 ) : (
                   <MessageCircle className="h-5 w-5 fill-current opacity-40" />
                 )}
-                {whatsappSyncMutation.isPending ? "Staging Invoice Ledger..." : "Initialize WhatsApp Ledger"}
+                {whatsappSyncMutation.isPending ? "Creating invoice..." : "Top up via WhatsApp"}
               </Button>
               <div className="flex items-center justify-center gap-3 opacity-20 font-mono">
                 <div className="h-[1px] flex-1 bg-border" />
-                <span className="text-[8px] font-black uppercase tracking-[0.4em]">Encrypted_Ingress_Channel</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.4em]">Secure channel</span>
                 <div className="h-[1px] flex-1 bg-border" />
               </div>
             </div>

@@ -134,10 +134,10 @@ export function QuizResultsViewer() {
  <div className="space-y-1 text-left">
  <div className="flex items-center gap-3 text-primary">
  <Activity className="h-8 w-8" />
- <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none">Assessment HUD</h2>
+ <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none">Assessment results</h2>
  </div>
  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
- Pedagogical Integrity & Learner Performance Registry
+ Quiz integrity and learner performance
  </p>
  </div>
  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
