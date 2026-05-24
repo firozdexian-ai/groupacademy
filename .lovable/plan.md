@@ -1,42 +1,38 @@
-# Phase A10 — DONE (Admin Visual Polish)
+# Phase A11 — Admin Button & Input Normalization
 
-Shipped 2026-05-24. Softened `/dashboard/*` admin tone to match the talent app's sentence-case, calmer typography.
+A10 calmed the typography; admin still ships oversized "mega buttons" (`h-14 px-12 rounded-2xl shadow-2xl`) that feel like a different product from the talent app. This phase normalizes admin controls to the same scale used elsewhere.
 
-## Files touched (~140)
-- **Shell chrome (hand-tuned)**: `src/pages/Dashboard.tsx`, `src/platform/admin/chrome/AdminSidebar.tsx`, `src/platform/admin/chrome/DashboardSkeleton.tsx`, `src/platform/admin/ui/StatsCard.tsx`.
-  - Page title: `text-sm font-black uppercase tracking-[0.2em]` → `text-base font-semibold tracking-tight`.
-  - Sidebar brand: "GRO10X OS" italic → "Gro10x Admin" + subtitle "Executive console".
-  - Sidebar group headers: kept uppercase eyebrow but lighter (`text-[10px] font-semibold` instead of `text-[11px] font-black`).
-  - Sidebar item rows: dropped uppercase + tracking-widest → `text-sm font-medium` / `font-semibold` when active.
-  - AI co-pilot / Live inbox / Company portal / Sign out: sentence case + `font-medium text-sm`.
-  - Module-not-found fallback: "Module Decryption Failed" → "Unknown tab" + Back-to-overview link.
-  - Restricted-access toast: "Shields Active: Restricted Access." → "You don't have access to this area."
-  - `DashboardErrorState` defaults: "Registry Sync Fault" → "Something went wrong", drop italic + heavy weights.
-  - `StatsCard`: KPI eyebrow + value lose uppercase-italic-black, use plain `text-xs font-medium` label + `text-3xl font-semibold` value.
+## Why this next
+Highest remaining visual offender. Buttons are the most-touched element in admin — shrinking them ties the whole shell together without redesigning any feature.
 
-- **Bulk sweep (`/tmp/admin-polish-sweep*.mjs`, `/tmp/admin-soften-headers.mjs`)**:
-  - 171 file-touches across `src/domains/*/components/admin` + `src/shells/admin`.
-  - Stripped `uppercase tracking-widest`, `uppercase tracking-wider`, `uppercase tracking-[0.2em]` (and reversed orders) from every admin className.
-  - `font-black italic` / `italic font-black` → `font-semibold` (drop italic).
-  - Remaining `font-black` inside admin classNames → `font-semibold`.
-  - `tracking-tighter` → `tracking-tight`.
-  - Collapsed double spaces in className strings.
+## Scope (in)
+1. **Primary action buttons** in admin domain files
+   - `h-14 px-12 rounded-2xl` → `h-10 px-4 rounded-xl`
+   - `h-14 px-10 rounded-2xl` → `h-10 px-4 rounded-xl`
+   - `shadow-2xl shadow-primary/30` → `shadow-sm`
+   - `text-[11px]` button labels → default size (drop)
+2. **Dialog/sheet footers** — same shrink for confirm/cancel buttons.
+3. **Toast prefix spot-check** — `rg` for `Protocol Fault:`, `Handshake Failed:`, `Registry`, `Synchroniz` in admin toasts; rewrite the stragglers A9 missed.
+4. **Input/select heights** — only the obvious `h-14` form inputs in admin; leave shadcn defaults alone.
 
-## Audit
-- Before: 789 uppercase+tracking hits across 129 admin files; 133 `font-black italic` hits across 67 files.
-- After: 0 uppercase-tracking hits, 0 italic+black hits inside admin domains.
-- Only surviving uppercase in admin: the sidebar group eyebrows (intentional — kept for navigation scannability).
+## Scope (out)
+- No logic, routes, RPCs, schema, or icons.
+- No talent or gro10x shells (already normalized).
+- No table/card redesign — only control sizing.
+- Hero CTAs inside `IRDashboard`, `JobsHub`, `TalentUploadTab` may keep one larger primary if it anchors the page (case-by-case).
 
-## Status overview
-- A5 Jobs Hub — DONE
-- A6 Gigs Hub — DONE
-- A7 Profile / Talent Mirror / My Gigs — DONE
-- A8 Career Abroad (talent) — DONE
-- A9 Admin shell jargon — DONE
-- A10 Admin visual polish — DONE
-- B3–B5 Cross-cutting jargon cleanup — DONE
+## Approach
+1. **Audit**: `rg "h-14.*rounded-2xl" src/domains/*/components/admin src/shells/admin` + `rg "shadow-2xl.*primary" src/domains/*/components/admin`.
+2. **Automated sweep** (one script, regex-only, no AST):
+   - Replace the three class combos above inside `className="..."` strings.
+   - Collapse double spaces.
+3. **Hand-review** the ~5–10 hero hubs after the sweep to restore a single anchor CTA where the page reads flat.
+4. **Toast sweep**: small `sed`-style pass for remaining jargon prefixes.
 
-## Suggested next phase
-- **JSDoc / identifier sweep** (low priority, zero user impact): drop `GroUp Academy: …`, `CTO Reference: …`, `Phase Z0 Hardened` JSDoc headers and rename internal `handleImportProtocol` / `handleGenerateHandshake` identifiers.
-- **Admin button/input pass**: many admin actions still use `h-14 px-12 rounded-2xl shadow-2xl` mega-buttons. A pass to standardize on `h-10 px-4 rounded-xl` would finish the calm-down.
-- **Spot-check toast prefixes**: A9 covered obvious offenders but some niche admin tabs may still ship `Protocol Fault:` style strings.
+## Estimated surface
+~40–60 admin files, mostly 1–3 class edits each.
+
+## Open question
+Keep one hero-sized primary per hub (e.g. "Upload jobs", "Add company"), or shrink uniformly? Default: shrink uniformly — the hub header + page title already anchor the page, an oversized button just adds visual weight.
+
+Approve and I'll run the sweep + hand-tune the hub anchors.
