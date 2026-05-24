@@ -45,3 +45,15 @@ A11–A14 normalized admin. A15 normalized the talent app (`/app/*`). Two surfac
 ### Why this phase
 
 A15 finished talent. A16 finishes the last two surfaces (public + gro10x) so the entire product — admin, talent, public, employer — shares one chrome vocabulary. After A16, the polish track is structurally complete and the next track (loading skeleton unification, JSDoc/identifier sweep, or accessibility pass) can begin cleanly.
+---
+
+## A16 — Executed
+
+Swept 54 files across `src/pages/public/**`, `src/pages/Public*.tsx`, `src/pages/Auth*.tsx`, legacy standalone pages (Dashboard, CourseDetail, Instructor*, Session*, Enrollments, MockInterview*, CareerAssessment, AssessmentResults, Quiz*, Portfolio*, Organization, ReportCard, SalaryAnalysisResults, ImmersiveCoursePlayer, Content*, Module*, LearningReview, AdminLive/MessagingInbox), and `src/shells/gro10x` + `src/domains/*/components/gro10x/*`.
+
+- **Before**: buttons 30 hits, cards 40 hits, modals 30 hits, jargon 1 hit.
+- **After**: 0 across every regex family.
+- Visible jargon strings fixed: "Academic Artifact" → "Report card", "JD Ingestion" → "Job description", "Synchronizing Catalog Matrix..." → "Loading catalog...", "Registry Identity Missing" → "Company not found", "Registry Empty" → "Nothing here yet", "Syncing Portfolio Registry..." → "Loading projects...", "Registry Fault" → "Error", "Artifact Missing" → "Post not found", "Synchronizing Session" → "Loading session".
+- Landing (`src/pages/Index.tsx`, `src/components/landing/**`) intentionally excluded; hero composition untouched.
+
+Admin (A11–A14), talent (A15), and public/gro10x (A16) now share one chrome vocabulary across the entire product.
