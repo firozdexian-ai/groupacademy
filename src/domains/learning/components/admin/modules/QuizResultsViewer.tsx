@@ -143,11 +143,11 @@ export function QuizResultsViewer() {
  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
  <SelectTrigger className="w-full md:w-[320px] h-10 rounded-xl border font-semibold uppercase text-xs bg-card shadow-inner">
  <Layers className="w-4 h-4 mr-2 text-primary" />
- <SelectValue placeholder="Logic Context" />
+ <SelectValue placeholder="Course" />
  </SelectTrigger>
  <SelectContent className="rounded-2xl border shadow-sm">
  <SelectItem value="all" className="font-bold">
- GLOBAL_REGISTRY
+ All courses
  </SelectItem>
  {courses?.map((c) => (
  <SelectItem key={c.id} value={c.id} className="font-bold truncate">
