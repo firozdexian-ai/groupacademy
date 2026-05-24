@@ -1,58 +1,72 @@
-# Phase A14: Admin Empty-State Consolidation
+# Phase A15: Talent App Chrome Audit & Normalization
 
-With chrome unified across buttons (A11), cards/tables (A12), and modals (A13), the largest remaining inconsistency in the admin shell is **empty-state panels**. ~30 admin tabs each ship a hand-rolled 100–200 line "no data yet" block with custom illustrations, gradients, and copy tone. A shared component already exists at `src/components/common/EmptyState.tsx` but isn't used in admin.
+A11–A14 unified the admin shell. The talent-facing app (`/app/*`) — what real users see, including the route the user is on right now (`/app/profile`) — has never had the same sweep applied. Likely has the same "Zero X detected" jargon, mega-button styling, and heavy card chrome as admin did before A11.
 
 ## Scope (in)
 
-- Audit all `src/domains/*/components/admin/**` tabs for inline empty-state JSX (patterns: `items.length === 0 ? (...)` returning a centered div with an icon + heading + description + optional CTA).
-- Replace each with `<EmptyState icon={Icon} title="…" description="…" action={<Button …>} />`.
-- Normalize copy: drop jargon ("Registry is empty", "No artifacts ingested", "Telemetry void") in favor of plain language ("No companies yet", "No applications to review", "Nothing here yet").
-- Standardize CTA placement (single primary button, no double "Refresh + Add" pairs).
-- Estimated ~25–35 files touched, net code reduction ~1500–2500 lines.
+Files: `src/domains/*/components/talent/**`, `src/shells/talent/**`, `src/pages/app/**`.
+
+Run the same regex audits A11–A14 used and apply the same normalizations, scoped to the talent surface:
+
+**Buttons & inputs (A11 rules):**
+- `h-14 px-{8,10,12} rounded-2xl` → `h-10 px-4 rounded-xl`
+- `h-14 rounded-2xl` → `h-10 rounded-xl`
+- `shadow-2xl shadow-{primary,destructive}/{10,20,30}` → `shadow-sm`
+- `text-[10px] font-bold uppercase` / `text-[11px] font-black` → `text-sm font-medium`
+
+**Cards & tables (A12 rules):**
+- `rounded-[40px]` / `rounded-[32px]` / `rounded-[28px]` → `rounded-2xl`, `rounded-[24px]` → `rounded-xl`
+- `border-2 border-border/*` → `border border-border/60`
+- `shadow-2xl` (cards) → `shadow-sm`, `backdrop-blur-{xl,md}` on cards → drop
+- `bg-card/{30,50}` → `bg-card`, `border-b-2` / `border-t-2` → `border-b` / `border-t`
+- `tracking-[0.2em]` → `tracking-tight`
+
+**Modals (A13 rules):**
+- `rounded-3xl` → `rounded-2xl`, `shadow-xl` on modal content → `shadow-lg`
+- `backdrop-blur-{2xl,xl}` on modal panels → removed
+- Header text `text-[10px] font-bold italic` → `text-sm text-muted-foreground`
+
+**Empty-state copy (A14 rules):**
+- "Zero X detected/found/deployed" → "No X yet"
+- "Inbox Zero Achieved" → "All caught up"
+- "Registry/Artifact/Telemetry/Ingest" jargon → plain English nouns
 
 ## Scope (out)
 
-- No changes to `EmptyState.tsx` API itself unless a missing prop blocks a tab (e.g. add optional `secondaryAction` only if needed).
-- No changes to loading skeletons or error states (those have their own components).
-- No talent/gro10x/public empty states.
-- No layout, table, or filter logic changes — only the "zero rows" branch.
+- No layout, navigation, routing, or feature changes.
+- No changes to mobile-specific spacing (`py-2`, `space-y-2`, 3:1 banner ratio, safe-bottom) — those are pinned by core memory.
+- No changes to brand colors (Tech Blue / Cyan / Success Green stay).
+- No touch to `src/components/ui/**` shadcn primitives.
+- No changes to public marketing pages (`/`, `/jobs/:id`, `/c/:slug/*`, `/t/:handle`, `/projects/*`) — those have their own design language.
+- No changes to gro10x employer shell (separate brand surface).
 
 ## Approach
 
-1. Read `src/components/common/EmptyState.tsx` to confirm current API.
-2. `rg -n "length === 0|length == 0|!.*\.length" src/domains/*/components/admin --type tsx -l` to enumerate candidates, then spot-check each for the inline empty-state pattern.
-3. For each file:
-   - Identify the empty branch
-   - Pick the closest matching icon from existing imports (or import from `lucide-react`)
-   - Write plain-language title + description
-   - Preserve the existing CTA action (e.g. "Add company", "Import LinkedIn")
-   - Replace ~30–80 lines of JSX with a 5-line `<EmptyState …/>`
-4. Spot-check at `/dashboard?tab=companies`, `/dashboard?tab=jobs-applications`, `/dashboard?tab=ir-investors`, `/dashboard?tab=abroad-leads` with an empty filter to render the state.
+1. **Baseline audit** — single `rg` per rule across talent scope to count hits before/after.
+2. **One sed sweep per rule family** (buttons, cards, modals, copy) — same patterns proven in A11–A14.
+3. **Spot-check** at `/app/profile` (active route), `/app/jobs`, `/app/learn`, `/app/gigs`, `/app/feed`, `/app/saved`.
+4. **Verify no regressions** — check console for missing-class errors, verify build.
 
 ## Acceptance
 
-- All admin tabs render empty state via the shared `EmptyState` component.
-- Copy is plain English, no "Registry/Artifact/Telemetry/Void/Ingest" jargon.
-- Net LOC reduction documented in plan log.
-- No behavioral regressions; CTA actions still fire.
+- 0 hits across talent scope for the same regex set that A11–A14 zeroed out in admin.
+- `/app/profile` (and the other top talent routes) render with consistent chrome matching admin.
+- Mobile constraints from core memory preserved (no horizontal scroll, py-2 rhythm, safe-bottom).
 
 ## Why this phase
 
-A11–A13 normalized populated states; A14 finishes the visual language by unifying the "zero data" state. After A14, the admin shell has a single vocabulary across all four UI states (loading, empty, populated, error) — closing out the admin polish initiative and unblocking pure-cleanup work (JSDoc, identifier renames).
+A14 completed the admin polish initiative. A15 ports those exact rules to the talent-facing surface, which is the surface users actually live in. This is the highest user-visible impact of the polish track and a natural mirror of the admin sweep.
 
 ---
 
-## A14 — Executed (pragmatic scope)
+## A15 — Executed
 
-After audit, most admin "empty" branches are short inline `TableCell` messages, not large hand-rolled panels — so the highest-value win was **copy normalization + EmptyState component overhaul**, not wholesale JSX replacement.
+Swept 97 files across `src/domains/*/components/talent/**`, `src/shells/talent/**`, `src/pages/app/**`.
 
-- **`src/components/common/EmptyState.tsx`** rewritten: dropped `rounded-[24px] border-2 border-dashed`, `font-black uppercase italic tracking-tight`, `text-[10px] font-black uppercase tracking-widest` button, gradient + backdrop-blur, jargon JSDoc. Now: `rounded-2xl border border-dashed border-border/60 bg-muted/10`, `text-base font-semibold` title, `text-sm text-muted-foreground` description, standard `h-9 rounded-xl` button. Backward-compatible: still accepts `actionLabel`/`onActionClick` and legacy `action={{label,onClick}}`, plus new `action={ReactNode}`.
-- **Jargon copy sweep** across all admin `*.tsx`: 40+ variants of "Zero X detected/found/deployed/Inbox Zero Achieved" → plain "No X yet" / "All caught up" / "No results match this filter". Final audit: 0 "Zero …" strings in `src/domains/*/components/admin/`.
-- Residual uppercase/italic styling on those empty cells normalized to `text-sm text-muted-foreground`.
+- **Before**: 3 button hits, 278 card/table hits, 48 modal hits, 154 jargon copy hits.
+- **After**: 0 across every regex family.
+- Final pass also caught `shadow-xl` on a few non-modal cards/tab strips.
+- Visible jargon strings fixed: "Registry Vacuum"→"Nothing here yet", "Signal Registry"→"Saved items", "Registry Empty"→"Nothing saved yet", "Syncing Global Registry Manifest"→"Loading agents", "Synchronizing Classroom Registry"→"Loading sessions", "Registry Key Error"→"Error", "Telemetry from your…"→"Results from your…", "Creative Telemetry Diagnostics"→"Creative analytics", "Artifact Document Track Attached"→"CV attached", "Pending Manual Core Synthesis"→"Pending".
+- Variable-name "Registry/Telemetry/Artifact" identifiers left alone (out of scope; zero user impact).
 
-Net effect: admin empty states share one voice and one component, matching A11–A13 chrome.
-
-**Suggested next phases:**
-- **JSDoc / identifier sweep**: drop `GroUp Academy:` / `CTO Reference:` / `Phase Z0` JSDoc headers, rename `handleImportProtocol` / `handleGenerateHandshake`. Pure cleanup, zero user impact.
-- **Talent app chrome audit**: verify A11–A14 chrome rules hold in `src/domains/*/components/talent/**` and `src/shells/talent/**`. Likely already clean but worth a baseline audit.
-- **Loading skeleton unification**: parallel A14 for the loading state — replace ad-hoc `<Skeleton>` columns with the shared `DashboardCardSkeleton` / `DashboardTableSkeleton` from A12.
+Admin (A11–A14) and talent (A15) surfaces now share one chrome vocabulary and one voice.
