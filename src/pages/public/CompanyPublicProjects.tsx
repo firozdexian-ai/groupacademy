@@ -104,7 +104,7 @@ export default function CompanyPublicProjects() {
       >
         <div className="flex items-center gap-2.5">
           <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-          <span>Loading projects.../span>
+          <span>Loading projects...</span>
         </div>
       </div>
     );
