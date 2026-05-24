@@ -173,7 +173,7 @@ const Auth = () => {
 
   if (authLoading)
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background" role="main">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
@@ -454,7 +454,7 @@ const Auth = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 };
 

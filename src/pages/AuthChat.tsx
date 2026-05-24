@@ -121,7 +121,7 @@ const AuthChat = () => {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50" role="main">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
         <p className="text-xs font-medium mt-4 text-slate-500">Loading…</p>
       </div>
@@ -332,7 +332,7 @@ const AuthChat = () => {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 };
 

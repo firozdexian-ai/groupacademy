@@ -52,9 +52,9 @@ export default function Start() {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background" role="main">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </main>
+      </div>
     );
   }
 

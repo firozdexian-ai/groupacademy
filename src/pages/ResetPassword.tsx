@@ -125,7 +125,7 @@ const ResetPassword = () => {
 
   if (isVerifying)
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6" role="main">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground mt-4">Verifying your reset link…</p>
       </div>
@@ -265,7 +265,7 @@ const ResetPassword = () => {
           </CardContent>
         </Card>
       </div>
-    </main>
+    </div>
   );
 };
 
