@@ -1,75 +1,120 @@
-## Phase A19 — Route-Level Code Splitting & Bundle Trim
+# Road to v0.5 Publication — Consolidation Plan
 
-A11–A18 finished the visible polish track (chrome, copy, loading, a11y). The next bottleneck users feel is **time-to-interactive**, not look-and-feel. The talent shell, admin shell, and gro10x shell all import every route eagerly through their route manifests, so the initial JS bundle pulls in admin tabs, gro10x employer flows, and rarely-used tools even when a talent user just lands on `/app/feed`. This phase splits routes per shell and trims the heaviest shared imports.
+Launch personas confirmed: **Talent** + **Public**. Admin/Gro10x stay functional but are not part of the "publicly announced" surface for v0.5. Deferred features get a **"Coming soon + join waitlist"** treatment, not removal.
 
-### Scope (in)
-
-1. **Lazy-load routes per shell**
-   - Convert each entry in `src/shells/admin/routes/*.ts`, `src/shells/talent/agents.ts`, `src/shells/gro10x/agents.ts`, and `src/shells/public/agents.ts` to `React.lazy(() => import(...))`.
-   - Wrap the per-shell `<Outlet />` (or route element) in a single `<Suspense fallback={<PageLoadingSkeleton />}>` so route transitions show the standardized skeleton already shipped in A17.
-   - Keep landing/auth/start eager (they are the first paint).
-
-2. **Split the three shells from each other**
-   - Ensure `Gro10xRoutes.tsx`, the admin shell entry, and the talent shell entry are each lazy-loaded from `App.tsx`/`main.tsx`. A talent user must never download the admin shell bundle, and vice versa.
-
-3. **Trim heavy shared imports**
-   - Audit `rg "from \"recharts\""`, `rg "from \"@react-pdf/renderer\""`, `rg "html2canvas"`, `rg "jspdf"`, `rg "framer-motion"` and confirm each is only imported from leaf components, not from index barrels (`src/domains/*/index.ts`, `src/components/index.*`). Push any barrel re-exports of these libraries down into the leaf that needs them so tree-shaking works.
-   - Lazy-load PDF generators (`certificatePdfGenerator`, `assessmentPdfGenerator`, `salaryPdfGenerator`, `pdfGenerator`) via dynamic `import()` at call sites — they should not be in any first-paint chunk.
-
-4. **Manual chunk hints (Vite)**
-   - In `vite.config.ts`, add a `build.rollupOptions.output.manualChunks` function that buckets: `react`, `radix` (`@radix-ui/*`), `supabase` (`@supabase/*`), `charts` (`recharts`), `pdf` (`jspdf`, `html2canvas`, `@react-pdf/*`), `icons` (`lucide-react`). Goal: stable long-lived vendor chunks instead of one giant `vendor.js`.
-
-5. **Verify**
-   - Compare `dist/` chunk sizes before/after (record in plan doc).
-   - Smoke-test: cold-load `/app/feed`, `/dashboard`, `/gro10x`, `/auth`. Confirm no white-flash regressions, no missing Suspense boundaries, no console errors from dynamic-import failures.
-
-### Scope (out)
-
-- No image optimization, no font subsetting, no service-worker / PWA caching changes (separate phase).
-- No swap of any library (e.g., recharts → lighter alt). Pure splitting + import hygiene.
-- No route-data prefetching / React Query hydration changes.
-- No behavior or UI changes whatsoever.
-
-### Approach
-
-1. Inventory current eager imports: `rg -n "^import .* from \"@/pages" src/shells src/App.tsx src/gro10x/Gro10xRoutes.tsx`.
-2. Convert in shell-sized batches (admin first — it's the largest and least-used by default visitors), one shell per commit-equivalent step.
-3. Add the Suspense boundary at the shell `<Outlet>` level, not per-route.
-4. Run `rg` audits for heavy libs, push barrel re-exports down to leaves.
-5. Edit `vite.config.ts` `manualChunks`.
-6. Build, record sizes, smoke-test the four cold routes.
-
-### Acceptance
-
-- Talent first-load JS chunk excludes admin tab modules and gro10x employer modules (verify by inspecting `dist/assets/*.js` for absence of admin-only component names).
-- `dist` shows separate chunks for `react`, `radix`, `supabase`, `charts`, `pdf`, `icons`.
-- Initial JS for `/app/feed` drops by a meaningful margin (target ≥25%; record actual).
-- All routes still navigate; no Suspense fallback gets stuck; no console errors.
-- No visual/behavior regressions.
-
-### Why this phase
-
-Polish (A11–A18) is done. Users will next feel either (a) load speed or (b) missing features. Speed is the cheaper, safer win and unblocks future feature work by keeping bundle budgets honest. Stays scope-disciplined: no UX, no behavior changes — purely build/import structure.
-
-### Alternatives considered
-
-- **Image/font optimization** — Useful, but bundle JS dominates first-paint cost here; do after A19.
-- **PWA cache tuning** — Helps repeat visits, not first visit; lower priority.
-- **Feature work** — User hasn't named one; performance is the safer default continuation.
+Work is split into 4 sequential phases. Each phase produces a deliverable doc in `.lovable/v05/` so we can pick up across sessions without re-confusing state.
 
 ---
 
-## A19 — Executed (Route-Level Code Splitting & Bundle Trim)
+## Where we are today (snapshot)
 
-1. **`src/App.tsx`** — Converted ~115 page imports to `React.lazy()`. Eager-kept: `Index`, `AuthChat`, `AuthClassic`, `AuthCallback`, `Start`, `ResetPassword`, `NotFound`, shell wrappers (`TalentAppShell`, `ProtectedRoute`), context providers, PWA prompts. Wrapped entire `<Routes>` in a single `<Suspense fallback={<PageLoadingSkeleton />}>`. `Gro10xRoutes` itself is lazy-loaded so talent visitors never download the B2B bundle.
-2. **`src/gro10x/Gro10xRoutes.tsx`** — All 26 Gro10x pages converted to `lazy()` with its own `<Suspense>` boundary using the same skeleton.
-3. **`vite.config.ts`** — Added `vendor-icons` (`lucide-react`) to `manualChunks`. Existing buckets (`vendor-react`, `vendor-ui` for Radix, `vendor-charts` for recharts, `vendor-pdf` for jspdf+html2canvas, `vendor-query`, `vendor-supabase`) retained.
-4. **PDF generators** — `assessmentPdfGenerator`, `salaryPdfGenerator`, `pdfGenerator`, `certificatePdfGenerator` are only imported by 3 lazy pages (`AssessmentResults`, `SalaryAnalysisResults`, `ReportCard`); combined with `vendor-pdf` manualChunk, the jspdf/html2canvas chunk no longer ships in first paint.
-5. **Admin shell** — Already 100% lazy via `src/shells/admin/routes/*.ts`; no changes needed.
-6. **Barrel audit** — `rg` confirmed `recharts` / `jspdf` / `html2canvas` / `@react-pdf/renderer` / `framer-motion` are not re-exported from any `src/domains/*/index.ts` or `src/components/*/index.ts`. Tree-shaking unblocked.
+**Done (A1 → A19):** route lazy-loading, bundle trim, a11y pass, loading skeletons, copy normalization, mobile safe areas, admin lazy-loading, dashboard RBAC, native email, escrow/projects, public discovery, learning tracks, gig matchmaker/verification/disputes, instructor monetization, creator economy, hype/connections, scenario skill credentials, mastery-based job match.
 
-### Acceptance
-- `tsc --noEmit` clean.
-- Talent first-paint chunk no longer eagerly imports admin (`Dashboard`, admin tabs), gro10x pages, PDF generators, public-discovery pages, or mock-interview/salary flows.
-- Each shell has a single `<Suspense>` boundary so route transitions show the standardized A17 skeleton.
-- No behavior or UI changes.
+**Estimated launch-readiness for Talent+Public: ~75%.** The remaining 25% is not new features — it's **verification, regression hunting, and gating things that aren't ready**.
+
+---
+
+## Phase P1 — Feature Inventory & Regression Diff (1.5 days)
+
+**Goal:** catch features that silently disappeared during A11–A19 polish/refactor before users do.
+
+1. Generate `.lovable/v05/inventory.md` listing every:
+   - Admin tab (from `src/shells/admin/routes/*.ts` — 16 groups)
+   - Talent route (from `src/App.tsx`)
+   - Public route
+   - For each: declared purpose, components rendered, primary actions
+2. Cross-check against existing memory files (`mem://admin/*`, `mem://product/*`) — any tab whose memory describes features not present in current code = **regression candidate**, flagged in the doc.
+3. Spot-check 10 highest-risk areas in browser: admin Talent group, admin Companies, admin Jobs, admin Learning, admin Gigs, talent Profile, talent Jobs Hub, talent Learning Hub, talent Gigs, talent Career Abroad.
+4. Deliverable: `inventory.md` with a **"Regression Suspects"** section listing each missing/changed feature, source memory, and suggested action (restore / accept / replace).
+
+**You review** this list before P2.
+
+---
+
+## Phase P2 — Defer/Hide Decisions & "Coming Soon" Surface (1 day)
+
+**Goal:** stop shipping empty states that embarrass.
+
+1. Produce `.lovable/v05/defer-matrix.md` listing every Talent+Public surface that has **no real data** or **no live workflow**, with a recommendation: `keep` / `coming-soon` / `hide`.
+   - Candidates I already see: Gig search (no projects), Marketplace browse, Company projects tab, Creator analytics on empty creators, Leaderboards with <10 entries, Reviewer cockpit for non-reviewers, parts of Career Abroad without programs in country.
+2. Build a single reusable `<ComingSoonGate>` component with: hero copy, illustration, **"Join waitlist"** button → writes to one shared `feature_waitlist` table (`user_id`, `feature_key`, `created_at`, `email`).
+3. One migration: `feature_waitlist` table + RLS (insert self, admin read).
+4. Wrap each `coming-soon` surface with the gate. Hidden surfaces get nav entries removed + 404 redirect.
+5. Admin gets a small "Waitlist signals" widget so we know what users want first.
+
+**You approve** the defer-matrix before any wrapping happens.
+
+---
+
+## Phase P3 — Automated Smoke Test Suite (2–3 days)
+
+**Goal:** 70% bug catch without manual clicking, per your request. Full persona journeys.
+
+Use **Playwright** (already viable in Lovable; no new infra) writing tests under `tests/e2e/`. Tests run against the preview URL with seeded test accounts.
+
+**Talent persona journeys** (one spec file each, ~12 specs):
+- Signup (Aisha chat) → phone capture → profile builder
+- Login → feed loads → click 3 card types (post, course, video)
+- Jobs Hub → For You → open job → apply (each method: internal, external, mailto)
+- Learning Hub → enroll in free course → complete a module → certificate
+- Gigs → For You → place bid (or hit waitlist gate)
+- Career Abroad → roadmap builder → submit
+- Tools Hub → CV maker / Salary analysis / Mock interview
+- Profile → public `/t/:handle` view works + JSON-LD present
+- Credits → purchase sheet opens, gate works
+- Saved items + Notifications + Messages thread
+- Logout
+
+**Public persona journeys** (~6 specs):
+- `/` landing, `/jobs`, `/jobs/:id`, `/projects`, `/projects/:slug`, `/leaderboards/:kind`, `/c/:slug`, `/t/:handle`, `/verify/skill/:code`, `/verify/cert/:code`
+- Assertion: 200 response, H1 present, meta description present, no console errors, no white-screen, mobile viewport renders without horizontal scroll
+
+**Output:** `tests/e2e/REPORT.md` auto-generated per run with pass/fail per journey + screenshot of failures. Wire into Lovable's existing test runner.
+
+**Acceptance gate for v0.5:** all Talent + Public journeys green.
+
+---
+
+## Phase P4 — Manual Punch List & Publish (1 day)
+
+1. Generated from P3 failures + P1 regression confirmations.
+2. Format: `.lovable/v05/punch-list.md` with severity (blocker / nice-to-have / post-v0.5), owner-action, est. time.
+3. Work through blockers only. Nice-to-haves become Phase P5 (post-launch).
+4. Final pre-publish checks: SEO findings cleared (`seo_chat--list_findings`), security linter clean (`supabase--linter`), bundle sizes recorded, custom domain confirmed.
+5. **Publish.**
+
+---
+
+## Out of scope for v0.5
+
+- Gro10x B2B polish (works but not headline)
+- Admin UX polish (functional, not user-facing)
+- New features of any kind
+- Performance beyond what A19 shipped
+
+---
+
+## Total timeline estimate
+
+| Phase | Effort | Gate |
+|---|---|---|
+| P1 Inventory + regression diff | 1.5 days | You review the suspects list |
+| P2 Defer/hide + waitlist gate | 1 day | You approve defer-matrix |
+| P3 Smoke test suite | 2–3 days | All Talent+Public journeys green |
+| P4 Punch list + publish | 1 day | Blocker count = 0 |
+| **Total** | **~5.5–6.5 days** | |
+
+---
+
+## Technical notes (for the implementer)
+
+- **Inventory generation**: `rg` over `src/shells/admin/routes/*.ts` + `src/App.tsx` to enumerate; cross-ref with `mem://admin/*` memory files via filename grep.
+- **Coming-soon gate**: single component in `src/components/common/ComingSoonGate.tsx`, accepts `featureKey`, `title`, `description`, `eta`. Waitlist insert uses `supabase.from('feature_waitlist').insert(...)` with RLS `with check (auth.uid() = user_id)`.
+- **Playwright setup**: `playwright.config.ts` at repo root, single worker against preview URL, test accounts seeded via a one-time migration `tests/fixtures/seed.sql` (idempotent).
+- **No DB writes** in P1 or P3 reports — they're just markdown.
+
+---
+
+## Starting point
+
+If you approve, P1 begins immediately and produces the inventory + regression doc for your review before any code touches the app. Nothing gets hidden or deleted until you sign off on the defer-matrix in P2.
