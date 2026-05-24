@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Flag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
-import { InlineSpinner } from "@/components/common/InlineSpinner";
   listContentReports,
   resolveContentReport,
   hideModerationTarget,
   type ModerationTable,
 } from "@/domains/learning/repo/learningRepo";
+import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 const SCOPE_TO_TABLE: Record<string, ModerationTable> = {
   post: "discussion_posts",
