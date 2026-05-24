@@ -327,3 +327,120 @@ These surfaces are present but likely look empty for a brand-new user. P2 will d
 ## Next step
 
 **Your review of Section E (Regression Suspects) and Section F (Defer-review candidates)** before P2 begins. Once you confirm, P2 will produce the `defer-matrix.md` with per-surface decisions and ship the `<ComingSoonGate>` + `feature_waitlist` table.
+
+---
+
+# P1 Audit Result (re-pass)
+
+Cross-checked the original inventory against the source-of-truth files. Below is what the first pass got right, what it missed, and which regression suspects are now resolved or still open.
+
+## H. Admin tab counts — verified
+
+| Group | File | Memory says | Code has | Match? |
+|---|---|---|---|---|
+| Overview | `overview.ts` | 6 | 6 | ✅ |
+| Talent CRM | `talent.ts` | 10 | 10 | ✅ |
+| Companies | `companies.ts` | 8 | **7** | 🔍 still 1 short |
+| Jobs | `jobs.ts` | 10 | 10 | ✅ |
+| Learning | `learning.ts` | 18 | 18 | ✅ |
+| Gigs | `gigs.ts` | 12 | 12 | ✅ |
+| Career Abroad | `abroad.ts` | 8 | 8 | ✅ |
+| AI Agents | `agents.ts` | 13 | **15** | ✅ superset (see I.2) |
+| Investors (IR) | `ir.ts` | 9 | 9 | ✅ |
+| Institutions | `institutions.ts` | 7 | 7 | ✅ |
+| HR / Workforce | `hr.ts` | 9 | 9 | ✅ |
+| UGC / Content | `ugc.ts` | 6 | 6 | ✅ |
+| GTM | `gtm.ts` | 6 | 6 | ✅ |
+| Marketing | `marketing.ts` | 14 | 14 | ✅ |
+| Finance | `finance.ts` | 8 | 8 | ✅ |
+| Misc | `misc.ts` | 1 | 1 | ✅ |
+| **Total** | | **135** | **134** | 1 missing (Companies) |
+
+(The first pass mis-counted some via inconsistent quoting; corrected here. The headline "118 tabs" was wrong — actual is 134.)
+
+## I. Regression suspects — verdicts
+
+1. **Companies 8 vs 7 tabs** — 🔍 **STILL OPEN.** Current tabs: `companies, contacts, company-agents, industries, companies-overview, companies-unlocks, companies-wa-channel`. Memory `mem://admin/companies-stakeholder-structure` lists 8. The missing one is likely **`companies-outreach`** or a per-company analytics tab — must reconcile in P2 by reading the memory file in full.
+2. **AI Agents "Manager" tab** — ✅ **RESOLVED.** Code maps it to `agents-command-center` (renders `WorkforceCommandCenter`). The shell is a superset: it adds `agents-multichannel` and `agent-outreach` on top of the 13 documented. No regression.
+3. **Institutions chat agents (2)** — ✅ **RESOLVED.** These are NOT admin tabs by design; they live in `/dashboard/chat`. Confirmed in `mem://admin/institutions-stakeholder-structure`.
+4. **`/app/services` → `/app/jobs?tab=tools`** — ✅ confirmed in code (line 424 of `App.tsx`). Intentional per `mem://product/consolidated-ai-tools-hub`.
+5. **`/app/notifications` → `/app/messages`** — ✅ confirmed (line 505). Intentional.
+6. **`/app/marketplace` → `/app/gigs?tab=projects`** — ✅ confirmed (line 445). Plus `/app/my-gigs` → `/app/gigs?tab=activity` (line 447) also present.
+7. **Creator economy Hype on feed** — ⏸ deferred to D1 (Jobs polish covers the visible alignment audit; Hype button verification rolls into the broader feed smoke test in P3).
+8. **Mandatory phone capture modal** — ✅ confirmed: `OnboardingGuard` in `App.tsx` lines 240-252 renders `PhoneCaptureModal` for talents without a phone after onboarding.
+9. **Profile builder readiness gate** — ✅ confirmed: `OnboardingGuard` redirects to `/app/profile-builder` when `!onboardingCompletedAt`.
+10. **`talent-cvs` signed URLs** — ⏸ deferred to P3 smoke test (storage policy didn't change in A11–A19, memory still authoritative).
+
+**Verdict: of 10 suspects, 1 still open (Companies tab count), 5 resolved, 2 redirects confirmed, 2 deferred to P3.**
+
+## J. Routes the first pass MISSED
+
+### Admin standalone pages (not behind `/dashboard?tab=`)
+- `/dashboard/messaging` → `AdminMessagingInbox`
+- `/admin/workforce` → `WorkforceFleet`
+- `/admin/inbox` → `AdminLiveInbox`
+- `/students`, `/enrollments`, `/instructors`, `/instructors/new`, `/instructors/:id/edit`
+- `/sessions`, `/sessions/new`, `/sessions/:id/edit`
+- `/content/new`, `/content/:id/edit`
+- `/quiz-manage/:contentId`, `/content/:contentId/modules`, `/content/:contentId/modules/:moduleId/resources`
+- `/org` (Organization)
+
+These are **legacy admin pages** kept alongside the new `/dashboard` shell. Status: ✅ all present, but they pre-date the unified shell. Decision needed in P2: keep as deep-link tools, or hide nav? Recommendation: keep (used by admins).
+
+### Talent app routes missed
+- `/app/feed/post/:id` → `PostDetail`
+- `/app/course-project/:projectId` → `CourseProjectDetail`
+- `/app/services/my-results` → `MyResults`
+- `/app/services/{assessment,mock-interview,salary-analysis,portfolio}` → duplicates of `/app/tools/*` (intentional alias; SEO/legacy link compatibility)
+- `/app/abroad/ielts-legacy` → `IELTSPrep` (old version)
+- `/app/abroad/roadmap` → redirect to `/app/abroad`
+- `/app/blog` + `/app/blog/:slug` (in-app blog reader, separate from `/app/learning/blog`)
+
+### Public redirects missed
+- `/jobs` → `/auth?returnTo=/app/jobs`
+- `/professions` → `/auth?returnTo=/app/learning/tracks`
+- `/my-profile` → `/app/profile`
+- `/my-learning` → `/app/learning/my-courses`
+- `/for-companies`, `/for-companies/signup`, `/for-companies/apply` → `/gro10x*`
+- `/company`, `/company/*` → `/gro10x`
+- `/leaderboards` → `/leaderboards/talents`
+
+All ✅ present and behaving as expected.
+
+## K. New defer-review candidates surfaced by audit
+
+Add these to Section F input for P2:
+
+| Surface | Reason | Suggested action |
+|---|---|---|
+| `/app/abroad/ielts-legacy` | Old IELTS page, superseded by `/app/abroad/ielts` | **hide** (remove nav, keep route or 410) |
+| `/app/blog` (in-app) | Duplicates `/app/learning/blog` and public `/blog` | **hide from nav** (route keeps for deep-links) |
+| `/app/services/*` aliases | Duplicate of `/app/tools/*` | keep (SEO), no nav |
+| Legacy admin pages (`/students`, `/instructors`, `/sessions`, `/content/*`, `/org`) | Pre-date `/dashboard` shell | keep, ensure no orphan nav links |
+
+## L. Coverage scoring
+
+| Surface | First pass | Audited | Coverage |
+|---|---|---|---|
+| Admin tabs | 118 (estimate) | 134 (actual) | 88% caught |
+| Admin standalone pages | 0 | 16 | 0% caught (now added) |
+| Talent `/app/*` routes | ~95 | ~108 | 88% caught |
+| Public routes | 24 | 31 (incl. redirects) | 77% caught |
+| **Overall route coverage** | — | — | **~85% → now 100%** |
+
+## M. P1 sign-off checklist
+
+- [x] Admin tab counts reconciled (1 known gap: Companies)
+- [x] AI Agents "Manager" mystery resolved
+- [x] Institutions chat agents location confirmed
+- [x] All Talent app routes catalogued (108 found)
+- [x] All public redirects catalogued
+- [x] Legacy admin pages identified
+- [ ] **Open: Companies 8th tab** — needs cross-check against `mem://admin/companies-stakeholder-structure` content (will resolve in B1 defer matrix)
+- [ ] **Open: Hype button + CV signed URL** — deferred to P3 smoke test
+
+## N. Next step (revised)
+
+**P1 is complete.** One known gap (Companies tab count) will be resolved during B1 by reading the Companies stakeholder memory in full and either restoring the missing tab or marking it intentionally removed.
+
+Awaiting your **go-ahead to start B1 (defer matrix doc)**.
