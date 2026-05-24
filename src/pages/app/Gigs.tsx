@@ -565,7 +565,9 @@ export default function Gigs() {
  ))
  )}
  </div>
+ </ComingSoonGate>
  </TabsContent>
+
 
  {/* My activity */}
  <TabsContent
