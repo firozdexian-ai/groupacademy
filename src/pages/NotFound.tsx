@@ -13,7 +13,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background selection:bg-primary/10 relative overflow-hidden">
+    <main className="flex min-h-screen items-center justify-center bg-background selection:bg-primary/10 relative overflow-hidden">
       {/* Executive Ambient Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.03)_0%,transparent_70%)] pointer-events-none" />
 
