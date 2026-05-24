@@ -424,3 +424,16 @@ Humanized user-visible copy across the Study Abroad / Career Abroad surfaces. No
 **Deferred:** Admin abroad shells (`src/shells/admin/routes/abroad.ts`, `src/domains/abroad/components/admin/*`); `StudyAbroadDetail.tsx` and `StudyAbroadRoadmapResults.tsx` (clean enough to not block launch — flag for B6 admin sweep if needed).
 
 Phase A8 closes out the talent-side launch-readiness sweep. Next remaining: **admin shell cleanup** across `/dashboard/*`.
+
+---
+
+## D1 — Gro10x Auth/Shell — verified clean 2026-05-24
+
+Scope: `Gro10xLanding`, `Gro10xWelcome`, `Gro10xSignIn`, `Gro10xTopBar`, `Gro10xSideNav`, `Gro10xBottomNav`, `Gro10xPageGate`, `Gro10xInstallButton`, `Gro10xAppShell`.
+
+**Verified:** rg sweep across the full `src/gro10x/` tree for Vector/Ingress/Phase-Z/HUD/Synchroniz/Telemetry/Ecosystem/Handshake/Nexus/Orchestrat/Conduit/Substrate/Propagat — **0 user-visible hits** (only `stopPropagation` event handlers matched, which are framework-level, not copy).
+
+**Finding:** The Gro10x employer shell was authored after the talent/admin shells and never adopted the jargon house-style. All visible copy is already in plain English (e.g. Landing tagline "The professional inbox of AI agents.", PageGate "You're not connected to a company workspace yet.", BottomNav labels Inbox/Activities/Learn/Feed/Company). No edits required for D1.
+
+**Implication for Track D plan:** D2–D5 (Work, Gigs, Learn, Inbox, Agents, Me) are very likely also clean. Recommend a single rg pass over D2–D5 to confirm, then close Track D and proceed directly to **Track C — Admin shell cleanup** (which we already know has heavy jargon from the deferral notes in A5–A8).
+
