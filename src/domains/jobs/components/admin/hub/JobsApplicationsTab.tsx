@@ -385,10 +385,10 @@ export function JobsApplicationsTab() {
                           {app.cv_url && (
                             <Button
                               variant="ghost"
-                              size="icon" aria-label="VIEW_ARTIFACT"
+                              size="icon" aria-label="View CV"
                               className="h-8 w-8 hover:bg-primary/10"
                               asChild
-                              title="VIEW_ARTIFACT"
+                              title="View CV"
                             >
                               <a href={app.cv_url} target="_blank" rel="noreferrer">
                                 <FileText className="h-4 w-4 text-primary" />
@@ -397,10 +397,10 @@ export function JobsApplicationsTab() {
                           )}
                           <Button
                             variant="ghost"
-                            size="icon" aria-label="DISPATCH_MAIL"
+                            size="icon" aria-label="Email applicant"
                             className="h-8 w-8 hover:bg-primary/10"
                             asChild
-                            title="DISPATCH_MAIL"
+                            title="Email applicant"
                           >
                             <a href={`mailto:${app.talents?.email}`}>
                               <Mail className="h-4 w-4 text-primary" />

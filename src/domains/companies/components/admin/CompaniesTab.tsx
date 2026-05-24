@@ -381,7 +381,7 @@ export function CompaniesTab() {
  Prev
  </Button>
  <span className="text-[10px] font-semibold uppercase italic opacity-40">
- Sector {page} of {Math.ceil(totalCount / ITEMS_PER_PAGE)}
+ Page {page} of {Math.ceil(totalCount / ITEMS_PER_PAGE)}
  </span>
  <Button
  variant="ghost"

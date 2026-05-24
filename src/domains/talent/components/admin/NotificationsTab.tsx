@@ -146,7 +146,7 @@ export function NotificationsTab() {
  variant={n.is_read ? "secondary" : "default"}
  className="text-[9px] font-semibold uppercase rounded-lg"
  >
- {n.is_read ? "ACKNOWLEDGED" : "DISPATCHED"}
+ {n.is_read ? "READ" : "SENT"}
  </Badge>
  </TableCell>
  </TableRow>

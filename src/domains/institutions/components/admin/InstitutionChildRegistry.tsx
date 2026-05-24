@@ -327,7 +327,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
  onValueChange={(v) => setDraft({ ...draft, institution_id: v })}
  >
  <SelectTrigger className="h-12 rounded-xl border font-bold">
- <SelectValue placeholder="LINK TO INSTITUTION" />
+ <SelectValue placeholder="Link to institution" />
  </SelectTrigger>
  <SelectContent>
  {institutionsQ.data?.map((i) => (

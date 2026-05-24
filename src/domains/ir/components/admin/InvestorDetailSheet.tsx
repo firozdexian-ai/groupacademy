@@ -117,7 +117,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
  </SheetTitle>
  <SheetDescription className="text-sm font-medium text-muted-foreground/60 italic truncate">
  {investor.title ? `${investor.title.toUpperCase()} @ ` : ""}
- <span className="text-primary">{investor.vc_firm?.name?.toUpperCase() || "INDEPENDENT_NODE"}</span>
+ <span className="text-primary">{investor.vc_firm?.name?.toUpperCase() || "INDEPENDENT"}</span>
  </SheetDescription>
  </div>
  <div className="shrink-0 pt-1">{getStatusBadge(investor.subscription_status)}</div>

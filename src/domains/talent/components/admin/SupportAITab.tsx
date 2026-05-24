@@ -254,7 +254,7 @@ export function SupportAITab() {
                     )}
                   >
                     {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}{" "}
-                    {copied ? "SECURED" : "COPY ARTIFACT"}
+                    {copied ? "COPIED" : "COPY REPLY"}
                   </Button>
                 </CardHeader>
                 <CardContent className="p-8">

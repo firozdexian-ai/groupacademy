@@ -78,11 +78,11 @@ export function JobsOutreachTab() {
         <CardContent className="p-8 space-y-8">
           <div className="space-y-3 text-left">
             <label className="text-[10px] font-semibold uppercase text-primary italic ml-2 flex items-center gap-2">
-              <ShieldCheck className="h-3.5 w-3.5" /> Select Target Infrastructure
+              <ShieldCheck className="h-3.5 w-3.5" /> Select a job to promote
             </label>
             <Select value={selectedJobId} onValueChange={setSelectedJobId}>
               <SelectTrigger className="h-14 w-full max-w-2xl rounded-2xl border-2 font-semibold uppercase text-[11px] tracking-widest bg-background/50 shadow-inner">
-                <SelectValue placeholder="PICK A JOB NODE TO PROMOTE" />
+                <SelectValue placeholder="PICK A JOB TO PROMOTE" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2">
                 {jobs.map((j) => (

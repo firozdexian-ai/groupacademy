@@ -315,7 +315,7 @@ export function InvestorsManager() {
  {investor.full_name}
  </p>
  <p className="text-[9px] font-bold text-muted-foreground/80 mt-1 truncate max-w-[250px]">
- {investor.title || "STRATEGIC_NODE"}
+ {investor.title || "—"}
  </p>
  </TableCell>
  <TableCell className="text-left min-w-[150px]">

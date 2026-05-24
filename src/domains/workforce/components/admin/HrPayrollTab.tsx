@@ -294,7 +294,7 @@ export function HrPayrollTab() {
  <Label className="text-[10px] font-medium ml-1">Beneficiary Member</Label>
  <Select value={draft.user_id || ""} onValueChange={(v) => setDraft({ ...draft, user_id: v })}>
  <SelectTrigger className="h-14 rounded-xl border font-bold">
- <SelectValue placeholder="SELECT WORKFORCE NODE" />
+ <SelectValue placeholder="Select team member" />
  </SelectTrigger>
  <SelectContent>
  {data?.workforce

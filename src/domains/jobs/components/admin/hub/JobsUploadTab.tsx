@@ -171,14 +171,14 @@ export function JobsUploadTab() {
                 <div className="flex-1 space-y-4">
                   <p className="text-sm font-medium italic leading-relaxed text-muted-foreground">
                     Upload a standardized LinkedIn JSON export. Our system will auto-resolve institutional identities
-                    (Companies) and provision new job nodes in draft mode for final executive approval.
+                     (Companies) and create new jobs in draft mode for final review.
                   </p>
                   <div className="flex gap-3">
                     <Badge className="bg-primary/5 text-primary border-none font-semibold text-[9px]">
-                      AUTO_RESOLVE_INSTITUTIONS
+                      Auto-link companies
                     </Badge>
                     <Badge className="bg-primary/5 text-primary border-none font-semibold text-[9px]">
-                      JSON_PAYLOAD_V2
+                      JSON v2
                     </Badge>
                   </div>
                 </div>

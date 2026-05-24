@@ -813,7 +813,7 @@ export function CompanyAgentsManager() {
  </div>
  <div className="space-y-1">
  <p className="text-lg font-semibold uppercase tracking-tight italic leading-none group-hover:text-primary transition-colors">
- {lead.lead_name || "ANONYMOUS_ENTITY"}
+ {lead.lead_name || "Anonymous"}
  </p>
  <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground/60 italic">
  <span>{lead.lead_email}</span>

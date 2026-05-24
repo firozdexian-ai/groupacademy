@@ -468,7 +468,7 @@ export const BannerManager = () => {
                   <div className="flex-1 space-y-4">
                     <div className="space-y-1">
                       <h4 className="font-black uppercase tracking-tight text-lg italic leading-none truncate max-w-md">
-                        {banner.content?.title || "UNLINKED_NODE"}
+                        {banner.content?.title || "Unlinked banner"}
                       </h4>
                       <div className="flex items-center gap-3">
                         <Badge

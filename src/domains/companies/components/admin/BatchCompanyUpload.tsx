@@ -457,7 +457,7 @@ export function BatchCompanyUpload({ open, onOpenChange, onComplete }: BatchComp
  <ul className="space-y-2">
  {importStats.errors.map((error, idx) => (
  <li key={idx} className="text-[11px] font-mono text-destructive/80 leading-relaxed">
- [FAULT_ID: {idx.toString().padStart(3, "0")}] {error}
+ [Row {idx.toString().padStart(3, "0")}] {error}
  </li>
  ))}
  </ul>

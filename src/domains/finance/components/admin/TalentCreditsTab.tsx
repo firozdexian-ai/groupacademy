@@ -411,7 +411,7 @@ export function TalentCreditsTab() {
  ? credits.map((credit) => (
  <TableRow key={credit.id} className="group transition-all hover:bg-blue-500/[0.02]">
  <TableCell className="px-8 py-6 font-semibold text-sm uppercase tracking-tight italic group-hover:text-blue-500 transition-colors text-left">
- {credit.talent?.full_name || "ANONYMOUS_NODE"}
+ {credit.talent?.full_name || "Anonymous"}
  </TableCell>
  <TableCell className="text-left">
  <span className="text-[11px] font-bold text-muted-foreground/60">
@@ -455,7 +455,7 @@ export function TalentCreditsTab() {
  </TableCell>
  <TableCell className="text-left">
  <p className="font-semibold text-xs uppercase tracking-tight italic">
- {tx.talent?.full_name || "NODE_AUTO"}
+ {tx.talent?.full_name || "System"}
  </p>
  </TableCell>
  <TableCell className="text-left">

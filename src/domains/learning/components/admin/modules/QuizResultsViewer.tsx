@@ -92,10 +92,10 @@ export function QuizResultsViewer() {
  (attempt: any): QuizAttempt => ({
  id: attempt.id,
  studentId: attempt.student_id,
- studentName: attempt.students?.full_name || "NULL_ENTITY",
+ studentName: attempt.students?.full_name || "Unknown student",
  studentEmail: attempt.students?.email || "N/A",
  contentId: attempt.content_id,
- contentTitle: attempt.content?.title || "UNCLASSED_NODE",
+ contentTitle: attempt.content?.title || "Untitled course",
  score: attempt.score || 0,
  totalQuestions: attempt.total_questions || 0,
  passed: attempt.passed || false,
@@ -143,11 +143,11 @@ export function QuizResultsViewer() {
  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
  <SelectTrigger className="w-full md:w-[320px] h-10 rounded-xl border font-semibold uppercase text-xs bg-card shadow-inner">
  <Layers className="w-4 h-4 mr-2 text-primary" />
- <SelectValue placeholder="Logic Context" />
+ <SelectValue placeholder="Course" />
  </SelectTrigger>
  <SelectContent className="rounded-2xl border shadow-sm">
  <SelectItem value="all" className="font-bold">
- GLOBAL_REGISTRY
+ All courses
  </SelectItem>
  {courses?.map((c) => (
  <SelectItem key={c.id} value={c.id} className="font-bold truncate">
@@ -290,7 +290,7 @@ export function QuizResultsViewer() {
  attempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
  )}
  >
- {attempt.passed ? "SUCCESS_SYNC" : "LOGIC_FAULT"}
+ {attempt.passed ? "PASSED" : "FAILED"}
  </Badge>
  </TableCell>
  <TableCell className="text-sm font-medium text-muted-foreground/40 italic text-left">
@@ -364,7 +364,7 @@ export function QuizResultsViewer() {
  selectedAttempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
  )}
  >
- {selectedAttempt.passed ? "AUTHORIZED" : "REJECTED"}
+ {selectedAttempt.passed ? "PASSED" : "FAILED"}
  </Badge>
  </div>
 

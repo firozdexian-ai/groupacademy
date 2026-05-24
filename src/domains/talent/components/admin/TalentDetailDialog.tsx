@@ -177,14 +177,14 @@ export const TalentDetailDialog = ({
  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
  <div className="space-y-4">
  <h3 className="font-semibold text-xs text-primary italic flex items-center gap-3">
- <Globe className="h-4 w-4" /> Core Telemetry
+ <Globe className="h-4 w-4" /> Contact info
  </h3>
  <div className="grid gap-4">
- <InfoCard label="Registry Email" value={displayTalent.email || "MISSING"} />
- <InfoCard label="Contact String" value={displayTalent.phone || "MISSING"} />
+ <InfoCard label="Email" value={displayTalent.email || "—"} />
+ <InfoCard label="Phone" value={displayTalent.phone || "—"} />
  <div className="bg-muted/20 p-5 rounded-xl border border-border/40">
  <p className="text-[9px] text-muted-foreground/40 uppercase font-semibold tracking-widest">
- Regional Mapping
+ Location
  </p>
  <div className="flex items-center gap-3 mt-2">
  <span className="text-2xl">{getCountryFlag(displayTalent.country)}</span>

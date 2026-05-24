@@ -191,7 +191,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  >
  <span className="relative z-10 flex items-center gap-3">
  {generating ? <InlineSpinner size="md" /> : <KeyRound className="h-5 w-5" />}
- {generating ? "SYNCING..." : "INITIALIZE HANDSHAKE"}
+ {generating ? "GENERATING..." : "GENERATE CODE"}
  </span>
  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
  </Button>
