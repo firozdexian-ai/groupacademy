@@ -53,3 +53,21 @@ A11–A17 made the product look consistent. A18 makes it **work** consistently f
 - **JSDoc / identifier jargon sweep** — Cleans up internal names like `Authoritative*`, `Hardened*` in non-UI files. Low user impact; defer.
 - **Performance pass** (lazy-load images, code-split heavy routes) — Bigger architectural work; needs separate planning.
 - **Feature work** — User hasn't named a feature target; polish-track follow-through is the safer default.
+
+---
+
+## A18 — Executed (Accessibility & Semantic HTML pass)
+
+1. **Icon-only Buttons**: Brace-aware parser swept `src/pages/app/**`, `src/domains/**`, `src/gro10x/**`. Added `aria-label` to **226** `<Button size="icon">` instances across **125** files. Labels inferred from `title=`, `navigate(-1)` (→ "Go back"), and lucide icon name (X → "Close", Trash2 → "Delete", Pencil → "Edit", ArrowLeft → "Go back", Send, Search, RefreshCw, MoreHorizontal, etc. — 45-entry icon→label map). Deduped 7 collisions where the file already had `aria-label` elsewhere on the same Button.
+2. **`<img>` alt text**: 1 file (`CompaniesTab.tsx`) had a missing `alt` on a company logo; added `alt=""` (decorative — accompanies company name text).
+3. **`<main>` landmark**: Added `role="main"` to outermost wrapper of 5 standalone routed pages (`AuthClassic`, `AuthChat`, `Start`, `NotFound`, `ResetPassword`). Used `role="main"` rather than tag-swapping `<div>`/`</div>` to avoid JSX pairing risk.
+4. **Build verified**: 0 TS errors after dedup fix.
+
+### Acceptance
+
+- `<Button size="icon">` without `aria-label` across talent + admin + gro10x: **0**.
+- `<img>` without `alt`: **0**.
+- 5/5 standalone pages have a main landmark.
+- shadcn Dialog/Sheet/Popover/DropdownMenu already trap focus via Radix — no changes needed.
+
+Accessibility baseline established: keyboard and screen-reader users get accessible names on every icon control, every image, and a primary landmark on every routed page.
