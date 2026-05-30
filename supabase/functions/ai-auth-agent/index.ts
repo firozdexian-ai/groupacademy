@@ -87,10 +87,30 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) throw new Error("AI_GATEWAY_FAULT");
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      console.error("[Sentinel] AI_GATEWAY_FAULT:", response.status, body.slice(0, 500));
+      // Graceful fallback so the auth UI never blanks out on gateway hiccups
+      // (rate limits, transient 5xx, model deprecation, etc.).
+      const friendly =
+        response.status === 429
+          ? "I'm a bit busy right now — please try again in a moment."
+          : response.status === 402
+            ? "AI credits are temporarily unavailable. Please try again shortly."
+            : "Sorry, I had trouble responding. Please try again.";
+      return new Response(
+        JSON.stringify({ reply: friendly, action: "noop", quiz: null, fallback: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const data = await response.json();
-    let parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+    } catch (_e) {
+      parsed = { reply: data.choices?.[0]?.message?.content || "…", action: "noop", quiz: null };
+    }
 
     // HUD: CTO_OVERRIDE_GATE
     // Intercepts the AI response to inject hardcoded human verification logic.
@@ -134,10 +154,18 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    console.error("[Sentinel] AUTH_AGENT_FAULT:", err.message);
-    return new Response(JSON.stringify({ error: "INTERNAL_AUTH_FAULT" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[Sentinel] AUTH_AGENT_FAULT:", err?.message, err?.stack);
+    // Return 200 with a friendly fallback so the auth chat UI keeps working
+    // even if the AI gateway or persona lookup throws unexpectedly.
+    return new Response(
+      JSON.stringify({
+        reply: "Sorry, I had trouble responding. Please try again.",
+        action: "noop",
+        quiz: null,
+        fallback: true,
+        error: err?.message || "INTERNAL_AUTH_FAULT",
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
