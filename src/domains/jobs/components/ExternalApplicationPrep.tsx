@@ -75,7 +75,7 @@ export function ExternalApplicationPrep({
     await navigator.clipboard.writeText(textStr.trim());
     setCopiedIndex(index);
     trackEvent("external_application_copy_executed", { index, jobId });
-    toast.success("Response asset path synchronized to clipboard");
+    toast.success("Copied to clipboard");
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
@@ -160,7 +160,7 @@ export function ExternalApplicationPrep({
         setGeneralSummary(data?.general_summary || "");
         setPhase("results");
         trackEvent("external_application_scrape_success", { jobId, keysYielded: data?.answers?.length });
-        toast.success("Ecosystem autonomous mapping verified successfully");
+        toast.success("Application analyzed successfully");
       }
     } catch (err: any) {
       const exceptionMsg = err instanceof Error ? err.message : String(err);
@@ -179,7 +179,7 @@ export function ExternalApplicationPrep({
 
   const executeVisionSync = async () => {
     if (screenshots.length === 0) {
-      toast.error("Staging context requires at least one screenshot evidence file asset.");
+      toast.error("Please upload at least one screenshot.");
       return;
     }
 
@@ -453,12 +453,12 @@ export function ExternalApplicationPrep({
                               {copiedIndex === index ? (
                                 <>
                                   <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5] animate-in zoom-in-95 duration-200" />
-                                  <span>Response Pin Synced</span>
+                                  <span>Copied</span>
                                 </>
                               ) : (
                                 <>
                                   <Copy className="w-3.5 h-3.5 text-muted-foreground/80 stroke-[2.2]" />
-                                  <span>Copy Token Alignment Response</span>
+                                  <span>Copy Answer</span>
                                 </>
                               )}
                             </Button>
@@ -477,7 +477,7 @@ export function ExternalApplicationPrep({
                     <div className="flex items-center justify-between select-none pb-2 border-b border-border/10">
                       <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary pl-0.5 flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-primary fill-primary/5 stroke-[2.2]" />
-                        <span>Executive Strategy Overview Blueprint</span>
+                        <span>Application Summary</span>
                       </h3>
                       <Button
                         variant="outline"
@@ -487,7 +487,7 @@ export function ExternalApplicationPrep({
                           await navigator.clipboard.writeText(generalSummary.trim());
                           setSummaryCopied(true);
                           trackEvent("external_application_summary_copied", { jobId });
-                          toast.success("Affiliate deployment strategy profile pinned to clipboard");
+                          toast.success("Summary copied to clipboard");
                           setTimeout(() => setSummaryCopied(false), 2000);
                         }}
                         className="h-8 w-8 rounded-xl border border-border/40 bg-background/60 hover:bg-primary/5 cursor-pointer shadow-sm transition-transform active:scale-90 shrink-0"

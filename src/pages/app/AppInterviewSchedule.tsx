@@ -180,10 +180,9 @@ export default function AppInterviewSchedule() {
  <ShieldAlert className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Handshake Profile Absent</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Interview Not Found</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The requested specialist invitation link or timeline data maps could not be resolved from standard system
- coordinates.
+ We couldn't find this interview invitation. It may have been cancelled.
  </p>
  </div>
  <Button
@@ -193,7 +192,7 @@ export default function AppInterviewSchedule() {
  onClick={handleReturnToApplicationSnapshot}
  className="h-8 rounded-lg text-xs font-medium tracking-wider px-3 shadow-2xs cursor-pointer"
  >
- Return to Dossier Detail
+ Back to Application
  </Button>
  </div>
  </div>
@@ -214,7 +213,7 @@ export default function AppInterviewSchedule() {
  className="h-8 px-2.5 rounded-md font-bold uppercase tracking-wide text-xs gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground"
  >
  <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
- <span>Application Dossier</span>
+ <span>Application</span>
  </Button>
  </div>
 
@@ -224,7 +223,7 @@ export default function AppInterviewSchedule() {
  <div className="flex items-center gap-2.5 select-none pointer-events-none leading-none w-full block shrink-0">
  <Calendar className="h-4.5 w-4.5 text-primary stroke-[2.2]" />
  <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground pt-0.5">
- Select Evaluation Schedule Coordinate
+ Pick an Interview Time
  </h2>
  </div>
 

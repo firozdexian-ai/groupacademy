@@ -176,9 +176,9 @@ export default function AppJobApplication() {
  if (relationalTalentRowUpdateError) throw relationalTalentRowUpdateError;
 
  await refreshTalent();
- toast.success("Continuous validation CV data artifact successfully locked & hashed.");
+ toast.success("CV uploaded successfully.");
  } catch (storageExceptionPayload) {
- toast.error("Cloud infrastructure rejected credential file payload.");
+ toast.error("Couldn't upload your CV. Please try again.");
  } finally {
  setIsCVStorageUploading(false);
  }
@@ -215,7 +215,7 @@ export default function AppJobApplication() {
  toast.success("Cover letter generated.");
  }
  } catch (fatalAIEngineException) {
- toast.error("AI composition queues are currently restricted. Re-submit parameter query.");
+ toast.error("AI is busy right now. Please try again in a moment.");
  } finally {
  setIsAIComposerProcessing(false);
  }
@@ -233,7 +233,7 @@ export default function AppJobApplication() {
  }
 
  if (!talentProfileRecord.cvUrl) {
- toast.error("Dossier rejected. A verified resume tracking artifact is a required dependency block.");
+ toast.error("Please upload your CV before applying.");
  document.getElementById("cv-upload-anchor-node")?.scrollIntoView({ behavior: "smooth" });
  return;
  }
@@ -287,10 +287,10 @@ export default function AppJobApplication() {
 
  setSubmissionProgressValue(100);
  setIsApplicationSubmitted(true);
- toast.success("Application successfully compiled and indexed.");
+ toast.success("Application submitted successfully.");
  refreshBalance();
  } catch (fatalSubmissionPipelineException) {
- toast.error("Secure data pipeline transaction synchronization interrupted. Please re-verify parameters.");
+ toast.error("Something went wrong submitting your application. Please try again.");
  }
  {
  setIsSubmissionInFlight(false);
@@ -546,7 +546,7 @@ export default function AppJobApplication() {
  <CardHeader className="bg-muted/20 px-4 py-3 border-b border-border/5 flex flex-row items-center justify-between w-full select-none shrink-0 leading-none">
  <CardTitle className="text-[10px] font-mono font-black uppercase tracking-wide flex items-center gap-2 text-foreground/80 leading-none m-0">
  <Sparkles className="w-4 h-4 text-primary stroke-[2.2]" />
- <span>Candidate Cover Letter Narrative Synthesis</span>
+ <span>Cover Letter</span>
  </CardTitle>
 
  <Button
@@ -562,12 +562,12 @@ export default function AppJobApplication() {
  ) : (
  <Zap className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
  )}
- <span>Generate via Neural Prompt AI</span>
+ <span>Write with AI</span>
  </Button>
  </CardHeader>
  <CardContent className="p-4 block w-full leading-none">
  <Textarea
- placeholder="Introduce your background skills history framework, motivation strings, and system alignment properties directly to the reviewing recruiter panel..."
+ placeholder="Tell the recruiter about your background, why you're interested in this role, and what makes you a great fit..."
  value={coverLetterInputStr}
  onChange={(e) => setCoverLetterInputStr(e.target.value)}
  disabled={isAIComposerProcessing}
@@ -582,15 +582,15 @@ export default function AppJobApplication() {
  <div className="flex justify-between items-end px-1 leading-none w-full block shrink-0 select-none pointer-events-none font-mono tracking-tight">
  <div className="leading-none space-y-1 block">
  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
- Estimated Transaction Fee Charge
+ Application Cost
  </p>
  <p className="text-xs sm:text-sm font-black uppercase text-foreground tabular-nums">
- {computedApplicationCost.toLocaleString()} Network Credits
+ {computedApplicationCost.toLocaleString()} Credits
  </p>
  </div>
  <div className="text-right leading-none space-y-1 block">
  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
- Active Profile Liquid Balance
+ Your Balance
  </p>
  <p
  className={cn(
