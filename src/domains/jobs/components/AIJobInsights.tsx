@@ -35,17 +35,17 @@ import { WhyYouMatchPanel } from "./WhyYouMatchPanel";
  */
 
 const MATCH_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "INITIALIZING_IDENTITY_SYNC" },
-  { progress: 45, message: "COMPARING_KNOWLEDGE_NODES" },
-  { progress: 75, message: "EVALUATING_TRAJECTORY_FIT" },
-  { progress: 95, message: "SYNTHESIZING_STRATEGY" },
+  { progress: 15, message: "Reading your profile" },
+  { progress: 45, message: "Comparing your skills" },
+  { progress: 75, message: "Evaluating your fit" },
+  { progress: 95, message: "Finalizing analysis" },
 ];
 
 const MARKET_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "POLLING_MARKET_REGISTRY" },
-  { progress: 45, message: "CALCULATING_COMPETITIVE_DENSITY" },
-  { progress: 75, message: "AUDITING_FISCAL_BENCHMARKS" },
-  { progress: 95, message: "FINALIZING_TELEMETRY" },
+  { progress: 15, message: "Checking market data" },
+  { progress: 45, message: "Measuring competition" },
+  { progress: 75, message: "Comparing salaries" },
+  { progress: 95, message: "Finalizing insights" },
 ];
 
 interface AIJobInsightsProps {
