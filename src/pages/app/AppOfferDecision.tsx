@@ -159,7 +159,7 @@ export default function AppOfferDecision() {
  applicationId: unverifiedApplicationIdStr,
  });
 
- toast.success("Dossier execution variables cryptographically signed.");
+ toast.success("Offer accepted. Welcome aboard!");
  await synchronizeOfferDossierState(isThreadActiveFlag);
  } catch (suppressedMutationException) {
  // System constraints tracked within parent validation frames
@@ -190,7 +190,7 @@ export default function AppOfferDecision() {
  applicationId: unverifiedApplicationIdStr,
  });
 
- toast.info("Offer parameters declined. Records successfully updated.");
+ toast.info("Offer declined. The employer has been notified.");
  await synchronizeOfferDossierState(isThreadActiveFlag);
  } catch (suppressedMutationException) {
  // Safe fallback boundary channel
@@ -224,7 +224,7 @@ export default function AppOfferDecision() {
  className="w-full flex items-center justify-center py-16 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2.5"
  >
  <InlineSpinner size="sm" />
- <span>Compiling Offer Documentation...</span>
+ <span>Loading offer...</span>
  </div>
  );
  }
@@ -240,9 +240,9 @@ export default function AppOfferDecision() {
  <ShieldAlert className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Document Contract Absent</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Offer Not Found</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The targeted placement offer parameters index could not be resolved from active database partitions.
+ We couldn't find this offer. It may have been withdrawn or removed.
  </p>
  </div>
  <Button
@@ -252,7 +252,7 @@ export default function AppOfferDecision() {
  onClick={handleReturnToDossierRedirect}
  className="h-8 rounded-lg text-xs font-medium tracking-wider px-3 shadow-2xs cursor-pointer"
  >
- Return to Dossier Overview
+ Back to Application
  </Button>
  </div>
  </div>
@@ -272,7 +272,7 @@ export default function AppOfferDecision() {
  onClick={handleReturnToDossierRedirect}
  className="h-8 px-2.5 rounded-md font-bold uppercase tracking-wide text-xs gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground"
  >
- <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Dossier Index</span>
+ <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Application</span>
  </Button>
  </div>
 
@@ -287,11 +287,11 @@ export default function AppOfferDecision() {
  )}
  <div className="min-w-0 flex-1 leading-none space-y-0.5">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/50 uppercase tracking-wide block truncate select-text">
- {jobRecordState?.company_name || "CORPORATE ORIGIN UNLINKED"}
+ {jobRecordState?.company_name || "Company"}
  </p>
  <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5 truncate block pt-0.5 select-text">
  <FileText className="h-4 w-4 text-primary stroke-[2.2] shrink-0 pointer-events-none" />
- <span>Offer Run: {offerRecordState.title}</span>
+ <span>Offer: {offerRecordState.title}</span>
  </h2>
  </div>
  </div>
@@ -301,7 +301,7 @@ export default function AppOfferDecision() {
  variant={isDossierDecidedFlag ? "default" : "secondary"}
  className="font-mono text-[9px] font-black uppercase px-2 h-5 tracking-wide pt-0.5 leading-none shrink-0 border rounded-xs shadow-3xs"
  >
- STATE: {offerRecordState.status.toUpperCase()}
+ {offerRecordState.status.toUpperCase()}
  </Badge>
  </div>
 
@@ -309,7 +309,7 @@ export default function AppOfferDecision() {
  <dl className="grid grid-cols-2 gap-3.5 pt-2 border-t border-border/5 text-xs font-semibold block w-full select-text tracking-normal">
  <div className="space-y-0.5 block">
  <dt className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none">
- Base Emoluments Currency
+ Base Salary
  </dt>
  <dd className="text-foreground text-xs font-bold font-mono tabular-nums">
  {offerRecordState.currency} {Number(offerRecordState.base_amount).toLocaleString()}
@@ -318,7 +318,7 @@ export default function AppOfferDecision() {
  {offerRecordState.variable_amount !== null && (
  <div className="space-y-0.5 block">
  <dt className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none">
- Variable Quantum Margin
+ Variable / Bonus
  </dt>
  <dd className="text-foreground text-xs font-bold font-mono tabular-nums">
  {offerRecordState.currency} {Number(offerRecordState.variable_amount).toLocaleString()}
@@ -328,7 +328,7 @@ export default function AppOfferDecision() {
  {offerRecordState.start_date && (
  <div className="space-y-0.5 block">
  <dt className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none">
- Target Activation Onset
+ Start Date
  </dt>
  <dd className="text-muted-foreground/80 font-mono uppercase text-[11px]">
  {format(new Date(offerRecordState.start_date), "PP").toUpperCase()}
@@ -338,7 +338,7 @@ export default function AppOfferDecision() {
  {offerRecordState.expires_at && (
  <div className="space-y-0.5 block">
  <dt className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight select-none pointer-events-none">
- Horizon Constraint Horizon
+ Offer Expires
  </dt>
  <dd className="text-muted-foreground/80 font-mono uppercase text-[11px] tabular-nums">
  {format(new Date(offerRecordState.expires_at), "PPp").toUpperCase()}
@@ -351,7 +351,7 @@ export default function AppOfferDecision() {
  {offerRecordState.benefits && (
  <div className="space-y-1 block w-full pt-1">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none leading-none">
- Corporate Welfare Perks Benefit Matrix
+ Benefits
  </p>
  <p className="text-xs text-foreground/80 font-medium whitespace-pre-wrap leading-relaxed select-text p-2.5 bg-muted/20 border border-border/5 rounded-lg tracking-normal">
  {offerRecordState.benefits}
@@ -361,7 +361,7 @@ export default function AppOfferDecision() {
  {offerRecordState.equity_note && (
  <div className="space-y-1 block w-full pt-1">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none leading-none">
- Capital Equity Vesting Coordinates
+ Equity / Vesting
  </p>
  <p className="text-xs text-foreground/80 font-medium whitespace-pre-wrap leading-relaxed select-text p-2.5 bg-muted/20 border border-border/5 rounded-lg tracking-normal">
  {offerRecordState.equity_note}
@@ -371,7 +371,7 @@ export default function AppOfferDecision() {
  {offerRecordState.custom_note && (
  <div className="space-y-1 block w-full pt-1">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide select-none pointer-events-none leading-none">
- Administrative Supplementary Directives
+ Additional Notes
  </p>
  <p className="text-xs text-foreground/80 font-medium whitespace-pre-wrap leading-relaxed select-text p-2.5 bg-muted/20 border border-border/5 rounded-lg tracking-normal">
  {offerRecordState.custom_note}
@@ -384,14 +384,14 @@ export default function AppOfferDecision() {
  <div className="space-y-3 pt-3.5 border-t border-border/40 block w-full leading-none">
  <div className="space-y-1 block w-full leading-none">
  <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Digital Verification Signature (Type Full Legal Name)
+ Digital Signature (type your full legal name)
  </Label>
  <Input
  type="text"
  disabled={activeMutationContext !== null}
  value={textSignatureInput}
  onChange={(e) => setTextSignatureInput(e.target.value)}
- placeholder="Input legal nomenclature verification identity block string..."
+ placeholder="Type your full legal name..."
  className="h-9 text-xs sm:text-sm bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
  />
  </div>
@@ -405,20 +405,20 @@ export default function AppOfferDecision() {
  {activeMutationContext === "accept" ? (
  <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto block shrink-0" />
  ) : (
- <span>Authorize Package Execution Affirmation</span>
+ <span>Accept Offer</span>
  )}
  </Button>
 
  <details className="text-xs block w-full select-none pt-1">
  <summary className="cursor-pointer font-mono text-xs font-medium tracking-tight text-muted-foreground/40 hover:text-destructive outline-none transition-colors">
- Decline Package Options
+ Decline this offer
  </summary>
  <div className="mt-3.5 space-y-2.5 block w-full leading-none animate-in fade-in duration-150">
  <Textarea
  disabled={activeMutationContext !== null}
  value={textDeclineNoteInput}
  onChange={(e) => setTextDeclineNoteInput(e.target.value)}
- placeholder="Provide explicit separation justification mapping vectors (Optional)..."
+ placeholder="Add a short note explaining why (optional)..."
  rows={2}
  className="bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none text-xs sm:text-sm font-sans leading-relaxed resize-none p-2.5"
  />
@@ -432,7 +432,7 @@ export default function AppOfferDecision() {
  {activeMutationContext === "decline" ? (
  <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto block shrink-0" />
  ) : (
- <span>Decline Emolument Allocation Bundle</span>
+ <span>Decline Offer</span>
  )}
  </Button>
  </div>
@@ -445,13 +445,13 @@ export default function AppOfferDecision() {
  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.01] p-3 font-semibold text-xs sm:text-sm text-foreground flex items-start gap-2 select-text leading-tight block w-full">
  <CheckCircle2 className="h-4 w-4 text-emerald-600 stroke-[2.5] shrink-0 mt-0.5 select-none pointer-events-none" />
  <div className="flex-1 min-w-0 block">
- <span>Dossier successfully signed via credential authorization string: </span>
+ <span>Offer accepted and signed by: </span>
  <strong className="text-primary uppercase tracking-wide block sm:inline-block sm:pl-0.5">
  {offerRecordState.signed_name}
  </strong>{" "}
  {offerRecordState.signed_at && (
  <span className="font-mono text-[10px] text-muted-foreground/50 block sm:inline-block sm:pl-1 select-none pointer-events-none tabular-nums">
- [STAMP: {format(new Date(offerRecordState.signed_at), "PPp").toUpperCase()}]
+ [signed: {format(new Date(offerRecordState.signed_at), "PPp").toUpperCase()}]
  </span>
  )}
  </div>
@@ -461,7 +461,7 @@ export default function AppOfferDecision() {
  {offerRecordState.status === "declined" && (
  <div className="rounded-lg border border-destructive/20 bg-destructive/[0.01] p-3 font-mono text-[10px] font-black uppercase tracking-wide text-destructive flex items-center gap-2 select-none pointer-events-none leading-none block w-full animate-pulse">
  <Ban className="h-4 w-4 stroke-[2.2] shrink-0" />
- <span>Emoluments Allocation Package Declined and Released Back to Source Pools</span>
+ <span>Offer Declined</span>
  </div>
  )}
  </CardContent>

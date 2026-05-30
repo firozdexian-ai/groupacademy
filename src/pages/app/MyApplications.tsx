@@ -89,7 +89,7 @@ export default function MyApplications() {
  try {
  data = await listTalentApplicationsWithJob(user.id);
  } catch (err) {
- toast.error("Failed to synchronize application ledger.");
+ toast.error("Couldn't load your applications. Please try again.");
  return;
  }
 

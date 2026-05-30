@@ -35,17 +35,17 @@ import { WhyYouMatchPanel } from "./WhyYouMatchPanel";
  */
 
 const MATCH_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "INITIALIZING_IDENTITY_SYNC" },
-  { progress: 45, message: "COMPARING_KNOWLEDGE_NODES" },
-  { progress: 75, message: "EVALUATING_TRAJECTORY_FIT" },
-  { progress: 95, message: "SYNTHESIZING_STRATEGY" },
+  { progress: 15, message: "Reading your profile" },
+  { progress: 45, message: "Comparing your skills" },
+  { progress: 75, message: "Evaluating your fit" },
+  { progress: 95, message: "Finalizing analysis" },
 ];
 
 const MARKET_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "POLLING_MARKET_REGISTRY" },
-  { progress: 45, message: "CALCULATING_COMPETITIVE_DENSITY" },
-  { progress: 75, message: "AUDITING_FISCAL_BENCHMARKS" },
-  { progress: 95, message: "FINALIZING_TELEMETRY" },
+  { progress: 15, message: "Checking market data" },
+  { progress: 45, message: "Measuring competition" },
+  { progress: 75, message: "Comparing salaries" },
+  { progress: 95, message: "Finalizing insights" },
 ];
 
 interface AIJobInsightsProps {
@@ -81,7 +81,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
 
   const executeMatchSync = async () => {
     if (!canAfford("JOB_MATCH_SCORE")) {
-      toast.error("Fiscal allocation deficit. 10 credits required to unlock matching node.");
+      toast.error("You need 10 credits to analyze your match. Top up to continue.");
       return;
     }
 
@@ -94,7 +94,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
 
       // Direct edge routing pass executing predictive competency profiling
       const data = await scoreJobMatch({ jobId, talentId });
-      if (!data) throw new Error("AI alignment node returned an empty telemetry matrix.");
+      if (!data) throw new Error("We couldn't analyze this job right now. Please try again.");
 
       setMatchResult(data);
       setMatchOpen(true);
@@ -107,7 +107,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
       queryClient.invalidateQueries({ queryKey: ["talent-stats", talentId] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-      toast.success("Identity alignment mapping completed successfully");
+      toast.success("Match analysis ready");
       trackEvent("ai_job_insights_match_sync_success", { jobId, matchScore: data?.overall_match });
     } catch (err: any) {
       const parsedExceptionMsg = err instanceof Error ? err.message : String(err);
@@ -119,7 +119,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
         talentId,
       });
 
-      toast.error(`Neural alignment timeout: ${parsedExceptionMsg}`);
+      toast.error(`Couldn't analyze match: ${parsedExceptionMsg}`);
     } finally {
       setLoadingMatch(false);
     }
@@ -127,7 +127,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
 
   const executeMarketTelemetry = async () => {
     if (!canAfford("JOB_MARKET_INSIGHT")) {
-      toast.error("Fiscal allocation deficit. 15 credits required to unlock market telemetry.");
+      toast.error("You need 15 credits to see market insights. Top up to continue.");
       return;
     }
 
@@ -140,7 +140,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
 
       // Direct edge routing pass querying macro workforce aggregates
       const data = await analyzeJobMarket({ jobId });
-      if (!data) throw new Error("AI market intelligence node returned an empty telemetry matrix.");
+      if (!data) throw new Error("We couldn't pull market insights right now. Please try again.");
 
       setMarketInsight(data);
       setMarketOpen(true);
@@ -149,7 +149,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
       queryClient.invalidateQueries({ queryKey: ["talent-stats", talentId] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-      toast.success("Workforce competitive telemetry synchronized successfully");
+      toast.success("Market insights ready");
       trackEvent("ai_job_insights_market_telemetry_success", { jobId });
     } catch (err: any) {
       const parsedExceptionMsg = err instanceof Error ? err.message : String(err);
@@ -161,7 +161,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
         talentId,
       });
 
-      toast.error(`Macro data tracking timeout: ${parsedExceptionMsg}`);
+      toast.error(`Couldn't load market insights: ${parsedExceptionMsg}`);
     } finally {
       setLoadingMarket(false);
     }
@@ -184,10 +184,10 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
           </div>
           <div className="min-w-0 flex-1 text-left flex flex-col justify-center">
             <h3 className="text-sm font-bold tracking-tight text-foreground uppercase tracking-wide">
-              Ecosystem Neural Insights
+              AI Job Insights
             </h3>
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mt-0.5 leading-none">
-              Predictive Talent Trajectory Intelligence
+              Match analysis and market data
             </p>
           </div>
         </div>
@@ -219,7 +219,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <Sparkles className="h-4 w-4 text-purple-500 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
                     <span className="font-bold uppercase text-xs tracking-wide text-foreground/90 truncate">
-                      Analyze Competency Alignment
+                      Analyze My Fit
                     </span>
                   </div>
                   <Badge
@@ -243,7 +243,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                       <ShieldCheck className="h-5 w-5 text-purple-500 shrink-0 stroke-[2.2]" />
                       <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
                         <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none mb-0.5">
-                          Alignment Index Parity
+                          Overall Match
                         </span>
                         <span
                           className={cn(
@@ -251,7 +251,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                             getIntensityColor(matchResult.overall_match),
                           )}
                         >
-                          {matchResult.overall_match}% Verified Fit Index
+                          {matchResult.overall_match}% Match
                         </span>
                       </div>
                     </div>
@@ -267,7 +267,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   {/* SKILL_PARITY_HUD Data Tracker */}
                   <div className="space-y-1.5 w-full min-w-0">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider select-none leading-none pl-0.5">
-                      <p className="text-muted-foreground/80">Skill Registry Compliance Match</p>
+                      <p className="text-muted-foreground/80">Skills Match</p>
                       <span className="text-purple-500 bg-purple-500/5 px-2 py-0.5 border border-purple-500/10 rounded-md tabular-nums font-extrabold">
                         {matchResult.skills_match?.percentage || 0}%
                       </span>
@@ -300,7 +300,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   <div className="grid grid-cols-2 gap-3 w-full tabular-nums text-left select-none">
                     <div className="p-3 rounded-xl border border-border/40 bg-card/40 shadow-inner flex flex-col justify-center">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5 leading-none">
-                        Experience Path Fit
+                        Experience Fit
                       </p>
                       <p
                         className={cn(
@@ -313,7 +313,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                     </div>
                     <div className="p-3 rounded-xl border border-border/40 bg-card/40 shadow-inner flex flex-col justify-center">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5 leading-none">
-                        Education Profile Parity
+                        Education Fit
                       </p>
                       <p
                         className={cn(
@@ -365,7 +365,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <Users className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
                     <span className="font-bold uppercase text-xs tracking-wide text-foreground/90 truncate">
-                      Gather Market Telemetry
+                      See Market Insights
                     </span>
                   </div>
                   <Badge
@@ -389,10 +389,10 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                       <TrendingUp className="h-5 w-5 text-blue-500 shrink-0 stroke-[2.2]" />
                       <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
                         <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none mb-0.5">
-                          Ecosystem Competitive Index
+                          Market Competition
                         </span>
                         <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-blue-600 dark:text-blue-400">
-                          Density: {marketInsight.competition_level || "Standard Tracking"}
+                          {marketInsight.competition_level || "Standard"}
                         </span>
                       </div>
                     </div>
@@ -420,9 +420,9 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                         val:
                           marketInsight.similar_jobs_count != null
                             ? `${marketInsight.similar_jobs_count} options active`
-                            : "4 tracked positions",
+                            : "4 open positions",
                       },
-                      { label: "Market Density index", val: marketInsight.competition_level || "Moderate traffic" },
+                      { label: "Competition level", val: marketInsight.competition_level || "Moderate" },
                     ].map((metricItem, i) => (
                       <div
                         key={i}
@@ -441,10 +441,10 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   {/* Fiscal Compensation Range Indicators Analysis */}
                   <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 select-text text-left shadow-sm">
                     <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1 select-none pl-0.5">
-                      Compensation Ledger Analytics
+                      Salary Insights
                     </span>
                     <p className="text-xs font-extrabold text-foreground/90 tracking-tight tabular-nums pl-0.5 leading-tight">
-                      {marketInsight.salary_insight?.market_range || "Benchmark logs matching industry average rates."}
+                      {marketInsight.salary_insight?.market_range || "In line with industry average."}
                     </p>
                     {marketInsight.salary_insight?.posted_salary_assessment && (
                       <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/90 italic pl-0.5 mt-1.5 break-words">
@@ -456,7 +456,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   {/* Operational Success Tips List Segment Track */}
                   <div className="space-y-2 w-full min-w-0">
                     <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 pl-0.5 select-none leading-none">
-                      Tactical Execution Success Protocols
+                      Tips to stand out
                     </p>
                     <ul className="space-y-2 w-full min-w-0 select-text">
                       {marketInsight.success_tips?.map((tipStringItem: string, index: number) => {
