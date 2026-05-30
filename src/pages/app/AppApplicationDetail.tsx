@@ -270,12 +270,12 @@ export default function AppApplicationDetail() {
 
  if (restorationHandshakeError) throw restorationHandshakeError;
 
- toast.success("Application successfully restored to matching vetting lists.");
+ toast.success("Application restored.");
  setApplicationDetailState((prevNode) =>
  prevNode ? { ...prevNode, application_status: "submitted", withdrawn_at: null } : null,
  );
  } catch (mutationExceptionPayload) {
- toast.error("Restoration protocol refused by remote transactional database engine.");
+ toast.error("Couldn't restore your application. Please try again.");
  }
  }, [applicationDetailState]);
 
@@ -319,9 +319,9 @@ export default function AppApplicationDetail() {
  <ShieldAlert className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Dossier Missing</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Application Not Found</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The targeted application tracking instance data could not be localized within verified record arrays.
+ We couldn't find this application. It may have been withdrawn or removed.
  </p>
  </div>
  <Button
@@ -330,7 +330,7 @@ export default function AppApplicationDetail() {
  onClick={handleNavigateToApplicationsDirectory}
  className="h-8 px-3 rounded-lg text-xs font-medium tracking-wider"
  >
- Return to Core Index Grid
+ Back to Applications
  </Button>
  </div>
  </div>
@@ -356,7 +356,7 @@ export default function AppApplicationDetail() {
  onClick={handleNavigateToApplicationsDirectory}
  >
  <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
- <span>Applications Directory</span>
+ <span>My Applications</span>
  </Button>
 
  <Badge
@@ -400,10 +400,10 @@ export default function AppApplicationDetail() {
  {applicationDetailState.job.location || "Remote"}
  </p>
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight block leading-none tabular-nums pt-0.5">
- Uplink Logged:{" "}
+ Applied:{" "}
  {applicationDetailState.created_at
  ? formatDistanceToNow(new Date(applicationDetailState.created_at), { addSuffix: true }).toUpperCase()
- : "SPEC INTERVAL NOT FOUND"}
+ : "DATE UNAVAILABLE"}
  </p>
  </div>
 
@@ -416,7 +416,7 @@ export default function AppApplicationDetail() {
  <Card className="rounded-xl border border-border/60 bg-card/10 shadow-none overflow-hidden block w-full select-none">
  <CardContent className="p-4 block w-full leading-none">
  <p className="text-[10px] font-mono font-black uppercase tracking-wide text-muted-foreground/40 leading-none pb-3 border-b border-border/5 mb-4">
- Vetting Pipeline Progression Coordinates
+ Application Progress
  </p>
 
  <div className="relative flex justify-between items-center w-full block">
@@ -468,11 +468,10 @@ export default function AppApplicationDetail() {
  <Brain className="h-5 w-5 text-amber-500 stroke-[2.2] shrink-0 select-none pointer-events-none animate-pulse" />
  <div className="flex-1 min-w-0 leading-none space-y-1 block select-none pointer-events-none">
  <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground">
- Pending AI Evaluation Task Sequence
+ AI Assessment Pending
  </p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-tight block">
- Mandatory platform testing metric verified. Action required to complete corporate profile distribution
- mapping.
+ Complete the AI assessment to keep your application moving forward.
  </p>
  </div>
 
@@ -482,7 +481,7 @@ export default function AppApplicationDetail() {
  onClick={handleNavigateToAIAssessment}
  className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider px-3 shrink-0 cursor-pointer shadow-2xs transform-gpu active:scale-[0.985]"
  >
- Launch Matrix Test
+ Start Assessment
  </Button>
  </CardContent>
  </Card>
@@ -495,9 +494,9 @@ export default function AppApplicationDetail() {
  <div className="flex items-center gap-1.5 font-mono text-[10px] font-black tracking-wide uppercase text-primary select-none pointer-events-none leading-none block border-b border-border/5 pb-2">
  <Brain className="h-4 w-4 stroke-[2.2]" />
  <span className="pt-0.5">
- Synthetic Mastery Fit Alignment:{" "}
+ AI Match Score:{" "}
  <span className="text-foreground font-mono tabular-nums">
- {Math.round(Number(applicationDetailState.ai_match_score))}% Match Ratio
+ {Math.round(Number(applicationDetailState.ai_match_score))}% Match
  </span>
  </span>
  </div>
@@ -515,7 +514,7 @@ export default function AppApplicationDetail() {
  <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none block w-full overflow-hidden">
  <CardContent className="p-4 space-y-3 block w-full leading-none">
  <p className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
- Distributed Candidate Credentials Packages
+ Your Submission
  </p>
 
  {applicationDetailState.cv_url ? (
@@ -527,18 +526,18 @@ export default function AppApplicationDetail() {
  onClick={handleViewSubmittedCVDocument}
  >
  <FileText className="h-4 w-4 text-muted-foreground/60 stroke-[2.2] mr-2 shrink-0" />
- <span>Inspect Transmitted CV Specification Document</span>
+ <span>View My CV</span>
  </Button>
  ) : (
  <p className="text-xs font-semibold text-muted-foreground/40 py-1 block select-none pointer-events-none">
- No continuous verification curriculum attachment tracked for this application sequence instance block.
+ No CV attached to this application.
  </p>
  )}
 
  {applicationDetailState.cover_letter && (
  <div className="space-y-1.5 pt-1 block w-full leading-none">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block select-none pointer-events-none leading-none">
- Transmitted Narrative Cover Letter Abstract
+ Cover Letter
  </p>
  <p className="text-xs sm:text-sm text-foreground/80 font-medium whitespace-pre-wrap leading-relaxed bg-muted/40 border border-border/5 rounded-lg p-3 block select-text pr-1.5 pr-2 tracking-normal">
  {applicationDetailState.cover_letter}
@@ -554,7 +553,7 @@ export default function AppApplicationDetail() {
  <CardContent className="p-4 space-y-3 block w-full leading-none">
  <div className="flex items-center gap-1.5 font-mono text-[10px] font-extrabold text-muted-foreground/40 uppercase tracking-wide border-b border-border/5 pb-2 select-none pointer-events-none leading-none block w-full">
  <MessageCircle className="h-4 w-4 text-primary stroke-[2.2]" />
- <span className="pt-0.5">Encrypted Communication Thread Channel</span>
+ <span className="pt-0.5">Messages with Recruiter</span>
  </div>
  <ApplicationMessageThread applicationId={applicationDetailState.id} actorRole="talent" />
  </CardContent>
@@ -576,7 +575,7 @@ export default function AppApplicationDetail() {
  className="w-full h-9 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider text-primary border-primary/20 hover:bg-primary/5 cursor-pointer shadow-2xs shrink-0 transform-gpu active:scale-[0.995] block"
  >
  <RotateCcw className="h-3.5 w-3.5 stroke-[2.5] mr-2 shrink-0 inline-block align-middle" />
- <span className="inline-block align-middle pt-0.5">Re-activate Allocation Dossier Parameters</span>
+ <span className="inline-block align-middle pt-0.5">Restore Application</span>
  </Button>
  )}
 
@@ -591,17 +590,17 @@ export default function AppApplicationDetail() {
  className="w-full h-8 px-4 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wide text-destructive hover:text-destructive hover:bg-destructive/5 cursor-pointer transition-colors shadow-none shrink-0 block"
  >
  <Trash2 className="h-3.5 w-3.5 stroke-[2.2] mr-2 shrink-0 inline-block align-middle" />
- <span className="inline-block align-middle pt-0.5">Withdraw Application Credentials</span>
+ <span className="inline-block align-middle pt-0.5">Withdraw Application</span>
  </Button>
  </AlertDialogTrigger>
  <AlertDialogContent className="rounded-xl border border-border/60 bg-popover text-popover-foreground">
  <AlertDialogHeader className="text-left select-none pointer-events-none block leading-none pb-2 border-b border-border/5">
  <AlertDialogTitle className="text-sm font-bold uppercase tracking-wide text-foreground leading-none">
- Terminate Dossier Review Sequence?
+ Withdraw this application?
  </AlertDialogTitle>
  <AlertDialogDescription className="text-xs font-semibold text-muted-foreground/60 leading-normal block pt-1.5">
- The evaluation recruiter interface network will immediately freeze processing loops for this profile
- track. Re-submission capabilities remain locked unless recruitment limits expand later.
+ The employer will stop reviewing your application. You may not be able to re-apply to this
+ role later.
  </AlertDialogDescription>
  </AlertDialogHeader>
  <AlertDialogFooter className="flex items-center gap-1.5 select-none leading-none block w-full mt-4 shrink-0 pt-0.5">
