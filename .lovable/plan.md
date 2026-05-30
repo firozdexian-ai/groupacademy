@@ -1,38 +1,47 @@
+# D2 — Work Hub (Jobs Side) Copy Audit
 
-# Next phase: Track D1 — Gro10x marketing + auth + shell chrome
+Following D1 (Gro10x shell — already clean), D2 audits the talent-facing **Work / Jobs hub** for jargon, internal terms, and unclear copy.
 
-## Why this next
-Track C (admin shell) has had three passes (C1–C3) and the remaining hits are deep dialog copy with low blast radius. Gro10x is the **paying-employer surface** — every jargon string here costs conversions. D1 is the smallest, highest-leverage slice: the pages a prospect sees before they even sign in, plus the chrome that wraps every authed page.
+## Scope (talent-facing only, no admin)
 
-## Scope (D1)
+**Jobs hub pages**
+- `src/pages/app/JobsHub.tsx`
+- `src/pages/app/MyApplications.tsx`
+- `src/pages/app/AppJobApplication.tsx`
+- `src/pages/app/AppApplicationDetail.tsx`
+- `src/pages/app/AppOfferDecision.tsx`
+- `src/pages/app/AppInterviewSchedule.tsx`
+- `src/pages/PublicJobDetail.tsx`
 
-Marketing + auth:
-- `src/gro10x/pages/Gro10xLanding.tsx`
-- `src/gro10x/pages/Gro10xWelcome.tsx`
-- `src/gro10x/pages/Gro10xSignIn.tsx`
+**Jobs hub components**
+- `src/domains/jobs/components/views/{Browse,Companies,Locations,Tools}View.tsx`
+- `JobCard`, `JobsHubHeader`, `JobApplyCTA`, `WhyYouMatchPanel`, `VerifiedMatchBadge`, `ScoreMeJobPicker`, `RelatedJobs`, `AIJobInsights`, `ProfileCompletenessGate`, `JobPreferencesSheet`, `ExternalApplicationPrep`, `InfiniteJobsList`, `CompanyCard`, `CompanyDetailSheet`, `CountryCard`
 
-Shell chrome (visible on every Gro10x page):
-- `src/gro10x/components/Gro10xAppShell.tsx`
-- `src/gro10x/components/Gro10xTopBar.tsx`
-- `src/gro10x/components/Gro10xSideNav.tsx`
-- `src/gro10x/components/Gro10xBottomNav.tsx`
-- `src/gro10x/components/Gro10xPageGate.tsx`
-- `src/gro10x/components/Gro10xInstallButton.tsx`
-- `src/gro10x/components/Gro10xLoading.tsx`
+## What to look for
+
+1. **Internal jargon** — Ingress, Ledger, Telemetry, Registry, Vector, Signal (when used as a label), Pipeline, Verdict, Synchronize, Handshake, Node, Phase, Tier-N, Cohort (when user-facing), HUD, Yield, Throughput, Schema, Payload, Edge, RPC, Tokens.
+2. **Internal feature names leaking into UI** — "Hiring Loop", "Sourced", "Trust Score", "Match RPC", "Score-job-match", "Signal-driven", terms from product memos that shouldn't appear to talent.
+3. **Status pill copy** — application states (e.g. `awaiting_review`, `shortlisted_internal`) shown raw instead of friendly labels.
+4. **Empty states & errors** — "No records", "Query failed", "Edge function returned…" — must read as plain English.
+5. **CTA clarity** — buttons like "Run match", "Compute score", "Open pipeline" → plain verbs ("See why you match", "Apply", "View status").
+6. **Tooltips & badge labels** — VerifiedMatchBadge, match% explainers.
 
 ## Approach
-Same playbook as C1–C3 (pure copy scrub, zero behavior change):
-1. Read each file, flag user-visible jargon (Vector / Ingress / Ledger / Phase-Z / HUD / Synchroniz* / Telemetry / Ecosystem / Handshake / Node / Registry / Artifact / Cipher / Yield / Sync / Neural).
-2. Replace with plain English in the existing brand voice (Tech Blue / Vibrant Cyan / Success Green).
-3. Preserve routes, props, event names, telemetry keys, classNames, behavior.
-4. Skip JSDoc/comment-only jargon (deferred to pre-launch sweep).
-5. Re-grep each file post-edit; log shipped strings in `.lovable/launch-audit.md` under a new "D1 — shipped" section.
+
+1. `rg` sweep across the scoped files for jargon keyword list above (case-insensitive).
+2. Read each file with hits + the 4 view files end-to-end (they drive most UI).
+3. For each finding, propose a plain-English replacement inline.
+4. Apply edits as small, parallel `line_replace` calls. No logic/data changes — copy only.
+5. Verify by re-running the jargon sweep; expect zero hits except false positives (type names, code identifiers).
 
 ## Out of scope
-- Auth flow, routing, gate logic
-- Visual redesign / layout changes
-- DB, RPC, edge function changes
-- D2–D5 batches (Work hub, Gigs, Learn/Billing, Inbox/Agents/Me) — queued after D1 sign-off
 
-## After D1
-Pause for a quick visual spot-check at 393×732, then proceed D2 (Work hub: jobs side). Return to Track C deep dialogs only if a pre-launch verification dry-run flags them.
+- Admin jobs UI (`src/domains/jobs/components/admin/**`) — covered in C-series.
+- Backend / edge functions / RPC names.
+- Visual redesign — copy & labels only.
+
+## Deliverable
+
+A single batch of edits + a short summary table: file → before → after.
+
+Next phase after D2: **D3 — Learning hub (talent side)**.
