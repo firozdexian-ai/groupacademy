@@ -87,10 +87,30 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) throw new Error("AI_GATEWAY_FAULT");
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      console.error("[Sentinel] AI_GATEWAY_FAULT:", response.status, body.slice(0, 500));
+      // Graceful fallback so the auth UI never blanks out on gateway hiccups
+      // (rate limits, transient 5xx, model deprecation, etc.).
+      const friendly =
+        response.status === 429
+          ? "I'm a bit busy right now — please try again in a moment."
+          : response.status === 402
+            ? "AI credits are temporarily unavailable. Please try again shortly."
+            : "Sorry, I had trouble responding. Please try again.";
+      return new Response(
+        JSON.stringify({ reply: friendly, action: "noop", quiz: null, fallback: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const data = await response.json();
-    let parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+    } catch (_e) {
+      parsed = { reply: data.choices?.[0]?.message?.content || "…", action: "noop", quiz: null };
+    }
 
     // HUD: CTO_OVERRIDE_GATE
     // Intercepts the AI response to inject hardcoded human verification logic.
