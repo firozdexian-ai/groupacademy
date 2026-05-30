@@ -1,60 +1,38 @@
 
-# Next: Track D — Gro10x employer shell
+# Next phase: Track D1 — Gro10x marketing + auth + shell chrome
 
-## Why this next (not C or verification)
-- **Customer-facing & revenue-bearing.** Gro10x is the paying-employer surface. Bad copy here directly hurts conversions and paid retention. Admin shell (Track C) is internal — same defects but lower blast radius.
-- **Smaller scope than C.** ~12 pages vs ~118 admin tabs. We can finish Track D in 4–5 batches and then hit C with a clean run.
-- **Verification dry-run (option 4) is more useful *after* Gro10x is humanized** — otherwise we'd find the same copy issues twice.
+## Why this next
+Track C (admin shell) has had three passes (C1–C3) and the remaining hits are deep dialog copy with low blast radius. Gro10x is the **paying-employer surface** — every jargon string here costs conversions. D1 is the smallest, highest-leverage slice: the pages a prospect sees before they even sign in, plus the chrome that wraps every authed page.
 
-## Track D batch plan
+## Scope (D1)
 
-```text
-D1  Marketing + Auth surface
-    - Gro10xLanding, Gro10xWelcome, Gro10xSignIn
-    - PageGate, InstallButton, TopBar, SideNav, BottomNav (shell chrome)
+Marketing + auth:
+- `src/gro10x/pages/Gro10xLanding.tsx`
+- `src/gro10x/pages/Gro10xWelcome.tsx`
+- `src/gro10x/pages/Gro10xSignIn.tsx`
 
-D2  Work hub (jobs side)
-    - Gro10xWork (root), Gro10xJobsList, Gro10xJobApplicants,
-      Gro10xApplications, Gro10xShortlist, Gro10xOfferComposer
-
-D3  Work hub (gigs + sourcing)
-    - Gro10xGigBids, Gro10xProjects, Gro10xTalents,
-      Gro10xSourcingLists, TalentPipelinePanel, OpenGigs, JobPostWizard
-
-D4  Learn + commerce
-    - Gro10xLearn, OpsTracksTab, Gro10xBilling, TelegramTopUpModal
-
-D5  Messaging + agents + me
-    - Gro10xInbox, Gro10xChat, Gro10xAgentMarketplace, Gro10xMe
-```
-
-Each batch = same A-track playbook: pure copy + comment scrub, no DB / RPC / behavior changes. Verify with TS clean + visual spot-check.
-
-## Starting now: **D1 — Marketing + Auth surface**
-
-Scope:
-- `src/gro10x/pages/Gro10xLanding.tsx` — public landing page (first impression for paying employers)
-- `src/gro10x/pages/Gro10xWelcome.tsx` — first-run welcome
-- `src/gro10x/pages/Gro10xSignIn.tsx` — sign-in
+Shell chrome (visible on every Gro10x page):
+- `src/gro10x/components/Gro10xAppShell.tsx`
 - `src/gro10x/components/Gro10xTopBar.tsx`
 - `src/gro10x/components/Gro10xSideNav.tsx`
 - `src/gro10x/components/Gro10xBottomNav.tsx`
 - `src/gro10x/components/Gro10xPageGate.tsx`
 - `src/gro10x/components/Gro10xInstallButton.tsx`
-- `src/gro10x/components/Gro10xAppShell.tsx`
+- `src/gro10x/components/Gro10xLoading.tsx`
 
-Approach:
-1. Read each file, identify user-visible jargon strings (Vector/Ingress/Ledger/Phase-Z/HUD/Synchroniz/Telemetry/Ecosystem/Handshake).
-2. Replace with plain English while preserving brand voice (Tech Blue, Vibrant Cyan, Success Green per memory).
-3. Preserve all behavior, routes, props, telemetry event names where they're used downstream.
-4. Log changes in `.lovable/launch-audit.md` under a new "D1 — Gro10x Auth/Shell — shipped" section.
-5. Mobile-first verification at the current 390×672 viewport.
+## Approach
+Same playbook as C1–C3 (pure copy scrub, zero behavior change):
+1. Read each file, flag user-visible jargon (Vector / Ingress / Ledger / Phase-Z / HUD / Synchroniz* / Telemetry / Ecosystem / Handshake / Node / Registry / Artifact / Cipher / Yield / Sync / Neural).
+2. Replace with plain English in the existing brand voice (Tech Blue / Vibrant Cyan / Success Green).
+3. Preserve routes, props, event names, telemetry keys, classNames, behavior.
+4. Skip JSDoc/comment-only jargon (deferred to pre-launch sweep).
+5. Re-grep each file post-edit; log shipped strings in `.lovable/launch-audit.md` under a new "D1 — shipped" section.
 
-Out of scope for D1:
-- Functional changes (auth flow, routing, gates)
-- DB / RPC / edge function changes
-- Visual redesign (handled separately if requested)
-- JSDoc/comment jargon (deferred to pre-launch sweep)
+## Out of scope
+- Auth flow, routing, gate logic
+- Visual redesign / layout changes
+- DB, RPC, edge function changes
+- D2–D5 batches (Work hub, Gigs, Learn/Billing, Inbox/Agents/Me) — queued after D1 sign-off
 
 ## After D1
-Pause for a quick sign-off, then proceed D2 → D5. After Track D, return to Track C (admin) or jump to pre-launch verification depending on time-to-launch.
+Pause for a quick visual spot-check at 393×732, then proceed D2 (Work hub: jobs side). Return to Track C deep dialogs only if a pre-launch verification dry-run flags them.
