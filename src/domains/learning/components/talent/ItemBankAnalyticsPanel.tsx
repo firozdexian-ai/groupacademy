@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils";
 import { ItemRewriteSheet } from "./ItemRewriteSheet";
 
 const FLAG_LABEL: Record<string, string> = {
-  low_p_value: "Too hard",
-  trivial: "Too easy",
-  stale: "Stale",
+  low_p_value: "High Difficulty",
+  trivial: "Low Difficulty",
+  stale: "Stale Content",
   miscalibrated: "Miscalibrated",
-  low_rubric: "Low rubric",
+  low_rubric: "Low Rubric Alignment",
 };
 
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${Math.round(v * 100)}%`);
@@ -32,26 +32,25 @@ export interface ItemBankAnalyticsPanelProps {
 }
 
 /**
- * GroUp Academy: Psychometric Telemetry & Content Optimization Node (ItemBankAnalyticsPanel)
- * CTO Reference: Authoritative interface for monitoring curriculum items calibration and dispatching AI content rewrites.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * GroUp Academy: Psychometric Analytics & Content Optimization Panel
+ * Administrative interface for monitoring course items calibration and reviewing AI content updates.
  */
 export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps) {
   const queryClient = useQueryClient();
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [rewrite, setRewrite] = useState<{ kind: "quiz" | "scenario"; itemId: string; flags: string[] } | null>(null);
 
-  // Monitor psychometric analysis board views via analytics tracking endpoints
+  // Monitor psychometric analysis board view states
   useEffect(() => {
     if (moduleId) {
       trackEvent("item_bank_analytics_panel_mounted", { moduleId, onlyNeedsReviewFilter: onlyFlagged });
     }
   }, [moduleId, onlyFlagged]);
 
-  // Core Server State Hook Ingress: Fetch psychometric content telemetry profiles
+  // Core Server State Hook Ingress to load item analytics datasets
   const { data, isLoading: loading, error, refetch } = useItemAnalytics(moduleId);
 
-  // Route internal database lookup processing exceptions straight to logging systems
+  // Dispatch database mapping anomalies straight to analytical tracking logs
   useEffect(() => {
     if (error) {
       trackError(error, {
@@ -111,10 +110,10 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
           </div>
           <div className="space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-              Couldn't load
+              Unable to load analytics
             </p>
             <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
-              {error.message || "Something went wrong. Please try again."}
+              {error.message || "Something went wrong. Please refresh the page to try again."}
             </p>
           </div>
           <Button
@@ -124,7 +123,7 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
             className="h-8 rounded-xl border-border/60 hover:bg-accent font-bold uppercase text-[10px] tracking-wide gap-1.5 shrink-0 shadow-sm cursor-pointer"
           >
             <RefreshCw className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Try again</span>
+            <span>Retry Connection</span>
           </Button>
         </CardContent>
       </Card>
@@ -136,23 +135,23 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
 
   return (
     <div className="space-y-4 text-left antialiased max-w-full w-full select-none sm:select-text">
-      {/* HUD SECTION 1: CALIBRATION METRIC PLOTS ROW */}
+      {/* Metric Counters Top Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full select-none">
-        <Stat label="Quiz Items" value={summaryModelValues.quiz_items || 0} />
-        <Stat label="Scenarios" value={summaryModelValues.scenario_items || 0} />
+        <Stat label="Quiz Questions" value={summaryModelValues.quiz_items || 0} />
+        <Stat label="Active Scenarios" value={summaryModelValues.scenario_items || 0} />
         <Stat
-          label="Avg Difficulty"
+          label="Average Difficulty"
           value={pct(summaryModelValues.avg_p_value)}
           tone={summaryModelValues.avg_p_value !== null && summaryModelValues.avg_p_value < 0.4 ? "warn" : "default"}
         />
         <Stat
-          label="Needs Review"
+          label="Items Needing Review"
           value={summaryModelValues.items_needing_review || 0}
           tone={summaryModelValues.items_needing_review > 0 ? "warn" : "default"}
         />
       </div>
 
-      {/* ACTION BAR: ROW FILTER CONFIGURATION STRIP */}
+      {/* Control Toggle Filters Strip */}
       <div className="flex items-center justify-between gap-4 w-full select-none border-y border-border/10 py-2.5 my-1">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
@@ -165,7 +164,7 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
             }}
             className="h-7 px-3 text-[10px] font-extrabold uppercase tracking-wide rounded-xl shadow-sm cursor-pointer transition-all active:scale-95"
           >
-            <span>{onlyFlagged ? "Show all" : "Show flagged only"}</span>
+            <span>{onlyFlagged ? "Show All Items" : "Filter Flagged Only"}</span>
           </Button>
         </div>
 
@@ -181,13 +180,13 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
         </Button>
       </div>
 
-      {/* HUD SECTION 2: TOPIC CALIBRATION MATRIX GRID */}
+      {/* Topic Performance Summary Section */}
       {Array.isArray(data.topics) && data.topics.length > 0 && (
         <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden">
           <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
             <CardTitle className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2">
               <Layers className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-              <span>Categorized Topic Matrix Performance</span>
+              <span>Topic Matrix Calibration Performance</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 py-2 space-y-0.5 w-full min-w-0 font-bold text-xs tracking-tight text-foreground/90 tabular-nums">
@@ -206,31 +205,31 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
                       {topicNodeItem.topic_tag}
                     </Badge>
                     <span className="text-muted-foreground/70 font-semibold truncate text-[11px]">
-                      {topicNodeItem.items || 0} target {topicNodeItem.items === 1 ? "node" : "nodes"}
+                      {topicNodeItem.items || 0} active {topicNodeItem.items === 1 ? "node" : "nodes"}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0 text-[11px] select-text">
                     <span
                       className="bg-muted/30 px-1.5 py-0.5 border border-border/20 rounded font-semibold text-muted-foreground/90"
-                      title="Quiz item p-value response coefficient"
+                      title="Average performance on related quiz questions"
                     >
-                      Quiz P: {pct(topicNodeItem.avg_p_value)}
+                      Quiz Difficulty: {pct(topicNodeItem.avg_p_value)}
                     </span>
                     <span
                       className="bg-muted/30 px-1.5 py-0.5 border border-border/20 rounded font-semibold text-muted-foreground/90"
-                      title="Scenario baseline score alignment"
+                      title="Average completion alignment on relative exercises"
                     >
-                      Sce S: {pct(topicNodeItem.avg_scenario_score)}
+                      Scenario Score: {pct(topicNodeItem.avg_scenario_score)}
                     </span>
                     <span
                       className={cn(
                         "font-extrabold bg-muted/40 px-2 py-0.5 border border-border/10 rounded-md shadow-sm",
                         masteryTone(topicNodeItem.learner_mastery_mean),
                       )}
-                      title="Aggregated mean value user retention mastery profile"
+                      title="Aggregated subject student retention profile"
                     >
-                      Mast M: {pct(topicNodeItem.learner_mastery_mean)}
+                      Mean Mastery: {pct(topicNodeItem.learner_mastery_mean)}
                     </span>
                   </div>
                 </div>
@@ -240,20 +239,20 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
         </Card>
       )}
 
-      {/* HUD SECTION 3: QUIZ EVALUATION repository PIPELINE */}
+      {/* Quiz Evaluation Grid Workspace */}
       <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden">
         <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
           <CardTitle className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2">
             <CheckCircle2 className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-            <span>Psychometric Quiz Items Repository</span>
+            <span>Quiz Question Bank Metrics Ledger</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-3 w-full min-w-0">
           {quizItems.length === 0 && (
             <p className="text-xs font-semibold text-muted-foreground/70 italic leading-normal py-6 text-center select-text max-w-xs mx-auto">
               {onlyFlagged
-                ? "No flagged quiz items."
-                : "No quiz items in this module yet."}
+                ? "There are currently no flagged quiz questions requiring adjustment."
+                : "No assessment questions have been compiled inside this module yet."}
             </p>
           )}
           {quizItems.map((q) => {
@@ -272,20 +271,20 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
         </CardContent>
       </Card>
 
-      {/* HUD SECTION 4: SCENARIO WORKSPACE LOGS LIFECYCLE CONTAINER */}
+      {/* Scenario Performance Ledger Section */}
       <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden">
         <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
           <CardTitle className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-            <span>Scenarios</span>
+            <span>Interactive Scenarios Performance</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-3 w-full min-w-0">
           {scenarioItems.length === 0 && (
             <p className="text-xs font-semibold text-muted-foreground/70 italic leading-normal py-6 text-center select-text max-w-xs mx-auto">
               {onlyFlagged
-                ? "No flagged scenarios."
-                : "No scenarios in this module yet."}
+                ? "There are currently no flagged scenarios requiring configuration tweaks."
+                : "No interactive scenarios have been mapped to this workspace track yet."}
             </p>
           )}
           {scenarioItems.map((s) => {
@@ -304,7 +303,7 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
         </CardContent>
       </Card>
 
-      {/* COGNITIVE AI REWRITE DRAW HOOK SHEET OVERLAY PANEL */}
+      {/* Overlay AI Content Tuning Generation Drawer */}
       <ItemRewriteSheet
         open={!!rewrite}
         onOpenChange={(isOpenState) => {
@@ -391,7 +390,7 @@ function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
   return (
     <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm p-3.5 space-y-2.5 w-full min-w-0 text-left transition-all duration-300 hover:border-border/60 shadow-sm">
       <p className="text-xs sm:text-sm font-bold text-foreground/90 leading-relaxed select-text line-clamp-3 break-words pr-1">
-        {q.question || "Psychometric calibration text sequence missing error."}
+        {q.question || "No question text provided."}
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] leading-none pt-0.5 border-t border-border/5 select-none font-bold tabular-nums text-muted-foreground/80">
@@ -417,14 +416,14 @@ function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
         </div>
 
         <div className="flex items-center gap-3 shrink-0 tabular-nums text-[10px] sm:text-xs">
-          <span>{Number(q.serves_lifetime || 0).toLocaleString()} exposures</span>
+          <span>{Number(q.serves_lifetime || 0).toLocaleString()} student exposures</span>
           <span
             className={cn(
               "font-extrabold bg-muted/40 px-1.5 py-0.5 rounded border border-border/20 shadow-sm leading-none inline-block",
               coefficientToneClass,
             )}
           >
-            coeff p: {pct(normalizedPValue)}
+            Difficulty Coefficient: {pct(normalizedPValue)}
           </span>
         </div>
       </div>
@@ -439,7 +438,7 @@ function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
             className="h-6 rounded-lg text-[9px] font-extrabold uppercase tracking-wide px-2 border-border/60 hover:bg-accent text-primary shrink-0 cursor-pointer shadow-sm flex items-center gap-1 active:scale-95 transition-transform"
           >
             <Sparkles className="h-2.5 w-2.5 text-primary fill-primary/10 stroke-[2.5]" />
-            <span>Rewrite with AI</span>
+            <span>Optimize Content</span>
           </Button>
         </div>
       )}
@@ -466,7 +465,7 @@ function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => v
     <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm p-3.5 space-y-2.5 w-full min-w-0 text-left transition-all duration-300 hover:border-border/60 shadow-sm">
       <div className="flex items-start justify-between gap-4 w-full text-left leading-none">
         <p className="text-xs sm:text-sm font-bold text-foreground/90 select-text line-clamp-2 break-words flex-1 pr-1 leading-snug">
-          {s.title || "Untitled scenario"}
+          {s.title || "Untitled Scenario Topic"}
         </p>
         <span
           className={cn(
@@ -474,7 +473,7 @@ function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => v
             scoreIntensityToneClass,
           )}
         >
-          avg score: {pct(normalizedOverallScore)}
+          Average Score: {pct(normalizedOverallScore)}
         </span>
       </div>
 
@@ -493,7 +492,7 @@ function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => v
         </div>
         <span className="text-muted-foreground/70 font-semibold text-[10px] sm:text-xs shrink-0">
           {Number(s.runs_lifetime || 0).toLocaleString()} total runs &bull;{" "}
-          {Number(s.runs_window || 0).toLocaleString()} recent
+          {Number(s.runs_window || 0).toLocaleString()} evaluated recently
         </span>
       </div>
 
@@ -531,7 +530,7 @@ function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => v
             className="h-6 rounded-lg text-[9px] font-extrabold uppercase tracking-wide px-2 border-border/60 hover:bg-accent text-primary shrink-0 pointer-events-auto cursor-pointer shadow-sm flex items-center gap-1 active:scale-95 transition-transform"
           >
             <Sparkles className="h-2.5 w-2.5 text-primary fill-primary/10 stroke-[2.5]" />
-            <span>Rewrite with AI</span>
+            <span>Optimize Content</span>
           </Button>
         </div>
       )}
