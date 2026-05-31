@@ -21,7 +21,7 @@ type EventFilter = "in_person" | "competitions" | "abroad";
 
 const filterOptions: { key: EventFilter; icon: any; label: string }[] = [
   { key: "in_person", icon: MapPin, label: "In-Person Seminars" },
-  { key: "competitions", icon: Competitions, label: "Challenges" },
+  { key: "competitions", icon: Trophy, label: "Challenges" },
   { key: "abroad", icon: Globe, label: "Study Abroad" },
 ];
 
@@ -382,7 +382,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
                       <span>
                         {Array.isArray(compItem.prizes)
                           ? `${compItem.prizes.length} Prizes Available`
-                          : "Rewards Pool staged"}
+                          : "Prizes Announced Soon"}
                       </span>
                     </span>
                     <span className="flex items-center gap-0.5 text-[11px] font-bold group-hover:translate-x-0.5 transition-transform text-primary">
