@@ -159,7 +159,7 @@ export default function AppCohortHome() {
  >
  <Calendar className="h-3 w-3 mr-1 text-primary stroke-[2.2] shrink-0" />
  <span>
- SPAN: {resolvedCohortNode.starts_on ?? "SELF-PACED PIPELINE"}
+ STARTS: {resolvedCohortNode.starts_on ?? "SELF-PACED"}
  {resolvedCohortNode.ends_on ? ` → ${resolvedCohortNode.ends_on}` : ""}
  </span>
  </Badge>

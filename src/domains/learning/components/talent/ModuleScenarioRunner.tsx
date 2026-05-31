@@ -412,7 +412,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             disabled={streaming}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Type your operational response input, click enter to dispatch vector…"
+            placeholder="Type your response and press Enter to send…"
             className="rounded-xl border border-border/40 bg-card/40 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium w-full h-10 shadow-sm"
           />
           <Button

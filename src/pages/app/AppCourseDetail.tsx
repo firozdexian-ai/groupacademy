@@ -142,9 +142,9 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
  <div className={cn(PAGE_SHELL, "w-full text-left block antialiased")}>
  <EmptyState
  icon={Lock}
- title="Curriculum Allocation Restrained"
- description="The requested learning pipeline parameters are currently unpublished or blocked under this credential node structure."
- action={{ label: "Return to Learning Index", onClick: handleReturnToCatalogTrigger }}
+ title="Course unavailable"
+ description="This course isn't published yet or you don't have access."
+ action={{ label: "Back to courses", onClick: handleReturnToCatalogTrigger }}
  />
  </div>
  );
@@ -287,8 +287,8 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
  <div className="w-full text-left block">
  <EmptyState
  icon={BookOpen}
- title="Syllabus Matrix Clear"
- description="Educational lecture segments and lesson maps are currently building for this node sequence."
+ title="No modules yet"
+ description="Lessons for this course are being prepared."
  />
  </div>
  ) : (
@@ -316,7 +316,7 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
  )}
  >
  <Clock className="h-3 w-3 stroke-[2] shrink-0" />
- <span>Segment Allocation Runtime: {moduleNodeItem.estimated_time_minutes || 15} Min</span>
+ <span>{moduleNodeItem.estimated_time_minutes || 15} min</span>
  </p>
  </div>
 
@@ -352,7 +352,7 @@ function RecordedEnrollCta({ course }: SubComponentProps) {
  className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center"
  onClick={() => navigateHook(`/app/learn/${course.slug}`)}
  >
- <span>Resume Course Environment</span>
+ <span>Resume course</span>
  </Button>
  );
  }
@@ -385,8 +385,8 @@ function RecordedEnrollCta({ course }: SubComponentProps) {
  ) : (
  <span>
  {computedTotalCreditsCost > 0
- ? `Authorize Pipeline Access · ${computedTotalCreditsCost.toLocaleString()} Credits`
- : "Authorize Pipeline Access · Free Ingress Token"}
+ ? `Enroll · ${computedTotalCreditsCost.toLocaleString()} credits`
+ : "Enroll · Free"}
  </span>
  )}
  </Button>

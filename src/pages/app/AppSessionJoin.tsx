@@ -71,7 +71,7 @@ export default function AppSessionJoin() {
  if (!isThreadActive) return;
 
  if (queryHandshakeError || !dbSessionPayload) {
- setPipelineHandshakeErrorStr("The requested classroom pipeline channel parameters could not be localized.");
+ setPipelineHandshakeErrorStr("We couldn't find this session.");
  return;
  }
 
@@ -81,7 +81,7 @@ export default function AppSessionJoin() {
  markAttendanceMutation.mutate(unverifiedSessionIdStr);
  } catch (fatalExceptionPayload) {
  if (isThreadActive) {
- setPipelineHandshakeErrorStr("System link handshake communication failure recorded.");
+ setPipelineHandshakeErrorStr("Something went wrong loading this session.");
  }
  }
  };
@@ -119,7 +119,7 @@ export default function AppSessionJoin() {
  >
  <div className="flex items-center gap-2.5">
  <InlineSpinner size="sm" />
- <span>Authenticating Pipeline Handshake Token...</span>
+ <span>Loading session...</span>
  </div>
  </div>
  );
@@ -136,10 +136,10 @@ export default function AppSessionJoin() {
  <AlertCircle className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block leading-none">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Ingress Access Restricted</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Session unavailable</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal mt-1">
  {pipelineHandshakeErrorStr ||
- "The scheduled meeting pipeline credentials are empty or unpublished under this token."}
+ "This session isn't published yet or the link is no longer active."}
  </p>
  </div>
  <Button
@@ -186,7 +186,7 @@ export default function AppSessionJoin() {
  className="w-full h-9 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block text-center"
  >
  <ExternalLink className="h-3.5 w-3.5 stroke-[2.5] inline-block shrink-0 align-middle" />
- <span className="inline-block align-middle pt-0.5">Open Secure Meeting Room Ingress</span>
+ <span className="inline-block align-middle pt-0.5">Join meeting</span>
  </Button>
  ) : sessionMetadataState.recording_link ? (
  <Button
@@ -196,13 +196,12 @@ export default function AppSessionJoin() {
  className="w-full h-9 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider border border-border/60 bg-background/50 hover:bg-accent cursor-pointer transition-colors shadow-2xs block text-center pt-2"
  >
  <a href={sessionMetadataState.recording_link} target="_blank" rel="noopener noreferrer">
- Stream Historical Lecture Playback
+ Watch recording
  </a>
  </Button>
  ) : (
  <p className="text-[11px] font-medium text-muted-foreground/60 leading-normal block select-none pointer-events-none py-1">
- The technical channel uplink route variables are unassigned. Connection links populating automatically
- upon operational publication by your lead instructor node.
+ The join link isn't available yet. It will appear here once your instructor publishes it.
  </p>
  )}
  </div>
@@ -210,7 +209,7 @@ export default function AppSessionJoin() {
  {/* HUD LEVEL 3: VALIDATION VERIFIED LOG INDICATORS BAR */}
  <div className="flex items-center gap-1.5 font-mono text-[10px] font-black text-emerald-600 border-t border-border/5 pt-3 w-full shrink-0 select-none pointer-events-none uppercase tracking-wide leading-none">
  <CheckCircle2 className="h-3.5 w-3.5 stroke-[2.5] text-emerald-600" />
- <span className="pt-0.5">Attendance Registration Verified and Signed</span>
+ <span className="pt-0.5">Attendance recorded</span>
  </div>
  </CardContent>
  </Card>

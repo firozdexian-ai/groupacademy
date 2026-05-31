@@ -188,11 +188,10 @@ export function StudyAbroadSection() {
             </div>
             <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
               <h3 className="text-xs sm:text-sm font-bold text-foreground/90 tracking-tight uppercase tracking-wide leading-none">
-                Synthesize Mapped 12-Month Roadmap
+                Your 12-month roadmap
               </h3>
               <p className="text-[11px] font-semibold text-muted-foreground/80 mt-1.5 leading-normal tracking-tight italic">
-                Custom structured timeline matrix: institution shortlisting thresholds, targeted IELTS curves, budgetary
-                allocation nodes, and visa ingress guidance.
+                A custom timeline covering university shortlists, IELTS targets, budgets, and visa steps.
               </p>
             </div>
           </div>
@@ -223,9 +222,8 @@ export function StudyAbroadSection() {
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/60 select-none leading-none tabular-nums pl-0.5">
             <Coins className="h-3.5 w-3.5 text-amber-500 stroke-[2.2] shrink-0" />
             <span>
-              Processing ledger invokes transactional check debit of{" "}
-              <span className="text-primary font-black">{roadmapCost.toLocaleString()} credits</span> from account index
-              bounds
+              Costs{" "}
+              <span className="text-primary font-black">{roadmapCost.toLocaleString()} credits</span> from your balance
             </span>
           </div>
         </CardContent>

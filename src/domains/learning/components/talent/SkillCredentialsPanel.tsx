@@ -124,7 +124,7 @@ export function SkillCredentialsPanel({ compact = false, limit }: { compact?: bo
       navigator.clipboard.writeText(absoluteProfileShareUrl);
       toast({
         title: "Share link copied",
-        description: "Public verification address added to your operational ledger.",
+        description: "Public profile link copied to clipboard.",
       });
     } catch (clipboardErr) {
       trackError(clipboardErr, { component: "SkillCredentialsPanel", action: "copy_to_clipboard" });
@@ -143,7 +143,7 @@ export function SkillCredentialsPanel({ compact = false, limit }: { compact?: bo
         <CardTitle className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center justify-between gap-4 w-full">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary fill-primary/5 stroke-[2.2] animate-pulse" />
-            <span>Verified Skill Competency Credentials</span>
+            <span>Verified skills</span>
           </div>
           <Badge
             variant="secondary"
@@ -184,12 +184,12 @@ export function SkillCredentialsPanel({ compact = false, limit }: { compact?: bo
                 {/* Text Taxonomy Metadata Rows Block */}
                 <div className="min-w-0 flex-1 space-y-0.5 text-left">
                   <p className="text-xs font-bold text-foreground/90 tracking-tight truncate capitalize text-ellipsis pr-1 select-text">
-                    {credentialItem.topic_tag ? credentialItem.topic_tag.replace(/_/g, " ") : "Competency Node"}
+                    {credentialItem.topic_tag ? credentialItem.topic_tag.replace(/_/g, " ") : "Skill"}
                   </p>
                   {!compact && (
                     <p className="text-[11px] font-semibold text-muted-foreground/80 tracking-tight truncate text-ellipsis select-all leading-none pt-0.5">
                       <span>{meta.label}</span> &bull;{" "}
-                      <span>{(credentialItem as any).content?.title || "Cross-Course Index"}</span> &bull;{" "}
+                      <span>{(credentialItem as any).content?.title || "Across courses"}</span> &bull;{" "}
                       <span className="font-mono text-[10px] bg-muted/40 border px-1 rounded shadow-sm leading-none inline-block tabular-nums">
                         {calculatedMasteryScore}% mastery
                       </span>

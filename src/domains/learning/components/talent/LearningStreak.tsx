@@ -61,7 +61,7 @@ export function LearningStreak({ streak, className }: LearningStreakProps) {
       ) : (
         <>
           <Zap className="h-3.5 w-3.5 opacity-40 shrink-0 stroke-[2.2]" />
-          <span className="font-bold tracking-wide">Initialize Streak</span>
+          <span className="font-bold tracking-wide">Start your streak</span>
         </>
       )}
     </div>
