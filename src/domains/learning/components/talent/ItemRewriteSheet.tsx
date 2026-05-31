@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { AlertTriangle, Sparkles, Check, Languages, ArrowLeft, Loader2 } from "lucide-react";
+import { AlertTriangle, Sparkles, Check, Languages, ArrowLeft, Loader2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useItemRewrite, type QuizSuggestion, type ScenarioSuggestion } from "@/domains/learning";
 import { useItemTranslate, SUPPORTED_TRANSLATION_LANGS } from "@/domains/learning";
@@ -397,7 +397,6 @@ function TranslatePanel({ kind, itemId }: { kind: "quiz" | "scenario"; itemId: s
           </Label>
           <Select value={lang} onValueChange={handleLanguageTriggerSelection} disabled={loading}>
             <SelectTrigger className="w-full h-9 rounded-xl border border-border/40 bg-card/40 focus:ring-1 focus:ring-ring text-xs font-bold tracking-tight cursor-pointer">
-              <SelectTrigger className="truncate" />
               <SelectValue placeholder="Select target dictionary locale" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border border-border/40 shadow-xl bg-background/95 backdrop-blur-md font-semibold text-xs text-foreground/90 select-none">
@@ -598,7 +597,7 @@ function ScenarioPreview({ s }: { s: ScenarioSuggestion }) {
   );
 }
 
-function QuizEditor({ draft, setDraft }: { draft: any; setDraft: (d: any) => void }) {
+export function QuizEditor({ draft, setDraft }: { draft: any; setDraft: (d: any) => void }) {
   const upd = (k: string, v: any) => setDraft({ ...draft, [k]: v });
   const updOpt = (i: number, v: string) => {
     const next = [...(draft.options ?? [])];
@@ -692,7 +691,7 @@ function QuizEditor({ draft, setDraft }: { draft: any; setDraft: (d: any) => voi
   );
 }
 
-function ScenarioEditor({ draft, setDraft }: { draft: any; setDraft: (d: any) => void }) {
+export function ScenarioEditor({ draft, setDraft }: { draft: any; setDraft: (d: any) => void }) {
   const upd = (k: string, v: any) => setDraft({ ...draft, [k]: v });
   const updRub = (i: number, k: string, v: any) => {
     const next = [...(draft.rubric ?? [])];
