@@ -252,8 +252,8 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
           {quizItems.length === 0 && (
             <p className="text-xs font-semibold text-muted-foreground/70 italic leading-normal py-6 text-center select-text max-w-xs mx-auto">
               {onlyFlagged
-                ? "No anomalies flagged inside the psychometric evaluation indices matrix."
-                : "No baseline evaluation items linked to this target module repository yet."}
+                ? "No flagged quiz items."
+                : "No quiz items in this module yet."}
             </p>
           )}
           {quizItems.map((q) => {
@@ -277,15 +277,15 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
         <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
           <CardTitle className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-            <span>Interactive Operational Simulation Scenarios</span>
+            <span>Scenarios</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-3 w-full min-w-0">
           {scenarioItems.length === 0 && (
             <p className="text-xs font-semibold text-muted-foreground/70 italic leading-normal py-6 text-center select-text max-w-xs mx-auto">
               {onlyFlagged
-                ? "No procedural simulations marked for generative structural repair bounds."
-                : "No dynamic interactive simulations logged into this module pipeline yet."}
+                ? "No flagged scenarios."
+                : "No scenarios in this module yet."}
             </p>
           )}
           {scenarioItems.map((s) => {

@@ -412,7 +412,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             disabled={streaming}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Type your operational response input, click enter to dispatch vector…"
+            placeholder="Type your response and press Enter to send…"
             className="rounded-xl border border-border/40 bg-card/40 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium w-full h-10 shadow-sm"
           />
           <Button
@@ -421,7 +421,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             size="icon"
             type="button"
             className="h-10 w-10 rounded-xl shrink-0 cursor-pointer shadow-md active:scale-95 transition-transform bg-primary text-primary-foreground hover:bg-primary/90"
-            aria-label="Dispatch message payload turn"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4 text-white stroke-[2.2]" />
           </Button>

@@ -192,7 +192,7 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
                   onClick={handleAuditCurriculum}
                   className="h-10 px-3.5 font-bold text-xs tracking-tight rounded-xl border border-border/60 text-muted-foreground/80 hover:text-foreground hover:bg-accent transition-all cursor-pointer shadow-sm shrink-0"
                 >
-                  <span>Curriculum Matrix</span>
+                  <span>Syllabus</span>
                 </Button>
               </div>
             </CardContent>

@@ -106,12 +106,12 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
   const submit = async () => {
     if (!items) return;
     if (items.some((i) => answers[i.id] === undefined)) {
-      toast.error("Please provide entry alignment choices over all outstanding parameters.");
+      toast.error("Please answer all questions before submitting.");
       return;
     }
     
     setSubmitting(true);
-    const toastId = toast.loading("Processing evaluation telemetry payload against ledger matrices...");
+    const toastId = toast.loading("Submitting your answers...");
     
     const item_ids = items.map((i) => i.id);
     const ans = item_ids.map((id) => answers[id]);
@@ -132,7 +132,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
       queryClient.invalidateQueries({ queryKey: ["item-analytics", moduleId] });
       queryClient.invalidateQueries({ queryKey: ["talent-stats"] });
 
-      toast.success("Psychometric metrics committed cleanly. Trajectory score verified.", { id: toastId });
+      toast.success("Quiz submitted. Your score is in.", { id: toastId });
       trackEvent("psychometric_quiz_submission_success", { moduleId, finalScore: (data as any).score });
       
       if (onComplete) onComplete((data as any).score);
@@ -145,7 +145,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
         moduleId
       });
 
-      toast.error(`Ledger verification error: ${parsedExceptionMsg}`, { id: toastId });
+      toast.error(`Couldn't submit: ${parsedExceptionMsg}`, { id: toastId });
     } finally {
       setSubmitting(false);
     }
@@ -156,7 +156,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
       <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl select-none w-full animate-in scale-in duration-200">
         <CardContent className="py-12 flex flex-col items-center justify-center gap-3.5 text-center w-full">
           <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
-          <p className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wider pl-0.5 animate-pulse">Assembling Adaptive Competency Evaluation Matrix…</p>
+          <p className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wider pl-0.5 animate-pulse">Loading your quiz…</p>
         </CardContent>
       </Card>
     );
@@ -173,9 +173,9 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
           <CardHeader className="p-4 px-5 border-b border-border/10 select-none bg-muted/20">
             <CardTitle className="text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2.5">
               <Brain className="h-4.5 w-4.5 text-primary stroke-[2.2]" />
-              <span>Assessment Results Ledger</span>
+              <span>Your results</span>
               <Badge variant="outline" className="ml-auto bg-primary/5 text-primary border-primary/20 text-xs font-extrabold px-2 py-0.5 rounded shadow-sm tabular-nums">
-                Score: {Math.round(results.score)}% Verified Parity
+                Score: {Math.round(results.score)}%
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -301,11 +301,11 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
               {submitting ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                  <span>Calculating Psychometric Parity Alignment Indices…</span>
+                  <span>Scoring your answers…</span>
                 </>
               ) : (
                 <>
-                  <span>Commit Completed Questionnaire Registry</span>
+                  <span>Submit quiz</span>
                   <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.5]" />
                 </>
               )}

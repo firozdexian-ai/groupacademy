@@ -63,11 +63,11 @@ export default function AppDiscussionThread() {
  thread_id: unverifiedThreadIdStr,
  body: capturedInputString,
  });
- toast({ title: "Response Synchronized", description: "Your message has been appended onto the thread matrix logs." });
+ toast({ title: "Reply posted", description: "Your message was added to the thread." });
  } catch (mutationExceptionPayload: any) {
  toast({
- title: "Transmission Failure",
- description: mutationExceptionPayload.message || "Failed to commit text parameter blocks.",
+ title: "Couldn't post reply",
+ description: mutationExceptionPayload.message || "Something went wrong. Please try again.",
  variant: "destructive",
  });
  }
@@ -137,14 +137,14 @@ export default function AppDiscussionThread() {
  to={`/app/cohorts/${unverifiedCohortIdStr}/discussions`} 
  className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors leading-none"
  >
- <ChevronLeft className="h-3 w-3 stroke-[2.2]" /> <span>Return to All Threads</span>
+ <ChevronLeft className="h-3 w-3 stroke-[2.2]" /> <span>Back to discussions</span>
  </Link>
  
  <h1 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground leading-tight mt-3 block select-text">
  {coreThreadItem.title}
  </h1>
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wider leading-none mt-1 select-none tabular-nums">
- CONVERSATION MATRIX BALANCE: {activePostsArray.length.toString()} TOTAL RESPONSES
+ {activePostsArray.length.toString()} REPLIES
  </p>
  </header>
 
@@ -215,18 +215,18 @@ export default function AppDiscussionThread() {
  <Textarea 
  disabled={replyToThreadMutation.isPending}
  rows={1} 
- placeholder="Input cohort communication response text parameters..." 
+ placeholder="Write a reply..." 
  value={replyConsoleBodyStr} 
  onChange={(e) => setReplyConsoleBodyStr(e.target.value)} 
  className="resize-none h-10 min-h-10 max-h-10 bg-background/50 border border-border/60 px-3 py-2.5 text-xs sm:text-sm font-semibold tracking-wide rounded-lg focus-visible:ring-1 focus-visible:ring-ring shadow-none flex-1 leading-normal" 
  />
  <Button 
  type="button"
- size="icon" aria-label="Dispatch message block payload" 
+ size="icon" aria-label="Send reply" 
  disabled={!replyConsoleBodyStr.trim() || replyToThreadMutation.isPending} 
  onClick={handleReplySubmissionSequence}
  className="h-10 w-10 rounded-lg bg-primary shadow-2xs hover:bg-primary/90 cursor-pointer transition-transform transform-gpu active:scale-95 shrink-0 block"
- title="Dispatch message block payload"
+ title="Send reply"
  >
  {replyToThreadMutation.isPending ? (
  <Loader2 className="h-4 w-4 stroke-[2.5] animate-spin mx-auto block" />

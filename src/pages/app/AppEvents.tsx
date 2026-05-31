@@ -47,12 +47,12 @@ export default function AppEvents() {
  "text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground pt-0.5 leading-tight block",
  )}
  >
- Webinars & Operational Events
+ Webinars & Events
  </h1>
  <p
  className={cn(PAGE_SUBTITLE, "text-xs sm:text-sm text-muted-foreground/60 font-medium leading-normal block")}
  >
- Live broadcast seminars, localized expert workspaces, and application screening challenges.
+ Live seminars, expert workshops, and application challenges.
  </p>
  </header>
 

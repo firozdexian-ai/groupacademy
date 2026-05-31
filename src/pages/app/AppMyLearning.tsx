@@ -80,7 +80,7 @@ export default function AppMyLearning() {
  <Target className="h-3.5 w-3.5 stroke-[2.2]" />
  </div>
  <h2 className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-primary pt-0.5 truncate block">
- Artifact Telemetry Manifest
+ My Learning
  </h2>
  </div>
  <div className="h-px flex-1 bg-gradient-to-r from-primary/20 to-transparent block shrink-0" />
@@ -99,7 +99,7 @@ export default function AppMyLearning() {
  {/* Platform Compliance Terminal Trace */}
  <div className="mt-16 flex flex-col items-center justify-center opacity-25 select-none pointer-events-none leading-none w-full shrink-0 uppercase tracking-widest font-mono text-[8px] font-bold text-muted-foreground/40">
  <div className="h-10 w-px bg-gradient-to-b from-primary/30 to-transparent mb-3.5 block" />
- <p className="italic tracking-widest">End of Active Portfolio Ledger Sequence</p>
+ <p className="italic tracking-widest">End of your active learning list</p>
  </div>
  </main>
  </div>

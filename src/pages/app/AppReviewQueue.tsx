@@ -44,7 +44,7 @@ export default function AppReviewQueue() {
  >
  <div className="flex items-center gap-2.5">
  <InlineSpinner size="sm" />
- <span>Synchronizing Vetting Queue Matrix...</span>
+ <span>Loading your review queue...</span>
  </div>
  </div>
  );

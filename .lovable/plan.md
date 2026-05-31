@@ -1,47 +1,52 @@
-# D2 — Work Hub (Jobs Side) Copy Audit
+# D3 — Learning Hub (Talent Side) Copy Audit
 
-Following D1 (Gro10x shell — already clean), D2 audits the talent-facing **Work / Jobs hub** for jargon, internal terms, and unclear copy.
+Following D2 (Work Hub), D3 sweeps the talent-facing **Learning Hub** for jargon, internal feature names, and unclear copy. Copy/labels only — no logic, no data, no visual redesign.
 
-## Scope (talent-facing only, no admin)
+## Scope (talent-facing only)
 
-**Jobs hub pages**
-- `src/pages/app/JobsHub.tsx`
-- `src/pages/app/MyApplications.tsx`
-- `src/pages/app/AppJobApplication.tsx`
-- `src/pages/app/AppApplicationDetail.tsx`
-- `src/pages/app/AppOfferDecision.tsx`
-- `src/pages/app/AppInterviewSchedule.tsx`
-- `src/pages/PublicJobDetail.tsx`
+**Pages**
+- `src/pages/app/LearningHub.tsx`
+- `src/pages/app/AppMyLearning.tsx`, `AppCourses.tsx`, `AppCourseDetail.tsx`, `AppTrackDetail.tsx`
+- `src/pages/app/AppCohortHome.tsx`, `AppCohortDiscussions.tsx`, `AppDiscussionThread.tsx`
+- `src/pages/app/AppSessionJoin.tsx`, `AppEvents.tsx`
+- `src/pages/app/AppReviewQueue.tsx`, `AppSubmissionDetail.tsx`
+- `src/pages/LearningReview.tsx`, `src/pages/VerifySkillCredential.tsx`
 
-**Jobs hub components**
-- `src/domains/jobs/components/views/{Browse,Companies,Locations,Tools}View.tsx`
-- `JobCard`, `JobsHubHeader`, `JobApplyCTA`, `WhyYouMatchPanel`, `VerifiedMatchBadge`, `ScoreMeJobPicker`, `RelatedJobs`, `AIJobInsights`, `ProfileCompletenessGate`, `JobPreferencesSheet`, `ExternalApplicationPrep`, `InfiniteJobsList`, `CompanyCard`, `CompanyDetailSheet`, `CountryCard`
+**Components — `src/domains/learning/components/talent/`**
+- Views: `MyHubView`, `TracksView`, `AcademyView`, `StudyAbroadView`
+- Cards/panels: `ActiveCourseHero`, `AdaptiveSnapshotCard`, `CareerTracksPreview`, `NextActionsCard`, `QuickStats`, `QuickActionCard`, `SkillCredentialsPanel`, `TalentMirrorPanel`, `TrackProgressRing`, `LearningStreak`, `ItemBankAnalyticsPanel`
+- Runners: `ModuleQuizRunner`, `ModuleScenarioRunner`, `ReviewQueueRunner`
+- Lists/rails: `CoursesTab`, `MyCoursesTab`, `TracksTab`, `EventsTab`, `UpcomingSessionsRail`, `UnifiedDiscovery`, `JoinLivePanel`, `WebinarEnrollPanel`, `StudyAbroadSection`
 
-## What to look for
+## What to look for (per v0.5 glossary)
 
-1. **Internal jargon** — Ingress, Ledger, Telemetry, Registry, Vector, Signal (when used as a label), Pipeline, Verdict, Synchronize, Handshake, Node, Phase, Tier-N, Cohort (when user-facing), HUD, Yield, Throughput, Schema, Payload, Edge, RPC, Tokens.
-2. **Internal feature names leaking into UI** — "Hiring Loop", "Sourced", "Trust Score", "Match RPC", "Score-job-match", "Signal-driven", terms from product memos that shouldn't appear to talent.
-3. **Status pill copy** — application states (e.g. `awaiting_review`, `shortlisted_internal`) shown raw instead of friendly labels.
-4. **Empty states & errors** — "No records", "Query failed", "Edge function returned…" — must read as plain English.
-5. **CTA clarity** — buttons like "Run match", "Compute score", "Open pipeline" → plain verbs ("See why you match", "Apply", "View status").
-6. **Tooltips & badge labels** — VerifiedMatchBadge, match% explainers.
+1. **Internal jargon** — Telemetry, Ledger, Registry, Vector, Signal, Pipeline, Synthesis, Node, Phase, Cohort (when raw), HUD, Schema, RPC, Tokens, Verdict.
+2. **Internal feature names leaking into UI** — "Talent Mirror", "Item Bank", "Adaptive Snapshot", "Next-Best-Action", "Skill Signal", "Authoring Feedback Loop", "Mastery Rollup", raw `last_source`, `needs_review`.
+3. **Status / state pills** — raw `awaiting_review`, `in_progress_internal`, `cohort_active`, etc.
+4. **Empty states & errors** — "No records", "Query failed", "Edge function returned…" → plain English.
+5. **CTA clarity** — "Run review", "Compute mastery", "Trigger rollup" → "Start review", "See progress".
+6. **Tooltips & badge labels** — mastery %, credential states, streak labels.
+7. **Decorative noise** — "Cognitive Core", "Executive Logic", "Phase 4.x", "[cite: N]", footer protocol strings.
+
+## Keep (intentional domain language)
+Mastery, Skill, Credential, Verified, Track, Module, Scenario, Quiz, Cohort (when paired with a name), AI tutor, AI coach, Recommendations.
 
 ## Approach
 
-1. `rg` sweep across the scoped files for jargon keyword list above (case-insensitive).
-2. Read each file with hits + the 4 view files end-to-end (they drive most UI).
-3. For each finding, propose a plain-English replacement inline.
-4. Apply edits as small, parallel `line_replace` calls. No logic/data changes — copy only.
-5. Verify by re-running the jargon sweep; expect zero hits except false positives (type names, code identifiers).
+1. `rg -in` sweep across scope for jargon glossary + leaked feature names.
+2. Read each file with hits end-to-end; map raw status enums shown to users.
+3. Apply small, parallel `line_replace` edits — copy only.
+4. Re-run sweep; expect zero hits except code identifiers / comments.
 
 ## Out of scope
 
-- Admin jobs UI (`src/domains/jobs/components/admin/**`) — covered in C-series.
-- Backend / edge functions / RPC names.
-- Visual redesign — copy & labels only.
+- Admin learning UI (`components/admin/**`, `dashboard/learning`) — C-series.
+- Gro10x learn shell (`src/gro10x/pages/Gro10xLearn.tsx`, `OpsTracksTab`) — separate D-track.
+- Instructor workspace pages (`InstructorInsights`, `InstructorReviewQueue`) — D4 candidate.
+- Edge functions / RPCs / DB.
 
 ## Deliverable
 
-A single batch of edits + a short summary table: file → before → after.
+Single batch of edits + summary table: file → before → after.
 
-Next phase after D2: **D3 — Learning hub (talent side)**.
+**Next after D3:** D4 — Instructor & Gro10x learn shells.

@@ -152,13 +152,13 @@ export default function AppSubmissionDetail() {
  });
 
  toast({
- title: "Review Successfully Logged",
- description: "Audit verification records appended to the tracking registry layer.",
+ title: "Review submitted",
+ description: "Your review has been saved.",
  });
  } catch (mutationExceptionPayload: any) {
  toast({
- title: "Transaction Refused",
- description: mutationExceptionPayload.message || "Failed to finalize evaluation data block settings.",
+ title: "Couldn't submit review",
+ description: mutationExceptionPayload.message || "Something went wrong. Please try again.",
  variant: "destructive",
  });
  }
@@ -179,7 +179,7 @@ export default function AppSubmissionDetail() {
  >
  <div className="flex items-center gap-2.5">
  <InlineSpinner size="sm" />
- <span>Synchronizing Submission Dossier...</span>
+ <span>Loading submission...</span>
  </div>
  </div>
  );
@@ -267,7 +267,7 @@ export default function AppSubmissionDetail() {
  </p>
  ) : (
  <p className="text-xs text-muted-foreground/40 font-semibold italic block select-none pointer-events-none py-1">
- No supplementary summary context provided by applicant node.
+ No summary provided.
  </p>
  )}
 
@@ -282,7 +282,7 @@ export default function AppSubmissionDetail() {
  className="text-xs font-mono font-bold text-primary hover:underline inline-flex items-center gap-1.5 max-w-md truncate h-5 block leading-none"
  >
  <Paperclip className="h-3.5 w-3.5 stroke-[2.2] text-muted-foreground/50 shrink-0" />
- <span>{attachmentItem.name ?? "Transmitted Document Attachment File Link"}</span>
+ <span>{attachmentItem.name ?? "Attachment"}</span>
  </a>
  ))}
  </div>
@@ -297,7 +297,7 @@ export default function AppSubmissionDetail() {
  historicReviewsCollection.length > 0 && (
  <section className="space-y-2 block w-full">
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
- Reconciled Evaluation Appraisals ({historicReviewsCollection.length.toString()})
+ Reviews ({historicReviewsCollection.length.toString()})
  </h2>
  <div className="space-y-2 block w-full mt-2.5">
  {historicReviewsCollection.map((reviewRecordItem) => (
@@ -308,7 +308,7 @@ export default function AppSubmissionDetail() {
  <CardContent className="p-3.5 space-y-2 block w-full leading-none">
  <div className="flex items-center justify-between gap-4 leading-none w-full shrink-0 select-none pointer-events-none">
  <span className="font-mono text-[9px] font-black uppercase tracking-wide text-muted-foreground/60">
- {reviewRecordItem.is_instructor ? "Authoritative Instructor Module" : "Peer Auditor Node"}
+ {reviewRecordItem.is_instructor ? "Instructor review" : "Peer review"}
  </span>
  {reviewRecordItem.score !== null && (
  <Badge
@@ -381,7 +381,7 @@ export default function AppSubmissionDetail() {
  <Textarea
  disabled={submitReviewMutation.isPending}
  rows={3}
- placeholder="Provide explicit feedback narratives, structural suggestions, and code corrections directly to the applicant node..."
+ placeholder="Share specific feedback, suggestions, or code corrections for the student..."
  value={commentsInputStr}
  onChange={(e) => setCommentsInputStr(e.target.value)}
  className="bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none text-xs sm:text-sm font-sans leading-relaxed resize-none p-3"
@@ -391,7 +391,7 @@ export default function AppSubmissionDetail() {
  {/* LOWER FORM CONTROLS CORE */}
  <div className="flex items-center justify-between gap-4 pt-1 select-none w-full shrink-0 leading-none">
  <span className="font-mono text-[10px] font-black text-muted-foreground/40 uppercase tracking-tight tabular-nums">
- Running Average Compound Fit:{" "}
+ Average score:{" "}
  <span className="text-foreground font-mono font-black select-text">
  {calculatedAverageRubricScoreNum.toFixed(1)} / 5.0
  </span>

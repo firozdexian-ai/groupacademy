@@ -188,8 +188,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
             <Sparkles className="h-4.5 w-4.5 text-primary fill-primary/10 animate-pulse stroke-[2.2]" />
           </div>
           <p className="text-xs font-semibold text-muted-foreground/80 leading-normal flex-1 select-text">
-            Execute an ecosystem review quiz or operational workspace scenario to initialize your automated mastery
-            tracking ledger indices.
+            Take a quiz or complete a scenario to start tracking your mastery.
           </p>
         </CardContent>
       </Card>
@@ -216,12 +215,12 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
           <div className="flex-1 min-w-0 text-left flex flex-col justify-center leading-none">
             <p className="text-sm font-bold text-foreground/90 tracking-tight leading-tight truncate pr-1">
               {totalTrackedTopicsCount.toLocaleString()}{" "}
-              {totalTrackedTopicsCount === 1 ? "Core Knowledge Topic" : "Core Knowledge Topics"} Logged
+              {totalTrackedTopicsCount === 1 ? "topic tracked" : "topics tracked"}
             </p>
             <div className="text-[11px] font-bold text-muted-foreground/80 mt-1 leading-none truncate max-w-full tracking-tight flex items-center gap-1 flex-wrap w-full">
               {totalDueNowItemsCount > 0 ? (
                 <span className="text-primary font-extrabold bg-primary/5 border border-primary/10 rounded px-1.5 py-0.5 animate-pulse tabular-nums shrink-0 uppercase tracking-wider text-[9px]">
-                  {totalDueNowItemsCount} tasks outstanding
+                  {totalDueNowItemsCount} due
                 </span>
               ) : (
                 <span className="text-emerald-600 dark:text-emerald-400 font-extrabold shrink-0 uppercase tracking-wider text-[9px]">
@@ -230,7 +229,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
               )}
               {nextDueLabel && (
                 <span className="truncate text-muted-foreground/60 font-medium normal-case">
-                  &bull; next review target {nextDueLabel}
+                  &bull; next review {nextDueLabel}
                 </span>
               )}
             </div>
@@ -244,7 +243,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
               className="h-7 px-3 text-[10px] font-extrabold uppercase tracking-wide rounded-xl shadow-sm cursor-pointer select-none active:scale-95 transition-transform shrink-0 gap-1"
             >
               <Link to="/app/learning/review" onClick={handleReviewNavigationTrigger}>
-                <span>Reconcile</span>
+                <span>Review</span>
                 <ChevronRight className="h-3.5 w-3.5 text-primary-foreground stroke-[2.5]" />
               </Link>
             </Button>
@@ -255,7 +254,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
         {Array.isArray(data.weakest) && data.weakest.length > 0 && (
           <div className="space-y-1.5 border-t border-border/10 pt-3 w-full min-w-0 text-left">
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground/60 pl-0.5 block select-none leading-none">
-              Strategic Revision Gap Markers
+              Weakest topics
             </span>
             <div className="space-y-1 w-full min-w-0">
               {data.weakest.map((weakNodeItem: any, index: number) => {
@@ -279,7 +278,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
                       )}
                     </span>
                     <span className="font-extrabold font-mono text-[11px] tracking-wide text-rose-600 dark:text-rose-400 bg-rose-500/5 border border-rose-500/10 px-1.5 py-0.5 rounded shadow-sm tabular-nums shrink-0">
-                      {Math.round(weakNodeItem.mastery * 100)}% Index
+                      {Math.round(weakNodeItem.mastery * 100)}%
                     </span>
                   </Link>
                 );
@@ -292,7 +291,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
         {!compact && data.signal_split_30d && (
           <div className="border-t border-border/10 pt-3 space-y-2 select-none w-full animate-in fade-in duration-300">
             <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wider pl-0.5 leading-none w-full">
-              <span>Metric Horizon Matrix (Last 7 Days)</span>
+              <span>Last 7 days</span>
               <div className="flex items-center gap-2.5 shrink-0 tabular-nums">
                 <span className="flex items-center gap-1 bg-muted/30 px-1.5 py-0.5 rounded border">
                   <Clock className="h-2.5 w-2.5 text-primary stroke-[2.2]" />

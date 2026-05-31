@@ -74,16 +74,16 @@ export default function AppCohortDiscussions() {
  });
 
  toast({
- title: "Conversation Dispatched",
- description: "The topic narrative has been successfully synchronized onto the workspace board.",
+ title: "Discussion posted",
+ description: "Your topic is now visible to the cohort.",
  });
 
  setComposerFormState({ title: "", body: "" });
  setIsComposerSheetOpen(false);
  } catch (mutationExceptionPayload: any) {
  toast({
- title: "Mutation Aborted",
- description: mutationExceptionPayload.message || "Failed to broadcast communication payload parameters.",
+ title: "Couldn't post discussion",
+ description: mutationExceptionPayload.message || "Something went wrong. Please try again.",
  variant: "destructive",
  });
  }
@@ -248,7 +248,7 @@ export default function AppCohortDiscussions() {
  ) : (
  <CheckCircle className="h-3.5 w-3.5 stroke-[2.2]" />
  )}
- <span>Publish Conversation Node</span>
+ <span>Post discussion</span>
  </Button>
  </div>
  </SheetContent>

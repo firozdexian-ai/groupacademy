@@ -79,7 +79,7 @@ export function WebinarEnrollPanel({ course }: Props) {
     }
 
     trackEvent("webinar_enroll_mutation_requested", { courseId: course.id, talentId: talent.id });
-    const toastId = toast.loading("Reserving synchronized session asset passage...");
+    const toastId = toast.loading("Reserving your seat...");
     let isMounted = true;
 
     try {
@@ -91,7 +91,7 @@ export function WebinarEnrollPanel({ course }: Props) {
         queryClient.invalidateQueries({ queryKey: ["discovery-courses"] });
         queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-        toast.success("Seat matrix allocated cleanly. Account token index balanced.", { id: toastId });
+        toast.success("Seat reserved. See you at the session!", { id: toastId });
         trackEvent("webinar_enroll_mutation_success", { courseId: course.id });
       }
     } catch (err: any) {

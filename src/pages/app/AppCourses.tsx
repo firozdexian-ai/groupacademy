@@ -69,7 +69,7 @@ export default function AppCourses() {
 
  {/* HUD LEVEL 3: COMPLIANCE TELEMETRY TERMINAL FOOTER */}
  <footer className="mt-16 pt-6 border-t border-border/40 flex items-center justify-between opacity-25 select-none pointer-events-none leading-none w-full shrink-0 uppercase tracking-widest font-mono text-[9px] font-bold text-muted-foreground/50">
- <p className="italic">Catalog Encryption Handshake Protocol Active</p>
+ <p className="italic">End of catalog</p>
  <div className="flex gap-2 shrink-0 items-center">
  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
