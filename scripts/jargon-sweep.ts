@@ -1,45 +1,52 @@
 #!/usr/bin/env bun
 /**
- * v0.5 Jargon Sweep
- * Finds user-visible "tech-jargon" strings across talent surfaces
- * and tiers them T1 (blocking) / T2 (decorative) / T3 (code-only).
+ * v0.5 Jargon Sweep Engine
  *
- * Output: .lovable/v0.5-jargon-hits.md
+ * Scans user-visible copy strings across production talent surfaces
+ * to locate tech-jargon and group them into actionable priority levels.
+ *
+ * Operational Scope: Talent-facing app routes only.
+ * System Protection: B2B, Admin dashboard, and staff views are safely bypassed.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { execSync } from "child_process";
 
-const SCOPES = [
-  "src/pages/app",
-  "src/domains",
-  "src/components",
-];
+// Target operational paths to check
+const PRODUCTION_SCAN_TARGETS = ["src/pages/app", "src/domains", "src/components"];
 
-// Exclude admin/gro10x/instructor staff surfaces from v0.5 sweep
-const EXCLUDE_PATTERNS = [
-  /\/admin\//i,
-  /\/gro10x\//i,
-  /\bAdmin[A-Z]/,
-  /Gro10x/,
-];
+// Isolation rules to preserve internal administrative infrastructure boundaries
+const ADMINISTRATIVE_BYPASS_PATTERNS = [/\/admin\//i, /\/gro10x\//i, /\bAdmin[A-Z]/, /Gro10x/];
 
-// Banned jargon vocabulary
-const JARGON = [
-  "Clearance", "Telemetry", "Anomaly", "Sentinel",
-  "Synthesis", "Synthetic", "Cognitive",
-  "Executive Logic", "Logic Node", "Node Failure",
-  "Reasoning Pipeline", "Verified \\w+ Sync",
-  "Core (?:Boot|Clearance|Sync)", "Initialize \\w+",
-  "Protocol:", "\\bHUD\\b", "Phase [A-Z]\\d",
+// Screen keywords to replace with clear, student-friendly SaaS copy
+const REPLACEMENT_LOOKUP_KEYWORDS = [
+  "Clearance",
+  "Telemetry",
+  "Anomaly",
+  "Sentinel",
+  "Synthesis",
+  "Synthetic",
+  "Cognitive",
+  "Executive Logic",
+  "Logic Node",
+  "Node Failure",
+  "Reasoning Pipeline",
+  "Verified \\w+ Sync",
+  "Core (?:Boot|Clearance|Sync)",
+  "Initialize \\w+",
+  "Protocol:",
+  "\\bHUD\\b",
+  "Phase [A-Z]\\d",
   "cite:\\s*\\d",
 ];
-const JARGON_RE = new RegExp(`\\b(?:${JARGON.join("|")})\\b`);
 
-// Heuristic: 3+ Capitalized TechWords in a row inside a string
-const TECH_CHAIN_RE = /\b([A-Z][a-z]+\s+){2,}[A-Z][a-z]+\b/;
+// Optimized engine pattern matcher
+const JARGON_DETECTION_ENGINE = new RegExp(`\\b(?:${REPLACEMENT_LOOKUP_KEYWORDS.join("|")})\\b`);
 
-// T1 indicators — string is in a high-visibility location
-const T1_PATTERNS = [
+// Performance refinement: identify consecutive capitalized words in copy blocks
+const capitalizedWordChainPattern = /\b([A-Z][a-z]+\s+){2,}[A-Z][a-z]+\b/;
+
+// High Priority targets - critical messaging, notifications, alerts, or core headers
+const HIGH_PRIORITY_ELEMENTS = [
   /toast\.(error|success|info|warning|loading)\s*\(/,
   /toast\s*\(/,
   /<h[1-3][\s>]/,
@@ -47,117 +54,162 @@ const T1_PATTERNS = [
   /Loading|Error|Failed|Verifying|Initializing/i,
 ];
 
-// T2 indicators
-const T2_PATTERNS = [
-  /<(?:h[4-6]|p|span|label|button|div)[\s>]/,
+// Secondary Review targets - standard inline labels, inputs, text spans, or captions
+const STANDARD_REVIEW_ELEMENTS = [
+  /<(?:h4|h5|h6|p|span|label|button|div)[\s>]/,
   /(?:description|subtitle|label|placeholder|alt|ariaLabel|aria-label)\s*[:=]/i,
 ];
 
-interface Hit {
-  file: string;
-  line: number;
-  tier: "T1" | "T2" | "T3";
-  snippet: string;
-  match: string;
+interface ProductionCopyHit {
+  filePath: string;
+  lineNumber: number;
+  priorityLevel: "Urgent" | "Standard" | "InternalCode";
+  textPreview: string;
+  detectedJargon: string;
 }
 
-function getFiles(): string[] {
-  const cmd = `rg -l -g '*.{ts,tsx,js,jsx}' -e '${JARGON.join("|")}' ${SCOPES.join(" ")}`;
+/**
+ * Executes a fast text search query through project files using ripgrep.
+ * Gracefully defaults to an empty layout if the folder structure changes.
+ */
+function fetchProjectFiles(): string[] {
+  const queryCommand = `rg -l -g '*.{ts,tsx,js,jsx}' -e '${REPLACEMENT_LOOKUP_KEYWORDS.join("|")}' ${PRODUCTION_SCAN_TARGETS.join(" ")}`;
   try {
-    const out = execSync(cmd, { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 });
-    return out.trim().split("\n").filter(Boolean).filter(f => !EXCLUDE_PATTERNS.some(p => p.test(f)));
-  } catch {
+    const rawOutput = execSync(queryCommand, { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 });
+    return rawOutput
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .filter((file) => !ADMINISTRATIVE_BYPASS_PATTERNS.some((pattern) => pattern.test(file)));
+  } catch (error) {
+    // Graceful check degradation for missing folders or zero hits to prevent terminal failure
     return [];
   }
 }
 
-function classify(file: string, lineText: string, prevLines: string[]): "T1" | "T2" | "T3" {
-  // Inside a string literal?
-  const inString = /["'`][^"'`]*["'`]/.test(lineText);
-  if (!inString) return "T3";
+/**
+ * Investigates context lines to determine whether strings are system data or user copy.
+ */
+function assignPriorityLevel(
+  filePath: string,
+  activeLine: string,
+  lineHistory: string[],
+): "Urgent" | "Standard" | "InternalCode" {
+  // Verify characters are caught within valid string markers
+  const containsStringLiteral = /["'`][^"'`]*["'`]/.test(activeLine);
+  if (!containsStringLiteral) return "InternalCode";
 
-  // Skip pure comments
-  if (/^\s*(\/\/|\*|\/\*)/.test(lineText)) return "T3";
+  // Bypass system comments
+  if (/^\s*(\/\/|\*|\/\*)/.test(activeLine)) return "InternalCode";
 
-  // Skip imports, type defs, hook/var names
-  if (/^\s*(import|export|type|interface|const \w+\s*=\s*(use|create))/.test(lineText)) return "T3";
+  // Bypass code layout declarations, module imports, configuration hooks, or variables
+  if (/^\s*(import|export|type|interface|const \w+\s*=\s*(use|create))/.test(activeLine)) return "InternalCode";
 
-  const context = [...prevLines.slice(-3), lineText].join("\n");
+  const analyticalContextBlock = [...lineHistory.slice(-3), activeLine].join("\n");
 
-  if (T1_PATTERNS.some(p => p.test(context))) return "T1";
-  if (T2_PATTERNS.some(p => p.test(context))) return "T2";
+  if (HIGH_PRIORITY_ELEMENTS.some((pattern) => pattern.test(analyticalContextBlock))) return "Urgent";
+  if (STANDARD_REVIEW_ELEMENTS.some((pattern) => pattern.test(analyticalContextBlock))) return "Standard";
 
-  // String literal with jargon but unclear location — default T2 to be safe
-  return "T2";
+  // Fallback category to capture remaining non-standard strings safely
+  return "Standard";
 }
 
-function scan(): Hit[] {
-  const hits: Hit[] = [];
-  const files = getFiles();
+/**
+ * Scans active text buffers across discovered project layouts.
+ */
+function runJargonSweep(): ProductionCopyHit[] {
+  const trackedHits: ProductionCopyHit[] = [];
+  const validFilesList = fetchProjectFiles();
 
-  for (const file of files) {
-    let content: string;
-    try { content = readFileSync(file, "utf8"); } catch { continue; }
-    const lines = content.split("\n");
+  for (const targetFile of validFilesList) {
+    let rawFileContent: string;
+    try {
+      rawFileContent = readFileSync(targetFile, "utf8");
+    } catch {
+      continue;
+    }
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const m = line.match(JARGON_RE) || line.match(TECH_CHAIN_RE);
-      if (!m) continue;
+    const individualLines = rawFileContent.split("\n");
 
-      // must be inside quotes
-      const quoted = line.match(/["'`]([^"'`]*)["'`]/g) || [];
-      const inQuotedString = quoted.some(q => JARGON_RE.test(q) || TECH_CHAIN_RE.test(q));
-      if (!inQuotedString) continue;
+    for (let index = 0; index < individualLines.length; index++) {
+      const currentLineText = individualLines[index];
+      const locatedKeywordMatch =
+        currentLineText.match(JARGON_DETECTION_ENGINE) || currentLineText.match(capitalizedWordChainPattern);
+      if (!locatedKeywordMatch) continue;
 
-      const tier = classify(file, line, lines.slice(Math.max(0, i - 3), i));
-      if (tier === "T3") continue; // skip code-only for v0.5
+      // Ensure verification match falls strictly within quote boundaries
+      const extractedQuotes = currentLineText.match(/["'`]([^"'`]*)["'`]/g) || [];
+      const isStringContentMatch = extractedQuotes.some(
+        (quoteBlock) => JARGON_DETECTION_ENGINE.test(quoteBlock) || capitalizedWordChainPattern.test(quoteBlock),
+      );
+      if (!isStringContentMatch) continue;
 
-      hits.push({
-        file,
-        line: i + 1,
-        tier,
-        snippet: line.trim().slice(0, 160),
-        match: m[0],
+      const contextualHistory = individualLines.slice(Math.max(0, index - 3), index);
+      const computedPriority = assignPriorityLevel(targetFile, currentLineText, contextualHistory);
+
+      if (computedPriority === "InternalCode") continue;
+
+      trackedHits.push({
+        filePath: targetFile,
+        lineNumber: index + 1,
+        priorityLevel: computedPriority,
+        textPreview: currentLineText.trim().slice(0, 160),
+        detectedJargon: locatedKeywordMatch[0],
       });
     }
   }
-  return hits;
+  return trackedHits;
 }
 
-function report(hits: Hit[]): string {
-  const byTier: Record<string, Hit[]> = { T1: [], T2: [] };
-  for (const h of hits) byTier[h.tier].push(h);
+/**
+ * Compiles report findings into a pristine markdown layout matching the platform dashboard style.
+ */
+function compileSummaryMarkdown(discoveredHits: ProductionCopyHit[]): string {
+  const segmentedHits: Record<string, ProductionCopyHit[]> = { Urgent: [], Standard: [] };
+  for (const hit of discoveredHits) {
+    segmentedHits[hit.priorityLevel].push(hit);
+  }
 
-  const groupByFile = (arr: Hit[]) => {
-    const g: Record<string, Hit[]> = {};
-    for (const h of arr) (g[h.file] ||= []).push(h);
-    return g;
+  const groupHitsByFilePath = (dataset: ProductionCopyHit[]) => {
+    const fileMapping: Record<string, ProductionCopyHit[]> = {};
+    for (const hitItem of dataset) {
+      (fileMapping[hitItem.filePath] ||= []).push(hitItem);
+    }
+    return fileMapping;
   };
 
-  let md = `# v0.5 Jargon Sweep — Hit List\n\n`;
-  md += `Generated: ${new Date().toISOString()}\n\n`;
-  md += `**Total user-visible hits:** ${hits.length}\n`;
-  md += `- T1 (user-blocking): ${byTier.T1.length} hits in ${new Set(byTier.T1.map(h => h.file)).size} files\n`;
-  md += `- T2 (decorative): ${byTier.T2.length} hits in ${new Set(byTier.T2.map(h => h.file)).size} files\n\n`;
-  md += `Scope: talent surfaces only. Admin / Gro10x / instructor staff routes excluded.\n\n`;
+  let outputReportMarkdown = `# Production UI Jargon Audit — Action Plan\n\n`;
+  outputReportMarkdown += `Generated: ${new Date().toISOString()}\n\n`;
+  outputReportMarkdown += `**Total User-Visible Clean Targets Found:** ${discoveredHits.length}\n`;
+  outputReportMarkdown += `- Urgent Actions (High-Visibility Views): ${segmentedHits.Urgent.length} items across ${new Set(segmentedHits.Urgent.map((h) => h.filePath)).size} files\n`;
+  outputReportMarkdown += `- Standard Review (Inline Text Labels): ${segmentedHits.Standard.length} items across ${new Set(segmentedHits.Standard.map((h) => h.filePath)).size} files\n\n`;
+  outputReportMarkdown += `Scope: Verified talent surfaces only. Administrative, workplace, and partner tools are preserved natively.\n\n`;
 
-  for (const tier of ["T1", "T2"] as const) {
-    md += `\n---\n\n## ${tier} — ${tier === "T1" ? "User-blocking (FIX FIRST)" : "Decorative (fix in pass 3)"}\n\n`;
-    const g = groupByFile(byTier[tier]);
-    const sortedFiles = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
-    for (const file of sortedFiles) {
-      md += `### \`${file}\` (${g[file].length})\n`;
-      for (const h of g[file]) {
-        md += `- L${h.line} \`${h.match}\` — ${h.snippet.replace(/`/g, "\\`")}\n`;
+  for (const sectionLevel of ["Urgent", "Standard"] as const) {
+    const displayTitle = sectionLevel === "Urgent" ? "Urgent Actions (Fix First)" : "Standard Review (Fix in Pass 3)";
+    outputReportMarkdown += `\n---\n\n## ${displayTitle}\n\n`;
+
+    const fileGroupedData = groupHitsByFilePath(segmentedHits[sectionLevel]);
+    const sortedFilePaths = Object.keys(fileGroupedData).sort(
+      (firstFile, secondFile) => fileGroupedData[secondFile].length - fileGroupedData[firstFile].length,
+    );
+
+    for (const activePath of sortedFilePaths) {
+      outputReportMarkdown += `### \`${activePath}\` (${fileGroupedData[activePath].length})\n`;
+      for (const lineHit of fileGroupedData[activePath]) {
+        outputReportMarkdown += `- Line ${lineHit.lineNumber} \`${lineHit.detectedJargon}\` — ${lineHit.textPreview.replace(/`/g, "\\`")}\n`;
       }
-      md += `\n`;
+      outputReportMarkdown += `\n`;
     }
   }
-  return md;
+  return outputReportMarkdown;
 }
 
-const hits = scan();
+// Execute analysis pipeline safely
+const discoveredJargonHits = runJargonSweep();
 mkdirSync(".lovable", { recursive: true });
-writeFileSync(".lovable/v0.5-jargon-hits.md", report(hits));
-console.log(`Wrote .lovable/v0.5-jargon-hits.md — ${hits.length} hits (T1: ${hits.filter(h => h.tier === "T1").length}, T2: ${hits.filter(h => h.tier === "T2").length})`);
+writeFileSync(".lovable/v0.5-jargon-hits.md", compileSummaryMarkdown(discoveredJargonHits));
+
+console.log(
+  `Successfully compiled audit registry to .lovable/v0.5-jargon-hits.md — Found ${discoveredJargonHits.length} items.`,
+);
