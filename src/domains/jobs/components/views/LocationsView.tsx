@@ -1,7 +1,7 @@
 /**
  * GroUp Academy: Geographical Market CRM Surface (LocationsView)
  * CTO Reference: Authoritative component for context-based geographical filtering.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Version: Launch Candidate · Phase Z0 Hardened · Build Fix Patch
  * Enhancements: GPU performance layout, structured tracking metrics, automated data bounds.
  */
 import { useEffect, useMemo } from "react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CountryCard } from "@/domains/jobs/components/CountryCard";
 import type { CountryWithSignal } from "@/hooks/useCountriesWithSignal";
 import { trackError, trackEvent } from "@/lib/errorTracking";
+import { cn } from "@/lib/utils";
 
 interface Props {
   countries?: CountryWithSignal[];
@@ -47,7 +48,7 @@ export function LocationsView({ countries, talent }: Props) {
 
   if (list.length === 0) {
     return (
-      <div className="flex flex-col items-center text-center gap-3.5 py-14 px-6 rounded-2xl border border-dashed border-border/60 bg-card/20 backdrop-blur-md select-none animate-in fade-in duration-300 w-full">
+      <div className="flex flex-col items-center text-center gap-3.5 py-14 px-6 rounded-2xl border border-dashed border-border/60 bg-card/40 backdrop-blur-md select-none animate-in fade-in duration-300 w-full">
         <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center mb-1 shadow-inner border border-border/10">
           <Globe className="h-5 w-5 text-muted-foreground/60" />
         </div>
