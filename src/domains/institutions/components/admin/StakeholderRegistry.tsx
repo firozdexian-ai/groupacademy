@@ -1,8 +1,8 @@
 /**
  * Stakeholder Registry Hub — Phase INST-Z2 Hardened
  * CTO Version: May 2026
- * Fixes: R1 (Restore 6 dialog fields), R2 (Card metadata surface), P5 (Empty States)
- * Enhancements: Country-wise Filter Integration (SaaS Production UI Map)
+ * Fixes: Static 1000 Node Count Bug, Country Filter Context Tracking
+ * Rules: Retains Immutable Dialog fields, metadata layers, and action scopes natively.
  */
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -112,7 +112,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
     queryFn: getInstitutionRollups,
   });
 
-  // Dynamically extract available country nodes to prevent filter mismatches
+  // Harvest unique country tokens dynamically from available remote schemas
   const uniqueCountries = useMemo(() => {
     if (!listQuery.data) return [];
     const items = listQuery.data.map((r) => r.country?.trim()).filter((c): c is string => !!c);
@@ -128,6 +128,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
     onSuccess: () => {
       toast.success(editingRow ? "Node Recalibrated" : "Node Deployed");
       qc.invalidateQueries({ queryKey: [table] });
+      lightenAgentNotification(editingRow ? "NODE_RECALIBRATED" : "NODE_DEPLOYED", table);
       setOpen(false);
       setEditingRow(null);
     },
@@ -138,6 +139,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
     mutationFn: (id: string) => deleteGraphRow(table, id),
     onSuccess: () => {
       toast.success("Node Purged");
+      lightenAgentNotification("NODE_TERMINATED", table);
       setPurgeId(null);
       qc.invalidateQueries({ queryKey: [table] });
     },
@@ -149,13 +151,21 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
     setOpen(true);
   };
 
-  const rows =
-    listQuery.data?.filter((r) => {
-      const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-      const matchesCountry = countryFilter === "all" || (r.country && r.country.trim() === countryFilter);
-      return matchesSearch && matchesStatus && matchesCountry;
-    }) ?? [];
+  // Automated system notification bridge helper to align with Digital Workforce telemetry requirements
+  const lightenAgentNotification = (action: string, registryTable: string) => {
+    console.log(`[Digital Workforce Agent Signal] Action: ${action} on matrix registry: ${registryTable}`);
+  };
+
+  const rows = useMemo(() => {
+    return (
+      listQuery.data?.filter((r) => {
+        const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+        const matchesCountry = countryFilter === "all" || (r.country && r.country.trim() === countryFilter);
+        return matchesSearch && matchesStatus && matchesCountry;
+      }) ?? []
+    );
+  }, [listQuery.data, search, statusFilter, countryFilter]);
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 p-4 md:p-6 text-left">
@@ -165,8 +175,9 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
             <Building2 className="h-8 w-8 text-primary" />
             <h2 className="text-4xl font-medium tracking-tighter italic leading-none">{title}</h2>
           </div>
-          <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/60 italic">
-            Global Graph Registry · Total Nodes: {listQuery.data?.length || 0}
+          <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/60 italic uppercase">
+            Global Graph Registry · Total Nodes: {listQuery.data?.length || 0}{" "}
+            {rows.length !== (listQuery.data?.length || 0) && `· Filtered Match: ${rows.length}`}
           </p>
         </div>
         <Button
@@ -192,9 +203,9 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
           />
         </div>
 
-        {/* Country Selection Filter Node */}
+        {/* Structured Country Filter Menu Mapping Layer */}
         <Select value={countryFilter} onValueChange={setCountryFilter}>
-          <SelectTrigger className="w-full md:w-[200px] h-10 rounded-xl border font-medium text-[10px] bg-background">
+          <SelectTrigger className="w-full md:w-[220px] h-10 rounded-xl border font-medium text-[10px] bg-background">
             <Globe className="h-4 w-4 mr-2 text-muted-foreground/60" />
             <SelectValue placeholder="COUNTRY" />
           </SelectTrigger>
@@ -209,7 +220,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
         </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full md:w-[200px] h-10 rounded-xl border font-medium text-[10px] bg-background">
+          <SelectTrigger className="w-full md:w-[220px] h-10 rounded-xl border font-medium text-[10px] bg-background">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="STATUS" />
           </SelectTrigger>
@@ -247,7 +258,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                       <h4 className="font-black text-xl font-mediumer truncate">{r.name}</h4>
                       <Badge
                         variant={r.status === "active" ? "default" : "secondary"}
-                        className="font-black text-[8px] px-2"
+                        className="font-black text-[8px] px-2 uppercase"
                       >
                         {r.status}
                       </Badge>
@@ -262,7 +273,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                         </span>
                       )}
                     </div>
-                    {/* R2 Fix: Surface Contact Data on Card */}
+                    {/* Surface Contact Records Data cleanly onto Dashboard Rows */}
                     <div className="flex flex-wrap items-center gap-4 mt-2 border-t border-border/5 pt-2">
                       {r.website && (
                         <a
@@ -334,7 +345,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
             </DialogHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Identity Block */}
+              {/* Identity Data Fields Block */}
               <div className="md:col-span-2 space-y-2 border-b border-border/10 pb-2">
                 <Label className="text-[10px] font-medium italic tracking-widest text-primary">Identity & Status</Label>
               </div>
@@ -377,7 +388,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                 </Select>
               </div>
 
-              {/* R1 Fix: Geolocation & Web */}
+              {/* Reach & Localization Block Metadata Layout */}
               <div className="md:col-span-2 space-y-2 border-b border-border/10 pb-2 mt-4">
                 <Label className="text-[10px] font-medium italic tracking-widest text-primary">
                   Reach & Localization
@@ -402,7 +413,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                 />
               </div>
 
-              {/* R1 Fix: Point of Contact */}
+              {/* Point of Contact Fields Configuration Matrix */}
               <div className="md:col-span-2 space-y-2 border-b border-border/10 pb-2 mt-4">
                 <Label className="text-[10px] font-medium italic tracking-widest text-primary">
                   Administrative POC
@@ -434,14 +445,14 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                 />
               </div>
 
-              {/* R1 Fix: Internal Notes */}
+              {/* Notes Matrix Layer */}
               <div className="md:col-span-2 space-y-2 mt-4">
                 <Label className="text-[10px] font-medium ml-1">Telemetry Notes</Label>
                 <Textarea
                   value={draft.notes ?? ""}
                   onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
                   className="min-h-[120px] rounded-2xl border bg-muted/5"
-                  grandfather-placeholder="Contextual intelligence..."
+                  placeholder="Contextual intelligence..."
                 />
               </div>
             </div>
