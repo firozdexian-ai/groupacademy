@@ -1,13 +1,14 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { getRankedJobsForTalent } from "@/domains/jobs/repo/jobsRepo";
-import type { JobCardData } from "@/domains/jobs/components/JobCard";
-
 /**
  * GroUp Academy: Algorithmic Match Distribution Engine (V5.6.0)
  * CTO Reference: High-performance infinite scroller tracking keyset-paginated jobs.
  * Architecture: Digital Workforce enabled - streams pipeline exceptions to Admin OS.
  * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
  */
+
+import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import { getRankedJobsForTalent } from "@/domains/jobs/repo/jobsRepo";
+import type { JobCardData } from "@/domains/jobs/components/JobCard";
+import { trackError, trackEvent } from "@/lib/errorTracking";
 
 export type MatchReasonType = "verified_skill" | "profession" | "location_only" | "recency";
 
@@ -25,7 +26,13 @@ const PAGE_SIZE = 12;
  * RPC: get_ranked_jobs_for_talent
  */
 export function useRankedJobs(talentId: string | undefined) {
-  return useInfiniteQuery<RankedJob[], Error, InfiniteJobsWrapper, [string, string | undefined], number | null>({
+  return useInfiniteQuery<
+    RankedJob[],
+    Error,
+    InfiniteData<RankedJob[], number | null>,
+    [string, string | undefined],
+    number | null
+  >({
     queryKey: ["ranked-jobs", talentId],
     enabled: !!talentId,
     // Performance Baseline: 5-minute cache consistency window for algorithmic feeds
@@ -34,7 +41,6 @@ export function useRankedJobs(talentId: string | undefined) {
     queryFn: async (context): Promise<RankedJob[]> => {
       const { pageParam } = context;
 
-      // HUD: EXECUTING_KEYSET_PAGINATED_JOB_INGRESS_SYNC
       let data: any[];
       try {
         data = await getRankedJobsForTalent({
@@ -43,10 +49,12 @@ export function useRankedJobs(talentId: string | undefined) {
           limit: PAGE_SIZE,
         });
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: get_ranked_jobs_for_talent RPC pipeline dropped.", {
+        // Digital Workforce: Route data drops directly to platform telemetry layers
+        trackError(error, {
+          component: "useRankedJobs",
+          action: "get_ranked_jobs_for_talent_rpc_failed",
           talentId,
           cursor: pageParam,
-          message: error?.message,
         });
         throw error;
       }
@@ -95,6 +103,3 @@ export function useRankedJobs(talentId: string | undefined) {
     },
   });
 }
-
-// Internal type targeting clean infrastructure data structure typing
-type InfiniteJobsWrapper = import("@tanstack/react-query").InfiniteData<RankedJob[], number | null>;
