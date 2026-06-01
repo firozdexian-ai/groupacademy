@@ -25,8 +25,7 @@ const STREAM_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/learner-sc
 
 /**
  * GroUp Academy: Interactive Simulation Scenario Runner (ModuleScenarioRunner)
- * CTO Reference: Authoritative engine orchestrating real-time conversational streaming and AI psychometric rubrics evaluation.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * Conversational streaming engine and psychometric evaluation card suite.
  */
 export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: string; onComplete?: () => void }) {
   const queryClient = useQueryClient();
@@ -39,14 +38,14 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
   const [evaluating, setEvaluating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Monitor scenario evaluation dashboard views via analytical tracking tools
+  // Monitor dynamic interactive scenario views via analytics
   useEffect(() => {
     if (moduleId) {
       trackEvent("simulation_scenario_runner_mounted", { moduleId });
     }
   }, [moduleId]);
 
-  // Hardened Asynchronous Lifecycle: Protect updates from firing against unmounted elements
+  // Safe Asynchronous Lifecycle Guard: Prevent states from updating on unmounted nodes
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -73,7 +72,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
           moduleId,
         });
 
-        toast.error(`Couldn't load scenario: ${parsedExceptionMsg}`);
+        toast.error(`Unable to initialize simulation context: ${parsedExceptionMsg}`);
         if (isMounted) setLoading(false);
       }
     };
@@ -85,7 +84,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
     };
   }, [moduleId]);
 
-  // Smooth operational scroll anchoring over active text streams
+  // Handle automatic scrolling anchoring down conversational threads safely
   useEffect(() => {
     const scrollContainerElement = scrollRef.current;
     if (scrollContainerElement) {
@@ -129,7 +128,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
       });
 
       if (!responseTokenStream.ok || !responseTokenStream.body) {
-        throw new Error(`Edge pipeline rejected connection with status tag: [${responseTokenStream.status}]`);
+        throw new Error(`Edge stream connection rejected with status code: [${responseTokenStream.status}]`);
       }
 
       const streamBufferReader = responseTokenStream.body.getReader();
@@ -144,7 +143,6 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
         const { done, value } = await streamBufferReader.read();
         if (done) break;
 
-        // Defensive Slicing: Store chunk data safely to protect text values across split chunks
         compositeChunkBuffer += textualDecoderInstance.decode(value, { stream: true });
         let newlineIndexPosition: number;
 
@@ -179,7 +177,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
               });
             }
           } catch {
-            // Re-stitch raw fragments cleanly if processing windows break data lines
+            // Re-stitch raw fragments if segment boundaries break text data lines
             compositeChunkBuffer = atomicLineToken + "\n" + compositeChunkBuffer;
             break;
           }
@@ -195,7 +193,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
         scenarioId: scenario.id,
       });
 
-      toast.error(`Connection lost: ${parsedExceptionMsg}`);
+      toast.error(`Classroom connection dropped: ${parsedExceptionMsg}`);
     } finally {
       setStreaming(false);
     }
@@ -205,12 +203,12 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
     if (!scenario) return;
 
     setEvaluating(true);
-    const toastId = toast.loading("Saving dialog states and initializing psychometric rubrics evaluator...");
+    const toastId = toast.loading("Analyzing your exercise and compiling feedback report...");
 
     trackEvent("simulation_scenario_evaluation_requested", { scenarioId: scenario.id });
 
     try {
-      // 1. Persist the run safely to acquire an analytical transaction run_id
+      // Persist conversation run state cleanly to obtain unique run ID token
       const created = await learnerScenarioPool({
         mode: "create_run",
         module_id: moduleId,
@@ -219,12 +217,12 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
       });
 
       if (created?.error || !created?.run_id) {
-        throw new Error(created?.error || "Failed to commit historical state log.");
+        throw new Error(created?.error || "Failed to finalize historic text log mapping.");
       }
 
       const activeRunIdToken = created.run_id;
 
-      // 2. Score performance via the serverless evaluation synapse node
+      // Evaluate performance parameters via serverless grading models
       const evalData = await learnerScenarioEvaluate({ run_id: activeRunIdToken });
 
       if (evalData?.error) {
@@ -233,13 +231,12 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
       setEvalResult((evalData as any).evaluation);
 
-
-      // Automated Efficiency: Synchronize cache layers globally to cascade retention mastery scales
+      // Synchronize index cache parameters across workspace tabs cleanly
       queryClient.invalidateQueries({ queryKey: ["module-analytics", moduleId] });
       queryClient.invalidateQueries({ queryKey: ["item-analytics", moduleId] });
       queryClient.invalidateQueries({ queryKey: ["talent-stats"] });
 
-      toast.success("Simulation metric score verified cleanly.", { id: toastId });
+      toast.success("Evaluation analysis compiled.", { id: toastId });
       trackEvent("simulation_scenario_evaluation_success", { scenarioId: scenario.id, runId: activeRunIdToken });
 
       if (onComplete) onComplete();
@@ -252,7 +249,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
         scenarioId: scenario.id,
       });
 
-      toast.error(`Evaluation alignment timeout: ${parsedExceptionMsg}`, { id: toastId });
+      toast.error(`Evaluation processing error: ${parsedExceptionMsg}`, { id: toastId });
     } finally {
       setEvaluating(false);
     }
@@ -264,7 +261,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
         <CardContent className="py-12 flex flex-col items-center justify-center gap-3.5 text-center w-full">
           <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
           <p className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wider pl-0.5 animate-pulse">
-            Assembling Immersive Simulation Prompt Matrix…
+            Loading exercise parameters...
           </p>
         </CardContent>
       </Card>
@@ -273,7 +270,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
   if (!scenario) return null;
 
-  // VIEW PANEL A: SIMULATION GRADING REPORT CONTEXT PANEL SCREEN
+  // View Screen A: Simulation Evaluation Grading Report Dashboard View
   if (evalResult) {
     const isV1 = evalResult.version === 1 || Array.isArray(evalResult.topics);
     const overallPct = Math.round(isV1 ? Number(evalResult.overall ?? 0) * 100 : Number(evalResult.overall_score ?? 0));
@@ -293,16 +290,18 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
     return (
       <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden w-full animate-in zoom-in-98 duration-300 text-left">
         <CardHeader className="p-4 px-5 border-b border-border/10 select-none bg-muted/20">
-          <CardTitle className="text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2.5">
-            <Award className="h-5 w-5 text-primary stroke-[2.2]" />
-            <span>Simulation Performance Assessment Profile</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+            <CardTitle className="text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2.5">
+              <Award className="h-5 w-5 text-primary stroke-[2.2]" />
+              <span>Simulation Performance Review</span>
+            </CardTitle>
             <Badge
               variant="outline"
-              className="ml-auto bg-primary/5 text-primary border-primary/20 text-xs font-extrabold px-2 py-0.5 rounded shadow-sm tabular-nums"
+              className="w-fit bg-primary/5 text-primary border-primary/20 text-xs font-extrabold px-2 py-0.5 rounded shadow-sm tabular-nums"
             >
-              Score: {overallPct}% Trajectory Fit
+              Overall Score: {overallPct}%
             </Badge>
-          </CardTitle>
+          </div>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-5 space-y-4 w-full min-w-0 text-left">
@@ -313,9 +312,9 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
           )}
 
           {isV1 && (
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/30 border text-[10px] sm:text-xs font-bold text-muted-foreground/80 leading-none select-none pl-3.5">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/30 border border-border/10 text-[10px] sm:text-xs font-bold text-muted-foreground/80 leading-none select-none pl-3.5">
               <Zap className="h-4 w-4 text-amber-500 fill-amber-500/5 stroke-[2.2]" />
-              <p>Psychometric profile weights compiled. Spaced repetition review queues recalculated successfully.</p>
+              <p>Subject focus weights successfully saved. Your adaptive topic queues have been updated dynamically.</p>
             </div>
           )}
 
@@ -347,23 +346,23 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
     );
   }
 
-  // VIEW PANEL B: LIVE SIMULATION INTERACTION CHAT SCREEN
+  // View Screen B: Active Chat Simulation Interface
   return (
     <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden w-full text-left">
       <CardHeader className="p-4 px-5 border-b border-border/10 select-none bg-muted/20">
         <CardTitle className="text-sm font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-2">
           <MessageSquare className="h-4.5 w-4.5 text-primary stroke-[2.2]" />
-          <span className="truncate pr-1">{scenario.title || "Scenario"}</span>
+          <span className="truncate pr-1">{scenario.title || "Interactive Scenario"}</span>
         </CardTitle>
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5 space-y-4 w-full min-w-0">
-        {/* Dynamic Context Prompt Narrative Anchor Block */}
+        {/* Scenario Prompt Context Block */}
         <div className="rounded-xl border border-primary/10 bg-primary/5 p-3.5 text-xs sm:text-sm font-semibold text-foreground/80 leading-relaxed select-text break-words shadow-sm">
           {scenario.scenario_prompt}
         </div>
 
-        {/* Dynamic Messaging Conversational Array Area */}
+        {/* Messaging Logs Interaction Window Box */}
         <div
           ref={scrollRef}
           className="border border-border/40 bg-background/20 rounded-xl p-3.5 max-h-80 overflow-y-auto space-y-3 shadow-inner w-full min-w-0 font-medium"
@@ -372,7 +371,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             <div className="py-12 flex flex-col items-center justify-center text-center select-none gap-2 text-muted-foreground/40 animate-pulse">
               <HelpCircle className="h-6 w-6 stroke-[2.2]" />
               <p className="text-xs font-bold uppercase tracking-wider italic leading-none pl-0.5">
-                Awaiting interactive response payload initialization…
+                Awaiting your reply...
               </p>
             </div>
           )}
@@ -392,7 +391,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
                 )}
               >
                 <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 select-none mb-1 leading-none">
-                  {isUserRole ? "You" : "Scenario"}
+                  {isUserRole ? "You" : "Scenario role"}
                 </span>
 
                 <p className="select-text whitespace-pre-wrap">{messageItem.content}</p>
@@ -405,14 +404,14 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
           })}
         </div>
 
-        {/* Input Interactive Typing Control Ribbon Footer Anchor Block */}
+        {/* Input Text Triggers Form Row */}
         <div className="flex gap-2 w-full select-none pt-0.5">
           <Input
             value={input}
             disabled={streaming}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Type your response and press Enter to send…"
+            placeholder="Type your response and press Enter to send..."
             className="rounded-xl border border-border/40 bg-card/40 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium w-full h-10 shadow-sm"
           />
           <Button
@@ -427,7 +426,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
           </Button>
         </div>
 
-        {/* Interactive Evaluation Completion Control Trigger */}
+        {/* Submit Performance Review Completion Trigger Button */}
         {conv.length >= 4 && (
           <Button
             onClick={finishAndEvaluate}
@@ -439,12 +438,12 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             {evaluating ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary stroke-[2.5]" />
-                <span>Calibrating Simulation Outcome Rubrics…</span>
+                <span>Compiling metrics evaluation...</span>
               </>
             ) : (
               <>
                 <Award className="h-4 w-4 text-primary stroke-[2.5]" />
-                <span>Conclude Simulation & Synthesize Evaluation Report</span>
+                <span>Submit for Review</span>
               </>
             )}
           </Button>
