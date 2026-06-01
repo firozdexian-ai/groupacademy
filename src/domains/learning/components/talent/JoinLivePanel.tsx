@@ -21,8 +21,8 @@ interface Props {
   };
 }
 
-const JOIN_WINDOW_MIN = 10; // open Join button this many minutes before start
-const POST_BUFFER_MIN = 15; // grace after scheduled end
+const JOIN_WINDOW_MIN = 10; // Open Join button this many minutes before start
+const POST_BUFFER_MIN = 15; // Grace period after scheduled end
 
 function diffParts(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -34,14 +34,13 @@ function diffParts(ms: number) {
 }
 
 /**
- * GroUp Academy: Live Room Synchronization Ingress Gate (JoinLivePanel)
- * CTO Reference: Authoritative realtime orchestration block determining live cohort room access thresholds.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * GroUp Academy: Live Room Synchronized Ingress Gate (JoinLivePanel)
+ * Realtime cohort orchestration block governing live classroom access thresholds.
  */
 export function JoinLivePanel({ course }: Props) {
   const queryClient = useQueryClient();
 
-  // 1. SSR Hydration Security Fix: Initialize time ticks via standard effect hooks to prevent string popping jumps
+  // SSR Hydration Safety Fix: Initialize time ticks via standard effect hooks to prevent string popping jumps
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -50,7 +49,7 @@ export function JoinLivePanel({ course }: Props) {
     return () => clearInterval(intervalTickerId);
   }, []);
 
-  // Monitor real-time stream state tracking indicators via analytical telemetry
+  // Monitor stream availability state indicators via telemetry tracking endpoints
   useEffect(() => {
     if (course?.id) {
       trackEvent("live_ingress_gate_rendered", { courseId: course.id, contentType: course.content_type });
@@ -93,14 +92,14 @@ export function JoinLivePanel({ course }: Props) {
       channel: channelLabel,
       currentStateFrame: state,
     });
-    // Evaporate global caching keys across dashboard views dynamically to ensure state parity
+    // Dynamically refresh feed status tracking to maintain session state parity
     queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
   };
 
   return (
     <Card className="w-full text-left rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/[0.02] via-primary/[0.01] to-transparent shadow-sm antialiased select-none sm:select-text transform-gpu overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0">
-        {/* HUD LEVEL 1: LIVESTREAM MATRIX STATE INDICATOR STATUS STRIP */}
+        {/* Livestream State Indicator Status Ribbon */}
         <div className="flex items-center justify-between gap-3.5 w-full select-none border-b border-border/10 pb-2">
           <Badge
             variant="outline"
@@ -123,7 +122,7 @@ export function JoinLivePanel({ course }: Props) {
                   ? "Starting Soon"
                   : state === "ended"
                     ? "Session Ended"
-                    : "Upcoming Node"}
+                    : "Scheduled"}
             </span>
           </Badge>
 
@@ -134,7 +133,7 @@ export function JoinLivePanel({ course }: Props) {
           )}
         </div>
 
-        {/* HUD LEVEL 2: CALENDAR SCHEDULING CHRONO DETAILS METADATA */}
+        {/* Calendar & Scheduling Details Area */}
         {course.event_date && (
           <div className="space-y-1 text-left select-none tabular-nums font-bold text-foreground/90 tracking-tight leading-none">
             <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -143,12 +142,12 @@ export function JoinLivePanel({ course }: Props) {
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-semibold pl-6">
               <Clock className="h-3.5 w-3.5 text-primary/40 shrink-0 stroke-[2.2]" />
-              <span>Block duration: {durationMin} minutes metrics allocation</span>
+              <span>Duration: {durationMin} minutes</span>
             </div>
           </div>
         )}
 
-        {/* HUD LEVEL 3: COUNTDOWN RECONCILIATION TARGET MATRIX GRID */}
+        {/* Real-time Status Notice Contexts */}
         {state === "upcoming" && (
           <div className="w-full pt-0.5 select-none animate-in fade-in duration-300">
             <Countdown ms={untilStart} />
@@ -157,17 +156,17 @@ export function JoinLivePanel({ course }: Props) {
 
         {state === "live" && (
           <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-normal pl-0.5 italic animate-pulse">
-            &bull; The live trajectory session is currently active. Dispatch connection below instantly.
+            &bull; The live session is active. Click below to enter the classroom.
           </p>
         )}
 
         {state === "joinable" && (
           <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 leading-normal pl-0.5 italic animate-pulse">
-            &bull; The secure communication hub gate is open. Claim your entry pass below to lock availability.
+            &bull; The classroom doors are now open. Secure your seat below.
           </p>
         )}
 
-        {/* HUD LEVEL 4: TRANSACTION DISPATCH CTA CONNECTOR RIBBON */}
+        {/* Dynamic Action Trigger Framework */}
         {state === "ended" ? (
           course.youtube_url ? (
             <Button
@@ -187,7 +186,7 @@ export function JoinLivePanel({ course }: Props) {
             </Button>
           ) : (
             <p className="text-xs font-semibold text-muted-foreground/70 leading-normal italic pl-0.5 select-text pt-1 border-t border-border/5 text-center sm:text-left max-w-sm">
-              Recording will appear here within 24 hours.
+              The recorded version of this session will be available within 24 hours.
             </p>
           )
         ) : (
@@ -203,18 +202,22 @@ export function JoinLivePanel({ course }: Props) {
                   href={joinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => handleLiveSessionHandshakeRedirect(joinUrl, "live_stream_ingress")}
+                  onClick={() =>
+                    trackEvent("live_ingress_connection_launched", {
+                      courseId: course.id,
+                      channel: "live_stream_ingress",
+                      currentStateFrame: state,
+                    })
+                  }
                 >
                   <Video className="h-4 w-4 shrink-0 stroke-[2.5]" />
-                  <span>{state === "live" ? "Join live now" : "Join session"}</span>
+                  <span>{state === "live" ? "Join Live Classroom Now" : "Enter Session Room"}</span>
                 </a>
               ) : (
                 <div className="flex items-center justify-center gap-1.5 font-bold tracking-tight">
                   <Video className="h-4 w-4 shrink-0 stroke-[2.2] text-muted-foreground/60" />
                   <span>
-                    {state === "upcoming"
-                      ? `Room unlocks ${JOIN_WINDOW_MIN} minutes prior`
-                      : "Live communication channel unreachable"}
+                    {state === "upcoming" ? `Unlocks ${JOIN_WINDOW_MIN} mins prior` : "Classroom link unavailable"}
                   </span>
                 </div>
               )}
@@ -236,7 +239,7 @@ export function JoinLivePanel({ course }: Props) {
                   }
                 >
                   <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500 stroke-[2.2]" />
-                  <span>Cohort WhatsApp Network</span>
+                  <span>Join Class WhatsApp Group</span>
                 </a>
               </Button>
             )}
@@ -253,7 +256,7 @@ function Countdown({ ms }: { ms: number }) {
     "flex-1 rounded-xl bg-card/60 backdrop-blur-md border border-border/40 p-2.5 text-center flex flex-col justify-center min-w-0";
 
   return (
-    <div className="flex items-stretch gap-2 w-full text-foreground/90 font-bold tracking-tight tabular-nums select-none select-none">
+    <div className="flex items-stretch gap-2 w-full text-foreground/90 font-bold tracking-tight tabular-nums select-none">
       {days > 0 && (
         <div className={cellStyleClass}>
           <p className="text-sm sm:text-base font-black leading-none">{days}</p>
