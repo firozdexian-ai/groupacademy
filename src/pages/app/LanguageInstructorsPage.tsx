@@ -62,23 +62,23 @@ export default function LanguageInstructorsPage() {
  duration_mins: 30,
  });
 
- if (data?.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
- toast.success("Booking confirmed. Integration calendar sync complete.");
- } catch (e: any) {
- toast.error(e.message || "Pipeline booking failure.");
- } finally {
- setIsBookingPending(false);
- }
- };
+      toast.success("Booking confirmed. Check your calendar for details.");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't book the session.");
+    } finally {
+      setIsBookingPending(false);
+    }
+  };
 
- return (
- <div className={cn(PAGE_SHELL, "max-w-3xl mx-auto space-y-4")}>
- <header className="space-y-1">
- <h1 className="text-xl font-bold uppercase tracking-tight">
- {languageCode.toUpperCase()} Instructional Faculty
- </h1>
- <p className={META_TEXT}>Select an expert to initiate language acquisition coaching.</p>
+  return (
+    <div className={cn(PAGE_SHELL, "max-w-3xl mx-auto space-y-4")}>
+      <header className="space-y-1">
+        <h1 className="text-xl font-bold uppercase tracking-tight">
+          {languageCode.toUpperCase()} Language Instructors
+        </h1>
+        <p className={META_TEXT}>Pick an instructor to start your language coaching.</p>
  </header>
 
  {isLoading ? (
@@ -87,10 +87,10 @@ export default function LanguageInstructorsPage() {
  <Skeleton key={i} className="h-28 w-full rounded-lg" />
  ))}
  </div>
- ) : instructors.length === 0 ? (
- <div className="text-center py-12 border border-dashed rounded-lg">
- <p className="text-sm text-muted-foreground">No active instructional faculty found for this dialect.</p>
- </div>
+      ) : instructors.length === 0 ? (
+        <div className="text-center py-12 border border-dashed rounded-lg">
+          <p className="text-sm text-muted-foreground">No instructors available for this language right now.</p>
+        </div>
  ) : (
  <div className="space-y-3">
  {instructors.map((instructor) => (

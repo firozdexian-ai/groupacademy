@@ -55,19 +55,19 @@ export default function InstructorReviewQueue() {
  setLoading(true);
  setError(null);
  try {
- const user = await getCurrentUser();
- if (!user) throw new Error("Authentication credential session expired.");
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Your session expired. Please sign in again.");
 
- const adminRole = await userHasRole(user.id, "admin");
- setIsAdmin(adminRole);
+      const adminRole = await userHasRole(user.id, "admin");
+      setIsAdmin(adminRole);
 
- // Fetch managed content IDs
- let contentIds: string[] = [];
- if (adminRole) {
- contentIds = await listPublishedContentIdsLimit(50);
- } else {
- const instructorId = await findInstructorIdByEmail(user.email ?? "");
- if (!instructorId) throw new Error("No instructor profile mapped to account.");
+      // Fetch managed content IDs
+      let contentIds: string[] = [];
+      if (adminRole) {
+        contentIds = await listPublishedContentIdsLimit(50);
+      } else {
+        const instructorId = await findInstructorIdByEmail(user.email ?? "");
+        if (!instructorId) throw new Error("No instructor profile linked to your account.");
  contentIds = await listContentIdsForInstructor(instructorId);
  }
 
@@ -96,27 +96,27 @@ export default function InstructorReviewQueue() {
  return totalB - totalA;
  });
 
- setDigests(parsedDigests);
- } catch (e: any) {
- setError(e?.message ?? "Pipeline synchronization failure.");
- } finally {
- setLoading(false);
- }
- }, []);
+      setDigests(parsedDigests);
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't load the review queue.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
- React.useEffect(() => { void load(); }, [load]);
+  React.useEffect(() => { void load(); }, [load]);
 
- const handleWeeklyDispatch = async () => {
- toast.loading("Initiating global weekly digest distribution…", { id: "wd" });
- try {
- await authoringReviewDigest({ mode: "weekly", days: 7 });
- toast.dismiss("wd");
- toast.success("Digests transmitted.");
- } catch (err) {
- toast.dismiss("wd");
- toast.error(err instanceof EdgeFunctionError ? "Dispatch failure." : "Dispatch failure.");
- }
- };
+  const handleWeeklyDispatch = async () => {
+    toast.loading("Sending weekly digest to instructors…", { id: "wd" });
+    try {
+      await authoringReviewDigest({ mode: "weekly", days: 7 });
+      toast.dismiss("wd");
+      toast.success("Weekly digest sent.");
+    } catch (err) {
+      toast.dismiss("wd");
+      toast.error("Couldn't send the digest.");
+    }
+  };
 
  return (
  <div className="px-4 py-6 max-w-2xl mx-auto space-y-4">
@@ -125,11 +125,11 @@ export default function InstructorReviewQueue() {
  <h1 className="text-xl font-black uppercase tracking-tight">Review Queue</h1>
  <p className="text-xs text-muted-foreground">Learner-flagged content requiring author intervention.</p>
  </div>
- <div className="flex gap-2">
- <Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh</Button>
- {isAdmin && <Button size="sm" onClick={handleWeeklyDispatch}>Dispatch Weekly</Button>}
- </div>
- </header>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh</Button>
+            {isAdmin && <Button size="sm" onClick={handleWeeklyDispatch}>Send weekly digest</Button>}
+          </div>
+        </header>
 
  {loading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
 
