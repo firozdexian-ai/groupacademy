@@ -114,44 +114,42 @@ export default function InstructorCourseSessions() {
  <div className="max-w-3xl mx-auto px-4 py-4 pb-24 text-left antialiased block transform-gpu w-full">
  {/* HUD LEVEL 1: ADMINISTRATIVE HUB CONTROL BAR */}
  <header className="block w-full select-none pb-4 border-b border-border/10">
- <Link
- to="/app/instructor"
- className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors leading-none"
- >
- <ChevronLeft className="h-3 w-3 stroke-[2.2]" /> <span>Return to Instructor Workspace</span>
- </Link>
+        <Link
+          to="/app/instructor"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors leading-none"
+        >
+          <ChevronLeft className="h-3 w-3 stroke-[2.2]" /> <span>Back to instructor workspace</span>
+        </Link>
 
- <div className="flex items-center justify-between mt-3 leading-none w-full">
- <div className="space-y-0.5 block">
- <h1 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground leading-none pt-0.5">
- Cohorts & Instruction Sessions
- </h1>
- <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-none block">
- Manage live seminar delivery rosters, tracking logs, and attendance manifests.
- </p>
- </div>
- <Button
- type="button"
- size="sm"
- onClick={() => setIsCohortSheetOpen(true)}
- className="h-8 rounded-lg font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 shadow-2xs transform-gpu active:scale-[0.985]"
- >
- <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
- <span>Add Cohort</span>
- </Button>
- </div>
- </header>
+        <div className="flex items-center justify-between mt-3 leading-none w-full">
+          <div className="space-y-0.5 block">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-foreground leading-none pt-0.5">
+              Cohorts & sessions
+            </h1>
+            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-none block">
+              Manage live sessions, rosters, and attendance.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsCohortSheetOpen(true)}
+            className="h-8 rounded-lg font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 shadow-2xs transform-gpu active:scale-[0.985]"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>Add cohort</span>
+          </Button>
+        </div>
+      </header>
 
- {/* HUD LEVEL 2: RECONCILED FILTER BUTTON ROWS */}
- <main className="mt-4 space-y-4 block w-full">
- {typedCohortsArray.length === 0 ? (
- <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block">
- <Inbox className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
- <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
- No active learning cohorts assigned under this specification. Instantiate a root group configuration block
- to start.
- </p>
- </div>
+      <main className="mt-4 space-y-4 block w-full">
+        {typedCohortsArray.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block">
+            <Inbox className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
+            <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
+              No cohorts yet. Create your first cohort to get started.
+            </p>
+          </div>
  ) : (
  <div className="flex gap-1.5 overflow-x-auto pb-1.5 w-full select-none scrollbar-none transform-gpu shrink-0 block">
  {typedCohortsArray.map((cohortItemNode) => (
@@ -212,36 +210,36 @@ function CohortSessions({ cohort, onAddSession, onAttendance }: CohortSessionsPr
  return (
  <div className="space-y-3 block w-full">
  <div className="flex items-center justify-between select-none pointer-events-none leading-none w-full shrink-0">
- <p className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/40 inline-flex items-center gap-1 pt-1 leading-none">
- <Calendar className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
- <span>
- SPAN: {cohort.starts_on ?? "SELF-PACED PIPELINE"}
- {cohort.ends_on ? ` → ${cohort.ends_on}` : ""}
- </span>
- </p>
- <Button
- type="button"
- size="sm"
- variant="outline"
- onClick={onAddSession}
- className="h-7 rounded-md font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 pointer-events-auto shadow-2xs"
- >
- <Plus className="h-3 w-3 stroke-[2.5]" />
- <span>Add Session</span>
- </Button>
- </div>
+        <p className="font-mono text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/40 inline-flex items-center gap-1 pt-1 leading-none">
+          <Calendar className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
+          <span>
+            {cohort.starts_on ?? "Self-paced"}
+            {cohort.ends_on ? ` → ${cohort.ends_on}` : ""}
+          </span>
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onAddSession}
+          className="h-7 rounded-md font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1 cursor-pointer shrink-0 pointer-events-auto shadow-2xs"
+        >
+          <Plus className="h-3 w-3 stroke-[2.5]" />
+          <span>Add session</span>
+        </Button>
+      </div>
 
- {isSessionsLoading ? (
- <div className="w-full flex items-center justify-center py-8 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
- <InlineSpinner size="sm" />
- <span>Compiling Session Syllabus...</span>
- </div>
- ) : typedSessionsArray.length === 0 ? (
- <Card className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6 text-center select-none block">
- <p className="text-xs font-semibold text-muted-foreground/50 leading-normal max-w-xs mx-auto">
- No dynamic technical syllabus items or lecture segments have been scheduled under this block.
- </p>
- </Card>
+      {isSessionsLoading ? (
+        <div className="w-full flex items-center justify-center py-8 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
+          <InlineSpinner size="sm" />
+          <span>Loading sessions…</span>
+        </div>
+      ) : typedSessionsArray.length === 0 ? (
+        <Card className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6 text-center select-none block">
+          <p className="text-xs font-semibold text-muted-foreground/50 leading-normal max-w-xs mx-auto">
+            No sessions scheduled yet for this cohort.
+          </p>
+        </Card>
  ) : (
  <div className="space-y-2 block w-full">
  {typedSessionsArray.map((sessionNodeItem) => (
@@ -322,68 +320,68 @@ function CohortSheet({ open, onClose, contentId }: CohortSheetProps) {
  setCohortFormState((prev) => ({ ...prev, [fieldKey]: valueString }));
  }, []);
 
- const handleCohortSubmissionSequence = React.useCallback(async () => {
- if (!cohortFormState.name.trim()) {
- toast({
- title: "Validation Error",
- description: "A unique cohort target moniker must be supplied.",
- variant: "destructive",
- });
- return;
- }
+  const handleCohortSubmissionSequence = React.useCallback(async () => {
+    if (!cohortFormState.name.trim()) {
+      toast({
+        title: "Cohort name required",
+        description: "Please enter a name for this cohort.",
+        variant: "destructive",
+      });
+      return;
+    }
 
- try {
- await saveCohortMutation.mutateAsync({
- ...cohortFormState,
- capacity: cohortFormState.capacity ? Number(cohortFormState.capacity) : null,
- content_id: contentId,
- });
- toast({
- title: "Configuration Confirmed",
- description: "The learning group matrix has been initialized successfully.",
- });
- setCohortFormState({
- name: "",
- starts_on: "",
- ends_on: "",
- capacity: "",
- timezone: "Asia/Dhaka",
- status: "open",
- });
- onClose();
- } catch (mutationExceptionPayload: any) {
- toast({
- title: "Execution Refused",
- description: mutationExceptionPayload.message || "Failed to commit record maps.",
- variant: "destructive",
- });
- }
- }, [cohortFormState, contentId, onClose, saveCohortMutation, toast]);
+    try {
+      await saveCohortMutation.mutateAsync({
+        ...cohortFormState,
+        capacity: cohortFormState.capacity ? Number(cohortFormState.capacity) : null,
+        content_id: contentId,
+      });
+      toast({
+        title: "Cohort created",
+        description: "Your new cohort is ready.",
+      });
+      setCohortFormState({
+        name: "",
+        starts_on: "",
+        ends_on: "",
+        capacity: "",
+        timezone: "Asia/Dhaka",
+        status: "open",
+      });
+      onClose();
+    } catch (mutationExceptionPayload: any) {
+      toast({
+        title: "Couldn't save cohort",
+        description: mutationExceptionPayload.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [cohortFormState, contentId, onClose, saveCohortMutation, toast]);
 
- return (
- <Sheet open={open} onOpenChange={onClose}>
- <SheetContent
- side="right"
- className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-border/60 bg-popover/95 "
- >
- <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
- <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
- Initialize New Cohort
- </SheetTitle>
- <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
- Deploy an independent structural student tracking row.
- </SheetDescription>
- </SheetHeader>
+  return (
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent
+        side="right"
+        className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-border/60 bg-popover/95 "
+      >
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
+            New cohort
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            Group your learners into a cohort to coordinate sessions and progress.
+          </SheetDescription>
+        </SheetHeader>
 
  <div className="space-y-3.5 mt-4 block w-full leading-none">
  <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Cohort Name Designation
- </Label>
- <Input
- type="text"
- disabled={saveCohortMutation.isPending}
- placeholder="e.g., Phase Alpha 2026"
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Cohort name
+            </Label>
+            <Input
+              type="text"
+              disabled={saveCohortMutation.isPending}
+              placeholder="e.g., Spring 2026 batch"
  value={cohortFormState.name}
  onChange={(e) => handleInputChange("name", e.target.value)}
  className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
@@ -392,23 +390,23 @@ function CohortSheet({ open, onClose, contentId }: CohortSheetProps) {
 
  <div className="grid grid-cols-2 gap-2 w-full block">
  <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Starts On Date
- </Label>
- <Input
- type="date"
- disabled={saveCohortMutation.isPending}
- value={cohortFormState.starts_on}
- onChange={(e) => handleInputChange("starts_on", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
- />
- </div>
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Ends On Date
- </Label>
- <Input
- type="date"
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Start date
+              </Label>
+              <Input
+                type="date"
+                disabled={saveCohortMutation.isPending}
+                value={cohortFormState.starts_on}
+                onChange={(e) => handleInputChange("starts_on", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                End date
+              </Label>
+              <Input
+                type="date"
  disabled={saveCohortMutation.isPending}
  value={cohortFormState.ends_on}
  onChange={(e) => handleInputChange("ends_on", e.target.value)}
@@ -419,45 +417,45 @@ function CohortSheet({ open, onClose, contentId }: CohortSheetProps) {
 
  <div className="grid grid-cols-2 gap-2 w-full block">
  <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Capacity Limit
- </Label>
- <Input
- type="number"
- disabled={saveCohortMutation.isPending}
- placeholder="Unlimited"
- value={cohortFormState.capacity}
- onChange={(e) => handleInputChange("capacity", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none tabular-nums font-mono"
- />
- </div>
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Operation Timezone
- </Label>
- <Input
- type="text"
- disabled={saveCohortMutation.isPending}
- value={cohortFormState.timezone}
- onChange={(e) => handleInputChange("timezone", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
- />
- </div>
- </div>
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Capacity
+              </Label>
+              <Input
+                type="number"
+                disabled={saveCohortMutation.isPending}
+                placeholder="Unlimited"
+                value={cohortFormState.capacity}
+                onChange={(e) => handleInputChange("capacity", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none tabular-nums font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Timezone
+              </Label>
+              <Input
+                type="text"
+                disabled={saveCohortMutation.isPending}
+                value={cohortFormState.timezone}
+                onChange={(e) => handleInputChange("timezone", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+          </div>
 
- <Button
- type="button"
- onClick={handleCohortSubmissionSequence}
- disabled={saveCohortMutation.isPending}
- className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
- >
- {saveCohortMutation.isPending ? (
- <Loader2 className="h-3.5 w-3.5 animate-spin" />
- ) : (
- <CheckCircle className="h-3.5 w-3.5 stroke-[2.2]" />
- )}
- <span>Commit Cohort Configuration</span>
- </Button>
+          <Button
+            type="button"
+            onClick={handleCohortSubmissionSequence}
+            disabled={saveCohortMutation.isPending}
+            className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
+          >
+            {saveCohortMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle className="h-3.5 w-3.5 stroke-[2.2]" />
+            )}
+            <span>Create cohort</span>
+          </Button>
  </div>
  </SheetContent>
  </Sheet>
@@ -507,39 +505,39 @@ function SessionSheet({ open, onClose, cohort, contentId }: SessionSheetProps) {
  if (!cohort) return null;
 
  const handleSessionSubmissionSequence = async () => {
- if (!sessionFormState.title.trim() || !sessionFormState.scheduled_date) {
- toast({
- title: "Validation Error",
- description: "Designated lecture titles and timestamp parameters are required elements.",
- variant: "destructive",
- });
- return;
- }
+    if (!sessionFormState.title.trim() || !sessionFormState.scheduled_date) {
+      toast({
+        title: "Missing details",
+        description: "A title and scheduled time are required.",
+        variant: "destructive",
+      });
+      return;
+    }
 
- try {
- const targetUtcNormalizedDateString = new Date(sessionFormState.scheduled_date).toISOString();
+    try {
+      const targetUtcNormalizedDateString = new Date(sessionFormState.scheduled_date).toISOString();
 
- await saveSessionMutation.mutateAsync({
- ...sessionFormState,
- cohort_id: cohort.id,
- content_id: contentId,
- scheduled_date: targetUtcNormalizedDateString,
- event_timezone: cohort.timezone || "Asia/Dhaka",
- });
+      await saveSessionMutation.mutateAsync({
+        ...sessionFormState,
+        cohort_id: cohort.id,
+        content_id: contentId,
+        scheduled_date: targetUtcNormalizedDateString,
+        event_timezone: cohort.timezone || "Asia/Dhaka",
+      });
 
- toast({
- title: "Session Dispatched",
- description: "The instructional module has been synced onto the student calendar timeline.",
- });
- onClose();
- } catch (mutationExceptionPayload: any) {
- toast({
- title: "Execution Refused",
- description: mutationExceptionPayload.message || "Failed to parse system calendar bounds.",
- variant: "destructive",
- });
- }
- };
+      toast({
+        title: "Session scheduled",
+        description: "Your session has been added to the cohort calendar.",
+      });
+      onClose();
+    } catch (mutationExceptionPayload: any) {
+      toast({
+        title: "Couldn't save session",
+        description: mutationExceptionPayload.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
  return (
  <Sheet open={open} onOpenChange={onClose}>
@@ -547,103 +545,103 @@ function SessionSheet({ open, onClose, cohort, contentId }: SessionSheetProps) {
  side="right"
  className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-l-border/60 bg-popover/95 "
  >
- <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
- <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground truncate">
- Schedule Session Node
- </SheetTitle>
- <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
- Append allocation block to child target: {cohort.name}
- </SheetDescription>
- </SheetHeader>
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground truncate">
+            Schedule a session
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            Add a session to cohort: {cohort.name}
+          </SheetDescription>
+        </SheetHeader>
 
- <div className="space-y-3.5 mt-4 block w-full leading-none">
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Lecture Module Title
- </Label>
- <Input
- type="text"
- disabled={saveSessionMutation.isPending}
- placeholder="e.g., Cryptographic Ledger Sync"
- value={sessionFormState.title}
- onChange={(e) => handleInputChange("title", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
- />
- </div>
+        <div className="space-y-3.5 mt-4 block w-full leading-none">
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Session title
+            </Label>
+            <Input
+              type="text"
+              disabled={saveSessionMutation.isPending}
+              placeholder="e.g., Intro to React Hooks"
+              value={sessionFormState.title}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none"
+            />
+          </div>
 
- <div className="grid grid-cols-2 gap-2 w-full block">
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Target Execution Time
- </Label>
- <Input
- type="datetime-local"
- disabled={saveSessionMutation.isPending}
- value={sessionFormState.scheduled_date}
- onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
- />
- </div>
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Duration (Minutes)
- </Label>
- <Input
- type="number"
- disabled={saveSessionMutation.isPending}
- value={sessionFormState.duration_minutes}
- onChange={(e) => handleInputChange("duration_minutes", Number(e.target.value))}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono tabular-nums"
- />
- </div>
- </div>
+          <div className="grid grid-cols-2 gap-2 w-full block">
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Date & time
+              </Label>
+              <Input
+                type="datetime-local"
+                disabled={saveSessionMutation.isPending}
+                value={sessionFormState.scheduled_date}
+                onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+              />
+            </div>
+            <div className="space-y-1 block leading-none">
+              <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+                Duration (minutes)
+              </Label>
+              <Input
+                type="number"
+                disabled={saveSessionMutation.isPending}
+                value={sessionFormState.duration_minutes}
+                onChange={(e) => handleInputChange("duration_minutes", Number(e.target.value))}
+                className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono tabular-nums"
+              />
+            </div>
+          </div>
 
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Interactive Meeting Link Endpoint
- </Label>
- <Input
- type="url"
- disabled={saveSessionMutation.isPending}
- placeholder="https://meet.google.com/..."
- value={sessionFormState.meeting_link}
- onChange={(e) => handleInputChange("meeting_link", e.target.value)}
- className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
- />
- </div>
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Meeting link
+            </Label>
+            <Input
+              type="url"
+              disabled={saveSessionMutation.isPending}
+              placeholder="https://meet.google.com/..."
+              value={sessionFormState.meeting_link}
+              onChange={(e) => handleInputChange("meeting_link", e.target.value)}
+              className="h-9 text-xs sm:text-sm bg-background/50 border border-border/40 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none font-mono"
+            />
+          </div>
 
- <div className="space-y-1 block leading-none">
- <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Instructional Sequence Variant
- </Label>
- <select
- disabled={saveSessionMutation.isPending}
- className="w-full h-9 rounded-lg border border-border/40 bg-background/50 px-3 font-sans text-xs sm:text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
- value={sessionFormState.kind}
- onChange={(e) => handleInputChange("kind", e.target.value)}
- >
- <option value="lecture">Lecture Sequence</option>
- <option value="office_hours">Office Hours Briefing</option>
- <option value="review">Syllabus Evaluation Review</option>
- <option value="exam">Terminal Examination Gate</option>
- <option value="orientation">Onboarding Orientation</option>
- <option value="workshop">Applied Core Workshop</option>
- </select>
- </div>
+          <div className="space-y-1 block leading-none">
+            <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
+              Session type
+            </Label>
+            <select
+              disabled={saveSessionMutation.isPending}
+              className="w-full h-9 rounded-lg border border-border/40 bg-background/50 px-3 font-sans text-xs sm:text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+              value={sessionFormState.kind}
+              onChange={(e) => handleInputChange("kind", e.target.value)}
+            >
+              <option value="lecture">Lecture</option>
+              <option value="office_hours">Office hours</option>
+              <option value="review">Review</option>
+              <option value="exam">Exam</option>
+              <option value="orientation">Orientation</option>
+              <option value="workshop">Workshop</option>
+            </select>
+          </div>
 
- <Button
- type="button"
- onClick={handleSessionSubmissionSequence}
- disabled={saveSessionMutation.isPending}
- className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
- >
- {saveSessionMutation.isPending ? (
- <Loader2 className="h-3.5 w-3.5 animate-spin" />
- ) : (
- <Clock className="h-3.5 w-3.5 stroke-[2.2]" />
- )}
- <span>Schedule Instruction Node</span>
- </Button>
+          <Button
+            type="button"
+            onClick={handleSessionSubmissionSequence}
+            disabled={saveSessionMutation.isPending}
+            className="w-full h-9 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 mt-2 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
+          >
+            {saveSessionMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Clock className="h-3.5 w-3.5 stroke-[2.2]" />
+            )}
+            <span>Schedule session</span>
+          </Button>
  </div>
  </SheetContent>
  </Sheet>
@@ -670,35 +668,35 @@ function AttendanceSheet({ sessionId, onClose }: AttendanceSheetProps) {
  side="right"
  className="rounded-l-xl w-full max-w-sm overflow-y-auto block select-none border-l border-border/60 bg-popover/95 "
  >
- <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
- <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
- Attendance Manifest
- </SheetTitle>
- <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
- Audit log validation overview parameters.
- </SheetDescription>
- </SheetHeader>
+        <SheetHeader className="text-left select-none pointer-events-none block leading-none pb-3 border-b border-border/10">
+          <SheetTitle className="text-sm font-bold uppercase tracking-wide text-foreground">
+            Attendance
+          </SheetTitle>
+          <SheetDescription className="text-[11px] font-semibold text-muted-foreground/50">
+            See who attended this session.
+          </SheetDescription>
+        </SheetHeader>
 
- {isAttendanceResolving ? (
- <div className="w-full flex items-center justify-center py-12 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
- <InlineSpinner size="sm" />
- <span>Resolving Enrolled Records...</span>
- </div>
- ) : (
- <div className="mt-4 block w-full divide-y divide-border/5">
- {typedAttendanceArray.length === 0 ? (
- <p className="text-xs font-semibold text-muted-foreground/50 text-center select-none py-6">
- No verified user footprints or learner links recorded under this node sequence.
- </p>
- ) : (
- typedAttendanceArray.map((userRecordItem) => (
- <div
- key={`attendance-record-mapping-row-${userRecordItem.user_id}`}
- className="flex items-center justify-between py-2.5 text-xs sm:text-sm font-medium border-b border-border/5 leading-none w-full block"
- >
- <span className="truncate pr-4 select-text font-bold text-foreground/80 uppercase tracking-wide">
- {userRecordItem.display_name || `OP_REF_NODE:${userRecordItem.user_id.slice(0, 8).toUpperCase()}`}
- </span>
+        {isAttendanceResolving ? (
+          <div className="w-full flex items-center justify-center py-12 font-mono text-xs font-medium tracking-widest text-muted-foreground/40 select-none pointer-events-none gap-2">
+            <InlineSpinner size="sm" />
+            <span>Loading attendance…</span>
+          </div>
+        ) : (
+          <div className="mt-4 block w-full divide-y divide-border/5">
+            {typedAttendanceArray.length === 0 ? (
+              <p className="text-xs font-semibold text-muted-foreground/50 text-center select-none py-6">
+                No attendance recorded for this session yet.
+              </p>
+            ) : (
+              typedAttendanceArray.map((userRecordItem) => (
+                <div
+                  key={`attendance-record-mapping-row-${userRecordItem.user_id}`}
+                  className="flex items-center justify-between py-2.5 text-xs sm:text-sm font-medium border-b border-border/5 leading-none w-full block"
+                >
+                  <span className="truncate pr-4 select-text font-bold text-foreground/80 uppercase tracking-wide">
+                    {userRecordItem.display_name || `Learner ${userRecordItem.user_id.slice(0, 8).toUpperCase()}`}
+                  </span>
 
  <Badge
  variant={
