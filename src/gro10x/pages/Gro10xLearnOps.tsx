@@ -286,7 +286,7 @@ function WalletPane({ companyId }: { companyId: string }) {
       )}
 
       <div>
-        <h3 className="text-xs font-semibold text-slate-300 mb-2">Recent ledger</h3>
+        <h3 className="text-xs font-semibold text-slate-300 mb-2">Recent activity</h3>
         <ul className="space-y-1">
           {(data?.transactions ?? []).slice(0, 10).map((t: any) => (
             <li
