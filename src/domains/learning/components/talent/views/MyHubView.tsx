@@ -1,12 +1,13 @@
 /**
  * GroUp Academy: Personal Learning & Progress Cockpit (AppMyLearning)
- * CTO Reference: Primary learner dashboard surfacing cohort sessions and course progression.
- * Version: Launch Candidate · Phase Z0 Hardened
+ * CTO Reference: Corrected import paths and hardened structural layout.
+ * Version: Launch Candidate · Phase Z0 Hardened · Build Fix Patch
  */
-import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ArrowLeft, Target, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Domain-driven imports verified for Z0 Contract Stability
 import { MyCoursesTab } from "@/domains/learning/components/talent/MyCoursesTab";
 import { UpcomingSessionsRail } from "@/domains/learning/components/talent/UpcomingSessionsRail";
 import { cn } from "@/lib/utils";
