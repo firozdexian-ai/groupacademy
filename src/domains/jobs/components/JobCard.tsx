@@ -1,25 +1,20 @@
+/**
+ * GroUp Academy: Professional Opportunities Node (JobCard)
+ * CTO Reference: Authoritative component for job lead visualization and AI matching.
+ * Version: Launch Candidate · Phase Z0 Hardened (Refactored for Clean 2024 SaaS UI)
+ * Fixes: Scrollbar track contamination, placeholder initial logic, visual token alignment
+ */
+
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2, MapPin, Clock, Bookmark, Star, Banknote, Brain, Zap, ShieldCheck } from "lucide-react";
+import { Building2, MapPin, Clock, Bookmark, Star, Banknote, Brain, Zap } from "lucide-react";
 import { VerifiedMatchBadge } from "./VerifiedMatchBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
-import {
-  JOB_TYPE_COLORS,
-  getJobTypeLabel,
-  getExperienceLevelLabel,
-  isDeadlineUrgent,
-  isDeadlinePassed,
-} from "@/lib/constants/jobTypes";
-
-/**
- * GroUp Academy: Professional Opportunities Node (JobCard)
- * CTO Reference: Authoritative component for job lead visualization and AI matching.
- * Version: Launch Candidate · Phase Z0 Hardened
- */
+import { JOB_TYPE_COLORS, getJobTypeLabel, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
 export interface JobCardData {
   id: string;
@@ -73,6 +68,16 @@ export function JobCard({
   const isClosed = isDeadlinePassed(job.deadline || null);
   const [logoError, setLogoError] = useState(false);
 
+  // Extract pure initials safely for robust corporate identity fallback rendering
+  const companyInitials = job.company_name
+    ? job.company_name
+        .split(" ")
+        .map((word) => word[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "GA";
+
   // Monitor opportunity visibility impressions safely via analytics tokens
   useEffect(() => {
     if (job?.id) {
@@ -120,8 +125,6 @@ export function JobCard({
 
     try {
       await onSaveToggle();
-
-      // Automated Efficiency: Synchronize cache pools instantly across parallel views
       queryClient.invalidateQueries({ queryKey: ["saved-items"] });
       queryClient.invalidateQueries({ queryKey: ["ranked-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
@@ -158,39 +161,45 @@ export function JobCard({
 
   const dynamicSalaryStringValue = formatSalarySync();
 
-  // VIEW MODE A: COMPACT VIEW MATRIX TRACK
+  // VIEW MODE A: COMPACT VIEW MATRIX TRACK (Horizontal Strips Integration Layout)
   if (isCompact) {
     return (
       <Card
         className={cn(
-          "cursor-pointer overflow-hidden transition-all duration-300 border border-border/40 bg-card/40 backdrop-blur-md hover:border-primary/30 shadow-sm w-full transform-gpu group focus-visible:ring-2 focus-visible:ring-ring select-none sm:select-text",
+          "cursor-pointer overflow-hidden transition-all duration-300 border border-border/40 bg-card/40 backdrop-blur-md hover:border-primary/30 shadow-sm w-full transform-gpu group focus-visible:ring-2 focus-visible:ring-ring select-none sm:select-text rounded-2xl",
           isClosed && "opacity-40 grayscale pointer-events-none select-none",
           className,
         )}
         onClick={handleRowContainerClick}
       >
-        <CardContent className="p-3.5 flex items-center justify-between gap-3.5 w-full min-w-0">
-          <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
-            {/* Branded Profile Identity Logo Element */}
-            <div className="w-10 h-10 rounded-xl bg-background border border-border/20 flex items-center justify-center shrink-0 overflow-hidden shadow-inner select-none">
+        <CardContent className="p-4 flex flex-col justify-between items-start gap-3 w-full min-w-0 h-[140px]">
+          {/* Inject style flag programmatically to strip unmanaged horizontal scroll bar visual clutter */}
+          <style>{`
+            .scrollbar-none::-webkit-scrollbar { display: none !important; }
+            .scrollbar-none { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+          `}</style>
+
+          <div className="flex items-start gap-3 min-w-0 w-full text-left">
+            {/* Branded Profile Identity Logo Element / Dynamic Fallback Hub */}
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/10 flex items-center justify-center shrink-0 overflow-hidden shadow-inner select-none text-primary font-bold text-xs">
               {job.company_logo_url && !logoError ? (
                 <img
                   src={job.company_logo_url}
-                  alt={`${job.company_name} corporate identification logo`}
+                  alt={`${job.company_name} logo`}
                   className="object-cover w-full h-full"
                   loading="lazy"
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Building2 className="w-4 h-4 text-primary/40 stroke-[2.2]" />
+                <span>{companyInitials}</span>
               )}
             </div>
 
             <div className="min-w-0 flex-1 space-y-0.5 text-left">
-              <h3 className="font-bold text-xs sm:text-sm text-foreground/90 tracking-tight truncate leading-tight group-hover:text-primary transition-colors w-full break-all">
+              <h3 className="font-bold text-xs sm:text-sm text-foreground/90 tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors w-full break-words">
                 {job.title}
               </h3>
-              <p className="text-[11px] font-bold text-muted-foreground/80 truncate w-full tracking-tight">
+              <p className="text-[11px] font-semibold text-muted-foreground/80 truncate w-full tracking-tight">
                 {job.company_name}
               </p>
               {whyChip && (
@@ -201,29 +210,30 @@ export function JobCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 select-none">
-            {matchInfo && (
-              <Badge
-                variant="outline"
-                className="bg-primary/5 text-primary border-primary/20 gap-1 text-[10px] h-5.5 px-2 font-extrabold shadow-sm tabular-nums"
-              >
-                <Brain className="w-3 h-3 fill-primary/5 stroke-[2.2]" />
-                <span>{matchInfo.match_score}% Fit</span>
-              </Badge>
-            )}
+          <div className="flex items-center justify-between w-full shrink-0 select-none mt-auto border-t border-border/5 pt-2">
+            <div className="flex items-center gap-1.5">
+              {matchInfo && (
+                <Badge
+                  variant="outline"
+                  className="bg-primary/5 text-primary border-primary/20 gap-1 text-[10px] h-5 px-1.5 font-extrabold shadow-sm tabular-nums"
+                >
+                  <span>{matchInfo.match_score}% Fit</span>
+                </Badge>
+              )}
 
-            {matchInfo?.match_reason === "verified_skill" && (
-              <VerifiedMatchBadge
-                compact
-                credentials={matchInfo.verified_match?.verified_credentials}
-                masteryScore={matchInfo.verified_match?.mastery_score}
-              />
-            )}
+              {matchInfo?.match_reason === "verified_skill" && (
+                <VerifiedMatchBadge
+                  compact
+                  credentials={matchInfo.verified_match?.verified_credentials}
+                  masteryScore={matchInfo.verified_match?.mastery_score}
+                />
+              )}
+            </div>
 
             <Badge
               variant="secondary"
               className={cn(
-                "text-[9px] font-extrabold h-5.5 px-2 uppercase tracking-wide rounded-md border-none select-none",
+                "text-[9px] font-extrabold h-5 px-1.5 uppercase tracking-wide rounded-md border-none select-none",
                 JOB_TYPE_COLORS[job.job_type],
               )}
             >
@@ -235,7 +245,7 @@ export function JobCard({
     );
   }
 
-  // VIEW MODE B: DEFAULT STANDALONE VIEW MATRIX PORTAL
+  // VIEW MODE B: DEFAULT STANDALONE VIEW MATRIX PORTAL (Vertical List Rows Layout)
   return (
     <Card
       className={cn(
@@ -248,20 +258,20 @@ export function JobCard({
       onClick={handleRowContainerClick}
     >
       <CardContent className="p-5 sm:p-5.5 flex flex-col h-full space-y-4.5 text-left w-full min-w-0">
-        {/* HUD LEVEL 1: CORPORATE DENSITY IDENTITY ELEMENT */}
+        {/* UPPER ROW: CORPORATE DENSITY IDENTITY ELEMENT */}
         <div className="flex justify-between items-start gap-3.5 w-full min-w-0">
           <div className="flex gap-3.5 items-center flex-1 min-w-0 text-left">
-            <div className="w-13 h-13 rounded-2xl bg-background border border-border/20 flex items-center justify-center shrink-0 overflow-hidden shadow-sm transition-transform duration-300 group-hover:scale-102 group-hover:rotate-1 select-none">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm transition-transform duration-300 group-hover:scale-102 select-none text-primary font-bold text-sm">
               {job.company_logo_url && !logoError ? (
                 <img
                   src={job.company_logo_url}
-                  alt={`${job.company_name} organization branded logo`}
+                  alt={`${job.company_name} logo`}
                   className="object-cover w-full h-full"
                   loading="lazy"
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Building2 className="w-6 h-6 text-muted-foreground/30 stroke-[2.2]" />
+                <span>{companyInitials}</span>
               )}
             </div>
 
@@ -273,9 +283,7 @@ export function JobCard({
                 <p className="text-xs font-semibold text-muted-foreground/80 truncate max-w-[85%]">
                   {job.company_name}
                 </p>
-                {job.is_featured && (
-                  <Zap className="h-3 w-3 text-amber-500 fill-amber-500/10 shrink-0 animate-pulse drop-shadow-[0_1px_4px_rgba(245,158,11,0.2)]" />
-                )}
+                {job.is_featured && <Zap className="h-3 w-3 text-amber-500 fill-amber-500/10 shrink-0 animate-pulse" />}
               </div>
             </div>
           </div>
@@ -296,20 +304,15 @@ export function JobCard({
             <Bookmark
               className={cn(
                 "h-4.5 w-4.5 stroke-[2.2] transition-transform duration-300",
-                isSaved
-                  ? "fill-primary text-primary scale-105 drop-shadow-[0_1px_4px_rgba(var(--primary-rgb),0.2)]"
-                  : "text-muted-foreground/50",
+                isSaved ? "fill-primary text-primary scale-105" : "text-muted-foreground/50",
               )}
             />
           </Button>
         </div>
 
-        {/* HUD LEVEL 2: COMPLIANCE REASONING PROFILE TEXT */}
+        {/* MIDDLE ROW: COMPLIANCE REASONING PROFILE TEXT */}
         {matchInfo && (
           <div className="bg-primary/5 border border-primary/10 rounded-xl p-3.5 flex items-start gap-3 relative overflow-hidden select-text text-left w-full min-w-0">
-            <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none select-none">
-              <Brain className="h-10 w-10 text-primary" />
-            </div>
             <Brain className="w-4 h-4 text-primary shrink-0 mt-0.5 fill-primary/5 stroke-[2.2] opacity-70" />
             <div className="space-y-1 flex-1 min-w-0 leading-none">
               <div className="flex items-center justify-between gap-4 select-none leading-none w-full">
@@ -337,7 +340,7 @@ export function JobCard({
           />
         )}
 
-        {/* HUD LEVEL 3: METADATA COMPLIANCE BADGE STRIP ROW */}
+        {/* COMPLIANCE BADGE STRIP ROW */}
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5 select-none w-full max-w-full">
           <Badge
             variant="outline"
@@ -367,7 +370,7 @@ export function JobCard({
           )}
         </div>
 
-        {/* HUD LEVEL 4: SPATIAL GEOGRAPHY FOOTER BANNER STRIP */}
+        {/* GEOGRAPHY FOOTER BANNER STRIP */}
         <div className="flex items-center justify-between gap-3 pt-3.5 mt-auto border-t border-border/10 select-none text-xs text-muted-foreground/80 font-bold tracking-tight tabular-nums w-full">
           <div className="flex items-center gap-1 truncate max-w-[65%] text-left">
             <MapPin className="h-3.5 w-3.5 text-primary stroke-[2.2] shrink-0" />
@@ -375,10 +378,10 @@ export function JobCard({
               {job.location || "Remote Deployment"}
             </span>
           </div>
-          <div className="flex items-center gap-1 shrink-0 font-medium bg-muted/20 px-2 py-0.5 border border-border/20 rounded-full text-muted-foreground text-[11px] lowercase">
+          <div className="flex items-center gap-1 shrink-0 font-medium bg-muted/20 px-2 py-0.5 border border-border/20 rounded-full text-muted-foreground text-[11px] tracking-wide">
             <Clock className="h-3.5 w-3.5 text-primary shrink-0 stroke-[2.2]" />
-            <span>
-              staged {new Date(job.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            <span className="text-muted-foreground/80 lowercase">
+              posted {new Date(job.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </span>
           </div>
         </div>
