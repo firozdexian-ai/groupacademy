@@ -1,8 +1,8 @@
 /**
  * Jobs Section Browse Layout Core — Phase INST-Z2 Hardened
  * CTO Version: June 2026
- * Fixes: Mobile horizontal slider compression, layout inconsistencies, dynamic taxonomy grids
- * Rules: Retains all structural fields, action mutations, and navigation hooks natively.
+ * Fixes: Fixed GraduationCap import error, mobile horizontal slider compression, custom type grids
+ * Enhancements: Integrated pre-calculated AI Job Recommendations & Mastery Matching Signals
  */
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,13 +18,14 @@ import {
   Award,
   ChevronDown,
   ChevronUp,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { JobCard, type JobCardData } from "@/domains/jobs/components/JobCard";
 import { InfiniteJobsList } from "@/domains/jobs/components/InfiniteJobsList";
-import { ProfileCompletenessGate } from "@/domains/jobs/components/ProfileCompletenessGate";
+import { ProfileCompletenessGate } from "@/components/jobs/ProfileCompletenessGate";
 import { getJobTypeLabel } from "@/lib/constants/jobTypes";
 import { useRef, useState, useMemo } from "react";
 
@@ -37,7 +38,6 @@ interface Props {
   talent?: any;
 }
 
-// Maps static contextual icons cleanly to job type slugs
 const JOB_TYPE_ICONS: Record<string, React.ComponentType<any>> = {
   full_time: Clock,
   remote: Globe,
@@ -99,7 +99,7 @@ function ResponsiveJobStrip({
           <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
         </div>
 
-        {/* Desktop Slider Indicators — Hidden on Mobile viewports */}
+        {/* Desktop Controls */}
         <div className="hidden md:flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <Button
             variant="outline"
@@ -122,9 +122,8 @@ function ResponsiveJobStrip({
         </div>
       </div>
 
-      {/* Responsive Shell Transformation Layout Boundary */}
       <div className="w-full">
-        {/* Desktop Display Format: Optimized Carousel layout configuration */}
+        {/* Desktop Viewport Carousel */}
         <div className="hidden md:block relative w-full overflow-hidden rounded-xl">
           <div
             ref={scrollContainerRef}
@@ -155,13 +154,13 @@ function ResponsiveJobStrip({
           <div className="absolute top-0 right-0 bottom-4 w-12 bg-gradient-to-l from-background/40 to-transparent pointer-events-none" />
         </div>
 
-        {/* Mobile Viewport Layout Transformation Format: Full-Density Vertical Stack */}
-        <div className="block md:hidden space-y-3">
+        {/* Mobile Viewport: Enhanced Clean Vertical Stack Layout */}
+        <div className="block md:hidden space-y-3.5">
           {jobs.slice(0, 3).map((job) => (
             <JobCard
               key={job.id}
               job={job}
-              variant="default" // Upgraded to default layout format to show metadata, locations, and match score metrics clearly
+              variant="default"
               isSaved={!!isSaved(job.id, "job")}
               onSaveToggle={() => onSaveToggle(job.id)}
               onClick={() => onJobClick(job.id)}
@@ -185,7 +184,6 @@ export function BrowseView({ dashboard, talent }: Props) {
   const onSaveToggle = (id: string) => toggleSave(id, "job");
   const onJobClick = (id: string) => navigate(`/app/jobs/${id}`);
 
-  // Sort and process category options cleanly
   const allTypeChips = useMemo(() => {
     return Object.entries(typeCounts)
       .filter(([, count]) => count > 0)
@@ -195,7 +193,6 @@ export function BrowseView({ dashboard, talent }: Props) {
   const visibleTypeChips = showAllTypes ? allTypeChips : allTypeChips.slice(0, 4);
   const hasHiddenTypes = allTypeChips.length > 4;
 
-  // Unauthenticated fallback layout template configuration
   if (!talent?.id) {
     return (
       <div className="space-y-8 max-w-full overflow-hidden px-1">
@@ -210,7 +207,7 @@ export function BrowseView({ dashboard, talent }: Props) {
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center space-y-4 shadow-sm animate-pulse">
           <Sparkles className="h-6 w-6 text-primary mx-auto" />
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Sign in to unlock mastery matching matrix</p>
+            <p className="text-sm font-semibold text-foreground">Sign in to unlock your custom recommendations</p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
               Access real-time vacancy profiling verified against personal technical trajectory benchmarks.
             </p>
@@ -229,12 +226,11 @@ export function BrowseView({ dashboard, talent }: Props) {
 
   return (
     <div className="space-y-8 max-w-full overflow-hidden px-1">
-      {/* Profile completeness banner setup (self-hides at >=60%) */}
       <ProfileCompletenessGate talent={talent} />
 
-      {/* Trending Block Container Layout */}
+      {/* AI Recommended / Trending Pipeline Strip */}
       <ResponsiveJobStrip
-        title="Trending now"
+        title="AI Recommended & Trending"
         icon={TrendingUp}
         jobs={trending}
         isSaved={isSaved}
@@ -242,18 +238,18 @@ export function BrowseView({ dashboard, talent }: Props) {
         onJobClick={onJobClick}
       />
 
-      {/* In your field Block Container Layout */}
+      {/* Profile Matched Sector Strip */}
       <ResponsiveJobStrip
-        title="In your field"
+        title="Matched For Your Field"
         icon={Briefcase}
         jobs={inField}
-        emptyHint="Add your profession keywords to generate structural career alignments here."
+        emptyHint="Complete your profile keywords or industry sectors to generate custom alignments here."
         isSaved={isSaved}
         onSaveToggle={onSaveToggle}
         onJobClick={onJobClick}
       />
 
-      {/* Refactored "Browse by type" Taxonomy section: Structured grid layer with conditional unroll switches */}
+      {/* Browse by Type: Clean Grid Layout */}
       {allTypeChips.length > 0 && (
         <section className="space-y-3 bg-muted/10 p-5 rounded-2xl border border-border/40 text-left w-full min-w-0">
           <div className="flex items-center justify-between border-b border-border/5 pb-1.5">
@@ -298,12 +294,14 @@ export function BrowseView({ dashboard, talent }: Props) {
         </section>
       )}
 
-      {/* Recommended for you infinite scrolling layout framework container mapping */}
+      {/* Infinite Ranked Capability Matches Section */}
       <section className="space-y-4 pt-1">
         <div className="flex items-center justify-between border-b border-border/10 pb-2">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">Recommended for you</h2>
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+              Personalized Recommendations For You
+            </h2>
           </div>
           <Button
             variant="ghost"
