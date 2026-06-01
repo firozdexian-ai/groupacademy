@@ -1,3 +1,8 @@
+/**
+ * GroUp Academy: Profile Completeness Gate Control Node
+ * CTO Reference: Authoritative presentation intercept container guarding personalized talent job matching profiles.
+ * Version: Launch Candidate · Phase Z0 Hardened
+ */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,11 +22,6 @@ interface Step {
   done: boolean;
 }
 
-/**
- * GroUp Academy: Profile Completeness Gate Control Node
- * CTO Reference: Authoritative presentation intercept container blocking feeds until parsing metrics settle.
- * Version: Launch Candidate · Phase Z0 Hardened
- */
 export function ProfileCompletenessGate({ talent }: Props) {
   const navigate = useNavigate();
 
@@ -31,7 +31,7 @@ export function ProfileCompletenessGate({ talent }: Props) {
   const education = Array.isArray(talent?.education) ? talent.education : [];
   const projects = Array.isArray(talent?.projects) ? talent.projects : [];
 
-  // 1. Data Contract Alignment: Using cvUrl to match camelCase schema patterns cleanly
+  // Data Contract Alignment: Evaluates alternate schema patterns gracefully
   const steps: Step[] = [
     {
       key: "profession",
@@ -100,33 +100,33 @@ export function ProfileCompletenessGate({ talent }: Props) {
       {/* Decorative Glow Mesh Layer */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none" />
 
-      <CardContent className="p-4 space-y-3.5 w-full min-w-0">
-        {/* HUD LEVEL 1: PROFILE PARITY SYNC STATUS STRIP */}
-        <div className="flex items-start gap-3 w-full min-w-0">
+      <CardContent className="p-5 space-y-4 w-full min-w-0">
+        {/* Core Profile Parity Sync Status Strip */}
+        <div className="flex items-start gap-3.5 w-full min-w-0">
           <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/5 text-primary flex items-center justify-center shrink-0 shadow-inner">
             <Sparkles className="h-4.5 w-4.5 stroke-[2.2] animate-pulse fill-primary/10" />
           </div>
 
-          <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
+          <div className="min-w-0 flex-1 flex flex-col justify-center">
             <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground/90 leading-tight">
               Complete your profile for better matches
             </h3>
             <p className="text-[11px] font-medium text-muted-foreground/80 mt-1 leading-normal select-text selection:bg-primary/15 tracking-tight">
               Your profile is{" "}
-              <span className="font-bold text-primary tabular-nums">{completionPercentage}% complete</span>. Filling
-              the rest helps us recommend stronger job matches.
+              <span className="font-bold text-primary tabular-nums">{completionPercentage}% complete</span>. Filling the
+              remaining parameters helps our matching engine surface stronger jobs and gigs.
             </p>
           </div>
         </div>
 
-        {/* HUD LEVEL 2: COMPACT TRACKING INDICATOR METER */}
+        {/* Profile Tracking Indicator Progress Meter */}
         <div className="space-y-1 select-none">
           <Progress value={completionPercentage} className="h-1.5 rounded-full bg-primary/10 shadow-inner" />
         </div>
 
-        {/* HUD LEVEL 3: DYNAMIC STEP MATRIX LIST VIEW */}
-        <div className="space-y-1.5 pt-1.5 border-t border-border/10 w-full min-w-0 font-semibold text-[11px] sm:text-xs">
-          {/* Missing Constraints Targets */}
+        {/* Dynamic Step Matrix List Layer */}
+        <div className="space-y-2 pt-3 border-t border-border/10 w-full min-w-0 font-semibold text-[11px] sm:text-xs">
+          {/* Uncompleted Steps */}
           {missingStepsCollection.map((stepItem) => (
             <div key={stepItem.key} className="flex items-center gap-2 text-muted-foreground/80 w-full min-w-0">
               <Circle className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 stroke-[2.2]" />
@@ -134,7 +134,7 @@ export function ProfileCompletenessGate({ talent }: Props) {
             </div>
           ))}
 
-          {/* Completed Settlement Items Array */}
+          {/* Completed Steps */}
           {completedStepsCollection.map((stepItem) => (
             <div
               key={stepItem.key}
@@ -146,7 +146,7 @@ export function ProfileCompletenessGate({ talent }: Props) {
           ))}
         </div>
 
-        {/* HUD LEVEL 4: PLATFORM INTERCEPT CTA DISPATCH NODE */}
+        {/* Navigation Action Trigger Trigger */}
         <Button
           type="button"
           onClick={handleNavigationInterceptClick}
