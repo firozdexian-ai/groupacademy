@@ -145,7 +145,14 @@ export const useAuth = (): AuthState => {
     countryCode?: string,
   ) => {
     try {
-      const ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral") || "";
+      // Pull referral token from local state configurations
+      let ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral") || "";
+
+      // Defensive URL fallback interceptor in case storage engines are blocked by the browser
+      if (!ref && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        ref = urlParams.get("ref") || "";
+      }
 
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
@@ -154,9 +161,6 @@ export const useAuth = (): AuthState => {
           data: {
             full_name: fullName,
             phone: phone || "",
-            // Leave country / country_code blank by default — onboarding and
-            // PhoneCaptureStep set these from the user's actual selection
-            // rather than a Bangladesh default.
             country: country || "",
             country_code: countryCode || "",
             account_type: "talent",
@@ -169,8 +173,6 @@ export const useAuth = (): AuthState => {
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Could not create your account. Please try again.");
 
-      // Welcome email is sent once by AuthCallback (covers both email and
-      // OAuth signups) — don't double-fire it here.
       toast.success("Welcome — let's set up your profile.");
       return true;
     } catch (err: any) {
@@ -196,14 +198,10 @@ export const useAuth = (): AuthState => {
   const signOut = async () => {
     await supabase.auth.signOut({ scope: "local" });
     toast.success("Signed out.");
-    // Unified post-signout destination — admins / companies / talents all
-    // land on /auth (not the marketing landing) so re-entry is one tap.
     navigate("/auth", { replace: true });
   };
 
   const resetPassword = async (email: string) => {
-    // Don't leak account existence — always show a neutral confirmation
-    // regardless of whether the email is on file.
     try {
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
