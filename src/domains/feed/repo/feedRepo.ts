@@ -55,7 +55,7 @@ export async function deletePostReaction(input: PostReactionInput): Promise<{ er
  * Attaches a reaction (e.g., like, clap) to a feed post
  */
 export async function insertPostReaction(input: InsertReactionInput): Promise<{ error: any }> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("post_reactions")
     .insert({
       post_id: input.postId,
@@ -69,7 +69,7 @@ export async function insertPostReaction(input: InsertReactionInput): Promise<{ 
  * Creates a new user-generated post in the feed index
  */
 export async function insertFeedPost(payload: Record<string, any>): Promise<{ error: any }> {
-  const { error } = await supabase.from("feed_posts").insert(payload);
+  const { error } = await (supabase as any).from("feed_posts").insert(payload);
   return { error };
 }
 
@@ -78,7 +78,7 @@ export async function insertFeedPost(payload: Record<string, any>): Promise<{ er
  */
 export async function fetchFeedRecommendationPage(opts: FeedRecommendationOptions) {
   // Use core standardized tables for courses instead of generic placeholders
-  let coursesQuery = supabase
+  let coursesQuery = (supabase as any)
     .from("courses")
     .select("id, title, slug, cover_image, description, created_at")
     .limit(opts.pageSizeCourses);
@@ -327,7 +327,7 @@ export async function listTopHypedPostsWeek(limit = 5) {
   const talentIds = (topRows ?? []).map((t) => t.talent_id).filter(Boolean);
   if (!talentIds.length) return [];
 
-  const { data: contentRows, error: contentError } = await supabase
+  const { data: contentRows, error: contentError } = await (supabase as any)
     .from("feed_posts")
     .select("id, text_content, user_id")
     .in("user_id", talentIds)
@@ -337,7 +337,7 @@ export async function listTopHypedPostsWeek(limit = 5) {
   const buf = new Map((contentRows ?? []).map((r: any) => [r.user_id, r]));
 
   return (topRows ?? []).map((r: any) => {
-    const p = buf.get(r.talent_id);
+    const p: any = buf.get(r.talent_id);
     return {
       post_id: p?.id ?? r.talent_id,
       hypes_week: Number(r.hype_count || 0),
