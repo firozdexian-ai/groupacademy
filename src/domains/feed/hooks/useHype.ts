@@ -4,24 +4,21 @@ import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-/**
- * GroUp Academy: Unified Hype & Micro-transaction Sensor (V5.6.0)
- * CTO Reference: Authoritative handler for high-velocity creator monetization taps.
- * Architecture: Digital Workforce enabled - logs fiscal friction to Admin OS.
- * Phase: Z0 Code Freeze Hardened (2024 Launch Edition).
- */
-
 export type HypeContentType = "post" | "course" | "video" | "blog";
 
 const TAP_LOCK_MS = 120;
 const TOAST_DEBOUNCE_MS = 900;
 
+/**
+ * Custom hook managing the optimistic state and micro-transaction adjustments for creator support.
+ * Batches high-velocity clicks to minimize alert fatigue while maintaining an accurate wallet token state.
+ */
 export function useHype(
   contentIdOrPostId: string,
   initialCountOrType: number | HypeContentType = 0,
   maybeInitialCount: number = 0,
 ) {
-  // Protocol Handshake: Support legacy and modern overloading
+  // Support legacy and modern function overloading styles safely
   const contentType: HypeContentType = typeof initialCountOrType === "string" ? initialCountOrType : "post";
   const initialCount: number = typeof initialCountOrType === "number" ? initialCountOrType : maybeInitialCount;
   const contentId = contentIdOrPostId;
@@ -41,8 +38,8 @@ export function useHype(
   useEffect(() => setCount(initialCount), [initialCount]);
 
   /**
-   * HUD: FLUSH_FISCAL_TELEMETRY
-   * Consolidates rapid-fire micro-transactions into a single UX notification.
+   * Consolidates high-frequency micro-transaction outcomes into a single user notification
+   * and refreshes corresponding credit wallet caches.
    */
   const flushToast = useCallback(() => {
     const sent = pendingDelta.current;
@@ -60,12 +57,12 @@ export function useHype(
     if (errs > 0) {
       toast({
         title: errs === 1 ? "Hype failed" : `${errs} hypes failed`,
-        description: "Transaction ledger mapping delayed.",
+        description: "Transaction update could not be completed.",
         variant: "destructive",
       });
     }
 
-    // Refresh unified wallet caches to maintain ledger consistency
+    // Refresh ledger balances instantly across parent containers
     queryClient.invalidateQueries({ queryKey: ["talent-credits", talent?.id] });
     queryClient.invalidateQueries({ queryKey: ["talent-credits-balance"] });
     queryClient.invalidateQueries({ queryKey: ["credits-summary"] });
@@ -86,12 +83,11 @@ export function useHype(
   }, [flushToast]);
 
   /**
-   * HUD: EXECUTE_ATOMIC_HYPE_INGRESS
-   * Core micro-transaction logic with optimistic rollbacks.
+   * Dispatches an atomic hype update using optimistic UI increments and fallback mechanics.
    */
   const hype = useCallback(async () => {
     if (!talent?.id) {
-      toast({ title: "Sign in to Hype creators", variant: "destructive" });
+      toast({ title: "Sign in to hype creators", variant: "destructive" });
       return;
     }
 
@@ -99,7 +95,7 @@ export function useHype(
     if (now - lastTap.current < TAP_LOCK_MS) return;
     lastTap.current = now;
 
-    // Optimistic UI Ingress
+    // Optimistic UI state adjustment
     setCount((c) => c + 1);
     inFlight.current += 1;
     setIsHyping(true);
@@ -115,7 +111,7 @@ export function useHype(
     if (inFlight.current === 0) setIsHyping(false);
 
     if (error) {
-      setCount((c) => Math.max(0, c - 1)); // Rollback
+      setCount((c) => Math.max(0, c - 1)); // Rollback state adjustment
       const msg = error.message || "";
 
       if (msg.includes("INSUFFICIENT_CREDITS")) {
@@ -125,22 +121,21 @@ export function useHype(
         }
         flushToast();
         toast({
-          title: "Wallet deficit detected",
-          description: "Top up your credits to keep boosting creators.",
+          title: "Not enough credits",
+          description: "Top up your credits to keep supporting creators.",
           variant: "destructive",
         });
         return;
       }
 
       if (msg.includes("CANNOT_HYPE_SELF")) {
-        toast({ title: "Self-Hype is restricted", variant: "destructive" });
+        toast({ title: "Self-hype is restricted", variant: "destructive" });
         return;
       }
 
-      // Digital Workforce Anomaly Sensor:
-      // Logs systemic RPC failures for infrastructure auditing.
+      // Log systemic anomalies for infrastructure auditing logs
       errorCount.current += 1;
-      console.error("[Digital Workforce] ANOMALY: hype_content RPC failed sync.", {
+      console.error("Hype tracking execution process failed to synchronize:", {
         contentType,
         contentId,
         error: msg,
