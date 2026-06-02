@@ -28,9 +28,8 @@ interface CommentListProps {
 }
 
 /**
- * Premium, performance-optimized Realtime Comment & Micro-Tipping List container.
- * Built strictly according to GroUp Academy Phase Z0 highly professional SAAS UI specifications
- * and Digital Workforce automated credit telemetry guardrails.
+ * High-performance discussion thread component supporting real-time messaging
+ * and micro-tipping with built-in wallet verification balance checks.
  */
 export function CommentList({ postId }: CommentListProps) {
   const { talent } = useTalent();
@@ -38,7 +37,7 @@ export function CommentList({ postId }: CommentListProps) {
   const [body, setBody] = useState("");
   const [isPostingLocal, setIsPostingLocal] = useState(false);
 
-  // 1. TanStack React Query Server State Synchronization (staleTime 5 min configuration)
+  // Synchronize server commentary list with optimistic fallback states
   const { data: comments = [], isLoading: loading } = useQuery<Comment[]>({
     queryKey: ["post-comments", postId],
     queryFn: async () => {
@@ -62,7 +61,7 @@ export function CommentList({ postId }: CommentListProps) {
     refetchOnWindowFocus: false,
   });
 
-  // 2. Realtime SSE Invalidation Bridge for collaborative stream concurrency
+  // Listen for real-time community responses via PostgreSQL replication channels
   useEffect(() => {
     const channel = supabase
       .channel(`post_comments_realtime_${postId}`)
@@ -70,7 +69,6 @@ export function CommentList({ postId }: CommentListProps) {
         "postgres_changes",
         { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
         () => {
-          // Adaptively invalidate data nodes to refresh viewports via client-side query client
           queryClient.invalidateQueries({ queryKey: ["post-comments", postId] });
         },
       )
@@ -81,17 +79,16 @@ export function CommentList({ postId }: CommentListProps) {
     };
   }, [postId, queryClient]);
 
-  // 3. Mutation Orchestration: Submit Comments safely with transaction logging
   const submitComment = async () => {
     const text = body.trim();
     if (!text) return;
     if (!talent?.id) {
-      toast.error("Sign in required");
+      toast.error("Please sign in to write a comment");
       return;
     }
 
     setIsPostingLocal(true);
-    trackEvent("comment_submission_initiated", { postId, talentId: talent.id });
+    trackEvent("comment_create_started", { postId, talentId: talent.id });
 
     const { error } = await insertPostComment({ postId, authorTalentId: talent.id, body: text });
 
@@ -108,16 +105,14 @@ export function CommentList({ postId }: CommentListProps) {
     toast.success("Comment published");
   };
 
-  // 4. Fractional Credit Economy Tipping Handler with Digital Workforce monitoring
   const handleTipComment = async (commentId: string, amount: number) => {
     if (!talent?.id) {
       toast.error("Sign in to tip credits");
       return;
     }
 
-    trackEvent("micro_payout_tipping_triggered", { commentId, amount, senderTalentId: talent.id });
+    trackEvent("comment_tip_processed", { commentId, amount, senderTalentId: talent.id });
 
-    // Execute atomic RPC credit deduction with server-side balance checks
     let error: any = null;
     try {
       await tipComment({ _comment_id: commentId, _amount: amount });
@@ -126,7 +121,6 @@ export function CommentList({ postId }: CommentListProps) {
     }
 
     if (error) {
-      // Escalate ledger execution anomaly immediately via trackError wrapper architecture
       trackError(error.message, {
         component: "CommentList",
         action: "tip_comment_rpc_fault",
@@ -134,20 +128,20 @@ export function CommentList({ postId }: CommentListProps) {
         amount,
         senderTalentId: talent.id,
       });
-      toast.error(error.message);
+      toast.error(error.message || "Could not complete tip. Please check your credit balance.");
       return;
     }
 
     toast.success(`Tipped ${amount} credits.`);
 
-    // Unified invalidation ensures local wallet balances and dashboards sync instantly
+    // Refresh comments list and top wallet balance values simultaneously
     queryClient.invalidateQueries({ queryKey: ["post-comments", postId] });
     queryClient.invalidateQueries({ queryKey: ["credits-balance"] });
   };
 
   return (
     <div className="space-y-4 antialiased">
-      {/* Input Composition Box Block */}
+      {/* Input Field Form */}
       <div className="flex gap-2 items-end bg-muted/20 dark:bg-muted/5 p-2 rounded-xl border border-border/30 backdrop-blur-md">
         <Textarea
           value={body}
@@ -178,15 +172,15 @@ export function CommentList({ postId }: CommentListProps) {
         </Button>
       </div>
 
-      {/* Dynamic Viewport Pipeline Resolution */}
+      {/* Dynamic Thread Feed View */}
       {loading ? (
         <div className="flex items-center justify-center py-8 text-xs text-muted-foreground/80 font-medium tracking-wide">
-          <InlineSpinner size="sm" className="mr-2.5" /> Loading conversational stream…
+          <InlineSpinner size="sm" className="mr-2.5" /> Loading comments…
         </div>
       ) : comments.length === 0 ? (
         <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border/40 bg-muted/5 select-none">
           <p className="text-xs text-muted-foreground/80 font-medium">
-            Be the first to share your perspective inside the community.
+            Be the first to share your thoughts with the community.
           </p>
         </div>
       ) : (
@@ -197,7 +191,7 @@ export function CommentList({ postId }: CommentListProps) {
               className="group flex gap-3 items-start text-xs bg-card/40 border border-border/40 backdrop-blur-sm rounded-xl p-3 hover:border-border/80 hover:bg-card/70 shadow-sm transition-all duration-200 animate-in fade-in-50 duration-300 content-visibility-auto"
             >
               <Avatar className="h-7 w-7 border border-border/50 shadow-sm">
-                <AvatarImage src={c.author?.profile_photo_url ?? undefined} alt="Author avatar" />
+                <AvatarImage src={c.author?.profile_photo_url ?? undefined} alt="Author image" />
                 <AvatarFallback className="font-bold text-[10px] bg-primary/10 text-primary">
                   {c.author?.full_name?.[0] ?? "?"}
                 </AvatarFallback>
@@ -228,7 +222,7 @@ export function CommentList({ postId }: CommentListProps) {
                 )}
               </div>
 
-              {/* Fractional Tipping Core Matrix Interface */}
+              {/* Tipping interface popover menu */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
