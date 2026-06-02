@@ -1,20 +1,19 @@
-import { useState, useMemo, ReactNode } from "react";
+import { useState, ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { aiDestinationAgent } from "@/domains/abroad/api/abroadApi";
+import { generateStudyRoadmap } from "@/domains/abroad/api/abroadApi";
 import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Globe } from "lucide-react";
-import { InlineSpinner } from "@/components/common/InlineSpinner";
+import { trackError } from "@/lib/errorTracking";
 
 /**
  * GroUp Academy: Career Abroad Roadmap Builder Sheet (V5.6.0)
- * CTO Reference: Primary B2C intake funnel capturing prospective international student pipelines.
  * Architecture: Hardened overlay interaction locks preventing session exit interruptions.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition)[cite: 5].
  */
 
 export interface RoadmapBuilderSheetProps {
@@ -39,7 +38,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Authoritative framework constraint: Study Abroad Roadmap value peg is 100 credits ($2.00 USD / ৳200 BDT)
+  // Study Abroad Roadmap standard value peg is 100 credits ($2.00 USD / ৳200 BDT)[cite: 5]
   const ROADMAP_CREDIT_COST = 100;
 
   // Immutable Requirements: Intact data structures matching the database public schema
@@ -54,16 +53,13 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
     years_experience: "0",
   });
 
-  // --- ACTION: TRANSACTION_ISOLATED_MUTATION ---
   const roadmapMutation = useMutation({
     mutationKey: ["generate-abroad-roadmap", countryCode],
     mutationFn: async (): Promise<{ roadmap_id: string }> => {
-      // Pre-flight Fiscal Audit validation layer
       if (balance < ROADMAP_CREDIT_COST) {
         throw new Error("INSUFFICIENT_CREDITS: Wallet balance below target gate constraint.");
       }
 
-      // HUD: ATOMIC_LEDGER_TRANSFER_DEDUCTION
       const deductionSuccess = await deductCustomAmount(
         ROADMAP_CREDIT_COST,
         "study_abroad_roadmap",
@@ -75,8 +71,8 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         throw new Error("LEDGER_MUTATION_DENIED: Fiscal deduction transaction handshake rejected.");
       }
 
-      // HUD: CORE_SWARM_INVOCATION_EDGE_ROUTING
-      const data = await aiDestinationAgent({
+      // Routed through authoritative generateStudyRoadmap handler contract wrapper[cite: 10]
+      const data = await generateStudyRoadmap({
         country_code: countryCode,
         intent: "roadmap",
         roadmap_payload: {
@@ -91,7 +87,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         },
       });
 
-      if (data.error) {
+      if ("error" in data && data.error) {
         throw new Error(String(data.error));
       }
 
@@ -122,7 +118,7 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
           variant: "destructive",
         });
       } else {
-        console.error("[abroad] Roadmap generation failed.", {
+        trackError("generate-study-roadmap-ui-failure", {
           countryCode,
           formData: form,
           message: msg,
@@ -144,9 +140,8 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
 
   const isPending = roadmapMutation.isPending;
 
-  // Intercept open modal toggle actions explicitly while credit transactions are moving down the wire
   const handleOpenChange = (nextOpenState: boolean) => {
-    if (isPending) return; // Completely seals interaction borders against background process disruptions
+    if (isPending) return;
     setOpen(nextOpenState);
   };
 
@@ -155,7 +150,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
-        // Secure interaction settings blocking modal swipe closes during background active transits
         onPointerDownOutside={(e) => isPending && e.preventDefault()}
         onEscapeKeyDown={(e) => isPending && e.preventDefault()}
         className="h-[85vh] overflow-y-auto sm:max-w-xl mx-auto rounded-t-xl border-t select-none"
@@ -168,7 +162,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
         </SheetHeader>
 
         <div className="space-y-4 py-4 max-w-md mx-auto">
-          {/* Full Name input container field node */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Full Name</Label>
             <Input
@@ -179,7 +172,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Field of Study input container field node */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Field of Study</Label>
             <Input
@@ -191,7 +183,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Degree level */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Degree level</Label>
             <select
@@ -206,7 +197,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             </select>
           </div>
 
-          {/* Target intake */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Target intake</Label>
             <Input
@@ -217,7 +207,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Budget level */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Budget level</Label>
             <select
@@ -232,7 +221,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             </select>
           </div>
 
-          {/* Metrics segment grid mapping */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-sm font-medium">IELTS score</Label>
@@ -258,7 +246,6 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             </div>
           </div>
 
-          {/* Work experience */}
           <div className="space-y-1">
             <Label className="text-sm font-medium">Work experience (years)</Label>
             <Input
@@ -270,14 +257,13 @@ export function RoadmapBuilderSheet({ countryCode, children }: RoadmapBuilderShe
             />
           </div>
 
-          {/* Submit */}
           <div className="pt-2">
             <Button
               onClick={() => roadmapMutation.mutate()}
               disabled={isPending}
               className="w-full h-11 font-semibold tracking-wide transition-all shadow-md active:scale-[0.99] disabled:cursor-not-allowed"
             >
-              {isPending && <InlineSpinner size="sm" className="mr-2" />}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isPending ? "Building your roadmap…" : `Generate roadmap (${ROADMAP_CREDIT_COST} credits)`}
             </Button>
           </div>
