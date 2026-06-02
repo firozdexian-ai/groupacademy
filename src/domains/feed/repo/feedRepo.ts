@@ -78,7 +78,7 @@ export async function insertFeedPost(payload: Record<string, any>): Promise<{ er
  */
 export async function fetchFeedRecommendationPage(opts: FeedRecommendationOptions) {
   // Use core standardized tables for courses instead of generic placeholders
-  let coursesQuery = supabase
+  let coursesQuery = (supabase as any)
     .from("courses")
     .select("id, title, slug, cover_image, description, created_at")
     .limit(opts.pageSizeCourses);
