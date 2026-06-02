@@ -1,8 +1,10 @@
 /**
- * Public surface of the Agents domain. Shells must import from here, never
- * from internal files, so we can refactor freely behind this boundary.
+ * Group Academy — Agents Domain Export Engine (Barrel)
+ * Version: Phase 10j.5 Hardened (Production Candidate)
+ * Purpose: Single source of truth interface for all domain surfaces.
  */
-export * from "./registry";
+
+// ─── STAGE 1: EDGE NETWORK LAYER WRAPPERS (API) ───────────────────────────
 export {
   agentRuntime,
   aiGeneralChat,
@@ -11,7 +13,74 @@ export {
   agentBlueprint,
   ingestAgentKnowledge,
   agentEventDispatcher,
-} from "./api/manifest";
+  companyAgentTools,
+  triggerAgentPitch,
+} from "./api/agentsApi";
+
+// ─── STAGE 2: HARDENED POSTGRES INFRASTRUCTURE (REPO) ─────────────────────
+// Exporting the full repository suite for clean component consumption
+export {
+  updateAiAgent,
+  insertAiAgent,
+  deactivateAiAgent,
+  toggleAiAgentActive,
+  insertNotification,
+  getAgentsOverview,
+  getStudioBundle,
+  deleteAgentKnowledgeSource,
+  listAgentsForInsights,
+  listAgentCreditEvents,
+  listRecentAgentOutreach,
+  getTriggersBundle,
+  insertAgentTrigger,
+  toggleAgentTrigger,
+  deleteAgentTrigger,
+  updateHeadlessPoolBalance,
+  updateHeadlessPoolMonthlyCap,
+  listPayoutRequestsByStatus,
+  markPayoutPaid,
+  updatePayoutRequestStatus,
+  listAgentReviews,
+  upsertAgentReview,
+  createAgentChatSession,
+  updateAgentChatSession,
+  updateAgentChatSessionMessages,
+  getAgentChatSession,
+  getAgentCreditCost,
+  deductCredits,
+  deleteAgentMessage,
+  updateAgentThread,
+  bumpAgentThreadLastMessage,
+  insertAgentMessage,
+  countAiAgentsByTemplateFlag,
+  listAiAgentsForFleet,
+  listAiAgentsCompact,
+  getAiAgentById,
+  cloneAiAgentInstance,
+  listAiAgentInstancesMinimal,
+  incrementAgentConversations,
+  getAgentByKey,
+  listPinnedAgentKeys,
+  getTalentMarketplaceSummary,
+  isAgentConnected,
+  connectAgent,
+  listAgentChannels,
+  listAllAgentTools,
+  listAiAgentsForListTab,
+  listRecentAgentChatSessions,
+  listAgentKnowledgeSources,
+  listAdminAgentBasics,
+  listAgentsByMarketplaceStatus,
+  listAllAgentsOrdered,
+  listAgentChatSessionKeys,
+  listRecentAgentOutreachAdmin,
+  countAgentOutreachDedupeSince,
+  countPlatformEventsSince,
+  listTalentAgentChatSessionKeys,
+  listTopActiveAgentsForQuickActions,
+} from "./repo/agentsRepo";
+
+// ─── STAGE 3: BOUND INTEGRATION SCHEMA TYPE DEFINITIONS ───────────────────
 export type {
   AgentRuntimeRequest,
   AgentRuntimeResponse,
@@ -28,4 +97,8 @@ export type {
   IngestAgentKnowledgeResponse,
   AgentEventDispatcherRequest,
   AgentEventDispatcherResponse,
-} from "./api/manifest";
+  CompanyAgentToolsRequest,
+  CompanyAgentToolsResponse,
+  TriggerAgentPitchRequest,
+  TriggerAgentPitchResponse,
+} from "@/edge/contracts/agents";
