@@ -3,6 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 serve(async (req) => {
   try {
+    // Verify the request is coming from Telegram via secret token.
+    // Configure via setWebhook(secret_token=...) and store the same value in TELEGRAM_WEBHOOK_SECRET.
+    const expectedSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+    const providedSecret = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      console.warn("telegram-webhook: rejected request with missing/invalid secret token");
+      return new Response("Forbidden", { status: 403 });
+    }
+
     const payload = await req.json();
 
     // We only care about interactive button clicks (callback queries)
