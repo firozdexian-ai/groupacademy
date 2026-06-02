@@ -20,6 +20,8 @@ import {
   upsertWorkforceRoutingRule,
 } from "@/domains/workforce/repo/workforceRepo";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { useAdminScope } from "@/hooks/useAdminScope";
 import { telegramDiagnostic } from "@/domains/messaging/api/messagingApi";
 
