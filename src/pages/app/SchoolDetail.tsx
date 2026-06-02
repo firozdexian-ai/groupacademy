@@ -68,7 +68,7 @@ export default function SchoolDetail() {
  queryFn: async () => {
  try {
  const data = await getSchoolBySlugWithAcademy(slug!);
- return data as School | null;
+ return (data as unknown) as School | null;
  } catch (error) {
  await reportAnomaly("SchoolFetchError", { slug, error });
  throw error;

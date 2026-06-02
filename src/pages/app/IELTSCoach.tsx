@@ -105,7 +105,9 @@ export default function IELTSCoach() {
  const { data: recentAttemptsCollection = [], isLoading: isRecentCacheResolving } = useQuery<MockAttemptNode[]>({
  queryKey: ["app-ielts-historical-mock-attempts"],
  queryFn: async (): Promise<MockAttemptNode[]> => {
- const dbAttemptsPayload = await listRecentIeltsMockAttempts(5);
+ const authUser = await getCurrentUser();
+ if (!authUser) return [];
+ const dbAttemptsPayload = await listRecentIeltsMockAttempts(authUser.id, 5);
  return (dbAttemptsPayload as unknown as MockAttemptNode[]) ?? [];
  },
  });
