@@ -19,11 +19,12 @@ export function AnalystChatTab() {
       try {
         // Digital Workforce Telemetry: Log the administrative initialization sequence
         await supabase.from("platform_events").insert({
-          event_type: "agent_session_transfer",
-          severity: "info",
+          event_kind: "agent_session_transfer",
+          subject_kind: "agent",
           payload: {
             agent_key: "business-analyst",
             source_surface: "admin_overview_analyst_tab",
+            severity: "info",
             timestamp: new Date().toISOString(),
           },
         });
