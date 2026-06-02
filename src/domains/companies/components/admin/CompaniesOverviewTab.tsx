@@ -1,5 +1,5 @@
 /**
- * Companies Overview — B2B Operational Intelligence
+ * Companies Overview — B2B Operational Intelligence Dashboard
  * CTO Version: May 2026 (Hardened & Feature Restored)
  * Fixes: A1 (Query Storm), A2 (Funnel Logic), R2 (Missing Imports)
  * Features: Restored Detailed Aisha Funnel & Market Breakdowns
@@ -9,7 +9,6 @@ import {
   Building2,
   Users,
   UserCheck,
-  FileText,
   Globe,
   Sparkles,
   AlertCircle,
@@ -19,11 +18,13 @@ import {
   UserPlus,
   Zap,
   TrendingUp,
+  RefreshCw,
 } from "lucide-react";
 import StatsCard from "@/platform/admin/ui/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getCompaniesOverview } from "@/domains/companies/repo/companiesRepo";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +54,7 @@ export function CompaniesOverviewTab() {
       const res = await getCompaniesOverview();
       setData(res as unknown as OverviewData);
     } catch (err) {
-      console.error("B2B Telemetry Fault:", err);
+      console.error("Employer analytics sync failed:", err);
     } finally {
       setLoading(false);
     }
@@ -89,10 +90,10 @@ export function CompaniesOverviewTab() {
       <div className="flex justify-between items-center bg-muted/10 p-6 rounded-2xl border border-border/60">
         <div className="text-left">
           <h2 className="text-2xl font-semibold uppercase italic tracking-tight flex items-center gap-2 text-primary">
-            <Network className="h-6 w-6" /> B2B Intelligence
+            <Network className="h-6 w-6" /> Employer Overview
           </h2>
           <p className="text-[10px] font-semibold text-muted-foreground/60 italic">
-            Employer Pipeline & Contact Telemetry Command
+            Track employer outreach, pipelines, and conversions
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -102,7 +103,7 @@ export function CompaniesOverviewTab() {
           >
             <Activity className="h-3 w-3 animate-pulse" /> LIVE_SYNC
           </Badge>
-          <Button variant="outline" size="icon" aria-label="Refresh" onClick={loadData} className="rounded-xl border-2 h-10 w-10">
+          <Button variant="outline" size="icon" aria-label="Refresh data" onClick={loadData} className="rounded-xl border-2 h-10 w-10">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -111,14 +112,14 @@ export function CompaniesOverviewTab() {
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard title="Total Companies" value={data.totals} icon={Building2} />
-        <StatsCard title="Verified Nodes" value={data.verified} icon={UserCheck} />
-        <StatsCard title="New (7d)" value={data.new7d} icon={Sparkles} />
-        <StatsCard title="New (30d)" value={data.new30d} icon={TrendingUp} />
+        <StatsCard title="Verified Employers" value={data.verified} icon={UserCheck} />
+        <StatsCard title="New Companies (7d)" value={data.new7d} icon={Sparkles} />
+        <StatsCard title="New Companies (30d)" value={data.new30d} icon={TrendingUp} />
 
-        <StatsCard title="B2B Contacts" value={data.contacts_total} icon={Users} />
-        <StatsCard title="Conversations" value={data.riya_funnel.started} icon={MessageSquare} />
+        <StatsCard title="Total B2B Contacts" value={data.contacts_total} icon={Users} />
+        <StatsCard title="AI Chat Conversations" value={data.riya_funnel.started} icon={MessageSquare} />
         <StatsCard title="Leads Captured" value={data.riya_funnel.email_captured} icon={UserPlus} />
-        <StatsCard title="Platform Signup" value={data.riya_funnel.converted} icon={Zap} />
+        <StatsCard title="Platform Signups" value={data.riya_funnel.converted} icon={Zap} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -127,26 +128,26 @@ export function CompaniesOverviewTab() {
           <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
           <CardHeader className="p-8 pb-4">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-primary" /> Onboarding Funnel (Riya)
+              <AlertCircle className="h-4 w-4 text-primary" /> B2B Registration Funnel (Riya)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 pt-0 grid gap-6">
-            <FunnelRow label="Chat Interactions" value={data.riya_funnel.started} max={data.riya_funnel.started} />
+            <FunnelRow label="Chat Initialized" value={data.riya_funnel.started} max={data.riya_funnel.started} />
             {/* A2 Fix: Displaying real captured email counts vs started counts */}
             <FunnelRow
-              label="Email Leads Linked"
+              label="Email Provided"
               value={data.riya_funnel.email_captured}
               max={data.riya_funnel.started}
               color="from-blue-500 to-indigo-600"
             />
             <FunnelRow
-              label="Registry Conversion"
+              label="Workspace Created"
               value={data.riya_funnel.converted}
               max={data.riya_funnel.started}
               color="from-emerald-500 to-emerald-600"
             />
             <FunnelRow
-              label="Abandoned"
+              label="Dropped Off"
               value={Math.max(0, data.riya_funnel.started - data.riya_funnel.converted)}
               max={data.riya_funnel.started}
               color="from-orange-400 to-red-500"
@@ -155,10 +156,10 @@ export function CompaniesOverviewTab() {
         </Card>
 
         {/* Restored Industry Breakdown */}
-        <BarBreakdown title="Sector Concentration" icon={Building2} data={industries} color="blue" />
+        <CardBreakdown title="Industry Distribution" icon={Building2} data={industries} color="blue" />
 
         {/* Restored Country Breakdown */}
-        <BarBreakdown title="Market Reach" icon={Globe} data={countries} color="indigo" />
+        <CardBreakdown title="Market Presence" icon={Globe} data={countries} color="indigo" />
       </div>
     </div>
   );
@@ -187,7 +188,7 @@ function FunnelRow({ label, value, max, color }: any) {
   );
 }
 
-function BarBreakdown({ title, icon: Icon, data, color }: any) {
+function CardBreakdown({ title, icon: Icon, data, color }: any) {
   const max = Math.max(1, ...data.map((d: any) => d.value));
   const gradient = color === "blue" ? "from-blue-400 to-indigo-600" : "from-indigo-400 to-violet-600";
 
@@ -201,7 +202,7 @@ function BarBreakdown({ title, icon: Icon, data, color }: any) {
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {data.length === 0 ? (
-          <p className="text-center text-[10px] font-semibold opacity-20 uppercase py-10">No Sector Data</p>
+          <p className="text-center text-[10px] font-semibold opacity-20 uppercase py-10">No records found</p>
         ) : (
           data.map((d: any) => (
             <div key={d.label} className="space-y-1.5 group">
@@ -229,7 +230,3 @@ function BarBreakdown({ title, icon: Icon, data, color }: any) {
     </Card>
   );
 }
-
-// Ensure Button and RefreshCw are imported for the header actions
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
