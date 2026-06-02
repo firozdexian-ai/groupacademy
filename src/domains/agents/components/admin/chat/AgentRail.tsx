@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
-import type { AdminThreadSummary } from "./hooks/useAgentRuntimeThread";
-import { useAdminAgents } from "./hooks/useAdminAgents";
+import type { AdminThreadSummary } from "../hooks/useAgentRuntimeThread";
+import { useAdminAgents } from "../hooks/useAdminAgents";
 
 /**
  * Group Academy — Agent Rail Navigation Component
- * Version: Phase 10j.3 Hardened
+ * Version: Phase 10j.5 Hardened (Production Candidate)
  * Purpose: Administrative sidebar providing persistent, real-time access to Agent OS threads.
  */
 
