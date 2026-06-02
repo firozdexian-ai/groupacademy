@@ -107,7 +107,7 @@ export function QuickActionsSheet({ open, onClose }: QuickActionsSheetProps) {
                 !!colorValue &&
                 (colorValue.startsWith("#") || colorValue.startsWith("rgb") || colorValue.startsWith("hsl"));
 
-              const bgStyle = isCssColor(agent.bg_color) ? { backgroundColor: item => agent.bg_color! } : undefined;
+              const bgStyle = isCssColor(agent.bg_color) ? { backgroundColor: agent.bg_color! } : undefined;
               const iconColor = isCssColor(agent.color) ? agent.color! : undefined;
 
               return (
