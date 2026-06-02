@@ -38,5 +38,5 @@ export const TITLES: Record<string, string> = {
   "companies-overview": "Companies Overview",
   "companies-unlocks": "Contact Unlocks",
   "companies-wa-channel": "Employer WhatsApp Line",
-  "companies-outreach": "B2B Outreach Console", // Added business-centric outreach title
+  
 };
