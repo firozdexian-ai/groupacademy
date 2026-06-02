@@ -102,7 +102,7 @@ export async function generateCompanyOutreach(
   const Schema = z.object({
     mailtoUrl: z.string(),
     draftText: z.string(),
-  });
+  }) as z.ZodType<{ mailtoUrl: string; draftText: string }>;
   
   return parseEdgeResponse("admin-company-outreach", Schema, data ?? {});
 }
