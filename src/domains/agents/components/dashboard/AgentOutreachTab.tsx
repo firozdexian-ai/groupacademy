@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   listRecentAgentOutreachAdmin,
@@ -67,7 +67,7 @@ export function AgentOutreachManager() {
     queryFn: async (): Promise<OutreachRow[]> => {
       try {
         const result = await listRecentAgentOutreachAdmin(200);
-        return result as OutreachRow[];
+        return result as unknown as OutreachRow[];
       } catch (err: any) {
         trackError("agent-outreach-manager-fetch-rows-failure", { error: err.message });
         throw err;
