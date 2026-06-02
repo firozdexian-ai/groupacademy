@@ -1,21 +1,21 @@
-// Phase 7 — Admin: Marketplace approval queue.
-// Talent/company-built agents submit themselves for marketplace listing
-// (marketplace_status='pending'). Admins review and approve/reject here.
-
 import { useEffect, useState } from "react";
-import {
-  updateAiAgent,
-  insertNotification,
-  listAgentsByMarketplaceStatus,
-} from "@/domains/agents/repo/agentsRepo";
+import { updateAiAgent, insertNotification, listAgentsByMarketplaceStatus } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackError } from "@/lib/errorTracking";
 import { CheckCircle2, XCircle, Store, Loader2, User2, Building2, Terminal, ShieldCheck, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Group Academy — Career Guidance System: Marketplace Approval Review Dashboard Component
+ * Version: Phase 10j.5 Hardened (Production Candidate)
+ * Surface: /dashboard/command-center?tab=marketplace (Moderator Control Area)
+ * Operations Mode: Human-in-the-loop validation canvas approving developer or partner assets.
+ */
 
 interface PendingAgent {
   id: string;
@@ -44,22 +44,32 @@ export function AgentMarketplaceReview() {
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   async function load() {
-    setLoading(true);
-    const [p, r] = await Promise.all([
-      listAgentsByMarketplaceStatus("pending", { orderBy: "created_at", ascending: true }),
-      listAgentsByMarketplaceStatus(["approved", "rejected"], {
-        orderBy: "updated_at",
-        ascending: false,
-        limit: 10,
-      }),
-    ]);
-    setPending(p as PendingAgent[]);
-    setRecent(r as PendingAgent[]);
-    setLoading(false);
+    try {
+      const [p, r] = await Promise.all([
+        listAgentsByMarketplaceStatus("pending", { orderBy: "created_at", ascending: true }),
+        listAgentsByMarketplaceStatus(["approved", "rejected"], {
+          orderBy: "created_at",
+          ascending: false,
+          limit: 10,
+        }),
+      ]);
+      setPending(p as PendingAgent[]);
+      setRecent(r as PendingAgent[]);
+    } catch (err: any) {
+      trackError("agent-marketplace-review-fetch-failure", { error: err.message });
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    load();
+    let active = true;
+    if (active) {
+      load();
+    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function decide(agent: PendingAgent, status: "approved" | "rejected") {
@@ -70,24 +80,24 @@ export function AgentMarketplaceReview() {
     try {
       await updateAiAgent(agent.id, updates);
 
-      // CTO FIX: Dispatch notification to the agent creator to close the loop
       if (agent.owner_id && agent.owner_kind === "talent") {
         await insertNotification({
           talent_id: agent.owner_id,
-          title: status === "approved" ? "Agent Approved! 🚀" : "Agent Review Update",
+          title: status === "approved" ? "Application Approved" : "Submission Update Required",
           message:
             status === "approved"
-              ? `Your AI Agent "${agent.name}" has been approved and is now live on the marketplace!`
-              : `Your AI Agent "${agent.name}" requires attention. Review admin notes.`,
+              ? `Your assistant profile "${agent.name}" has been approved and is live on the marketplace dashboard.`
+              : `Your assistant profile "${agent.name}" requires adjustments. Please review operator moderation notes.`,
           type: "system",
           link: "/app/studio",
         });
       }
 
-      toast({ title: status === "approved" ? "Listed in marketplace" : "Artifact Rejected" });
-      load();
+      toast({ title: status === "approved" ? "Profile published to public marketplace" : "Listing request rejected" });
+      await load();
     } catch (e: any) {
-      toast({ title: "Update failed", description: e.message, variant: "destructive" });
+      trackError("agent-marketplace-review-action-failure", { error: e.message, agentId: agent.id, status });
+      toast({ title: "Verification update failed", description: e.message, variant: "destructive" });
     } finally {
       setBusyId(null);
     }
@@ -95,11 +105,11 @@ export function AgentMarketplaceReview() {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-4 md:p-8 animate-pulse">
-        <Skeleton className="h-32 w-full rounded-[40px] bg-muted/40" />
-        <div className="space-y-4">
+      <div className="space-y-4 p-6 animate-pulse text-left">
+        <Skeleton className="h-24 w-full rounded-2xl bg-muted/30" />
+        <div className="space-y-3">
           {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-64 w-full rounded-[40px] bg-muted/40" />
+            <Skeleton key={i} className="h-48 w-full rounded-2xl bg-muted/30" />
           ))}
         </div>
       </div>
@@ -107,64 +117,69 @@ export function AgentMarketplaceReview() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-4 md:p-8">
-      {/* Executive Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 text-primary">
-            <Store className="h-8 w-8" />
-            <h1 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Marketplace Review</h1>
+    <div className="space-y-6 animate-in fade-in duration-300 p-6 text-left">
+      {/* Executive Overview Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/40 p-6 rounded-2xl border border-border/40 backdrop-blur-sm shadow-sm">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5 text-primary">
+            <Store className="h-6 w-6" />
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Marketplace Approval Queue</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic flex items-center gap-2">
-            <Activity className="h-3 w-3" /> {pending.length} Pending Submission{pending.length !== 1 && "s"}
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+            <Activity className="h-3 w-3 text-muted-foreground/60" /> {pending.length} pending assistant submission
+            {pending.length !== 1 && "s"} awaiting evaluation.
           </p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Main Review Queue */}
-        <div className="xl:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Primary Audit Manifest Queue */}
+        <div className="xl:col-span-2 space-y-4">
           {pending.length === 0 ? (
-            <Card className="rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5">
-              <CardContent className="p-16 flex flex-col items-center justify-center text-center space-y-4">
-                <ShieldCheck className="h-12 w-12 text-muted-foreground/30" />
+            <Card className="rounded-2xl border border-dashed border-border bg-muted/5">
+              <CardContent className="p-12 flex flex-col items-center justify-center text-center space-y-3">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground/40">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-black uppercase tracking-widest italic text-muted-foreground/60">
-                    Queue Clear
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                    Approval Queue Clear
                   </p>
-                  <p className="text-xs font-medium text-muted-foreground">All submitted agents have been validated.</p>
+                  <p className="text-xs text-muted-foreground max-w-xs leading-normal">
+                    All submitted conversational assistant configurations have been evaluated and reconciled.
+                  </p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {pending.map((a) => (
                 <Card
                   key={a.id}
-                  className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-lg overflow-hidden group transition-all hover:border-primary/30"
+                  className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm transition-all hover:border-primary/30"
                 >
-                  <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 to-indigo-500" />
-                  <CardHeader className="p-8 pb-4">
+                  <div className="h-1 w-full bg-primary" />
+                  <CardHeader className="p-5 pb-3">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="space-y-2 min-w-0">
-                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3 flex-wrap leading-none">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <CardTitle className="text-base font-bold text-foreground flex items-center gap-2.5 flex-wrap leading-none">
                           {a.name}
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-mono border-border/50 text-muted-foreground"
+                            className="text-[10px] font-mono border-border bg-background text-muted-foreground rounded px-1.5 py-0"
                           >
                             {a.agent_key}
                           </Badge>
                         </CardTitle>
-                        <p className="text-sm font-medium text-foreground/80 leading-relaxed max-w-2xl">
+                        <p className="text-xs text-muted-foreground/90 font-medium leading-relaxed max-w-2xl pt-1">
                           {a.description}
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 shrink-0">
+                      <div className="flex flex-wrap gap-1.5 shrink-0 sm:self-center">
                         <Badge
                           variant="secondary"
-                          className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-muted"
+                          className="text-[10px] font-semibold uppercase tracking-wide flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-0.5 rounded"
                         >
                           {a.owner_kind === "company" ? (
                             <Building2 className="h-3 w-3" />
@@ -173,12 +188,15 @@ export function AgentMarketplaceReview() {
                           )}
                           {a.owner_kind}
                         </Badge>
-                        <Badge className="text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary border-none">
-                          L{a.agent_level}
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold tracking-wide bg-primary/10 text-primary border-none px-2.5 py-0.5 rounded-full"
+                        >
+                          Level {a.agent_level}
                         </Badge>
                         <Badge
                           variant="outline"
-                          className="text-[9px] font-black uppercase tracking-widest border-border/40"
+                          className="text-[10px] font-semibold tracking-wide border-border text-muted-foreground px-2 rounded"
                         >
                           {a.audience}
                         </Badge>
@@ -186,90 +204,96 @@ export function AgentMarketplaceReview() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-8 pt-0 space-y-6">
-                    <div className="rounded-2xl bg-background/50 border border-border/10 p-5 space-y-2 shadow-inner">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                        <Terminal className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">System Prompt Artifact</span>
+                  <CardContent className="p-5 pt-0 space-y-4">
+                    <div className="rounded-xl bg-muted p-4 space-y-1.5 border border-border/40">
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <Terminal className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Base System Prompt</span>
                       </div>
-                      <div className="text-xs whitespace-pre-wrap max-h-64 overflow-auto font-mono text-foreground/80 leading-relaxed">
+                      <div className="text-xs whitespace-pre-wrap max-h-48 overflow-y-auto font-mono text-foreground/80 leading-relaxed">
                         {a.system_prompt}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-muted/10 p-5 rounded-2xl border border-border/5">
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">
-                          Logic Endpoints Required
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/40">
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 block">
+                          Authorized Tools & Connectors
                         </span>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1">
                           {(a.allowed_tools || []).map((t) => (
                             <Badge
                               key={t}
                               variant="outline"
-                              className="text-[9px] font-mono bg-background shadow-sm border-border/40"
+                              className="text-[10px] font-mono bg-background border-border text-muted-foreground rounded px-1.5"
                             >
                               {t}
                             </Badge>
                           ))}
                           {(!a.allowed_tools || a.allowed_tools.length === 0) && (
-                            <span className="text-xs italic text-muted-foreground opacity-60">
-                              No endpoints requested
+                            <span className="text-xs italic text-muted-foreground/50 font-medium">
+                              No explicit tool integrations requested
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">
-                          Monetization Vectors
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 block">
+                          Pricing Structure Settings
                         </span>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest">
-                            CONN: {a.connection_fee} CR
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] font-semibold bg-background text-foreground border border-border rounded"
+                          >
+                            Access: {a.connection_fee} Credits
                           </Badge>
-                          <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest">
-                            MSG: {a.message_credit_cost} CR
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] font-semibold bg-background text-foreground border border-border rounded"
+                          >
+                            Messaging: {a.message_credit_cost} Credits
                           </Badge>
                           <Badge
                             variant="outline"
-                            className="text-[9px] font-black uppercase tracking-widest border-border/40"
+                            className="text-[10px] font-semibold border-border bg-background text-muted-foreground rounded"
                           >
-                            CAT: {a.category}
+                            Category: {a.category}
                           </Badge>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4 pt-4 border-t border-border/10">
+                    <div className="space-y-3 pt-2 border-t border-border/40">
                       <Textarea
                         rows={2}
-                        className="rounded-2xl border-2 bg-background/50 font-medium italic text-sm p-4 resize-none focus:border-primary/40 transition-colors"
-                        placeholder="Internal review notes (dispatched to creator on rejection)..."
+                        className="rounded-xl border border-border bg-background text-sm font-medium p-3 resize-none focus-visible:ring-1 focus-visible:ring-primary leading-normal"
+                        placeholder="Internal moderation review notes (appended to system communication logs on rejection trigger)..."
                         value={notes[a.id] || ""}
                         onChange={(e) => setNotes({ ...notes, [a.id]: e.target.value })}
                       />
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           onClick={() => decide(a, "approved")}
                           disabled={busyId === a.id}
-                          className="flex-1 h-12 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white gap-2"
+                          className="flex-1 h-10 rounded-xl font-semibold text-xs tracking-wide bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm"
                         >
                           {busyId === a.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <CheckCircle2 className="h-4 w-4" />
                           )}
-                          Authorize Listing
+                          Authorize Marketplace Listing
                         </Button>
                         <Button
                           variant="outline"
                           onClick={() => decide(a, "rejected")}
                           disabled={busyId === a.id}
-                          className="sm:w-48 h-12 rounded-xl font-black uppercase tracking-widest text-[10px] border-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all gap-2"
+                          className="sm:w-44 h-10 rounded-xl font-semibold text-xs tracking-wide text-rose-600 border-border hover:bg-rose-500/10 hover:border-rose-300 transition-all gap-2"
                         >
                           <XCircle className="h-4 w-4" />
-                          Reject Node
+                          Reject Submission
                         </Button>
                       </div>
                     </div>
@@ -280,43 +304,41 @@ export function AgentMarketplaceReview() {
           )}
         </div>
 
-        {/* Recent Decisions Sidebar */}
+        {/* Historic Context Tracker Sidebar */}
         <div className="xl:col-span-1">
-          <Card className="rounded-[40px] border-2 border-border/40 shadow-xl overflow-hidden bg-card/30 backdrop-blur-xl sticky top-6">
-            <div className="h-1.5 w-full bg-gradient-to-r from-muted-foreground/20 to-muted-foreground/40" />
-            <CardHeader className="p-6 border-b border-border/10 bg-muted/5">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] italic flex items-center gap-2 text-muted-foreground/70">
-                <Store className="h-4 w-4" /> Recent Protocols
+          <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card sticky top-6">
+            <div className="h-1 w-full bg-muted" />
+            <CardHeader className="p-4 border-b border-border/40 bg-muted/20">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground/80">
+                <Store className="h-4 w-4" /> Recent Actions Summary
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 bg-background/50">
               {recent.length === 0 ? (
-                <div className="p-8 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground/40 italic">
-                  No recent activity
+                <div className="p-6 text-center text-xs font-semibold text-muted-foreground/40 italic">
+                  No evaluation actions recorded.
                 </div>
               ) : (
-                <div className="divide-y divide-border/10">
+                <div className="divide-y divide-border/40">
                   {recent.map((a) => (
                     <div
                       key={a.id}
-                      className="p-5 flex items-center justify-between gap-4 hover:bg-primary/[0.02] transition-colors"
+                      className="p-4 flex items-center justify-between gap-4 hover:bg-primary/[0.01] transition-colors"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-black text-sm uppercase tracking-tight italic truncate">{a.name}</div>
-                        <div className="text-[9px] font-mono text-muted-foreground/60 truncate mt-0.5">
-                          {a.agent_key}
-                        </div>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="font-bold text-sm text-foreground truncate">{a.name}</div>
+                        <div className="text-[11px] font-mono text-muted-foreground/70 truncate">{a.agent_key}</div>
                       </div>
                       <Badge
                         variant="outline"
                         className={cn(
-                          "shrink-0 border-2 font-black text-[8px] uppercase tracking-widest px-2 py-0.5",
+                          "shrink-0 font-bold text-[10px] uppercase tracking-wide px-2 py-0.5 border-none rounded-full",
                           a.marketplace_status === "approved"
-                            ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
-                            : "border-destructive/30 text-destructive bg-destructive/5",
+                            ? "bg-emerald-500/10 text-emerald-700"
+                            : "bg-rose-500/10 text-rose-700",
                         )}
                       >
-                        {a.marketplace_status}
+                        {a.marketplace_status === "approved" ? "Approved" : "Rejected"}
                       </Badge>
                     </div>
                   ))}
