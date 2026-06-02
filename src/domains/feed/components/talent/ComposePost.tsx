@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, Loader2, Hash, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Send, X, Loader2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { insertFeedPost } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { trackError, trackEvent } from "@/lib/errorTracking";
