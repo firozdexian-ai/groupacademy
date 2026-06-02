@@ -162,7 +162,7 @@ export function useAgentRuntime(
       }
 
       const userMsg: AgentMessage = { role: "user", content: content.trim() };
-      setFormMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
+      setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
       setIsStreaming(true);
 
       let assistantBuffer = "";
