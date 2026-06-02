@@ -8,16 +8,16 @@ import {
   Building2,
   GraduationCap,
   MoreHorizontal,
-  LucideIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Marketplace Filter Node (V5.6.0)
- * CTO Reference: High-performance category selection grid handling dynamic overlay states.
- * Architecture: Optimized via explicit trigger bindings ensuring unbreakable sheet accessibility.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Group Academy — Career Guidance System: Marketplace Category Filter Node
+ * Version: Phase 10j.5 Hardened (Production Candidate)
+ * Surface: /dashboard/marketplace?tab=all (Filter Navigation Shell)
+ * Operations Mode: High-performance category selection matrix handling responsive overlay drawers.
  */
 
 export type AgentCategory = "all" | "career" | "education" | "instructor" | "finance" | "wellness" | "company";
@@ -37,7 +37,7 @@ interface CategoryDef {
 }
 
 const PRIMARY: CategoryDef[] = [
-  { value: "all", label: "All_Nodes", icon: Sparkles },
+  { value: "all", label: "All Agents", icon: Sparkles },
   { value: "career", label: "Career", icon: Target },
   { value: "education", label: "Learning", icon: BookOpen },
 ];
@@ -52,19 +52,19 @@ const EXTRA: CategoryDef[] = [
 export function AgentFilters({ selectedCategory, onCategoryChange, showCompanyTab = false }: AgentFiltersProps) {
   const [open, setOpen] = useState(false);
 
-  // Filter extra categories based on company feature flags defensively
+  // Filter extra categories based on system organization permissions flags defensively
   const extras = useMemo(() => {
     return EXTRA.filter((c) => c.value !== "company" || showCompanyTab);
   }, [showCompanyTab]);
 
-  // Determine if active classification resides within the auxiliary drawer array
+  // Determine if active classification resides within the hidden auxiliary drawer list
   const selectedExtra = useMemo(() => {
     return extras.find((c) => c.value === selectedCategory);
   }, [extras, selectedCategory]);
 
   return (
-    <div className="grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-500 select-none">
-      {/* SECTOR: RENDER PRIMARY STABLE CATEGORY NODES */}
+    <div className="grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-300 select-none text-left">
+      {/* Primary Filtering Options Display */}
       {PRIMARY.map((c) => (
         <FilterTile
           key={c.value}
@@ -75,7 +75,7 @@ export function AgentFilters({ selectedCategory, onCategoryChange, showCompanyTa
         />
       ))}
 
-      {/* SECTOR: ADAPTIVE TRIGGER INTERFACE CONTROL MODULE */}
+      {/* Auxiliary Overlay Filter Switch Drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           {!selectedExtra ? (
@@ -84,13 +84,13 @@ export function AgentFilters({ selectedCategory, onCategoryChange, showCompanyTa
               aria-haspopup="dialog"
               aria-expanded={open}
               className={cn(
-                "flex flex-col items-center justify-center gap-1.5 rounded-[20px] border-2 bg-card/30 backdrop-blur-sm p-2 h-[72px] transition-all active:scale-95 group focus:outline-none focus:ring-2 focus:ring-primary/40",
-                "border-border/40 hover:border-primary/40 hover:bg-primary/5",
+                "flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card/50 backdrop-blur-sm p-2 h-16 transition-all active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50",
+                "hover:border-primary/40 hover:bg-primary/5",
               )}
             >
-              <MoreHorizontal className="h-5 w-5 text-primary transition-transform group-hover:scale-110" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic group-hover:text-foreground transition-colors">
-                More
+              <MoreHorizontal className="h-4 w-4 text-primary transition-transform group-hover:scale-105" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
+                More Filters
               </span>
             </button>
           ) : (
@@ -100,36 +100,35 @@ export function AgentFilters({ selectedCategory, onCategoryChange, showCompanyTa
               active={true}
               aria-haspopup="dialog"
               aria-expanded={open}
-              // Architecture Guard: Pass empty callback to satisfy types. Radix will override and bind trigger.
               onClick={() => {}}
             />
           )}
         </SheetTrigger>
 
-        {/* OVERLAY PANEL CONTENT DECK */}
+        {/* Dynamic Category Overlay Target Content */}
         <SheetContent
           side="bottom"
           onPointerDownOutside={(e) => !open && e.preventDefault()}
-          className="rounded-t-[40px] border-t-4 border-border/40 bg-background/95 backdrop-blur-2xl p-6 shadow-2xl"
+          className="rounded-t-3xl border-t border-border bg-background/95 backdrop-blur-xl p-5 shadow-xl"
         >
-          <SheetHeader className="pb-4 border-b border-border/10 mb-4 text-left">
-            <SheetTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse" /> Extended Matrix
+          <SheetHeader className="pb-3 border-b border-border/40 mb-4 text-left">
+            <SheetTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-foreground">
+              <Sparkles className="h-4 w-4 text-primary" /> Filter Categories
             </SheetTitle>
           </SheetHeader>
 
           <div className="grid grid-cols-3 gap-3">
-            {/* RESET TARGET OPTION */}
+            {/* Standard Global Categories Reset Option */}
             <FilterTile
               icon={Sparkles}
-              label="All_Nodes"
+              label="All Agents"
               active={selectedCategory === "all"}
               onClick={() => {
                 onCategoryChange("all");
                 setOpen(false);
               }}
             />
-            {/* RENDER REMAINING AUXILIARY SYSTEM CHANNELS */}
+            {/* Render Auxiliary Channel Options */}
             {extras.map((c) => (
               <FilterTile
                 key={c.value}
@@ -156,15 +155,12 @@ interface FilterTileProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 /**
- * Isolated visual tile handling forwardRef assignments defensively to support trigger injection maps.
+ * Isolated structural choice element configured cleanly to intercept forwardRef parameters
  */
 const FilterTile = React.forwardRef<HTMLButtonElement, FilterTileProps>(
   ({ icon: Icon, label, active = false, className, ...props }, ref) => {
-    // Normalize string designations cleanly to avoid code frame parsing hydration lags
-    const standardizedLabel = useMemo(() => {
-      return String(label || "NODE")
-        .trim()
-        .replace(/\s+/g, "_");
+    const cleanLabel = useMemo(() => {
+      return String(label || "").trim();
     }, [label]);
 
     return (
@@ -172,27 +168,27 @@ const FilterTile = React.forwardRef<HTMLButtonElement, FilterTileProps>(
         ref={ref}
         type="button"
         className={cn(
-          "flex flex-col items-center justify-center gap-1.5 rounded-[20px] border-2 p-2 h-[72px] transition-all duration-300 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-primary/40",
+          "flex flex-col items-center justify-center gap-1 rounded-xl border p-2 h-16 transition-all duration-200 active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 text-center",
           active
-            ? "bg-primary border-primary text-primary-foreground shadow-[0_10px_30px_rgba(var(--primary),0.3)] scale-[1.02]"
-            : "bg-card/30 border-border/40 text-foreground hover:border-primary/40 hover:bg-primary/5",
+            ? "bg-primary border-primary text-primary-foreground shadow-sm scale-[1.01]"
+            : "bg-card/50 border-border text-foreground hover:border-primary/40 hover:bg-primary/5",
           className,
         )}
         {...props}
       >
         <Icon
           className={cn(
-            "h-5 w-5 transition-transform duration-300 group-hover:scale-110",
+            "h-4 w-4 transition-transform duration-200 group-hover:scale-105",
             active ? "text-primary-foreground" : "text-primary",
           )}
         />
         <span
           className={cn(
-            "text-[9px] font-black uppercase tracking-widest italic line-clamp-1 truncate w-full text-center px-1",
-            !active && "text-muted-foreground group-hover:text-foreground",
+            "text-[10px] font-bold uppercase tracking-wider line-clamp-1 truncate w-full px-1",
+            active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground",
           )}
         >
-          {standardizedLabel}
+          {cleanLabel}
         </span>
       </button>
     );
@@ -200,3 +196,5 @@ const FilterTile = React.forwardRef<HTMLButtonElement, FilterTileProps>(
 );
 
 FilterTile.displayName = "FilterTile";
+
+export default AgentFilters;
