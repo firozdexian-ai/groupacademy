@@ -64,7 +64,7 @@ export function AgentOutreachManager() {
     queryKey: ["agent-outreach-admin", "recent"],
     queryFn: async (): Promise<OutreachRow[]> => {
       const rows = await listRecentAgentOutreachAdmin(200);
-      return rows as OutreachRow[];
+      return rows as unknown as OutreachRow[];
     },
     refetchInterval: 15000,
     staleTime: 10000,
