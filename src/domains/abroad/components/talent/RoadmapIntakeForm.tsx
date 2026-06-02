@@ -1,14 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  insertRoadmapContactLead,
-  insertStudyAbroadRoadmap,
-} from "@/domains/abroad/repo/abroadRepo";
+import { insertRoadmapContactLead, insertStudyAbroadRoadmap } from "@/domains/abroad/repo/abroadRepo";
 import { generateStudyRoadmap } from "@/domains/abroad/api/abroadApi";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/domains/finance/hooks/useCredits";
 import { toast } from "sonner";
+import { trackError } from "@/lib/errorTracking";
 
 // UI Primitive Matrix Registries
 import { Button } from "@/components/ui/button";
@@ -17,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Loader2, MapPin, Wallet, Sparkles, Zap, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Wallet, Sparkles, Zap, ShieldCheck } from "lucide-react";
 
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
@@ -25,10 +23,9 @@ import { cn } from "@/lib/utils";
 import { InlineSpinner } from "@/components/common/InlineSpinner";
 
 /**
- * GroUp Academy: Admissions Trajectory Orchestrator (V5.6.0)
- * CTO Reference: High-performance multi-step intake wizard handling credit-gated workflows.
- * Architecture: Optimized via TanStack Mutations with complete transaction-isolated pipelines.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * Group Academy — Career Abroad Study Roadmap Intake Wizard
+ * Version: Phase 10i.2 Hardened (Production Candidate)
+ * Architecture: Optimized multi-step validation engine wired to credit balance gates.
  */
 
 const POPULAR_NODES = COUNTRIES.filter((c) =>
@@ -82,32 +79,33 @@ export function RoadmapIntakeForm() {
     });
   };
 
-  // --- ACTION: TRANSACTION_ISOLATED_ADMISSIONS_MUTATION ---
+  // --- MUTATION PIPELINE WIREUP ---
   const syncMutation = useMutation({
     mutationKey: ["execute-admissions-sync"],
     mutationFn: async (): Promise<string> => {
       if (!talent?.id) throw new Error("AUTH_SYNC_REQUIRED");
       if (!canAffordAmount(serviceCost)) throw new Error("FISCAL_DEFICIT");
 
-      // Step 1: deduct credits for the roadmap
+      // Deduct roadmap service credits from wallet
       const success = await deductCustomAmount(serviceCost, "STUDY_ABROAD_ROADMAP", null, "Study abroad roadmap");
       if (!success) throw new Error("Couldn't deduct credits.");
 
-      // Step 2: mirror lead into CRM
+      // Mirror candidate lead details into internal CRM structure
       const { error: leadError } = await insertRoadmapContactLead({
         full_name: talent.fullName || "Roadmap_Lead",
         email: talent.email || "",
         subject: "SYNC_ADMISSIONS_ROADMAP",
         message: `Trajectory Request: ${formData.targetCountries.join("|")} | Level: ${formData.degreeLevel}`,
       });
+
       if (leadError) {
-        console.warn(
-          "[Digital Workforce] WARNING: Non-blocking lead logging exception handled safely.",
-          leadError.message,
-        );
+        trackError("roadmap-lead-insertion-anomaly", {
+          message: leadError.message,
+          talentId: talent.id,
+        });
       }
 
-      // HUD: STEP_3_CORE_ROADMAP_RECORD_PERSISTENCE
+      // Record study abroad request initialization to persistent repository
       const roadmap = await insertStudyAbroadRoadmap({
         talent_id: talent.id,
         email: talent.email,
@@ -120,7 +118,7 @@ export function RoadmapIntakeForm() {
         status: "pending",
       });
 
-      // HUD: STEP_4_SERVERLESS_EDGE_ORCHESTRATOR_SWARM_INVOCATION
+      // Invoke serverless AI agent generator engine
       await generateStudyRoadmap({
         roadmapId: roadmap.id,
         targetCountries: formData.targetCountries,
@@ -151,7 +149,7 @@ export function RoadmapIntakeForm() {
       navigate(`/app/abroad/roadmap/${roadmapId}`);
     },
     onError: (err: any) => {
-      console.error("[abroad] Admissions roadmap sync failed.", {
+      trackError("study-abroad-roadmap-generation-failure", {
         talentId: talent?.id,
         formData,
         message: err.message,
@@ -163,20 +161,17 @@ export function RoadmapIntakeForm() {
 
   const isSubmitting = syncMutation.isPending;
 
-  // Structural Form Validations to police Phase navigation progression
+  // Validation logic policing step navigation thresholds
   const isStep1Valid = formData.targetCountries.length > 0 && !!formData.degreeLevel && !!formData.targetIntake;
-  const isStep2Valid = true; // Temporary passthrough for optional mid-tier metric parameters
+  const isStep2Valid = true;
   const isStep3Valid = !!formData.budgetLevel && balance >= serviceCost;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-8 animate-in fade-in duration-700 text-left select-none">
-      {/* HUD: TRAJECTORY_PROGRESS */}
       <div className="space-y-4">
         <div className="flex justify-between items-end px-1">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">
-              Build your roadmap
-            </h1>
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Build your roadmap</h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
               Step {step} of 3
             </p>
@@ -191,7 +186,7 @@ export function RoadmapIntakeForm() {
         <Progress value={(step / 3) * 100} className="h-1.5 bg-primary/10 shadow-inner" />
       </div>
 
-      {/* PHASE 1: GLOBAL DESTINATIONS SECTOR */}
+      {/* STEP 1: DESTINATIONS SELECTOR */}
       {step === 1 && (
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
@@ -278,7 +273,7 @@ export function RoadmapIntakeForm() {
         </Card>
       )}
 
-      {/* PHASE 2: ACADEMIC CREDENTIAL INPUT VECTOR (STEP 2 EXPLICIT RE-COUPLING) */}
+      {/* STEP 2: ACADEMIC CREDENTIALS */}
       {step === 2 && (
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
@@ -304,7 +299,7 @@ export function RoadmapIntakeForm() {
         </Card>
       )}
 
-      {/* PHASE 3: FISCAL AUTHORIZATION AND BILLING GATEWAY */}
+      {/* STEP 3: FINANCIAL STIPULATIONS & WALLET GATEWAY */}
       {step === 3 && (
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-8 pb-4">
@@ -330,7 +325,7 @@ export function RoadmapIntakeForm() {
                     )}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-black text-xs uppercase italic tracking-widest">{b.label}</span>
+                      <span className="font-black text-xs uppercase italic tracking-widest">{b.label}</span>=
                       {isSelected && <ShieldCheck className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
@@ -363,7 +358,7 @@ export function RoadmapIntakeForm() {
         </Card>
       )}
 
-      {/* FOOTER: COMMAND_INGRESS CONTROL LAYER */}
+      {/* FOOTER WIZARD STEERING CONTAINER */}
       <div className="sticky bottom-6 sm:relative sm:bottom-0 p-4 bg-background/50 backdrop-blur-2xl rounded-[28px] border-2 border-border/40 shadow-2xl flex justify-between gap-4">
         <Button
           variant="outline"
@@ -379,7 +374,7 @@ export function RoadmapIntakeForm() {
           <Button
             type="button"
             onClick={() => setStep((s) => (s + 1) as any)}
-            disabled={(step === 1 && !isStep11ValidNamespaceCheck()) || (step === 2 && !isStep2Valid)}
+            disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
             className="h-14 flex-1 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-lg disabled:cursor-not-allowed"
           >
             Next <ChevronRight className="ml-2 h-4 w-4" />
@@ -392,7 +387,7 @@ export function RoadmapIntakeForm() {
             className="h-14 flex-1 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.3)] hover:shadow-primary/40 gap-3 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
-              <InlineSpinner size="md" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
                 <Sparkles className="h-5 w-5" /> Generate roadmap
@@ -403,9 +398,4 @@ export function RoadmapIntakeForm() {
       </div>
     </div>
   );
-
-  // Scoped utility function checking phase completion rules cleanly
-  function isStep11ValidNamespaceCheck(): boolean {
-    return isStep1Valid;
-  }
 }
