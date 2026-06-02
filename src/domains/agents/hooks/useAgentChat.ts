@@ -181,7 +181,7 @@ export function useAgentChat(): UseAgentChatReturn {
         console.error("Could not complete assistant session initialization loop:", err);
         return null;
       } finally {
-        boxIsLoading(false);
+        setIsLoading(false);
       }
     },
     [talent?.id],
