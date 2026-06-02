@@ -7,12 +7,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 
-/**
- * GroUp Academy: Community Consensus Node (PollWidget)
- * CTO Reference: Interactive engagement module for community feedback loops.
- * Version: Launch Candidate · Phase Z0 Hardened
- */
-
 interface PollOption {
   id: string;
   text: string;
@@ -39,6 +33,10 @@ interface PollWidgetProps {
   };
 }
 
+/**
+ * Community Consensus Node (PollWidget)
+ * Interactive engagement module for handling real-time community polls and choices.
+ */
 export function PollWidget({
   options = [],
   results = [],
@@ -56,7 +54,7 @@ export function PollWidget({
   const isPollEnded = pollEndsAt ? new Date(pollEndsAt) < new Date() : false;
   const showResults = hasVoted || isPollEnded;
 
-  // Asynchronously record rendering impression parameters safely via telemetry
+  // Track rendering impressions safely for analytics evaluation
   useEffect(() => {
     if (contextData?.postId) {
       trackEvent("poll_widget_rendered", {
@@ -79,7 +77,7 @@ export function PollWidget({
       // Execute the native transactional update handler
       await onVote(selectedOption);
 
-      // Automated Efficiency: Broadcast cache invalidation instructions across shared feed pools
+      // Invalidate queries to sync metrics across viewports immediately
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
       trackEvent("poll_vote_submission_success", {
@@ -103,7 +101,6 @@ export function PollWidget({
     return result || fallbackResult;
   };
 
-  // PROTOCOL: Identify the top engagement node with defensive fallback protections
   const getLeadingOptionId = (): string | null => {
     if (!results || !Array.isArray(results) || results.length === 0) return null;
     try {
@@ -123,7 +120,6 @@ export function PollWidget({
 
   const leadingOptionId = getLeadingOptionId();
 
-  // Safely parse distance calculations to prevent date formatting anomalies from crashing views
   const renderTimeRemaining = (endsAt: string) => {
     try {
       const dateInstance = new Date(endsAt);
@@ -198,7 +194,7 @@ export function PollWidget({
                   </div>
                 </div>
 
-                {/* NEURAL PROGRESS OVERLAY FRAME */}
+                {/* Progress bar visual indicator overlay */}
                 <div
                   className={cn(
                     "absolute inset-y-0 left-0 h-full transition-all duration-[1200ms] ease-out opacity-10 transform-gpu",
@@ -237,7 +233,7 @@ export function PollWidget({
                       : "border-muted-foreground/30 bg-muted/10",
                   )}
                 >
-                  {isSelected && <Check className="h-3 w-3 text-white stroke-[3.5px]" />}
+                  {isSelected && <Check className="h-3 w-3 text-white stroke-[3px]" />}
                 </div>
                 <span className="text-foreground/90 font-bold">{option.text}</span>
               </div>
@@ -246,7 +242,7 @@ export function PollWidget({
         })}
       </div>
 
-      {/* Action Execution Dispatcher Button */}
+      {/* Submission action button */}
       {!hasVoted && !isPollEnded && (
         <Button
           size="lg"
@@ -259,7 +255,7 @@ export function PollWidget({
         </Button>
       )}
 
-      {/* Informative Telemetry Status Strip Footer */}
+      {/* Info status footer */}
       <div className="flex items-center justify-between pt-2.5 px-0.5 border-t border-border/30 select-none">
         <Badge
           variant="outline"
