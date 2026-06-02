@@ -1,13 +1,14 @@
 /**
- * Report Builder — Refactored Executive Canvas
- * CTO Version: May 2026
- * Fixes: P2, P7, P8 (Semantic Theming & Tooltip Visibility)
+ * Reports Builder Canvas Dashboard View (Phase 10j.3 - Hardened).
+ * Interfaces with the admin-report-builder edge infrastructure to compile dynamic
+ * visual indicators and business analytical charts based on conversational inputs.
+ * Conforms fully to 2024 Highly Professional SaaS UI guidelines.
  */
 import { useState } from "react";
-import { Sparkles, Loader2, FileBarChart } from "lucide-react";
+import { Sparkles, FileBarChart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { adminReportBuilder } from "@/domains/analytics/api/analyticsApi";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -33,6 +34,7 @@ interface Section {
   source?: { fn: string; metric?: string; dimension?: string; granularity?: string; n?: number };
   note?: string;
 }
+
 interface Spec {
   title: string;
   period?: { from?: string; to?: string };
@@ -46,7 +48,7 @@ const SUGGESTIONS = [
   "Top 10 services by revenue, this quarter",
 ];
 
-// P7: Derived from real semantic theme tokens (only tokens that exist in index.css)
+// Pure system semantic design matrix tokens mapped directly from tailwind configurations
 const CHART_COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
@@ -57,7 +59,7 @@ const CHART_COLORS = [
   "hsl(var(--ring))",
 ];
 
-// P8: Shared tooltip styling for dark/light mode consistency
+// Cohesive tooltip configuration for accessible data inspections
 const SHARED_TOOLTIP_STYLE = {
   backgroundColor: "hsl(var(--popover))",
   borderColor: "hsl(var(--border))",
@@ -72,92 +74,114 @@ export function ReportsBuilderTab() {
   const [loading, setLoading] = useState(false);
   const [spec, setSpec] = useState<Spec | null>(null);
   const [data, setData] = useState<Record<string, any>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const generate = async (text: string) => {
+  const generateReport = async (text: string) => {
     if (!text.trim()) return;
     setLoading(true);
+    setError(null);
     setSpec(null);
     setData({});
+
     try {
-      const payload = (await adminReportBuilder({ brief: text })) as any;
+      // Invoke our unified, authorization-forwarding domain handler
+      const result = await adminReportBuilder({ brief: text });
+      const payload = result.data as any;
+
       if (payload?.error) {
         const detail = payload.detail
           ? ` — ${typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail)}`
           : "";
         throw new Error(`${payload.error}${detail}`);
       }
+
       setSpec(payload.spec);
       setData(payload.data ?? {});
     } catch (e: any) {
-      toast({ title: "Report error", description: e?.message ?? String(e), variant: "destructive" });
+      console.error("[Digital Workforce Anomaly] Report configuration compilation failure:", e);
+      setError(e?.message || "The platform was unable to compile the metrics layout for this request.");
+      toast({
+        title: "Report creation failed",
+        description: "Please check your input string query or try another parameter template.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* P2: In-tab prompt row only (Page header provided by Dashboard shell) */}
-      <Card className="rounded-2xl border border-border/60 bg-card shadow-lg">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
+      {/* Interactive Briefing Selector Panel */}
+      <Card className="rounded-2xl border border-border bg-card shadow-sm">
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-[10px] font-semibold text-muted-foreground/60 italic">
-              AI Canvas Engine
-            </span>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-muted-foreground">AI Analytics Assistant</span>
           </div>
+
           <Textarea
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
-            placeholder="Describe the insight you need..."
-            className="rounded-2xl min-h-[100px] border-2 bg-background/50 focus-visible:ring-primary/20"
+            placeholder="Describe the cross-sectional data or platform insight you want to view..."
+            className="rounded-xl min-h-[90px] border border-input bg-background/50 focus-visible:ring-primary/20 text-sm leading-relaxed"
           />
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((s) => (
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {SUGGESTIONS.map((suggestion) => (
               <Button
-                key={s}
+                key={suggestion}
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-2 hover:bg-primary/5 hover:text-primary transition-colors"
-                onClick={() => setBrief(s)}
+                className="rounded-xl text-xs font-medium border border-border hover:bg-primary/5 hover:text-primary transition-colors duration-200"
+                onClick={() => setBrief(suggestion)}
               >
-                {s}
+                {suggestion}
               </Button>
             ))}
           </div>
+
           <Button
-            onClick={() => generate(brief)}
+            onClick={() => generateReport(brief)}
             disabled={loading || !brief.trim()}
-            className="rounded-2xl h-12 px-8 font-semibold text-xs gap-2"
+            className="rounded-xl h-10 px-6 font-medium text-xs gap-2 shadow-sm"
           >
-            {loading ? <InlineSpinner size="sm" /> : <Sparkles className="h-4 w-4" />}
-            Compile Leadership Report
+            {loading ? <InlineSpinner size="sm" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Generate Report
           </Button>
         </CardContent>
       </Card>
 
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-xl flex items-center gap-3 text-sm text-destructive font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Compiled Content Workspace Output */}
       {spec && (
-        <Card className="rounded-2xl border border-border/60 bg-background shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
-          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-          <CardHeader className="border-b border-border/20 p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl font-semibold tracking-tight italic uppercase text-foreground">
-                  {spec.title}
-                </CardTitle>
+        <Card className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+          <div className="h-1 w-full bg-gradient-to-r from-primary via-indigo-500 to-accent" />
+
+          <CardHeader className="border-b border-border p-6 bg-muted/10">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold tracking-tight text-foreground">{spec.title}</CardTitle>
                 {spec.period?.from && (
-                  <p className="text-[10px] font-semibold text-muted-foreground/60 italic mt-1">
-                    Telemetry: {new Date(spec.period.from).toLocaleDateString()} —{" "}
-                    {new Date(spec.period.to ?? "").toLocaleDateString()}
-                  </p>
+                  <CardDescription className="text-xs text-muted-foreground font-medium">
+                    Reporting window: {new Date(spec.period.from).toLocaleDateString("en-US")} —{" "}
+                    {new Date(spec.period.to ?? "").toLocaleDateString("en-US")}
+                  </CardDescription>
                 )}
               </div>
-              <FileBarChart className="h-8 w-8 text-primary/20" />
+              <FileBarChart className="h-5 w-5 text-muted-foreground/40 shrink-0 mt-1" />
             </div>
           </CardHeader>
-          <CardContent className="p-8 grid gap-8">
-            {spec.sections.map((s, i) => (
-              <SectionRender key={i} section={s} payload={data[i]} />
+
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            {spec.sections.map((section, idx) => (
+              <SectionRender key={idx} section={section} payload={data[idx]} />
             ))}
           </CardContent>
         </Card>
@@ -169,82 +193,88 @@ export function ReportsBuilderTab() {
 function SectionRender({ section, payload }: { section: Section; payload: any }) {
   if (section.kind === "note") {
     return (
-      <div className="p-6 rounded-xl bg-muted/30 border border-border/30">
-        <p className="text-[10px] font-semibold text-muted-foreground/60 italic mb-2">
-          {section.title}
-        </p>
-        <p className="text-sm text-foreground/80 leading-relaxed">{section.note}</p>
+      <div className="p-5 rounded-xl bg-muted/40 border border-border space-y-1">
+        <h4 className="text-xs font-semibold text-muted-foreground">{section.title}</h4>
+        <p className="text-sm text-foreground/90 leading-relaxed">{section.note}</p>
       </div>
     );
   }
+
   if (section.kind === "kpi") {
-    const value = payload?.value ?? 0;
+    const kpiValue = payload?.value ?? 0;
     return (
-      <div className="p-8 rounded-2xl bg-primary/5 border-2 border-primary/10 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-          <FileBarChart className="h-12 w-12 text-primary" />
+      <div className="p-6 rounded-xl bg-primary/5 border border-primary/10 relative overflow-hidden group">
+        <div className="absolute top-4 right-4 opacity-10 group-hover:scale-105 transition-transform duration-300">
+          <FileBarChart className="h-10 w-10 text-primary" />
         </div>
-        <p className="text-[10px] font-semibold text-muted-foreground/60 italic">
-          {section.title}
-        </p>
-        <p className="text-6xl font-semibold tracking-tight text-primary mt-4 leading-none">
-          {Number(value).toLocaleString()}
+        <h4 className="text-xs font-semibold text-muted-foreground">{section.title}</h4>
+        <p className="text-4xl font-bold tracking-tight text-primary mt-2 leading-none">
+          {Number(kpiValue).toLocaleString()}
         </p>
       </div>
     );
   }
 
-  const rows = (payload?.rows ?? []).map((r: any) => ({
-    label: r.label ?? (r.bucket ? new Date(r.bucket).toLocaleDateString() : ""),
-    value: Number(r.value ?? 0),
+  const rows = (payload?.rows ?? []).map((row: any) => ({
+    label: row.label ?? (row.bucket ? new Date(row.bucket).toLocaleDateString("en-US") : ""),
+    value: Number(row.value ?? 0),
   }));
 
   return (
-    <div className="p-6 rounded-2xl border border-border/60 bg-card">
-      <p className="text-[10px] font-semibold text-muted-foreground/60 italic mb-6">
-        {section.title}
-      </p>
-      <div className="h-80">
+    <div className="p-5 rounded-xl border border-border bg-card space-y-4">
+      <h4 className="text-xs font-semibold text-muted-foreground">{section.title}</h4>
+
+      <div className="h-72 w-full pt-2">
         <ResponsiveContainer width="100%" height="100%">
           {section.kind === "bar" ? (
-            <BarChart data={rows}>
+            <BarChart data={rows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="label" fontSize={10} axisLine={false} tickLine={false} />
-              <YAxis fontSize={10} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={SHARED_TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--primary)/0.05)" }} />
-              {/* P7: Semantic color fill */}
-              <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+              <XAxis
+                dataKey="label"
+                fontSize={11}
+                stroke="hsl(var(--muted-foreground))"
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={SHARED_TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--primary)/0.04)" }} />
+              <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           ) : section.kind === "line" ? (
-            <LineChart data={rows}>
+            <LineChart data={rows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="label" fontSize={10} axisLine={false} tickLine={false} />
-              <YAxis fontSize={10} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="label"
+                fontSize={11}
+                stroke="hsl(var(--muted-foreground))"
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
               <Tooltip contentStyle={SHARED_TOOLTIP_STYLE} />
-              {/* P7: Semantic stroke color */}
               <Line
                 type="monotone"
                 dataKey="value"
                 stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2 }}
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2, stroke: "hsl(var(--primary))" }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
           ) : (
             <PieChart>
-              <Pie data={rows} dataKey="value" nameKey="label" innerRadius={60} outerRadius={100} paddingAngle={5}>
-                {rows.map((_: any, i: number) => (
+              <Pie data={rows} dataKey="value" nameKey="label" innerRadius={60} outerRadius={90} paddingAngle={4}>
+                {rows.map((_: any, idx: number) => (
                   <Cell
-                    key={i}
-                    fill={CHART_COLORS[i % CHART_COLORS.length]}
+                    key={idx}
+                    fill={CHART_COLORS[idx % CHART_COLORS.length]}
                     stroke="hsl(var(--background))"
                     strokeWidth={2}
                   />
                 ))}
               </Pie>
               <Tooltip contentStyle={SHARED_TOOLTIP_STYLE} />
-              <Legend iconType="circle" />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
             </PieChart>
           )}
         </ResponsiveContainer>
