@@ -5,13 +5,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedEngagement, patchEngagementCache, EMPTY_REACTIONS, type ReactionType } from "@/domains/feed/hooks/useFeedEngagement";
 
-/**
- * GroUp Academy: Social Feed Reaction Engine (V5.6.0)
- * CTO Reference: High-performance, optimistically updated interaction sensor.
- * Architecture: Digital Workforce enabled - streams transactional errors to Admin OS.
- * Phase: Z0 Code Freeze Hardened (May 2026).
- */
-
 export type { ReactionType };
 
 interface UsePostReactionsResult {
@@ -23,19 +16,23 @@ interface UsePostReactionsResult {
 
 const TAP_LOCK_MS = 200;
 
+/**
+ * Custom state manager hook handling social feed reaction metrics.
+ * Combines optimistic local UI counters with automated cache rollback logic on failure.
+ */
 export function usePostReactions(postId: string): UsePostReactionsResult {
   const { talent } = useTalent();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const lastTap = useRef(0);
 
-  // Subscribe to shared cache (batched RPC fills it)
+  // Subscribe to the shared query map filled by batched feed entries
   const { data: engagementMap } = useFeedEngagement([postId]);
   const eng = engagementMap?.[postId];
   const reactions = eng?.reactionCounts || EMPTY_REACTIONS;
   const userReaction = eng?.userReaction || null;
 
-  // --- ACTION: ATOMIC_REACTION_MUTATION ---
+  // Mutation logic loop processing remote database writes
   const mutation = useMutation({
     mutationFn: async ({
       type,
@@ -46,9 +43,8 @@ export function usePostReactions(postId: string): UsePostReactionsResult {
       isToggleOff: boolean;
       prevUserReaction: ReactionType | null;
     }) => {
-      if (!talent?.id) throw new Error("AUTH_REQUIRED");
+      if (!talent?.id) throw new Error("Authentication required.");
 
-      // HUD: EXECUTING_DB_REACTION_TRANSACTION
       if (isToggleOff) {
         const { error } = await deletePostReaction({ postId, talentId: talent.id });
         if (error) throw error;
@@ -67,7 +63,7 @@ export function usePostReactions(postId: string): UsePostReactionsResult {
     onMutate: async ({ type, isToggleOff, prevUserReaction }) => {
       if (!talent?.id) return;
 
-      // HUD: OPTIMISTIC_CACHE_PATCH_APPLY
+      // Optimistically update the reactive query map state cache
       patchEngagementCache(queryClient, talent.id, postId, (curr) => {
         const next = { ...curr, reactionCounts: { ...curr.reactionCounts } };
         if (isToggleOff) {
@@ -86,14 +82,14 @@ export function usePostReactions(postId: string): UsePostReactionsResult {
     onError: (err: any, { type, isToggleOff, prevUserReaction }) => {
       if (!talent?.id) return;
 
-      // Digital Workforce Anomaly Trigger: Logs pipeline failures to background admin sweepers
-      console.error("[Digital Workforce] ANOMALY: post_reactions state reconciliation failed.", {
+      // Digital Workforce anomaly logging for structural auditing
+      console.error("Feed reaction update execution process failed to synchronize:", {
         postId,
         type,
         message: err.message,
       });
 
-      // HUD: OPTIMISTIC_CACHE_PATCH_ROLLBACK
+      // Revert cache to historical coordinates upon transaction rejection
       patchEngagementCache(queryClient, talent.id, postId, (curr) => {
         const next = { ...curr, reactionCounts: { ...curr.reactionCounts } };
         if (isToggleOff) {
@@ -110,13 +106,13 @@ export function usePostReactions(postId: string): UsePostReactionsResult {
       });
 
       toast({
-        title: "Connection sync failed",
-        description: "Your reaction could not be saved. Please try again.",
+        title: "Could not save reaction",
+        description: "Your selection could not be synchronized. Please try again.",
         variant: "destructive",
       });
     },
     onSettled: () => {
-      // Re-sync with primary engagement maps to preserve ledger finality
+      // Re-validate tracking data queries to guarantee final balance accuracy
       queryClient.invalidateQueries({ queryKey: ["feed-engagement", [postId]] });
     },
   });
@@ -128,7 +124,7 @@ export function usePostReactions(postId: string): UsePostReactionsResult {
       lastTap.current = now;
 
       if (!talent?.id) {
-        toast({ title: "Sign in required", description: "Sign in to react.", variant: "destructive" });
+        toast({ title: "Sign in required", description: "Please sign in to react to posts.", variant: "destructive" });
         return;
       }
 
