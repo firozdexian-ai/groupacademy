@@ -1,5 +1,5 @@
 import React from "react";
-import { AgentRedirectStub } from "@/domains/agents/components/admin/AgentRedirectStub";
+import { AgentRedirectStub } from "@/domains/agents/components/admin/chat/AgentRedirectStub";
 
 /**
  * Group Academy — Agent Route Registry
