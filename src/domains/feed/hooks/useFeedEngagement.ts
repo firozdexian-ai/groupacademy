@@ -3,13 +3,6 @@ import { getFeedEngagement } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { useMemo } from "react";
 
-/**
- * GroUp Academy: Social Feed Batch Engagement Sensor (V5.6.0)
- * CTO Reference: Primary analytic transaction store optimizing community interaction metrics.
- * Architecture: Digital Workforce enabled - streams lookup and cache exceptions directly to Admin OS.
- * Phase: Z0 Code Freeze Hardened (2026 Launch Edition).
- */
-
 export type ReactionType = "like" | "insightful" | "celebrate" | "support";
 
 export interface PostEngagement {
@@ -26,27 +19,32 @@ const EMPTY_REACTIONS: Record<ReactionType, number> = {
   support: 0,
 };
 
+/**
+ * Generates the base cache query key structure for feed engagement statistics.
+ */
 export function feedEngagementKey(talentId: string | undefined) {
-  return ["feed-engagement", talentId || "anon"];
+  return ["feed-engagement", talentId || "anonymous"];
 }
 
+/**
+ * Custom hook to batch fetch engagement and interaction datasets for an array of feed items.
+ * Minimizes network round-trips by bundling user reactions and poll counts into a unified state query.
+ */
 export function useFeedEngagement(postIds: string[]) {
   const { talent } = useTalent();
 
-  // Stable comma-key configuration so order mutations do not clear cached state frames
+  // Stabilize array parameter identities to prevent redundant query cache execution loops
   const sortedKey = useMemo(() => [...postIds].sort().join(","), [postIds]);
 
   return useQuery({
     queryKey: [...feedEngagementKey(talent?.id), sortedKey],
     enabled: postIds.length > 0,
-    // Performance Baseline: Enforce 30s light-speed stale caching for responsive feed interactions
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 30, // 30-second stale configuration threshold for active feeds
     gcTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<Record<string, PostEngagement>> => {
       if (postIds.length === 0) return {};
 
-      // HUD: EXECUTING_RPC_BATCH_ENGAGEMENT_SELECT
       let data: any[] = [];
       try {
         data = (await getFeedEngagement({
@@ -54,9 +52,9 @@ export function useFeedEngagement(postIds: string[]) {
           _talent_id: talent?.id || null,
         })) as any[];
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: get_feed_engagement database sync failed.", {
+        console.error("Error fetching feed engagement statistics:", {
           postIdCount: postIds.length,
-          talentId: talent?.id || "ANONYMOUS_NODE",
+          talentId: talent?.id || "anonymous",
           error: error?.message,
           code: error?.code,
         });
@@ -65,7 +63,7 @@ export function useFeedEngagement(postIds: string[]) {
 
       const map: Record<string, PostEngagement> = {};
 
-      // HUD: CORE_SCHEMA_METRICS_MAPPING
+      // Map raw backend schema keys cleanly to local component property interfaces
       (data || []).forEach((row: any) => {
         const rc = row.reaction_counts || {};
         map[row.post_id] = {
@@ -87,8 +85,8 @@ export function useFeedEngagement(postIds: string[]) {
 }
 
 /**
- * Helpers for optimistic mutations on cached engagement datasets.
- * Enforced as an Immutable platform specification utility.
+ * Helper utility to perform multi-key optimistic cache state adjustments.
+ * Updates target posts across query boundaries to prevent interface flickering on interactions.
  */
 export function patchEngagementCache(
   queryClient: ReturnType<typeof useQueryClient>,
