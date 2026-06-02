@@ -9,8 +9,8 @@ import type { AgentMessage } from "./useAgentChat";
 
 /**
  * GroUp Academy: Agent OS Runtime Hook (V3.1.0 - May 2026)
- * CTO Reference: Authoritative sensor for contextualized agent interactions.
- * Logic: Streams from `agent-runtime` (SSE) with thread persistence.
+ * Description: Orchestrates contextual streaming connections from agent-runtime edge instances
+ * with built-in thread persistence and fractional balance validation gates.
  */
 
 export interface AgentThread {
@@ -85,7 +85,7 @@ export function useAgentRuntime(
           .maybeSingle();
 
         if (!agent) {
-          toast.error("AGENT_NOT_FOUND");
+          toast.error("The requested communication agent profile could not be found.");
           return null;
         }
 
@@ -133,7 +133,7 @@ export function useAgentRuntime(
           created_at: new Date().toISOString(),
         };
       } catch (err) {
-        console.error("[Digital Workforce] useAgentRuntime Initialization Error:", err);
+        console.error("Error initializing background runtime session thread:", err);
         return null;
       } finally {
         setIsLoading(false);
@@ -147,7 +147,7 @@ export function useAgentRuntime(
     async (content: string) => {
       if (!content.trim() || isStreaming || !agentKeyRef.current || !talent?.id) return;
 
-      // PRE-FLIGHT: Credit Deficit Check (May 2026 Standard)
+      // Pre-Flight validation gate: Verification of fractional credit balance models
       if (perResponseCost > 0) {
         const { data: credits } = await supabase
           .from("talent_credits")
@@ -156,19 +156,19 @@ export function useAgentRuntime(
           .single();
 
         if (!credits || credits.balance < perResponseCost) {
-          toast.error(`FISCAL_DEFICIT: ${perResponseCost} CR required to process message.`);
+          toast.error(`Insufficient balance: ${perResponseCost} credits required to submit message.`);
           return;
         }
       }
 
       const userMsg: AgentMessage = { role: "user", content: content.trim() };
-      setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
+      setFormMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
       setIsStreaming(true);
 
       let assistantBuffer = "";
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("AUTH_REQUIRED");
+        if (!accessToken) throw new Error("Authentication sync required.");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-runtime`, {
           method: "POST",
@@ -210,7 +210,7 @@ export function useAgentRuntime(
         }
 
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("STREAM_FAULT");
+        if (!reader) throw new Error("Could not initialize text stream translation channel.");
         const decoder = new TextDecoder();
         let buf = "";
 
@@ -229,7 +229,7 @@ export function useAgentRuntime(
 
             try {
               const parsed = JSON.parse(payload);
-              // AUTOMATED EFFICIENCY: Real-time UI refresh via invalidation keys
+              // Automated Efficiency: Invalidation keys loop refresh client cache data natively
               if (parsed?.type === "invalidations" && Array.isArray(parsed.keys)) {
                 parsed.keys.forEach((k: string) => queryClient.invalidateQueries({ queryKey: [k] }));
                 continue;
@@ -244,15 +244,15 @@ export function useAgentRuntime(
                 });
               }
             } catch {
-              /* Fragment handling */
+              /* Fragment chunk boundary passthrough handling */
             }
           }
         }
 
         if (!assistantBuffer) setMessages((prev) => prev.slice(0, -1));
       } catch (err) {
-        console.error("[agents] runtime stream error:", err);
-        toast.error("NEURAL_SYNC_FAULT: Connection interrupted");
+        console.error("Runtime stream connection error:", err);
+        toast.error("Connection lost: Text stream translation interrupted.");
         setMessages((prev) => prev.slice(0, -1));
       } finally {
         setIsStreaming(false);
