@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import {
   FileText,
   Clock,
@@ -261,9 +262,14 @@ export default function PublicBlogPost() {
                 </Card>
               ) : (
                 <div
-                  dangerouslySetInnerHTML={{ __html: post.content?.replace(/\n/g, "<br/>") || "" }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize((post.content || "").replace(/\n/g, "<br/>"), {
+                      USE_PROFILES: { html: true },
+                    }),
+                  }}
                   className="article-body"
                 />
+
               )}
             </div>
 
