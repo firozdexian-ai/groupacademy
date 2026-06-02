@@ -1,67 +1,61 @@
 import React from "react";
+import { AgentRedirectStub } from "@/domains/agents/components/admin/AgentRedirectStub";
+
+/**
+ * Group Academy — Agent Route Registry
+ * Version: Phase 10j.5 Hardened
+ * Architecture: Consolidated "Agent OS" Redirect Pattern.
+ * Purpose: Minimize dashboard surface area by funneling legacy agent tabs
+ * into the unified Workforce Command Center.
+ */
 
 export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
-  "agent-outreach": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentOutreachTab").then((m: any) => ({ default: m.AgentOutreachTab ?? m.AgentOutreachManager ?? m.default })),
-  ),
-  "agents-overview": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentsOverviewTab").then((m) => ({ default: m.AgentsOverviewTab })),
-  ),
-  "agents-channels": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentChannelsTab").then((m) => ({ default: m.AgentChannelsTab })),
-  ),
-  "agents-multichannel": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentMultichannelTab").then((m) => ({ default: m.AgentMultichannelTab })),
-  ),
+  // --- CORE SYSTEM ROUTE (Keep) ---
   "agents-command-center": React.lazy(() =>
     import("@/pages/dashboard/WorkforceCommandCenter").then((m) => ({ default: m.WorkforceCommandCenter })),
   ),
-  "agents-tools": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentToolsTab").then((m) => ({ default: m.AgentToolsTab })),
-  ),
-  "agents-studio": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentStudioTab").then((m: any) => ({ default: m.AgentStudioTab ?? m.AgentStudio ?? m.default })),
-  ),
-  "agents-b2c": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentTypeTabs").then((m) => ({ default: m.AgentsB2CTab })),
-  ),
-  "agents-platform": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentTypeTabs").then((m) => ({ default: m.AgentsPlatformTab })),
-  ),
-  "agents-b2b": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentTypeTabs").then((m) => ({ default: m.AgentsB2BTab })),
-  ),
-  "agents-ugc": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentTypeTabs").then((m) => ({ default: m.AgentsUGCTab })),
-  ),
-  "agents-marketplace": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentMarketplaceTab").then((m: any) => ({ default: m.AgentMarketplaceTab ?? m.AgentMarketplaceReview ?? m.default })),
-  ),
-  "agents-payouts": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentPayoutsTab").then((m: any) => ({ default: m.AgentPayoutsTab ?? m.AgentPayoutsManager ?? m.default })),
-  ),
-  "agents-sessions": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentSessionsTab").then((m: any) => ({ default: m.AgentSessionsTab ?? m.AgentSessionsManager ?? m.default })),
-  ),
-  "agents-insights": React.lazy(() =>
-    import("@/domains/agents/components/dashboard/AgentInsightsTab").then((m: any) => ({ default: m.AgentInsightsTab ?? m.AgentInsights ?? m.default })),
-  ),
+
+  // --- REDIRECT STUBS (Redirect to /dashboard/chat) ---
+  "agent-outreach": createRedirect("agent-outreach"),
+  "agents-overview": createRedirect("agents-overview"),
+  "agents-channels": createRedirect("agents-channels"),
+  "agents-multichannel": createRedirect("agents-multichannel"),
+  "agents-tools": createRedirect("agents-tools"),
+  "agents-studio": createRedirect("agents-studio"),
+  "agents-b2c": createRedirect("agents-b2c"),
+  "agents-platform": createRedirect("agents-platform"),
+  "agents-b2b": createRedirect("agents-b2b"),
+  "agents-ugc": createRedirect("agents-ugc"),
+  "agents-marketplace": createRedirect("agents-marketplace"),
+  "agents-payouts": createRedirect("agents-payouts"),
+  "agents-sessions": createRedirect("agents-sessions"),
+  "agents-insights": createRedirect("agents-insights"),
 };
 
+/** * Helper: Generates a lazy component that redirects the admin to the unified chat/agent manager.
+ */
+function createRedirect(agentKey: string) {
+  return React.lazy(() =>
+    Promise.resolve({
+      default: () => <AgentRedirectStub agentKey={agentKey} />,
+    }),
+  );
+}
+
 export const TITLES: Record<string, string> = {
-  "agent-outreach": "Proactive outreach",
-  "agents-overview": "Agents overview",
-  "agents-channels": "Channels & triggers",
-  "agents-multichannel": "Multichannel routing",
-  "agents-command-center": "Workforce command center",
-  "agents-tools": "Tools, skills & connectors",
-  "agents-studio": "Agent studio",
-  "agents-b2c": "B2C agents",
-  "agents-platform": "Platform agents",
-  "agents-b2b": "B2B agents",
-  "agents-ugc": "User-generated agents",
-  "agents-marketplace": "Marketplace review",
-  "agents-payouts": "Agent payouts",
-  "agents-sessions": "Sessions log",
-  "agents-insights": "Agent insights",
+  "agent-outreach": "Agent Outreach",
+  "agents-overview": "Agents Overview",
+  "agents-channels": "Channels & Triggers",
+  "agents-multichannel": "Routing",
+  "agents-command-center": "Workforce Command Center",
+  "agents-tools": "Tools & Connectors",
+  "agents-studio": "Agent Studio",
+  "agents-b2c": "B2C Agents",
+  "agents-platform": "Platform Agents",
+  "agents-b2b": "B2B Agents",
+  "agents-ugc": "Community Agents",
+  "agents-marketplace": "Marketplace Review",
+  "agents-payouts": "Payout Management",
+  "agents-sessions": "Chat Logs",
+  "agents-insights": "Agent Metrics",
 };
