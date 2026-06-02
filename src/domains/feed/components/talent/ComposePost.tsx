@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, Loader2, Hash, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Send, X, Loader2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { insertFeedPost } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { trackError, trackEvent } from "@/lib/errorTracking";
@@ -163,33 +163,8 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                     </span>
                   </button>
 
-                  <div className="flex items-center gap-0.5 shrink-0 select-none">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={expand}
-                          className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/70 hover:text-primary hover:bg-muted/50 transition-colors"
-                          aria-label="Add image"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Images coming soon</TooltipContent>
-                    </Tooltip>
+                  <div className="flex items-center gap-0.5 shrink-0 select-none" />
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={expand}
-                          className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/70 hover:text-primary hover:bg-muted/50 transition-colors"
-                          aria-label="Rewrite with AI"
-                        >
-                          <Sparkles className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">AI rewrite coming soon</TooltipContent>
-                    </Tooltip>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-3 transition-all duration-200">
@@ -245,19 +220,6 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                   {/* Toolbar & Submission Control Bar */}
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-2 pt-2 border-t border-border/30 select-none">
                     <div className="flex items-center gap-1 min-w-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            disabled
-                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/40 cursor-not-allowed shrink-0"
-                            aria-label="Media deployment restricted"
-                          >
-                            <ImageIcon className="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Images coming soon</TooltipContent>
-                      </Tooltip>
-
                       <button
                         onClick={() => tags.length < MAX_TAGS && setShowTagInput(true)}
                         disabled={tags.length >= MAX_TAGS}
@@ -272,18 +234,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                         <Hash className="h-4 w-4" />
                       </button>
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            disabled
-                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/40 cursor-not-allowed shrink-0"
-                            aria-label="AI optimization restricted"
-                          >
-                            <Sparkles className="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">AI rewrite coming soon</TooltipContent>
-                      </Tooltip>
+
 
                       <span
                         className={cn(

@@ -294,7 +294,7 @@ export default function PublicLeaderboard() {
   return (
     <ComingSoonGate
       featureKey={`leaderboards-${safeKind}`}
-      title={`Top ${safeKind} · Coming soon`}
+      title={`Top ${safeKind}`}
       description="Rankings open once enough entries qualify. Join the waitlist to be notified the moment this leaderboard goes live."
       secondaryCtaLabel="Browse projects"
       secondaryCtaHref="/projects"
