@@ -6,7 +6,6 @@ import { Flame, TrendingUp } from "lucide-react";
 import { getHypeEarnings } from "@/domains/feed/repo/feedRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { cn } from "@/lib/utils";
 
 interface HypeStats {
   totalCredits: number;
@@ -15,14 +14,13 @@ interface HypeStats {
 }
 
 /**
- * Premium, performance-hardened Creator Hype Earnings Card.
- * Leverages structured server-state caching layers to aggregate creator_share ledger records
- * dynamically without over-fetching raw data profiles over mobile PWA channels.
+ * Premium creator earnings summary card.
+ * Pulls from the ledger history to calculate total hypes and splits.
  */
 export function HypeEarningsCard() {
   const { talent } = useTalent();
 
-  // 1. Unified Server-State Sync Layer (staleTime 5 min, 2 retries rule configuration)
+  // Fetch creator earnings data with structured state caching layer
   const {
     data: stats,
     isLoading,
@@ -30,7 +28,7 @@ export function HypeEarningsCard() {
   } = useQuery<HypeStats>({
     queryKey: ["creator-hype-earnings", talent?.id],
     queryFn: async () => {
-      if (!talent?.id) throw new Error("Anonymous context block identifier encountered.");
+      if (!talent?.id) throw new Error("User session not found.");
 
       const sinceTimestamp = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
       const { all, recent } = await getHypeEarnings(talent.id, sinceTimestamp);
@@ -50,7 +48,7 @@ export function HypeEarningsCard() {
     refetchOnWindowFocus: false,
   });
 
-  // 2. Instrument Lifecycle Observability
+  // Track database lookup faults securely in the background
   useEffect(() => {
     if (error) {
       trackError(error instanceof Error ? error : String(error), {
@@ -61,9 +59,10 @@ export function HypeEarningsCard() {
     }
   }, [error, talent?.id]);
 
+  // Log post viewing events safely to monitor monetization trends
   useEffect(() => {
     if (stats && talent?.id) {
-      trackEvent("HypeEarningsCard:metrics_viewed", {
+      trackEvent("hype_earnings_viewed", {
         talentId: talent.id,
         totalAccumulatedCredits: stats.totalCredits,
       });
@@ -89,15 +88,14 @@ export function HypeEarningsCard() {
     );
   }
 
-  // Enforce rigid standard boundaries over baseline computations
   const currentStats = stats ?? { totalCredits: 0, last30DaysCredits: 0, totalHypesReceived: 0 };
 
   return (
     <Card className="p-4 border border-border/40 bg-card/60 backdrop-blur-md shadow-sm transition-all duration-300 relative overflow-hidden select-none">
-      {/* Decorative Brand Identity Glow Layer */}
+      {/* Visual backdrop accent layer */}
       <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Header Block Section */}
+      {/* Card Title Header */}
       <div className="flex items-center gap-2 mb-3.5">
         <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/5 shadow-inner">
           <Flame className="h-4 w-4 animate-pulse fill-current" />
@@ -105,7 +103,7 @@ export function HypeEarningsCard() {
         <h3 className="font-bold text-xs text-foreground uppercase tracking-wider">Hype Earnings</h3>
       </div>
 
-      {/* Financial Metrics Split Matrix Row */}
+      {/* Metrics Row Split Matrix Layout */}
       <div className="grid grid-cols-3 gap-3 text-center items-end">
         <div className="space-y-1">
           <div className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight tabular-nums">
