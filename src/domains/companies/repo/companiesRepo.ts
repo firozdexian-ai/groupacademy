@@ -38,12 +38,11 @@ export interface CompanyRow {
 export interface ContactRow {
   id: string;
   company_id: string | null;
-  first_name: string | null;
-  last_name: string | null;
+  full_name: string | null;
   email: string | null;
   phone: string | null;
-  title: string | null;
   created_at: string;
+  [key: string]: any;
   company?: { name: string | null };
 }
 
@@ -107,13 +106,13 @@ export async function listCompaniesForAgentPicker(): Promise<Array<{ id: string;
   return (data ?? []) as Array<{ id: string; name: string; logo_url: string | null; industry: string | null }>;
 }
 
-export async function upsertCompany(payload: Partial<CompanyRow> & { name: string }): Promise<void> {
-  const { error } = await supabase.from("companies").upsert(payload);
+export async function upsertCompany(payload: Record<string, any> & { name: string }): Promise<void> {
+  const { error } = await supabase.from("companies").upsert(payload as any);
   if (error) throw error;
 }
 
-export async function insertCompany(payload: Omit<CompanyRow, "id" | "created_at">): Promise<{ id: string }> {
-  const { data, error } = await supabase.from("companies").insert(payload).select("id").single();
+export async function insertCompany(payload: Record<string, any> & { name: string }): Promise<{ id: string }> {
+  const { data, error } = await supabase.from("companies").insert(payload as any).select("id").single();
   if (error) throw error;
   return data as { id: string };
 }
@@ -162,13 +161,13 @@ export async function listContactsPaged(params: ListContactsPagedParams): Promis
   return { rows: (data ?? []) as ContactRow[], count: count ?? 0 };
 }
 
-export async function upsertContact(payload: Partial<ContactRow> & { email: string }): Promise<void> {
-  const { error } = await supabase.from("contacts").upsert(payload);
+export async function upsertContact(payload: Record<string, any> & { email: string }): Promise<void> {
+  const { error } = await supabase.from("contacts").upsert(payload as any);
   if (error) throw error;
 }
 
-export async function insertContact(payload: Omit<ContactRow, "id" | "created_at">): Promise<void> {
-  const { error } = await supabase.from("contacts").insert(payload);
+export async function insertContact(payload: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("contacts").insert(payload as any);
   if (error) throw error;
 }
 
@@ -368,7 +367,7 @@ export async function listCompanyLeads(companyId: string): Promise<any[]> {
 }
 
 export async function insertCompanyLead(payload: Record<string, any>): Promise<void> {
-  const { error } = await supabase.from("company_leads").insert(payload);
+  const { error } = await supabase.from("company_leads").insert(payload as any);
   if (error) throw error;
 }
 
@@ -388,7 +387,7 @@ export async function listCompanyLeadActivities(leadId: string): Promise<any[]> 
 }
 
 export async function insertCompanyLeadActivity(payload: Record<string, any>): Promise<void> {
-  const { error } = await supabase.from("company_lead_activities").insert(payload);
+  const { error } = await supabase.from("company_lead_activities").insert(payload as any);
   if (error) throw error;
 }
 
@@ -412,7 +411,7 @@ export async function upsertCompanyOffering(payload: Record<string, any> & { id?
     const { error } = await supabase.from("company_offerings").update(payload).eq("id", payload.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from("company_offerings").insert(payload);
+    const { error } = await supabase.from("company_offerings").insert(payload as any);
     if (error) throw error;
   }
 }
