@@ -184,7 +184,7 @@ export function AbroadApplicationsTab() {
                 <Input
                   placeholder="Enter Program ID"
                   value={draft.program_id || ""}
-                  disabled={isSubmitting}
+                  disabled={upsertApplication.isPending}
                   onChange={(e) => setDraft({ ...draft, program_id: e.target.value })}
                   className="h-10 rounded-xl border font-mono text-xs"
                 />
@@ -194,7 +194,7 @@ export function AbroadApplicationsTab() {
                 <Input
                   placeholder="Enter Student User ID"
                   value={draft.talent_user_id || ""}
-                  disabled={isSubmitting}
+                  disabled={upsertApplication.isPending}
                   onChange={(e) => setDraft({ ...draft, talent_user_id: e.target.value })}
                   className="h-10 rounded-xl border font-mono text-xs"
                 />
@@ -205,7 +205,7 @@ export function AbroadApplicationsTab() {
               <Label className="text-xs font-semibold text-foreground">Current Process Stage</Label>
               <Select
                 value={draft.status}
-                disabled={isSubmitting}
+                disabled={upsertApplication.isPending}
                 onValueChange={(v) => setDraft({ ...draft, status: v })}
               >
                 <SelectTrigger className="h-10 rounded-xl border font-semibold text-xs uppercase">
@@ -235,7 +235,7 @@ export function AbroadApplicationsTab() {
           <div className="flex justify-end gap-3 pt-2">
             <Button
               variant="outline"
-              disabled={isSubmitting}
+              disabled={upsertApplication.isPending}
               onClick={() => setOpen(false)}
               className="h-10 px-4 rounded-xl text-xs font-semibold"
             >
