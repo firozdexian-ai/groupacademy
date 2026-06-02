@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { listRecentAgentChatSessions } from "@/domains/agents/repo/agentsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { trackError } from "@/lib/errorTracking";
 import {
   MessageSquare,
   Search,
@@ -24,13 +25,14 @@ import {
   Terminal,
   Database,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Intelligence Audit Terminal (Agent Sessions)
- * High-fidelity monitor for AI-driven career handshakes and token telemetry.
- * 2024 Standard: Executive Logic geometry with reinforced interaction analysis.
+ * Group Academy — Career Guidance System: Intelligence Audit Terminal (Agent Sessions)
+ * Version: Phase 10j.5 Hardened (Production Candidate)
+ * Surface: /dashboard/command-center?tab=sessions (Operator Conversation Audit Workspace)
+ * Operations Mode: Automated Efficiency layout rendering tracking historical student assistant interactions.
  */
 
 interface AgentSession {
@@ -72,7 +74,13 @@ export function AgentSessionsManager() {
   const [viewSession, setViewSession] = useState<AgentSession | null>(null);
 
   useEffect(() => {
-    loadSessions();
+    let active = true;
+    if (active) {
+      loadSessions();
+    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   const loadSessions = async () => {
@@ -81,7 +89,8 @@ export function AgentSessionsManager() {
       const data = await listRecentAgentChatSessions(200);
       setSessions(data);
     } catch (error: any) {
-      toast.error("Transmission Error: Session registry sync failed.");
+      trackError("agent-sessions-manager-fetch-failure", { error: error.message });
+      toast.error("Failed to synchronize student conversation registry indexes.");
     } finally {
       setIsLoading(false);
     }
@@ -117,141 +126,122 @@ export function AgentSessionsManager() {
     {} as Record<string, number>,
   );
 
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div className="space-y-8 animate-pulse p-4 md:p-8">
-        <Skeleton className="h-10 w-64 rounded-xl bg-muted/40" />
-        <div className="grid gap-6 md:grid-cols-4">
+      <div className="space-y-6 animate-pulse p-6 text-left">
+        <Skeleton className="h-10 w-48 rounded-xl bg-muted/30" />
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-[32px] bg-muted/40" />
+            <Skeleton key={i} className="h-24 rounded-xl bg-muted/30" />
           ))}
         </div>
-        <Skeleton className="h-[500px] w-full rounded-[40px] bg-muted/40" />
+        <Skeleton className="h-[400px] w-full rounded-2xl bg-muted/30" />
       </div>
     );
+  }
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-8">
-      {/* Terminal Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 text-primary">
-            <Activity className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Intelligence Audit</h2>
+    <div className="space-y-6 animate-in fade-in duration-300 text-left">
+      {/* Central Command Control Header Panel */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/40 p-6 rounded-2xl border border-border/40 backdrop-blur-sm">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5 text-primary">
+            <Activity className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Session Activity Audit</h2>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Neural Session Telemetry & Token Monitoring
+          <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+            Track student user conversations, monitor messaging depth metrics, and evaluate compute token credit billing
+            rates.
           </p>
         </div>
         <Button
           variant="outline"
           onClick={loadSessions}
-          className="rounded-xl h-11 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-sm bg-background/50 hover:bg-primary/5"
+          className="rounded-xl h-10 px-4 border border-border font-semibold text-xs text-foreground bg-background hover:bg-muted gap-2 shadow-sm shrink-0"
         >
-          <RefreshCw className="h-4 w-4 text-primary" /> Re-Sync Registry
+          <RefreshCw className="h-3.5 w-3.5 text-primary" /> Refresh Sessions Index
         </Button>
       </header>
 
-      {/* Summary Telemetry HUD */}
-      <div className="grid gap-6 md:grid-cols-4">
-        {[
-          {
-            label: "Total Sessions",
-            val: stats.total,
-            icon: MessageSquare,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-          },
-          { label: "Active Nodes", val: stats.active, icon: Clock, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          {
-            label: "Token Consumption",
-            val: stats.totalCredits,
-            icon: Database,
-            color: "text-amber-500",
-            bg: "bg-amber-500/10",
-          },
-          {
-            label: "Logic Depth (Avg)",
-            val: stats.avgMessages,
-            icon: Activity,
-            color: "text-purple-500",
-            bg: "bg-purple-500/10",
-          },
-        ].map((stat, i) => (
-          <Card
-            key={i}
-            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm"
-          >
-            <CardContent className="p-8">
-              <div className="flex items-center gap-5">
-                <div
-                  className={cn(
-                    "h-14 w-14 rounded-2xl flex items-center justify-center border-2 transition-transform duration-500 group-hover:rotate-6 shadow-inner shrink-0",
-                    stat.bg,
-                    "border-white/5",
-                  )}
-                >
-                  <stat.icon className={cn("h-7 w-7", stat.color)} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1 truncate">
-                    {stat.label}
-                  </p>
-                  <p className="text-3xl font-black tracking-tighter italic leading-none truncate">{stat.val}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Summary Operational Performance KPI Widgets */}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <KpiNode
+          icon={MessageSquare}
+          label="Total Sessions Mapped"
+          val={stats.total}
+          color="text-blue-600"
+          bg="bg-blue-500/10"
+        />
+        <KpiNode
+          icon={Clock}
+          label="Active Conversations"
+          val={stats.active}
+          color="text-emerald-600"
+          bg="bg-emerald-500/10"
+        />
+        <KpiNode
+          icon={Database}
+          label="Credits Spent"
+          val={stats.totalCredits.toLocaleString()}
+          color="text-amber-600"
+          bg="bg-amber-500/10"
+        />
+        <KpiNode
+          icon={Activity}
+          label="Average Message Depth"
+          val={stats.avgMessages}
+          color="text-purple-600"
+          bg="bg-purple-500/10"
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Session Viewport */}
-        <Card className="xl:col-span-2 rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl flex flex-col">
-          <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 to-indigo-500" />
+        {/* Main Process Summaries Data Viewport Grid */}
+        <Card className="xl:col-span-2 rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card flex flex-col">
+          <div className="h-1 w-full bg-primary" />
 
-          <CardHeader className="p-6 border-b border-border/10 bg-muted/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] italic flex items-center gap-2 text-muted-foreground/70 shrink-0">
-              <Terminal className="h-4 w-4 text-primary" /> Session Artifacts
+          <CardHeader className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground/80 shrink-0">
+              <Terminal className="h-4 w-4 text-primary" /> Conversation Summaries
             </CardTitle>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <div className="relative w-full sm:max-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:max-w-[180px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
                 <Input
-                  placeholder="Query talent..."
+                  placeholder="Search user profile..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-10 rounded-xl border-2 bg-background/50 font-medium text-xs w-full"
+                  className="pl-9 h-9 rounded-xl border border-border text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary bg-background/80"
                 />
               </div>
               <Select value={agentFilter} onValueChange={setAgentFilter}>
-                <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-xl border-2 font-black uppercase text-[9px] tracking-widest bg-background/50">
-                  <SelectValue placeholder="Protocol" />
+                <SelectTrigger className="w-full sm:w-[130px] h-9 rounded-xl border border-border text-xs font-semibold tracking-wide bg-background/80">
+                  <SelectValue placeholder="Assistant Type" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-2">
-                  <SelectItem value="all" className="font-bold text-[9px] uppercase">
-                    All Protocols
+                <SelectContent className="rounded-xl border-border">
+                  <SelectItem value="all" className="font-medium text-xs">
+                    All Assistant Types
                   </SelectItem>
                   {Object.entries(AGENT_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key} className="font-bold text-[9px] uppercase">
+                    <SelectItem key={key} value={key} className="font-medium text-xs">
                       {label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-xl border-2 font-black uppercase text-[9px] tracking-widest bg-background/50">
+                <SelectTrigger className="w-full sm:w-[120px] h-9 rounded-xl border border-border text-xs font-semibold tracking-wide bg-background/80">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-2">
-                  <SelectItem value="all" className="font-bold text-[9px] uppercase">
+                <SelectContent className="rounded-xl border-border">
+                  <SelectItem value="all" className="font-medium text-xs">
                     All Status
                   </SelectItem>
-                  <SelectItem value="active" className="font-bold text-[9px] uppercase">
-                    Active Nodes
+                  <SelectItem value="active" className="font-medium text-xs">
+                    Active
                   </SelectItem>
-                  <SelectItem value="expired" className="font-bold text-[9px] uppercase">
+                  <SelectItem value="expired" className="font-medium text-xs">
                     Archived
                   </SelectItem>
                 </SelectContent>
@@ -259,87 +249,85 @@ export function AgentSessionsManager() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-0">
+          <CardContent className="p-0 bg-background/50">
             {filteredSessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-muted/5 border-2 border-dashed border-border/20 m-6 rounded-3xl">
-                <Activity className="h-8 w-8 text-muted-foreground/30 mb-3" />
-                <div className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                  No session artifacts detected in current query.
+              <div className="flex flex-col items-center justify-center py-16 bg-muted/10 border border-dashed border-border/60 m-4 rounded-xl space-y-3">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground/30">
+                  <Activity className="h-5 w-5" />
                 </div>
+                <p className="text-xs font-medium text-muted-foreground text-center">
+                  No active guidance log records matched the requested filters matrix criteria.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-muted/30 border-b-2 border-border/20">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 px-6">
-                        Timestamp
-                      </TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest">Entity</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest">Protocol</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">
-                        Depth
-                      </TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">
-                        Cost
-                      </TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-6">
-                        Action
-                      </TableHead>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="border-b border-border/60">
+                      <TableHead className="text-xs font-bold text-foreground py-3.5 px-5">Uplink Started</TableHead>
+                      <TableHead className="text-xs font-bold text-foreground">Talent Student</TableHead>
+                      <TableHead className="text-xs font-bold text-foreground">Assistant Assigned</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">Message Depth</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">Credits Mapped</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">Routing State</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground px-5">View Log</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="divide-y-2 divide-border/5">
+                  <TableBody>
                     {filteredSessions.map((session) => (
-                      <TableRow key={session.id} className="hover:bg-primary/[0.02] transition-colors group">
-                        <TableCell className="px-6 py-4">
-                          <div className="font-black text-[11px] uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
-                            {format(new Date(session.created_at), "MMM d, HH:mm")}
-                          </div>
+                      <TableRow
+                        key={session.id}
+                        className="hover:bg-primary/[0.01] border-b border-border/40 last:border-none group"
+                      >
+                        <TableCell className="px-5 py-3 whitespace-nowrap text-xs font-semibold font-mono text-muted-foreground/80 tabular-nums">
+                          {format(new Date(session.created_at), "MMM d, HH:mm")}
                         </TableCell>
                         <TableCell>
-                          <div className="font-black text-xs italic group-hover:text-primary transition-colors whitespace-nowrap">
-                            {session.talent?.full_name}
+                          <div className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-none">
+                            {session.talent?.full_name || "Unknown Profile"}
                           </div>
-                          <div className="text-[9px] font-bold text-muted-foreground/60 truncate max-w-[120px] mt-0.5">
+                          <div
+                            className="text-[11px] font-medium text-muted-foreground mt-1 truncate max-w-[140px]"
+                            title={session.talent?.email}
+                          >
                             {session.talent?.email}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className="rounded-lg border-2 font-black text-[8px] uppercase tracking-widest bg-background whitespace-nowrap"
+                            className="font-semibold text-xs bg-background border-border rounded text-muted-foreground px-2 py-0"
                           >
                             {AGENT_LABELS[session.agent_key] || session.agent_key}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center font-mono text-xs font-bold text-muted-foreground/80">
+                        <TableCell className="text-center font-mono text-xs font-semibold text-foreground/90 tabular-nums">
                           {(session.messages as any[])?.length || 0}
                         </TableCell>
                         <TableCell className="text-center">
-                          <div className="inline-flex items-center gap-1 font-mono text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">
-                            <Zap className="h-3 w-3 fill-current" /> {session.credits_charged || 0}
+                          <div className="inline-flex items-center gap-1 font-mono text-xs font-bold text-amber-700 bg-amber-500/10 px-2 rounded-full border border-transparent">
+                            <Zap className="h-3 w-3 fill-current text-amber-500 shrink-0" />{" "}
+                            {(session.credits_charged || 0).toLocaleString()}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             className={cn(
-                              "rounded-lg font-black text-[8px] uppercase tracking-widest border-none px-2 py-0.5",
+                              "rounded-full font-bold text-[10px] uppercase tracking-wide px-2.5 py-0.5 border-none",
                               session.is_active
-                                ? "bg-emerald-500/10 text-emerald-500"
+                                ? "bg-emerald-500/10 text-emerald-700"
                                 : "bg-muted text-muted-foreground/60",
                             )}
                           >
-                            {session.is_active ? "LIVE" : "ARCHIVED"}
+                            {session.is_active ? "Active" : "Archived"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right pr-6">
+                        <TableCell className="text-right px-5 py-3">
                           <Button
                             variant="ghost"
-                            size="icon" aria-label="View"
-                            className="h-8 w-8 rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm"
+                            size="icon"
+                            aria-label="View history stream transcript"
+                            className="h-8 w-8 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors border border-transparent"
                             onClick={() => setViewSession(session)}
                           >
                             <Eye className="h-4 w-4" />
@@ -354,29 +342,32 @@ export function AgentSessionsManager() {
           </CardContent>
         </Card>
 
-        {/* Logic Class Distribution */}
-        <div className="xl:col-span-1 space-y-6">
-          <Card className="rounded-[40px] border-2 border-border/40 shadow-xl overflow-hidden bg-card/30 backdrop-blur-xl flex flex-col sticky top-6">
-            <div className="h-1.5 w-full bg-gradient-to-r from-purple-400 to-indigo-500" />
-            <CardHeader className="p-6 border-b border-border/10 bg-muted/5">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] italic flex items-center gap-2 text-muted-foreground/70">
-                <Database className="h-4 w-4 text-purple-500" /> Protocol Distribution
+        {/* Volume Metric Distribution List Sidebar */}
+        <div className="xl:col-span-1">
+          <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card sticky top-6">
+            <div className="h-1 w-full bg-primary" />
+            <CardHeader className="p-4 border-b border-border/40 bg-muted/20">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground/80">
+                <Database className="h-4 w-4 text-purple-500" /> System Allocation Matrix
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-3">
+            <CardContent className="p-4 bg-background/50">
+              <div className="flex flex-col gap-2">
                 {Object.entries(agentStats)
                   .sort((a, b) => b[1] - a[1])
                   .map(([key, count]) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/20 hover:border-primary/20 transition-colors"
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40 hover:border-primary/20 transition-all"
                     >
-                      <span className="font-black text-[10px] uppercase tracking-widest truncate max-w-[150px]">
+                      <span className="font-bold text-xs text-foreground truncate max-w-[150px]">
                         {AGENT_LABELS[key] || key}
                       </span>
-                      <Badge variant="secondary" className="font-mono text-[10px] font-bold">
-                        {count}
+                      <Badge
+                        variant="secondary"
+                        className="font-mono text-xs font-bold bg-background border border-border/40 text-foreground px-2 rounded"
+                      >
+                        {count} channels
                       </Badge>
                     </div>
                   ))}
@@ -386,71 +377,68 @@ export function AgentSessionsManager() {
         </div>
       </div>
 
-      {/* Neural Reconstruction Viewport */}
+      {/* Narrative Dialogue History Playback Overlay Shell */}
       <Dialog open={!!viewSession} onOpenChange={() => setViewSession(null)}>
-        <DialogContent className="max-w-3xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
-          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-          <div className="p-8 md:p-10">
-            <DialogHeader className="mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
-                    Neural Reconstruction
+        <DialogContent className="max-w-2xl border border-border bg-background p-0 overflow-hidden shadow-xl rounded-2xl">
+          <div className="h-1 w-full bg-primary" />
+          <div className="p-5 md:p-6">
+            <DialogHeader className="mb-4 text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-3">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Transcript Review Window
                   </p>
-                  <DialogTitle className="text-2xl md:text-3xl font-black uppercase tracking-tighter italic leading-none">
-                    {AGENT_LABELS[viewSession?.agent_key || ""] || viewSession?.agent_key} Chain
+                  <DialogTitle className="text-lg font-bold text-foreground leading-none tracking-tight">
+                    {AGENT_LABELS[viewSession?.agent_key || ""] || viewSession?.agent_key} Activity Ledger
                   </DialogTitle>
                 </div>
                 <Badge
                   className={cn(
-                    "w-fit rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1",
-                    viewSession?.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                    "w-fit rounded-full font-bold text-[10px] uppercase tracking-wide px-2.5 py-0.5 border-none",
+                    viewSession?.is_active
+                      ? "bg-emerald-500/10 text-emerald-700 animate-pulse"
+                      : "bg-muted text-muted-foreground/60",
                   )}
                 >
-                  {viewSession?.is_active ? "LIVE_SYNC" : "SNAPSHOT"}
+                  {viewSession?.is_active ? "Active Connection" : "Archived Record"}
                 </Badge>
               </div>
-              <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pt-4 flex flex-wrap gap-4 md:gap-6 italic">
-                <span>ENTITY: {viewSession?.talent?.full_name}</span>
+              <DialogDescription className="text-xs font-medium text-muted-foreground flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
                 <span>
-                  UPLINK: {viewSession?.created_at && format(new Date(viewSession.created_at), "MMM d, HH:mm")}
+                  Student: <strong className="text-foreground font-semibold">{viewSession?.talent?.full_name}</strong>
                 </span>
-                <span className="flex items-center gap-1 text-amber-500">
-                  <Zap className="h-3 w-3 fill-current" /> {viewSession?.credits_charged || 0}
+                <span>
+                  Started: {viewSession?.created_at && format(new Date(viewSession.created_at), "MMM d, HH:mm")}
+                </span>
+                <span className="flex items-center gap-1 text-amber-700 font-bold">
+                  <Zap className="h-3 w-3 fill-current text-amber-500" /> {viewSession?.credits_charged || 0} Credits
                 </span>
               </DialogDescription>
             </DialogHeader>
 
-            <ScrollArea className="h-[400px] md:h-[500px] rounded-[32px] border-2 border-border/40 p-6 md:p-8 bg-card/50 shadow-inner">
-              <div className="space-y-8">
+            <ScrollArea className="h-[360px] md:h-[420px] rounded-xl border border-border p-4 bg-muted/10 shadow-inner">
+              <div className="space-y-4">
                 {((viewSession?.messages as ChatMessage[]) || []).map((msg, idx) => (
                   <div
                     key={idx}
-                    className={cn(
-                      "flex items-start gap-4 md:gap-5",
-                      msg.role === "user" ? "flex-row-reverse" : "flex-row",
-                    )}
+                    className={cn("flex items-start gap-3", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
                   >
                     <div
                       className={cn(
-                        "h-8 w-8 md:h-10 md:w-10 rounded-xl flex items-center justify-center border shrink-0 shadow-sm",
+                        "h-8 w-8 rounded-lg flex items-center justify-center border shrink-0 shadow-sm",
                         msg.role === "assistant"
-                          ? "bg-primary text-white border-primary"
-                          : "bg-muted text-muted-foreground border-border/60",
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border/80 text-muted-foreground",
                       )}
                     >
-                      {msg.role === "assistant" ? (
-                        <Bot className="h-4 w-4 md:h-5 md:w-5" />
-                      ) : (
-                        <User className="h-4 w-4 md:h-5 md:w-5" />
-                      )}
+                      {msg.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
                     </div>
                     <div
                       className={cn(
-                        "max-w-[85%] md:max-w-[80%] rounded-[24px] p-5 md:p-6 shadow-sm border text-sm font-medium leading-relaxed italic selection:bg-primary/20",
+                        "max-w-[75%] rounded-xl px-3.5 py-2 text-sm leading-relaxed shadow-sm border",
                         msg.role === "user"
-                          ? "bg-primary/5 border-primary/20 text-foreground"
-                          : "bg-muted/40 border-border/40 text-muted-foreground",
+                          ? "bg-background border-border text-foreground font-medium"
+                          : "bg-card border-border/60 text-muted-foreground",
                       )}
                     >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -458,41 +446,59 @@ export function AgentSessionsManager() {
                   </div>
                 ))}
                 {(!viewSession?.messages || (viewSession.messages as any[]).length === 0) && (
-                  <div className="py-20 text-center space-y-4 opacity-20">
-                    <Database className="h-12 w-12 mx-auto" />
-                    <p className="text-[10px] font-black uppercase tracking-widest italic">
-                      Logic chain null: No interaction data synced.
+                  <div className="py-16 text-center space-y-2 opacity-50">
+                    <Database className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                    <p className="text-xs font-medium text-muted-foreground">
+                      No conversation history synced for this validation key slot.
                     </p>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            <div className="flex justify-end pt-8">
+            <div className="flex justify-end pt-4 border-t border-border/40 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setViewSession(null)}
-                className="rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest border-2"
+                className="rounded-xl h-10 px-5 font-semibold text-xs text-muted-foreground border-border hover:bg-muted"
               >
-                Terminate Analysis
+                Close Review Viewport
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Operational Trace Footer */}
-      <footer className="mt-12 pt-8 border-t border-border/40 flex items-center justify-between opacity-30">
-        <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Agent OS: Session Telemetry</p>
-        </div>
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-1 w-6 rounded-full bg-primary/20" />
-          ))}
-        </div>
-      </footer>
     </div>
+  );
+}
+
+interface KpiCardProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  val: number | string;
+  color: string;
+  bg: string;
+}
+
+function KpiNode({ icon: Icon, label, val, color, bg }: KpiCardProps) {
+  return (
+    <Card className="rounded-xl border border-border bg-card shadow-sm hover:border-primary/20 transition-all group overflow-hidden">
+      <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-left">
+        <div
+          className={cn(
+            "h-10 w-10 rounded-lg flex items-center justify-center border border-transparent transition-transform group-hover:scale-102 shadow-inner shrink-0",
+            bg,
+            color,
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-muted-foreground/70 mb-0.5 tracking-tight line-clamp-1">{label}</p>
+          <p className="text-xl font-bold text-foreground leading-none tracking-tight truncate">{val}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
