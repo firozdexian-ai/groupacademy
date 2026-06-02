@@ -55,7 +55,7 @@ export async function deletePostReaction(input: PostReactionInput): Promise<{ er
  * Attaches a reaction (e.g., like, clap) to a feed post
  */
 export async function insertPostReaction(input: InsertReactionInput): Promise<{ error: any }> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("post_reactions")
     .insert({
       post_id: input.postId,
@@ -69,7 +69,7 @@ export async function insertPostReaction(input: InsertReactionInput): Promise<{ 
  * Creates a new user-generated post in the feed index
  */
 export async function insertFeedPost(payload: Record<string, any>): Promise<{ error: any }> {
-  const { error } = await supabase.from("feed_posts").insert(payload);
+  const { error } = await (supabase as any).from("feed_posts").insert(payload);
   return { error };
 }
 
