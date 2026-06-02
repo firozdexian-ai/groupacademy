@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame, AlertCircle, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type WaitlistRow = {
   feature_key: string;
@@ -102,14 +103,14 @@ export function DemandSignalsTab() {
       if (queryError) {
         // Log telemetry anomalies down into our Digital Workforce audit pipeline
         await supabase.from("platform_events").insert({
-          event_type: "demand_signals_query_fault",
-          severity: "warning",
-          payload: { message: queryError.message, timestamp: new Date().toISOString() },
+          event_kind: "demand_signals_query_fault",
+          subject_kind: "analytics",
+          payload: { severity: "warning", message: queryError.message, timestamp: new Date().toISOString() },
         });
         throw queryError;
       }
 
-      return (signalData ?? []) as WaitlistRow[];
+      return (signalData ?? []) as unknown as WaitlistRow[];
     },
     staleTime: 1000 * 60 * 5, // Cache entries safely for 5 minutes under administrative views
   });
