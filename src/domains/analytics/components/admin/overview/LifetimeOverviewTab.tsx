@@ -75,56 +75,45 @@ export function LifetimeOverviewTab() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // F3: Aggregate credit pools (talent + company; gro10x_credits not yet provisioned)
       const {
         talentCount,
         regCount,
         enrollCount,
-        revRes,
-        commRes,
+        totalRevenueBDT,
+        totalCommissionsIssued,
         assessCount,
-        intRes,
-        portRes,
-        sessionCount,
-        talentCreds,
-        companyCreds,
+        completedInterviewsCount,
+        portfolioRequestsCount,
+        agentSessionsCount,
+        totalTalentCreditsBalance,
+        totalCompanyCreditsBalance,
         countryStats,
-        txTodayResult,
+        txTodayCount,
       } = await getLifetimeOverviewMaster(today.toISOString());
 
-      const talents = talentCount.count || 0;
-      const registered = regCount.count || 0;
-
-      // F5 Calculation
-      const rev = ((revRes.data as any[]) || []).reduce((s, i) => s + (Number(i.payment_amount) || 0), 0);
-      const comms = ((commRes.data as any[]) || []).reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0);
-
-      // F3 Summation
-      const totalTalentBalance = ((talentCreds.data as any[]) || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
-      const totalCompanyBalance = ((companyCreds.data as any[]) || []).reduce((s, i) => s + (Number(i.balance) || 0), 0);
-
-      // F4 Dynamic Country Detection
-      const topCountry = (countryStats.data as any[])?.[0] || { country: "N/A", count: 0 };
+      const talents = talentCount || 0;
+      const registered = regCount || 0;
+      const topCountry = countryStats?.[0] || { country: "N/A", count: 0, share_pct: 0 };
 
       setStats({
         totalTalents: talents,
         registeredRate: talents > 0 ? Math.round((registered / talents) * 100) : 0,
-        activeEnrollments: enrollCount.count || 0,
-        totalRevenueBDT: rev,
-        commissionPayouts: comms,
-        assessments: { total: assessCount.count || 0 },
+        activeEnrollments: enrollCount || 0,
+        totalRevenueBDT,
+        commissionPayouts: totalCommissionsIssued,
+        assessments: { total: assessCount || 0 },
         mockInterviews: {
-          total: (intRes.data as any[])?.length || 0,
-          completed: (intRes.data as any[])?.filter((i) => i.status === "completed").length || 0,
+          total: completedInterviewsCount,
+          completed: completedInterviewsCount,
         },
         portfolios: {
-          total: (portRes.data as any[])?.length || 0,
-          pending: (portRes.data as any[])?.filter((p) => p.status === "pending").length || 0,
+          total: portfolioRequestsCount,
+          pending: 0,
         },
-        aiAgents: { totalSessions: sessionCount.count || 0 },
+        aiAgents: { totalSessions: agentSessionsCount || 0 },
         credits: {
-          totalInCirculation: totalTalentBalance + totalCompanyBalance,
-          transactionsToday: txTodayResult.count || 0,
+          totalInCirculation: totalTalentCreditsBalance + totalCompanyCreditsBalance,
+          transactionsToday: txTodayCount || 0,
         },
         topMarket: {
           name: topCountry.country,
