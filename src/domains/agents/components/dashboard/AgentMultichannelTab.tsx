@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Trash2, Eye, EyeOff, Bot, Radio, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trackError } from "@/lib/errorTracking";
+import { cn } from "@/lib/utils";
 
 /**
  * Group Academy — Career Guidance System: Agent Multichannel Messaging & Notification Router Component
