@@ -31,9 +31,8 @@ interface Props {
 const HOLD_MS = 450;
 
 /**
- * Premium, performance-hardened Interactive Engagement Action Bar.
- * Built according to GroUp Academy Phase Z0 highly professional SAAS UI specifications,
- * ensuring strict credit ledger alignment and realtime cache cohesion across viewports.
+ * Premium interaction toolbar supporting multi-layered reactions, 
+ * tapped feedback rewards, and real-time commentary expansion drawers.
  */
 export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl, postDescription }: Props) {
   const queryClient = useQueryClient();
@@ -47,7 +46,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
   const holdTimer = useRef<number | null>(null);
   const heldRef = useRef(false);
 
-  // Trace card interaction impressions under Automated Efficiency parameters
+  // Log interface generation for active content engagement overview panels
   useEffect(() => {
     if (postId) {
       trackEvent("post_action_bar_rendered", { postId });
@@ -74,7 +73,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
       try {
         await hype();
         setHasHyped(true);
-        // Force synchronous invalidations across connected wallet interfaces
+        // Refresh local balance indices across available view layers immediately
         queryClient.invalidateQueries({ queryKey: ["credits-balance"] });
         queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
       } catch (err) {
@@ -109,7 +108,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
       }
       setHasHyped(true);
 
-      // Post-burst atomic sync over server state snapshots
+      // Invalidate server queries post-burst to complete layout data reconciliation
       queryClient.invalidateQueries({ queryKey: ["credits-balance"] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
     } catch (err) {
@@ -151,7 +150,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
           action: "handleShare_clipboard_fallback",
           postId,
         });
-        toast.error("Couldn't process sharing link.");
+        toast.error("Couldn't copy sharing link.");
       }
     }
   };
@@ -166,6 +165,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
         </div>
       )}
 
+      {/* Reaction select tray layout row */}
       <div className="pt-0.5 select-none">
         <ReactionBar
           reactions={reactions}
@@ -179,8 +179,9 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
         />
       </div>
 
+      {/* Core interactive control triggers row */}
       <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-border/30 select-none">
-        {/* Tactical Hype Multiplier Trigger Anchor */}
+        {/* Hype interaction selector button */}
         <Button
           type="button"
           variant="ghost"
@@ -210,7 +211,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
           )}
         </Button>
 
-        {/* Comment Overlay Sheet Trigger */}
+        {/* Comment drawer overlay shortcut */}
         <Button
           type="button"
           variant="ghost"
@@ -225,7 +226,7 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
           <span>Comment</span>
         </Button>
 
-        {/* System Outreach Sharing Anchor */}
+        {/* Share shortcut option button */}
         <Button
           type="button"
           variant="ghost"
@@ -238,10 +239,10 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
         </Button>
       </div>
 
-      {/* Structured Multiplier Sheet Matrix Context Container */}
+      {/* Multiple reaction select bottom sheet configuration */}
       <HypeBoostSheet open={boostOpen} onOpenChange={setBoostOpen} onConfirm={sendBoost} contextData={{ postId }} />
 
-      {/* Community Conversation Pipeline Drawer Panel Layer */}
+      {/* Discussion comments list presentation bottom drawer */}
       <Sheet open={commentsOpen} onOpenChange={setCommentsOpen}>
         <SheetContent
           side="bottom"
