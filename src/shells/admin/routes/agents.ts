@@ -37,7 +37,7 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 function createRedirect(agentKey: string) {
   return React.lazy(() =>
     Promise.resolve({
-      default: () => <AgentRedirectStub agentKey={agentKey} />,
+      default: () => React.createElement(AgentRedirectStub, { agentKey }),
     }),
   );
 }
