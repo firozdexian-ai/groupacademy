@@ -166,7 +166,7 @@ export function AbroadApplicationsTab() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={(v) => !upsertApplication.isPending && setOpen(v)}>
         <DialogContent className="max-w-md rounded-2xl p-6 border border-border/60 text-left">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
