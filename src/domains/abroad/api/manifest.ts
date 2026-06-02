@@ -38,7 +38,7 @@ export {
   listActiveIeltsResourcesBySection,
   listActiveLanguageInstructorsByCode,
   listAbroadApplicationsForCurrentUser,
-} from "./abroadRepo";
+} from "../repo/abroadRepo";
 
 // ─── STAGE 3: BOUND INTEGRATION SCHEMA TYPE DEFINITIONS ───────────────────
 export type {
