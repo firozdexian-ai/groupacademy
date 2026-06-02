@@ -5,13 +5,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedEngagement, patchEngagementCache } from "@/domains/feed/hooks/useFeedEngagement";
 
-/**
- * GroUp Academy: Feed Poll Analytics Engine (V5.6.0)
- * CTO Reference: High-performance, error-isolated voting transaction sensor.
- * Architecture: Digital Workforce enabled - streams transactional errors to Admin OS.
- * Phase: Z0 Code Freeze Hardened (May 2026).
- */
-
 interface PollResult {
   optionId: string;
   votes: number;
@@ -29,25 +22,30 @@ interface UsePollVotingResult {
 
 const TAP_LOCK_MS = 200;
 
+/**
+ * Custom state manager hook handling interactive community poll submissions.
+ * Subscribes to shared batched cache states and leverages optimistic layout adjustments with rollbacks.
+ */
 export function usePollVoting(postId: string, options: { id: string; text: string }[]): UsePollVotingResult {
   const { talent } = useTalent();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const lastTap = useRef(0);
 
-  // Subscribe to shared cache map driven by batched feeds
+  // Extract shared engagement datasets linked across index viewports
   const { data: engagementMap } = useFeedEngagement([postId]);
   const eng = engagementMap?.[postId];
   const voteCounts = eng?.pollCounts || {};
   const userVote = eng?.userVote || null;
   const hasVoted = !!userVote;
 
-  // --- ANALYSIS: RUNTIME DATA COMPILATION ---
+  // Calculate cumulative interaction statistics
   const totalVotes = useMemo(
-    () => Object.values(voteCounts).reduce((s: number, n: any) => s + Number(n || 0), 0),
+    () => Object.values(voteCounts).reduce((sum: number, current: any) => sum + Number(current || 0), 0),
     [voteCounts],
   );
 
+  // Compute option selections into percentage ratios safely
   const results: PollResult[] = useMemo(
     () =>
       options.map((opt) => {
@@ -58,18 +56,16 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
     [options, voteCounts, totalVotes],
   );
 
-  // --- ACTION: TRANSACTION_ISOLATED_MUTATION ---
+  // Manage transaction logic loop mutations with validation handlers
   const mutation = useMutation({
     mutationFn: async (optionId: string) => {
-      if (!talent?.id) throw new Error("AUTH_REQUIRED");
-
-      // HUD: EXECUTING_POLL_VOTE_INSERTION
+      if (!talent?.id) throw new Error("Authentication required.");
       await insertPollVote({ postId, talentId: talent.id, optionId });
     },
     onMutate: async (optionId) => {
       if (!talent?.id) return;
 
-      // HUD: APPLYING_OPTIMISTIC_VOTE_METRICS
+      // Apply immediate optimistic value updates to protect interaction responsiveness
       patchEngagementCache(queryClient, talent.id, postId, (curr) => ({
         ...curr,
         pollCounts: { ...curr.pollCounts, [optionId]: Number(curr.pollCounts[optionId] || 0) + 1 },
@@ -77,19 +73,19 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
       }));
     },
     onSuccess: () => {
-      toast({ title: "Vote recorded", description: "Your feedback was logged across the cluster." });
+      toast({ title: "Vote recorded", description: "Your vote has been recorded." });
     },
     onError: (err: any, optionId) => {
       if (!talent?.id) return;
 
-      // Digital Workforce Anomaly Trigger: Dispatches trace packets straight to background auditors
-      console.error("[Digital Workforce] ANOMALY: poll_votes transaction processing dropped.", {
+      // Log transaction execution failures to operational diagnostic panels
+      console.error("Poll submission process failed to synchronize:", {
         postId,
         optionId,
         message: err.message,
       });
 
-      // HUD: ROLLBACK_OPTIMISTIC_VOTE_METRICS
+      // Roll back optimistic modifications instantly upon transaction rejection
       patchEngagementCache(queryClient, talent.id, postId, (curr) => ({
         ...curr,
         pollCounts: {
@@ -101,12 +97,12 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
 
       toast({
         title: "Could not register vote",
-        description: "Network transaction failed. Please attempt entry again.",
+        description: "Network error occurred. Please try again.",
         variant: "destructive",
       });
     },
     onSettled: () => {
-      // Systematically re-validate target post boundaries to lock down final metrics
+      // Re-validate cache states to synchronize exact values from source tables
       queryClient.invalidateQueries({ queryKey: ["feed-engagement", [postId]] });
     },
   });
