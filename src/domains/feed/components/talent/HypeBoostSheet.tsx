@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Flame, Loader2 } from "lucide-react";
-
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -22,19 +21,18 @@ interface Props {
 }
 
 /**
- * Premium, performance-hardened User Engagement Multi-Hype Multiplier Sheet.
- * Built according to GroUp Academy Phase Z0 highly professional SAAS UI specifications,
- * honoring the 80/20 creator monetization split and digital workforce notification triggers.
+ * Premium bottom sheet overlay that enables users to batch multiple Hype actions 
+ * together to amplify community visibility while processing creator revenue distribution.
  */
 export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: Props) {
   const [picked, setPicked] = useState<number>(10);
   const [busy, setBusy] = useState(false);
   const queryClient = useQueryClient();
 
-  // Standard lifestyle metric capture to map interface engagement metrics safely
+  // Log overlay presentation visibility for engagement dashboard metrics
   useEffect(() => {
     if (open && contextData?.postId) {
-      trackEvent("HypeBoostSheet:opened", {
+      trackEvent("hype_boost_sheet_opened", {
         postId: contextData.postId,
         senderId: contextData.senderTalentId,
       });
@@ -45,35 +43,32 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
     if (picked <= 0) return;
     setBusy(true);
 
-    trackEvent("HypeBoostSheet:transaction_initiated", {
+    trackEvent("hype_boost_transaction_started", {
       ...contextData,
       quantity: picked,
-      economicValueBDT: picked * 2, // 1 credit = 2 BDT peg definition
+      valueBDT: picked * 2, // 1 credit = 2 BDT exchange translation
     });
 
     try {
-      // Execute the parent transactional confirmation hook
+      // Execute parent balance adjustments and database insertion hooks
       await onConfirm(picked);
 
-      // Invalidate target wallet balances and feed states asynchronously across cache contexts
+      // Invalidate local query states simultaneously to update wallet counters instantly
       queryClient.invalidateQueries({ queryKey: ["credits-balance"] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
       toast.success(`Post successfully boosted by ${picked} hypes!`);
-
-
       onOpenChange(false);
     } catch (err: any) {
       const parsedError = err instanceof Error ? err.message : String(err);
 
-      // Log transaction fault securely to allow immediate multi-tenant ledger verification
+      // Route credit verification or transaction anomalies directly to logging pipelines
       trackError(parsedError, {
         component: "HypeBoostSheet",
         action: "submit_boost_mutation",
         ...contextData,
         attemptedQuantity: picked,
       });
-
 
       toast.error("Couldn't boost the post. Please check your credit balance and try again.");
     } finally {
@@ -88,7 +83,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
         className="rounded-t-3xl border-t border-border/40 bg-background/98 backdrop-blur-xl pt-safe pb-safe-bottom select-none"
       >
         <div className="max-w-md mx-auto space-y-4">
-          {/* Section Dynamic Header layout */}
+          {/* Overlay Title Block */}
           <SheetHeader className="text-left">
             <SheetTitle className="flex items-center gap-2.5 text-base font-bold tracking-tight text-foreground">
               <Flame className="h-5 w-5 text-orange-500 animate-pulse drop-shadow-[0_1px_4px_rgba(249,115,22,0.3)]" />
@@ -96,13 +91,11 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground leading-relaxed">
               Send multiple hypes in one go. Each hype costs exactly{" "}
-              <span className="font-semibold text-foreground tabular-nums">1 credit</span>. An authoritative{" "}
-              <span className="font-semibold text-foreground">80/20 monetization split</span> applies—80% flows
-              instantly to the creator's wallet ledger.
+              <span className="font-semibold text-foreground tabular-nums">1 credit</span>. 80% goes directly to support the creator, with the remaining 20% allocated to platform operations.
             </SheetDescription>
           </SheetHeader>
 
-          {/* Preset Visual Selector Grid Matrix */}
+          {/* Quick Preset Selector Grid */}
           <div className="grid grid-cols-4 gap-2.5 pt-1">
             {PRESETS.map((n) => {
               const isSelected = picked === n;
@@ -112,7 +105,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
                   type="button"
                   onClick={() => {
                     setPicked(n);
-                    trackEvent("HypeBoostSheet:preset_selected", { value: n });
+                    trackEvent("hype_boost_preset_selected", { value: n });
                   }}
                   className={cn(
                     "rounded-xl py-3 border text-sm font-bold flex flex-col items-center justify-center gap-0.5 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -128,7 +121,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
             })}
           </div>
 
-          {/* Core Transaction Confirmation Button */}
+          {/* Confirmation Trigger */}
           <Button
             onClick={submit}
             disabled={busy}
