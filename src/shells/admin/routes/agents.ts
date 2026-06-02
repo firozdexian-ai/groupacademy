@@ -1,5 +1,5 @@
 import React from "react";
-import { AgentRedirectStub } from "@/domains/agents/components/admin/AgentRedirectStub";
+import { AgentRedirectStub } from "@/domains/agents/components/admin/chat/AgentRedirectStub";
 
 /**
  * Group Academy — Agent Route Registry
@@ -37,7 +37,7 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
 function createRedirect(agentKey: string) {
   return React.lazy(() =>
     Promise.resolve({
-      default: () => <AgentRedirectStub agentKey={agentKey} />,
+      default: () => React.createElement(AgentRedirectStub, { agentKey }),
     }),
   );
 }
