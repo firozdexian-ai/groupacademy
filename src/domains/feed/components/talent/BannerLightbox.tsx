@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-import { cn } from "@/lib/utils";
 
 interface BannerLightboxProps {
   open: boolean;
@@ -10,14 +9,23 @@ interface BannerLightboxProps {
   mediaType: "image" | "gif" | "video";
   mediaUrl: string;
   posterUrl?: string | null;
+  altText?: string;
 }
 
 /**
- * Full-bleed lightbox that plays marketing banners at their native aspect ratio.
- * Hardened strictly for Phase Z0 mobile PWA safe-areas and centralized error boundaries.
+ * Full-screen lightbox container optimized for displaying promotional 
+ * and marketing content at native aspect ratios on mobile devices.
  */
-export function BannerLightbox({ open, onClose, mediaType, mediaUrl, posterUrl }: BannerLightboxProps) {
-  // Asynchronously record rendering impression parameters safely via telemetry
+export function BannerLightbox({ 
+  open, 
+  onClose, 
+  mediaType, 
+  mediaUrl, 
+  posterUrl,
+  altText = "Promotional banner" 
+}: BannerLightboxProps) {
+  
+  // Track successful media presentation views safely via telemetry
   useEffect(() => {
     if (open && mediaUrl) {
       trackEvent("banner_lightbox_viewed", {
@@ -29,9 +37,9 @@ export function BannerLightbox({ open, onClose, mediaType, mediaUrl, posterUrl }
 
   if (!mediaUrl) return null;
 
+  // Catch image/video bucket asset failures gracefully
   const handleMediaError = () => {
-    // Gracefully handle bucket breaks or connection timeouts through trackError
-    trackError(`Banner asset stream failed to load inside lightbox view container`, {
+    trackError(`Banner asset failed to load inside lightbox view container`, {
       component: "BannerLightbox",
       action: "load_media_resource",
       mediaType,
@@ -45,11 +53,11 @@ export function BannerLightbox({ open, onClose, mediaType, mediaUrl, posterUrl }
         className="max-w-3xl w-[94vw] sm:w-full p-0 bg-background/95 dark:bg-background/90 backdrop-blur-xl border border-border/40 overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 gap-0 select-none"
         style={{ contentVisibility: "auto" }}
       >
-        {/* Safe-area-aware dismissal control bar */}
+        {/* Safe-area aware dismissal control overlay button */}
         <button
           onClick={onClose}
           type="button"
-          aria-label="Close Lightbox"
+          aria-label="Close"
           className="absolute z-50 h-9 w-9 rounded-full bg-foreground/10 backdrop-blur-md text-foreground flex items-center justify-center border border-foreground/5 hover:bg-foreground/20 active:scale-90 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           style={{
             top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
@@ -59,7 +67,7 @@ export function BannerLightbox({ open, onClose, mediaType, mediaUrl, posterUrl }
           <X className="h-4 w-4 stroke-[2.5]" />
         </button>
 
-        {/* Viewport Frame Container */}
+        {/* Viewport Frame Box Container */}
         <div className="relative w-full flex items-center justify-center bg-black/30 dark:bg-black/50 max-h-[85vh] max-h-[85svh] overflow-hidden">
           {mediaType === "video" ? (
             <video
@@ -75,7 +83,7 @@ export function BannerLightbox({ open, onClose, mediaType, mediaUrl, posterUrl }
           ) : (
             <img
               src={mediaUrl}
-              alt="Promotional Spotlight Media Panel"
+              alt={altText}
               onError={handleMediaError}
               loading="eager"
               decoding="async"
