@@ -12,24 +12,23 @@ interface CareerInsightsStackProps {
 }
 
 /**
- * Premium, performance-optimized Career Insights Stack with explicit Phase Z0 telemetry tracking.
- * Provides high-efficiency visual compilation for mobile PWA viewports while multiplexing
- * critical validation metrics back to the central Admin Dashboard.
+ * Display card stack for tailored career insights and recommendations.
+ * Optimized for mobile touch-viewports with embedded background monitoring.
  */
 export function CareerInsightsStack({ insights, className, maxVisible = 3 }: CareerInsightsStackProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Safeguard platform layout state and log tracking telemetry on initial render window
+  // Log non-blocking telemetry data for dashboard optimization loops
   useEffect(() => {
     if (!insights || insights.length === 0) {
-      trackEvent("CareerInsightsStack:empty_payload_rendered", {
+      trackEvent("insights_empty_payload", {
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
-    trackEvent("CareerInsightsStack:mounted", {
-      totalInsightsCount: insights.length,
+    trackEvent("insights_stack_viewed", {
+      count: insights.length,
       maxVisibleThreshold: maxVisible,
     });
   }, [insights, maxVisible]);
@@ -39,11 +38,11 @@ export function CareerInsightsStack({ insights, className, maxVisible = 3 }: Car
   const visible = isExpanded ? insights : insights.slice(0, maxVisible);
   const hasMore = insights.length > maxVisible;
 
-  // Intercept layout array iterations safely to prevent downstream layout shell compilation crashes
+  // Safely map individual insight strings into interactive cards
   const renderInsightCard = (insight: string, index: number) => {
     try {
       if (!insight || typeof insight !== "string") {
-        throw new Error(`Malformed index parsing chunk identified at positional offset [${index}]`);
+        throw new Error(`Invalid insight string found at index [${index}]`);
       }
 
       return (
@@ -52,7 +51,7 @@ export function CareerInsightsStack({ insights, className, maxVisible = 3 }: Car
           className="p-4 rounded-2xl border border-border/40 bg-card hover:border-primary/30 transition-all duration-200 shadow-sm content-visibility-auto"
         >
           <div className="flex gap-3 items-start">
-            <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0 animate-pulse" />
+            <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-foreground leading-relaxed selection:bg-primary/20">{insight}</p>
           </div>
         </Card>
@@ -61,8 +60,8 @@ export function CareerInsightsStack({ insights, className, maxVisible = 3 }: Car
       trackError(err instanceof Error ? err : String(err), {
         component: "CareerInsightsStack",
         action: "renderInsightCard",
-        positionalIndex: index,
-        payloadSlice: String(insight).slice(0, 50),
+        index,
+        preview: String(insight).slice(0, 50),
       });
       return null;
     }
@@ -72,15 +71,15 @@ export function CareerInsightsStack({ insights, className, maxVisible = 3 }: Car
     const nextState = !isExpanded;
     setIsExpanded(nextState);
 
-    trackEvent("CareerInsightsStack:user_expansion_toggled", {
-      targetExpandedState: nextState,
-      visibleItemsCount: nextState ? insights.length : maxVisible,
+    trackEvent("insights_expansion_toggled", {
+      expanded: nextState,
+      visibleCount: nextState ? insights.length : maxVisible,
     });
   };
 
   return (
     <div className={cn("space-y-4 select-none sm:select-text", className)}>
-      {/* Immersive Section Header */}
+      {/* Section Header */}
       <div className="flex items-center gap-3 px-1">
         <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/5 shadow-inner">
           <Lightbulb className="h-4 w-4" />
@@ -93,12 +92,12 @@ export function CareerInsightsStack({ insights, className, maxVisible = 3 }: Car
         </div>
       </div>
 
-      {/* Render Filtered Visible Insight Nodes */}
+      {/* Insights List */}
       <div className="space-y-3 transition-all duration-300 ease-in-out">
         {visible.map((insight, index) => renderInsightCard(insight, index))}
       </div>
 
-      {/* Interactive Expand Trigger Button */}
+      {/* View Toggle Control */}
       {hasMore && (
         <Button
           variant="ghost"
