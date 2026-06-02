@@ -7,7 +7,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCareerLevel } from "@/hooks/useCareerLevel";
 import { ProfileCardBackdrop } from "./ProfileCardBackdrop";
 import { trackError, trackEvent } from "@/lib/errorTracking";
-
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +19,8 @@ interface FeedHeaderProps {
 }
 
 /**
- * Premium, performance-optimized User Profile & Financial Telemetry Header block.
- * Built according to GroUp Academy Phase Z0 highly professional SAAS UI specifications
- * and Digital Workforce automated credit tracking guardrails.
+ * Premium, performance-optimized user profile and account balance header.
+ * Displays fractional credit updates and experience leveling indicators.
  */
 export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefresh, isRefreshing }: FeedHeaderProps) {
   const navigate = useNavigate();
@@ -32,11 +30,11 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
   const [textMode, setTextMode] = useState<"light" | "dark" | "auto">("auto");
   const [levelOpen, setLevelOpen] = useState(false);
 
-  // Monitor metrics anomalies and level parameters during runtime lifecycle windows
+  // Guard account metrics boundaries and dispatch status alerts for top performers
   useEffect(() => {
     if (talent?.id) {
       if (isNaN(volume) || volume < 0) {
-        trackError(`Lifetime credit accounting processing out of bounds volume: [${volume}]`, {
+        trackError(`Lifetime credit volume calculation out of bounds: [${volume}]`, {
           component: "FeedHeader",
           action: "validate_financial_telemetry",
           talentId: talent.id,
@@ -44,7 +42,6 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
         return;
       }
 
-      // Digital Workforce: Notify Admin Chat on level up milestones asynchronously
       if (career?.level >= 5) {
         trackEvent("elite_talent_header_mounted", { talentId: talent.id, currentLevel: career.level });
       }
@@ -84,7 +81,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
         <ProfileCardBackdrop onTextColor={setTextMode} />
 
         <div className="relative px-3 py-2.5 flex items-center justify-between gap-3 selection:bg-primary/20">
-          {/* Avatar Interaction Block Link */}
+          {/* Profile Details Navigation Trigger */}
           <button
             onClick={() => navigate("/app/profile")}
             aria-label="Open your professional profile"
@@ -98,7 +95,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
             >
               <AvatarImage
                 src={talentPhoto}
-                alt={talentName || "Professional profile photo"}
+                alt={talentName || "User profile photo"}
                 className="object-cover"
               />
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm select-none">
@@ -107,7 +104,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
             </Avatar>
           </button>
 
-          {/* Demographic Identification Metadata Block */}
+          {/* Account Title & Balance Telemetry */}
           <div className="flex-1 min-w-0 space-y-0.5">
             <div className="flex items-center gap-2 min-w-0">
               <h1 className={cn("text-sm font-bold truncate tracking-tight w-full", textCls)}>
@@ -119,9 +116,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
                 <button
                   onClick={onRefresh}
                   aria-label="Refresh community recommendation feed"
-                  className={cn(
-                    "opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted/50 text-muted-foreground cursor-pointer shrink-0",
-                  )}
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted/50 text-muted-foreground cursor-pointer shrink-0"
                 >
                   <RefreshCw className="h-3 w-3" />
                 </button>
@@ -131,7 +126,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
               <p className={cn("text-[11px] font-medium truncate leading-normal select-text", mutedCls)}>{subtitle}</p>
             )}
 
-            {/* Fractional Credit Balance & Tracker Node Row */}
+            {/* Credit Balance & Rank Tracking Bar */}
             <div className="flex items-center gap-3 mt-1.5 select-none">
               <button
                 onClick={() => navigate("/app/transactions")}
@@ -139,7 +134,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
                   "flex items-center gap-1.5 text-[11px] font-bold tracking-tight hover:opacity-80 transition focus-visible:outline-none rounded px-0.5 cursor-pointer",
                   textCls,
                 )}
-                aria-label={`Wallet credits current balance: ${balance != null ? Number(balance).toFixed(1) : "0.0"} credits`}
+                aria-label={`Wallet balance: ${balance != null ? Number(balance).toFixed(1) : "0.0"} credits`}
               >
                 <Coins className="h-3 w-3 text-amber-400 shrink-0 drop-shadow-[0_1px_4px_rgba(251,191,36,0.2)]" />
                 <span className="tabular-nums tracking-wide">
@@ -151,7 +146,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
               <button
                 onClick={() => handleLevelSheetOpen(true)}
                 className="flex-1 flex items-center gap-2 min-w-0 group focus-visible:outline-none rounded py-0.5 cursor-pointer"
-                aria-label={`Inspect career tier progress: ${career.progressPct}% towards next structural rank`}
+                aria-label={`Experience progress: ${career?.progressPct || 0}% toward next rank`}
               >
                 <div
                   className={cn(
@@ -161,7 +156,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
                 >
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary/70 transition-all duration-500 ease-out shadow-sm"
-                    style={{ width: `${career.progressPct}%` }}
+                    style={{ width: `${career?.progressPct || 0}%` }}
                   />
                 </div>
                 <span
@@ -170,16 +165,16 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
                     mutedCls,
                   )}
                 >
-                  {career.progressPct}%
+                  {career?.progressPct || 0}%
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Explicit Career Level Trophy Card */}
+          {/* Level Badge Metric Shortcut */}
           <button
             onClick={() => handleLevelSheetOpen(true)}
-            aria-label={`Career level details for rank ${career.level}: ${career.label}`}
+            aria-label={`Career level ${career?.level || 1}: ${career?.label || "Member"}`}
             className="shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl active:scale-95 transition-all cursor-pointer"
           >
             <div
@@ -192,7 +187,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
             >
               <div className="flex items-center gap-1 leading-none select-none">
                 <Trophy className="h-3 w-3 shrink-0" />
-                <span className="text-xs font-extrabold tracking-tight tabular-nums">Lv {career.level}</span>
+                <span className="text-xs font-extrabold tracking-tight tabular-nums">Lv {career?.level || 1}</span>
               </div>
               <span
                 className={cn(
@@ -200,15 +195,15 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
                   isLight ? "text-white/90" : "text-primary/80",
                 )}
               >
-                {career.label}
+                {career?.label || "Member"}
               </span>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Career Level Progression Metrics Sheet Drawer Layer */}
-      <Sheet open={textMode !== "auto" && levelOpen} onOpenChange={handleLevelSheetOpen}>
+      {/* Experience Breakdown Sheet */}
+      <Sheet open={levelOpen} onOpenChange={handleLevelSheetOpen}>
         <SheetContent
           side="bottom"
           className="rounded-t-3xl border-t border-border/40 bg-background/98 backdrop-blur-xl pt-safe pb-safe-bottom"
@@ -216,45 +211,42 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
           <SheetHeader className="text-left pb-2 border-b border-border/20">
             <SheetTitle className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground">
               <Trophy className="h-4 w-4 text-primary shrink-0" />
-              Career Level {career.level} &bull; {career.label}
+              Career Level {career?.level || 1} &bull; {career?.label || "Member"}
             </SheetTitle>
+            <SheetTitle></SheetTitle> {/* Accessibility requirements layout filler element */}
             <SheetDescription className="text-xs text-muted-foreground leading-relaxed">
-              Your level metrics derive completely from lifetime credits volume transacted (accumulated sum of earned +
-              spent vectors), rendering your platform authority independently from your current wallet fluid asset
-              balances.
+              Your level reflects your total lifetime credit activity (balance spent or earned)[cite: 5]. This reflects your ongoing contribution and platform usage independently of your fluid wallet balances[cite: 5].
             </SheetDescription>
           </SheetHeader>
 
           <div className="mt-4 space-y-4 max-h-[40vh] overflow-y-auto">
             <div className="rounded-xl border border-border/40 bg-muted/20 dark:bg-muted/5 p-4 shadow-inner animate-in fade-in duration-200">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <span className="font-medium">Lifetime Ledger Volume</span>
+                <span className="font-medium">Lifetime Activity Volume</span>
                 <span className="tabular-nums font-bold text-foreground tracking-wide">
-                  {Math.round(volume).toLocaleString()} cr
+                  {Math.round(volume || 0).toLocaleString()} cr
                 </span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden border border-transparent shadow-inner">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${career.progressPct}%` }}
+                  style={{ width: `${career?.progressPct || 0}%` }}
                 />
               </div>
-              {career.nextLabel && (
+              {career?.nextLabel && (
                 <div className="mt-2.5 text-xs text-muted-foreground font-medium leading-none tracking-tight">
-                  Accumulate{" "}
+                  Earn or use{" "}
                   <span className="font-bold text-foreground tabular-nums">
-                    {Math.round(career.toNext).toLocaleString()} cr
+                    {Math.round(career.toNext || 0).toLocaleString()} cr
                   </span>{" "}
-                  to graduate to rank{" "}
+                  more to reach rank{" "}
                   <span className="font-bold text-foreground tracking-tight">{career.nextLabel}</span>
                 </div>
               )}
             </div>
 
             <p className="text-xs text-muted-foreground/90 leading-relaxed pl-1 select-text selection:bg-primary/20">
-              Earn credits across emerging markets by validating community polls, posting job verification strings, or
-              publishing peer CV uploads. Spend credits on network interactions with specialized AI experts, immersive
-              recorded tracks, or bespoke digital portfolio creation tools.
+              Earn platform credits across global categories by participating in community interaction polls, posting verified job listings, or providing peer CV uploads[cite: 4, 5]. Use your balances to activate specialized AI advisor sessions, premium recorded courses, or custom digital profile builders[cite: 4].
             </p>
           </div>
         </SheetContent>
