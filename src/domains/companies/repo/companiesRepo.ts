@@ -161,13 +161,13 @@ export async function listContactsPaged(params: ListContactsPagedParams): Promis
   return { rows: (data ?? []) as ContactRow[], count: count ?? 0 };
 }
 
-export async function upsertContact(payload: Partial<ContactRow> & { email: string }): Promise<void> {
-  const { error } = await supabase.from("contacts").upsert(payload);
+export async function upsertContact(payload: Record<string, any> & { email: string }): Promise<void> {
+  const { error } = await supabase.from("contacts").upsert(payload as any);
   if (error) throw error;
 }
 
-export async function insertContact(payload: Omit<ContactRow, "id" | "created_at">): Promise<void> {
-  const { error } = await supabase.from("contacts").insert(payload);
+export async function insertContact(payload: Record<string, any>): Promise<void> {
+  const { error } = await supabase.from("contacts").insert(payload as any);
   if (error) throw error;
 }
 
