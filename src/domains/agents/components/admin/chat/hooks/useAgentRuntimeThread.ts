@@ -1,32 +1,23 @@
 /**
- * useAgentRuntimeThread — DB-backed conversational hook for the Agentic
- * Dashboard, powered by the unified `agent-runtime` edge function and the
- * `agent_threads` / `agent_messages` memory tables.
- *
- * Drop-in replacement for `useAdminChatThread` (admin-only batches).
- * - History persisted server-side; we only render `agent_messages` rows.
- * - Server creates the thread on first turn; new id arrives via `X-Thread-Id`.
- * - SSE response streamed live; final assistant row written by the runtime,
- *   then we re-fetch the trailing rows to grab stable ids for copy/regen.
- * - Attachments are NOT supported in this batch (uploadAttachment === undefined).
- *
- * Companion: `useAdminAgentThreads` — sidebar thread list, also reading
- * `agent_threads` (subject_kind = 'admin', subject_id = auth.uid()).
+ * Group Academy — Agent Runtime Thread Hook
+ * Version: Phase 10j.3 Hardened
+ * Purpose: DB-backed conversational hook for administrative chat surfaces.
+ * Constraints: Enforces strict subject-kind 'admin' filtering for RBAC security.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser, getAccessToken } from "@/lib/auth";
 import { deleteAgentMessage } from "@/domains/agents/repo/agentsRepo";
 import { useAdminAgents } from "./useAdminAgents";
+import { trackError } from "@/lib/errorTracking";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
-/** Mirror of the legacy ChatMsg shape so the UI can swap hooks blindly. */
 export type ChatMsg = {
   id?: string;
   role: "user" | "assistant" | "system";
   content: string;
-  attachments?: undefined; // dropped for this batch
+  attachments?: undefined;
   created_at?: string;
 };
 
@@ -35,33 +26,39 @@ export interface AdminThreadSummary {
   agent_key: string;
   title: string | null;
   last_message_at: string;
-  last_read_at: string; // synthesised — agent_threads has no per-user read marker yet
+  last_read_at: string;
 }
 
-/** Sidebar thread list. */
 export function useAdminAgentThreads() {
   const [threads, setThreads] = useState<AdminThreadSummary[]>([]);
 
   const reload = useCallback(async () => {
-    const user = await getCurrentUser();
-    const uid = user?.id;
-    if (!uid) return;
-    const { data } = await supabase
-      .from("agent_threads")
-      .select("id, agent_key, title, last_message_at, updated_at")
-      .eq("subject_kind", "admin")
-      .eq("subject_id", uid)
-      .eq("is_archived", false)
-      .order("last_message_at", { ascending: false });
-    setThreads(
-      ((data as any[]) ?? []).map((r) => ({
-        id: r.id as string,
-        agent_key: r.agent_key as string,
-        title: r.title as string | null,
-        last_message_at: r.last_message_at as string,
-        last_read_at: r.updated_at as string,
-      })),
-    );
+    try {
+      const user = await getCurrentUser();
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from("agent_threads")
+        .select("id, agent_key, title, last_message_at, updated_at")
+        .eq("subject_kind", "admin")
+        .eq("subject_id", user.id)
+        .eq("is_archived", false)
+        .order("last_message_at", { ascending: false });
+
+      if (error) throw error;
+
+      setThreads(
+        ((data as any[]) ?? []).map((r) => ({
+          id: r.id,
+          agent_key: r.agent_key,
+          title: r.title,
+          last_message_at: r.last_message_at,
+          last_read_at: r.updated_at,
+        })),
+      );
+    } catch (err: any) {
+      trackError("agents-hook-load-threads-failure", { error: err.message });
+    }
   }, []);
 
   useEffect(() => {
@@ -81,9 +78,7 @@ interface UseAgentRuntimeThreadReturn {
   uploadAttachment: undefined;
 }
 
-export function useAgentRuntimeThread(
-  agentKey: string | null,
-): UseAgentRuntimeThreadReturn {
+export function useAgentRuntimeThread(agentKey: string | null): UseAgentRuntimeThreadReturn {
   const { data: agents = [] } = useAdminAgents();
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -91,28 +86,29 @@ export function useAgentRuntimeThread(
   const [sending, setSending] = useState(false);
   const lastUserMsgRef = useRef<string>("");
 
-  // Find or load the most recent thread for this admin+agent.
   useEffect(() => {
     if (!agentKey) return;
     let cancelled = false;
+
     (async () => {
       setLoading(true);
       setMessages([]);
       setThreadId(null);
       try {
         const user = await getCurrentUser();
-        const uid = user?.id;
-        if (!uid) return;
+        if (!user?.id) return;
+
         const { data: thread } = await supabase
           .from("agent_threads")
           .select("id")
           .eq("subject_kind", "admin")
-          .eq("subject_id", uid)
+          .eq("subject_id", user.id)
           .eq("agent_key", agentKey)
           .eq("is_archived", false)
           .order("last_message_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+
         if (cancelled) return;
         if (thread?.id) {
           setThreadId(thread.id);
@@ -121,18 +117,21 @@ export function useAgentRuntimeThread(
             .select("id, role, content, created_at")
             .eq("thread_id", thread.id)
             .order("created_at", { ascending: true });
+
           if (cancelled) return;
           setMessages(
             ((rows as any[]) ?? [])
               .filter((r) => r.role === "user" || r.role === "assistant")
               .map((r) => ({
-                id: r.id as string,
-                role: r.role as ChatMsg["role"],
-                content: (r.content as string) ?? "",
-                created_at: r.created_at as string,
+                id: r.id,
+                role: r.role,
+                content: r.content ?? "",
+                created_at: r.created_at,
               })),
           );
         }
+      } catch (err: any) {
+        trackError("agents-hook-load-thread-failure", { agentKey, error: err.message });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -143,24 +142,23 @@ export function useAgentRuntimeThread(
   }, [agentKey]);
 
   const reconcileTail = useCallback(async (tid: string) => {
-    // Authoritative refetch: replace local state with the canonical server
-    // rows for this thread. This guarantees zero duplicates regardless of
-    // optimistic placeholders, streaming order, or prior race conditions.
-    const { data: rows } = await supabase
+    const { data: rows, error } = await supabase
       .from("agent_messages")
       .select("id, role, content, created_at")
       .eq("thread_id", tid)
       .order("created_at", { ascending: true });
-    if (!rows) return;
+
+    if (error || !rows) return;
+
     const canonical: ChatMsg[] = (rows as any[])
       .filter((r) => r.role === "user" || r.role === "assistant")
       .map((r) => ({
-        id: r.id as string,
-        role: r.role as ChatMsg["role"],
-        content: (r.content as string) ?? "",
-        created_at: r.created_at as string,
+        id: r.id,
+        role: r.role,
+        content: r.content ?? "",
+        created_at: r.created_at,
       }));
-    // Dedupe defensively by id (server is source of truth).
+
     const seen = new Set<string>();
     const deduped = canonical.filter((m) => {
       if (!m.id || seen.has(m.id)) return false;
@@ -174,47 +172,32 @@ export function useAgentRuntimeThread(
     async (text: string) => {
       const content = text.trim();
       if (!content || !agentKey || sending) return;
-      const agent = agents.find((a) => a.key === agentKey);
+      const agent = agents.find((a: any) => a.agent_key === agentKey);
       if (!agent) return;
 
       lastUserMsgRef.current = content;
-      // Optimistic user + empty assistant placeholder.
-      setMessages((prev) => [
-        ...prev,
-        { role: "user", content },
-        { role: "assistant", content: "" },
-      ]);
+      setMessages((prev) => [...prev, { role: "user", content }, { role: "assistant", content: "" }]);
       setSending(true);
 
       try {
         const token = await getAccessToken();
-        if (!token) throw new Error("Not authenticated");
-
         const resp = await fetch(`${SUPABASE_URL}/functions/v1/agent-runtime`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            agent_key: agentKey,
-            thread_id: threadId ?? undefined,
-            message: content,
-          }),
+          body: JSON.stringify({ agent_key: agentKey, thread_id: threadId ?? undefined, message: content }),
         });
 
-        if (!resp.ok) {
-          const errText = await resp.text();
-          throw new Error(errText || `HTTP ${resp.status}`);
-        }
+        if (!resp.ok) throw new Error(`Status ${resp.status}`);
 
         const newThreadId = resp.headers.get("X-Thread-Id");
         if (newThreadId && newThreadId !== threadId) setThreadId(newThreadId);
-        const activeThreadId = newThreadId ?? threadId;
 
-        // Stream OpenAI-style SSE deltas into the trailing assistant bubble.
         const reader = resp.body?.getReader();
-        if (!reader) throw new Error("No stream");
+        if (!reader) throw new Error("Stream failure");
+
         const decoder = new TextDecoder();
         let buffer = "";
         let assistantText = "";
@@ -245,22 +228,14 @@ export function useAgentRuntimeThread(
                 });
               }
             } catch {
-              /* ignore non-JSON keep-alive frames */
+              /* keep-alive frames */
             }
           }
         }
-
-        if (activeThreadId) await reconcileTail(activeThreadId);
-      } catch (err) {
-        // Roll back the optimistic assistant placeholder on failure.
-        setMessages((prev) => {
-          const next = [...prev];
-          const last = next[next.length - 1];
-          if (last && last.role === "assistant" && !last.id && !last.content) {
-            next.pop();
-          }
-          return next;
-        });
+        if (newThreadId || threadId) await reconcileTail((newThreadId ?? threadId)!);
+      } catch (err: any) {
+        trackError("agents-hook-send-failure", { agentKey, error: err.message });
+        setMessages((prev) => prev.filter((m) => !(m.role === "assistant" && !m.id)));
         throw err;
       } finally {
         setSending(false);
@@ -271,10 +246,7 @@ export function useAgentRuntimeThread(
 
   const clear = useCallback(async () => {
     if (threadId) {
-      await supabase
-        .from("agent_threads")
-        .update({ is_archived: true })
-        .eq("id", threadId);
+      await supabase.from("agent_threads").update({ is_archived: true }).eq("id", threadId);
     }
     setThreadId(null);
     setMessages([]);
@@ -285,31 +257,18 @@ export function useAgentRuntimeThread(
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const prompt = lastUser?.content || lastUserMsgRef.current;
     if (!prompt) return;
-    // Strip the trailing assistant row server-side so the runtime doesn't
-    // see its own previous answer in the history window.
-    const trailingAssistant = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant" && m.id);
-    if (trailingAssistant?.id) {
-      await deleteAgentMessage(trailingAssistant.id);
-    }
+
+    const trailingAssistant = [...messages].reverse().find((m) => m.role === "assistant" && m.id);
+    if (trailingAssistant?.id) await deleteAgentMessage(trailingAssistant.id);
+
     setMessages((prev) => {
       const next = [...prev];
       while (next.length && next[next.length - 1].role === "assistant") next.pop();
-      // also drop the duplicated user we're about to re-send
       while (next.length && next[next.length - 1].role === "user") next.pop();
       return next;
     });
     await send(prompt);
   }, [threadId, messages, sending, send]);
 
-  return {
-    messages,
-    loading,
-    sending,
-    send,
-    clear,
-    regenerate,
-    uploadAttachment: undefined,
-  };
+  return { messages, loading, sending, send, clear, regenerate, uploadAttachment: undefined };
 }
