@@ -1,14 +1,14 @@
 /**
- * Agent Anomaly Feed — Executive HUD Component
- * CTO Refactor: May 2026
- * Fixes: F2 (Replaced Mock with real platform_events query)
+ * Agent Anomaly Feed — Executive Dashboard Component.
+ * Monitors platform_events in real-time, providing the core alerting interface
+ * for the Digital Workforce operations center.
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, AlertTriangle, Target, ArrowUpRight, ShieldAlert, CheckCircle2, Loader2 } from "lucide-react";
+import { Bot, AlertTriangle, Target, ArrowUpRight, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { InlineSpinner } from "@/components/common/InlineSpinner";
@@ -17,7 +17,6 @@ interface PlatformEvent {
   id: string;
   severity: "critical" | "warning" | "opportunity" | "info";
   agent_key: string;
-  event_type: string;
   title: string;
   description: string;
   created_at: string;
@@ -26,7 +25,7 @@ interface PlatformEvent {
 const SEVERITY_CONFIG = {
   critical: { icon: ShieldAlert, color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20" },
   warning: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-  opportunity: { icon: Target, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+  opportunity: { icon: Target, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
   info: { icon: Bot, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
 };
 
@@ -39,31 +38,36 @@ export function AgentAnomalyFeed() {
     let cancelled = false;
 
     const fetchEvents = async () => {
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      try {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const { data, error } = await supabase
-        .from("vw_agent_anomalies" as any)
-        .select("id, severity, agent_key, title, description, created_at")
-        .gte("created_at", twentyFourHoursAgo)
-        .order("created_at", { ascending: false })
-        .limit(10);
+        const { data, error } = await supabase
+          .from("vw_agent_anomalies" as any)
+          .select("id, severity, agent_key, title, description, created_at")
+          .gte("created_at", twentyFourHoursAgo)
+          .order("created_at", { ascending: false })
+          .limit(10);
 
-      if (!cancelled && !error && data) {
-        setEvents(data as unknown as PlatformEvent[]);
+        if (error) throw error;
+
+        if (!cancelled && data) {
+          setEvents(data as unknown as PlatformEvent[]);
+        }
+      } catch (err) {
+        console.error("[Digital Workforce Anomaly] Failed to load anomaly feed events:", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      if (!cancelled) setIsLoading(false);
     };
 
     fetchEvents();
 
-    // Real-time: refetch whenever a new platform_event lands
+    // Listen for incoming system markers to update status layout seamlessly
     const channel = supabase
       .channel("platform-anomalies")
-      .on(
-        "postgres_changes" as any,
-        { event: "INSERT", schema: "public", table: "platform_events" },
-        () => fetchEvents(),
-      )
+      .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "platform_events" }, () => {
+        fetchEvents();
+      })
       .subscribe();
 
     return () => {
@@ -73,34 +77,33 @@ export function AgentAnomalyFeed() {
   }, []);
 
   return (
-    <Card className="rounded-2xl border-2 border-primary/20 bg-card shadow-sm overflow-hidden flex flex-col h-full relative">
-      {/* Active Pulse for Critical Alerts */}
+    <Card className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden flex flex-col h-full relative">
+      {/* Active Warning Indicator */}
       {events.some((e) => e.severity === "critical") && (
-        <div className="absolute top-0 right-0 p-8">
-          <span className="relative flex h-3 w-3">
+        <div className="absolute top-4 right-4 z-10">
+          <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
           </span>
         </div>
       )}
 
-      <div className="h-1.5 w-full bg-gradient-to-r from-destructive via-orange-500 to-primary" />
-
-      <CardHeader className="p-8 pb-4 border-b border-border/10 bg-muted/10">
-        <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
-          <Bot className="h-5 w-5 text-primary" /> Agent Anomaly Feed
-        </CardTitle>
-        <p className="text-[10px] font-black text-muted-foreground/60 italic">
-          Triaging automated interventions
+      <CardHeader className="p-6 border-b border-border bg-muted/20">
+        <div className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg font-bold tracking-tight">System Events & Anomalies</CardTitle>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Real-time status tracking updates from automated platform agents
         </p>
       </CardHeader>
 
-      <CardContent className="p-0 flex-1 flex flex-col">
-        <div className="divide-y divide-border/10 flex-1 overflow-y-auto max-h-[400px]">
+      <CardContent className="p-0 flex-1 flex flex-col min-h-0">
+        <div className="divide-y divide-border flex-1 overflow-y-auto max-h-[420px]">
           {isLoading ? (
-            <div className="p-20 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-              <InlineSpinner size="lg" />
-              <p className="text-[10px] font-black">Scanning Agents...</p>
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <InlineSpinner size="md" />
+              <p className="text-xs">Checking system logs...</p>
             </div>
           ) : events.length > 0 ? (
             events.map((event) => {
@@ -108,28 +111,28 @@ export function AgentAnomalyFeed() {
               const Icon = config.icon;
 
               return (
-                <div key={event.id} className="p-6 hover:bg-muted/10 transition-colors group">
-                  <div className="flex gap-4">
+                <div key={event.id} className="p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex gap-3">
                     <div
                       className={cn(
-                        "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 border-2",
+                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
                         config.bg,
                         config.border,
                         config.color,
                       )}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold">{event.title}</p>
-                        <span className="text-[9px] font-black text-muted-foreground">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold truncate text-foreground">{event.title}</p>
+                        <span className="text-2xs text-muted-foreground shrink-0 whitespace-nowrap">
                           {formatDistanceToNow(new Date(event.created_at))} ago
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground/80 leading-relaxed">{event.description}</p>
-                      <div className="flex items-center gap-2 pt-2">
-                        <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-sm">
+                      <p className="text-xs text-muted-foreground leading-normal break-words">{event.description}</p>
+                      <div className="flex items-center gap-2 pt-1.5">
+                        <span className="text-2xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
                           {event.agent_key.replace(/-/g, " ")}
                         </span>
                       </div>
@@ -139,19 +142,20 @@ export function AgentAnomalyFeed() {
               );
             })
           ) : (
-            <div className="p-20 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-              <CheckCircle2 className="h-8 w-8 text-primary/40" />
-              <p className="text-[10px] font-black">All agents nominal — 24h clear</p>
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <CheckCircle2 className="h-6 w-6 text-emerald-500/50" />
+              <p className="text-xs">All systems operational — No alerts in the last 24h</p>
             </div>
           )}
         </div>
 
-        <div className="p-6 bg-muted/5 mt-auto border-t border-border/10">
+        <div className="p-4 bg-muted/20 border-t border-border mt-auto">
           <Button
             onClick={() => navigate("/dashboard/chat")}
-            className="w-full h-12 rounded-xl justify-between font-black uppercase text-[10px] tracking-tight px-6 shadow-lg hover:shadow-primary/20 transition-all"
+            className="w-full h-10 rounded-xl justify-between font-semibold text-xs tracking-tight px-4"
           >
-            Enter Agent OS Chat <ArrowUpRight className="h-4 w-4" />
+            Open Agent OS Chat Dashboard
+            <ArrowUpRight className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
