@@ -13,12 +13,11 @@ interface Props {
 }
 
 /**
- * Premium, performance-hardened Creator Post Insights Accordion panel.
- * Built according to GroUp Academy Phase Z0 highly professional SAAS UI specifications
- * with defensive container bounds to prevent accordion-based chart rehydration drops.
+ * Premium creator panel displaying detailed post analytics, 
+ * engagement charts, and performance rewards.
  */
 export function PostInsightsAccordion({ postId, isAuthor }: Props) {
-  // Monitor analytic panel views safely via central telemetry hooks
+  // Track panel views securely via background telemetry hooks
   useEffect(() => {
     if (isAuthor && postId) {
       trackEvent("post_insights_accordion_mounted", { postId });
@@ -38,7 +37,7 @@ export function PostInsightsAccordion({ postId, isAuthor }: Props) {
             >
               <span className="flex items-center gap-2 tracking-tight">
                 <BarChart3 className="h-4 w-4 text-primary transition-transform group-hover:scale-105" />
-                <span>Analytics Node Insights</span>
+                <span>Post Analytics</span>
               </span>
             </AccordionTrigger>
             <AccordionContent className="w-full pt-1">
@@ -54,10 +53,10 @@ export function PostInsightsAccordion({ postId, isAuthor }: Props) {
 function InsightsBody({ postId }: { postId: string }) {
   const { data, isLoading, error } = usePostInsights(postId);
 
-  // Catch server-state ingestion faults and beam context back to administrative threads
+  // Catch server-state data faults and log parameters securely in the background
   useEffect(() => {
     if (error) {
-      trackError(error instanceof Error ? error : String(error), {
+      trackError(error instanceof Error ? error : String(err), {
         component: "PostInsightsAccordion",
         action: "fetch_post_insights_api",
         postId,
@@ -68,27 +67,27 @@ function InsightsBody({ postId }: { postId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-4 px-3 text-[11px] font-medium text-muted-foreground tracking-wide animate-pulse select-none">
-        <LoaderSpinner className="h-3 w-3 animate-spin mr-2 text-primary" /> Compiling telemetry matrices…
+        <LoaderSpinner className="h-3 w-3 animate-spin mr-2 text-primary" /> Loading insights…
       </div>
     );
   }
 
   if (!data) return null;
-  const t = data.totals || {};
+  const totals = data.totals || {};
 
   return (
-    <div className="space-y-4 px-3 pb-3 pt-1 w-full min-w-0 transition-all duration-300 animate-in fade-in duration-300">
-      {/* Financial Metrics Split Matrix Row */}
+    <div className="space-y-4 px-3 pb-3 pt-1 w-full min-w-0 transition-all duration-300 animate-in fade-in">
+      {/* Financial and engagement metric grid cards */}
       <div className="grid grid-cols-3 gap-2 text-xs w-full">
         <Stat
           icon={<Eye className="h-3 w-3 text-muted-foreground/80" />}
           label="Views"
-          value={t.impression_count || 0}
+          value={totals.impression_count || 0}
         />
         <Stat
           icon={<Flame className="h-3 w-3 text-orange-500 fill-orange-500/10" />}
           label="Hypes"
-          value={t.hype_count || 0}
+          value={totals.hype_count || 0}
         />
         <Stat
           icon={<Coins className="h-3 w-3 text-emerald-500" />}
@@ -98,17 +97,17 @@ function InsightsBody({ postId }: { postId: string }) {
         <Stat
           icon={<MessageCircle className="h-3 w-3 text-blue-500" />}
           label="Comments"
-          value={t.comment_count || 0}
+          value={totals.comment_count || 0}
         />
-        <Stat icon={<Bookmark className="h-3 w-3 text-purple-500" />} label="Saves" value={t.save_count || 0} />
-        <Stat icon={<Share2 className="h-3 w-3 text-cyan-500" />} label="Shares" value={t.share_count || 0} />
+        <Stat icon={<Bookmark className="h-3 w-3 text-purple-500" />} label="Saves" value={totals.save_count || 0} />
+        <Stat icon={<Share2 className="h-3 w-3 text-cyan-500" />} label="Shares" value={totals.share_count || 0} />
       </div>
 
-      {/* Dynamic Engagement Charts Overlay Track */}
+      {/* Dynamic line chart visualization panel */}
       {Array.isArray(data.daily) && data.daily.length > 0 && (
         <div
           className="h-32 -mx-1 relative overflow-hidden w-full border border-border/20 rounded-xl bg-background/30 p-2 shadow-inner"
-          style={{ minHeight: "128px" }} // Hard-locks dimensions to safeguard against hidden Recharts SVG drop exceptions
+          style={{ minHeight: "128px" }}
         >
           <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
             <LineChart data={data.daily} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -147,11 +146,11 @@ function InsightsBody({ postId }: { postId: string }) {
         </div>
       )}
 
-      {/* High-Value Top Hypers Leaderboard Section */}
+      {/* Top Hypers contributor list badge group */}
       {Array.isArray(data.top_hypers) && data.top_hypers.length > 0 && (
         <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold pl-0.5">
-            Top Contributor Hypers
+            Top Contributors
           </p>
           <div className="flex flex-wrap gap-1.5 max-w-full">
             {data.top_hypers.map((hyperProfile: any) => (
