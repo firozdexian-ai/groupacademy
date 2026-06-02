@@ -28,10 +28,6 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
   "companies-wa-channel": React.lazy(() =>
     import("@/domains/companies/components/admin/EmployerMessagingChannelTab").then((m: any) => ({ default: m.EmployerMessagingChannelTab })),
   ),
-  // Restored: Reconnected missing 8th tab assignment to fix Track C launch regression gap
-  "companies-outreach": React.lazy(() =>
-    import("@/domains/companies/components/admin/CompanyOutreachConsoleTab").then((m: any) => ({ default: m.CompanyOutreachConsoleTab ?? m.default })),
-  ),
 };
 
 export const TITLES: Record<string, string> = {
