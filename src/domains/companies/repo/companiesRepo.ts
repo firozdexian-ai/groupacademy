@@ -367,7 +367,7 @@ export async function listCompanyLeads(companyId: string): Promise<any[]> {
 }
 
 export async function insertCompanyLead(payload: Record<string, any>): Promise<void> {
-  const { error } = await supabase.from("company_leads").insert(payload);
+  const { error } = await supabase.from("company_leads").insert(payload as any);
   if (error) throw error;
 }
 
