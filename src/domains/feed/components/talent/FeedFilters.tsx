@@ -17,12 +17,6 @@ import { trackEvent, trackWarning } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 import type { FeedFilters as FeedFiltersType, FeedFilterType, FeedScope } from "@/domains/feed/hooks/useFeedRecommendations";
 
-/**
- * FeedFilters — single 4-slot row for community scope discovery channels.
- * Built strictly according to GroUp Academy Phase Z0 premium SAAS UI specifications
- * and Digital Workforce automated telemetry metrics logging.
- */
-
 interface FeedFiltersProps {
   filters: FeedFiltersType;
   onChange: (filters: FeedFiltersType) => void;
@@ -53,6 +47,10 @@ const TYPE_DEFS: Record<Exclude<FeedFilterType, "all">, { label: string; icon: L
   poll: { label: "Polls", icon: BarChart3 },
 };
 
+/**
+ * FeedFilters — A clean horizontal action row providing community discovery channels 
+ * and localized scoping segments for the feed.
+ */
 export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
   const [open, setOpen] = useState(false);
   const { talent } = useTalent();
@@ -60,7 +58,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
   const country = talent?.country;
   const profession = (talent as any)?.customProfession || (talent as any)?.custom_profession;
 
-  // Digital Workforce: Audit country normalization inconsistencies over active discovery frames
+  // Validate profile demographics and log non-canonical layouts cleanly in the background
   useEffect(() => {
     if (talent?.id) {
       if (country && (country.toLowerCase() === "bd" || country.length <= 2)) {
@@ -80,7 +78,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
     }
   }, [talent, country, filters]);
 
-  // Build dynamic slots 2 & 3
+  // Build dynamic navigation items based on profile data configurations
   const middleSlots: Tile[] = [];
   if (country) {
     middleSlots.push({ kind: "scope", scope: "country", label: country, icon: MapPin });
@@ -89,7 +87,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
     middleSlots.push({ kind: "scope", scope: "profession", label: profession, icon: Briefcase });
   }
 
-  // Fallback fillers in priority order
+  // Populate layout fallbacks systematically if profile vectors are empty
   const fallbackOrder: FeedFilterType[] = ["post", "course"];
   let idx = 0;
   while (middleSlots.length < 2 && idx < fallbackOrder.length) {
@@ -136,7 +134,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
       >
         <Icon
           className={cn(
-            "h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
+            "h-4 w-4 shrink-0 transition-transform duration-200",
             active ? "text-primary-foreground" : "text-primary",
           )}
         />
@@ -150,7 +148,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
     );
   };
 
-  // What goes in More: all content types not currently shown in front + scope tiles not shown.
+  // Extract non-rendered filter components to populate the overflow menu panel
   const shownTypes = new Set(middleSlots.filter((t) => t.kind === "type").map((t) => (t as TypeTile).value));
   const moreTypes: TypeTile[] = (Object.keys(TYPE_DEFS) as Array<Exclude<FeedFilterType, "all">>)
     .filter((v) => !shownTypes.has(v))
@@ -174,7 +172,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
         renderTile(t, () => (t.kind === "scope" ? selectScope(t.scope) : selectType(t.value)), `mid-${i}`),
       )}
 
-      {/* Advanced Filter Action Drawer Layer */}
+      {/* Overflow filter options sheet */}
       <Sheet
         open={open}
         onOpenChange={(v) => {
@@ -188,7 +186,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
             className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-border/40 bg-card p-2 h-[60px] transition-all select-none cursor-pointer active:scale-[0.97] hover:border-primary/30 hover:bg-accent/40"
             aria-label="Open advanced discovery filters"
           >
-            <MoreHorizontal className="h-4 w-4 text-muted-foreground/80 group-hover:text-foreground" />
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground/80" />
             <span className="text-[10px] font-semibold text-muted-foreground tracking-tight">More</span>
           </button>
         </SheetTrigger>
@@ -224,7 +222,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
             {moreTypes.length > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
                 <p className="text-[10px] font-bold text-muted-foreground/80 mb-2 uppercase tracking-wider pl-1">
-                  Content Pipeline
+                  Content Types
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {moreTypes.map((t) =>
