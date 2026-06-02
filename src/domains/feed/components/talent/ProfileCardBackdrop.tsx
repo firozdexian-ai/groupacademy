@@ -18,37 +18,35 @@ interface Props {
 }
 
 /**
- * Premium, performance-hardened Profile Card Backdrop presentation node.
- * Strictly optimized according to GroUp Academy Phase Z0 SAAS UI specifications,
- * featuring accessible media fallbacks and centralized query tracking metrics.
+ * Premium background backdrop component for profile cards.
+ * Pulls active themes and dynamically handles image, video, and gradient styles.
  */
 export function ProfileCardBackdrop({ onTextColor }: Props) {
   const [reduced, setReduced] = useState(false);
 
-  // Accessible media preference tracking lifecycles
+  // Monitor user preference for reduced motion to optimize performance
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
-    const h = () => setReduced(mq.matches);
-    mq.addEventListener?.("change", h);
-    return () => mq.removeEventListener?.("change", h);
+    const handleMotionChange = () => setReduced(mq.matches);
+    mq.addEventListener?.("change", handleMotionChange);
+    return () => mq.removeEventListener?.("change", handleMotionChange);
   }, []);
 
-  // 1. TanStack Query Server State Synchronization (staleTime 10 min configuration)
+  // Sync active background skins from database records
   const { data: theme, error } = useQuery<Theme | null>({
     queryKey: ["profile-card-theme-active"],
     staleTime: 1000 * 60 * 10,
     queryFn: async () => {
       const data = await listActiveProfileCardThemes();
-
       const now = Date.now();
 
-      // Calculate active promotional bounds safely with rigorous exception protection
+      // Extract current active theme based on active date rules
       const active = (data || []).find((t: any) => {
         try {
-          const sOk = !t.start_at || new Date(t.start_at).getTime() <= now;
-          const eOk = !t.end_at || new Date(t.end_at).getTime() >= now;
-          return sOk && eOk;
+          const startOk = !t.start_at || new Date(t.start_at).getTime() <= now;
+          const endOk = !t.end_at || new Date(t.end_at).getTime() >= now;
+          return startOk && endOk;
         } catch (dateErr) {
           return false;
         }
@@ -60,7 +58,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
     refetchOnWindowFocus: false,
   });
 
-  // 2. Instrument Operational Telemetry Boundaries
+  // Track database fetch exceptions silently in the background
   useEffect(() => {
     if (error) {
       trackError(error instanceof Error ? error : String(error), {
@@ -70,6 +68,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
     }
   }, [error]);
 
+  // Log successful theme application events
   useEffect(() => {
     if (theme) {
       trackEvent("profile_card_theme_applied", {
@@ -80,7 +79,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
     }
   }, [theme]);
 
-  // Synchronize layout color mode hooks with parent shells safely
+  // Synchronize layout color overrides with parent shells
   useEffect(() => {
     onTextColor?.(theme?.text_color ?? "auto");
   }, [theme?.text_color, onTextColor]);
@@ -94,7 +93,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
       className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none transform-gpu select-none"
       aria-hidden
     >
-      {/* 1. Gradient Render Panel Layer */}
+      {/* 1. Gradient Background Layout */}
       {theme.media_type === "gradient" && theme.gradient_css && (
         <div
           className="absolute inset-0 w-full h-full transition-opacity duration-300"
@@ -102,7 +101,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
         />
       )}
 
-      {/* 2. Static Image & GIF Layout Track */}
+      {/* 2. Static Image & GIF Layout */}
       {(theme.media_type === "image" || theme.media_type === "gif") && theme.media_url && (
         <img
           src={theme.media_url}
@@ -113,7 +112,7 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
         />
       )}
 
-      {/* 3. High-Fidelity Loop Video Streaming Pipeline */}
+      {/* 3. Loop Video Layout with Motion Reduction Check */}
       {theme.media_type === "video" &&
         theme.media_url &&
         (reduced && theme.poster_url ? (
@@ -131,12 +130,12 @@ export function ProfileCardBackdrop({ onTextColor }: Props) {
           />
         ))}
 
-      {/* 4. Secondary Lottie Animation Poster Fallback Block */}
+      {/* 4. Lottie Animation Fallback Preview */}
       {theme.media_type === "lottie" && theme.poster_url && (
         <img src={theme.poster_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      {/* Immersive Clarity Scrim Overlay Grid */}
+      {/* Overlay backdrop shading for readability text protection */}
       <div
         className="absolute inset-0 transition-all duration-300 pointer-events-none"
         style={{ background: `rgba(0,0,0,${overlay})` }}
