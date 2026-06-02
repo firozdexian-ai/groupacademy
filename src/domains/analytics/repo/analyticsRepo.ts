@@ -70,7 +70,7 @@ export async function getLifetimeOverviewMaster(todayIso: string): Promise<Lifet
     const totalCommissionsIssued = (commissionRes.data ?? []).reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
     const completedInterviewsCount = (mockInterviewRes.data ?? []).filter((i) => i.status === "completed").length;
     const portfolioRequestsCount = (portfolioRes.data ?? []).filter(
-      (p) => p.status === "completed" || p.status === "delivered",
+      (p) => (p.status as string) === "completed" || (p.status as string) === "delivered",
     ).length;
     const totalTalentCreditsBalance = (talentCredsRes.data ?? []).reduce(
       (acc, curr: any) => acc + Number(curr.balance || 0),
