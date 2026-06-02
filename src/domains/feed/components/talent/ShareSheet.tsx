@@ -8,12 +8,6 @@ import { recordShare } from "@/hooks/useCreatorAnalytics";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
-/**
- * GroUp Academy: Network Expansion Terminal (ShareSheet)
- * CTO Reference: High-fidelity sharing node for viral content distribution.
- * Version: Launch Candidate · Phase Z0 Hardened
- */
-
 interface ShareSheetProps {
   title: string;
   url: string;
@@ -21,21 +15,25 @@ interface ShareSheetProps {
   postId?: string;
 }
 
+/**
+ * Premium sharing sheet component that exposes social redirect options
+ * and clipboard shortcuts optimized for cross-browser native Web Share APIs.
+ */
 export function ShareSheet({ title, url, description, postId }: ShareSheetProps) {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  // Monitor share sheet instantiation contexts safely via telemetry tracking
+  // Log sharing layout interactions cleanly in the background
   useEffect(() => {
     if (open && postId) {
-      trackEvent("share_sheet_drawer_opened", { postId, assetTitle: title?.slice(0, 40) });
+      trackEvent("share_sheet_drawer_opened", { postId: postId, assetTitle: title?.slice(0, 40) });
     }
   }, [open, postId, title]);
 
   if (!url) {
-    trackError("ShareSheet component mounted without standard URL property anchors.", {
+    trackError("ShareSheet component mounted without a valid URL parameter anchor.", {
       component: "ShareSheet",
       action: "validation_assertion_failure",
     });
@@ -44,7 +42,6 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
 
   const shareText = description ? `${title}\n\n${description}` : title;
 
-  // 1. SSR Guard Architecture: Defensively parse window attributes safely
   const getAbsoluteUrlSafe = (targetUrl: string): string => {
     if (targetUrl.startsWith("http")) return targetUrl;
     try {
@@ -58,7 +55,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
   const fullUrl = getAbsoluteUrlSafe(url);
 
   const handleCopyProtocol = async () => {
-    trackEvent("share_link_copy_clicked", { postId, fullUrlSnippet: fullUrl.slice(-40) });
+    trackEvent("share_link_copy_clicked", { postId: postId, fullUrlSnippet: fullUrl.slice(-40) });
 
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -66,13 +63,12 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
 
       if (postId) {
         await recordShare(postId, "copy_link");
-        // Automated Efficiency: Synchronize cache pools instantly across viewports
         queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
       }
 
       toast({
         title: "Link copied",
-        description: "The professional asset URL has been pinned to your clipboard.",
+        description: "The link has been copied to your clipboard.",
       });
 
       setTimeout(() => setCopied(false), 2000);
@@ -80,19 +76,19 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
       trackError(err instanceof Error ? err : String(err), {
         component: "ShareSheet",
         action: "execute_clipboard_write",
-        postId,
+        postId: postId,
       });
 
       toast({
-        title: "Clipboard block encountered",
-        description: "Please highlight and copy the address bar manually.",
+        title: "Clipboard error",
+        description: "Could not copy link automatically. Please copy the URL directly from the address bar.",
         variant: "destructive",
       });
     }
   };
 
   const handleSocialHandshake = async (platform: "whatsapp" | "linkedin") => {
-    trackEvent("share_social_redirect_triggered", { platform, postId });
+    trackEvent("share_social_redirect_triggered", { platform: platform, postId: postId });
 
     const socialDestinations = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${fullUrl}`)}`,
@@ -111,8 +107,8 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
       trackError(err instanceof Error ? err : String(err), {
         component: "ShareSheet",
         action: "execute_social_handshake",
-        platform,
-        postId,
+        platform: platform,
+        postId: postId,
       });
     }
   };
@@ -120,11 +116,11 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
   const handleExecutiveShare = async () => {
     if (!navigator.share) return;
 
-    trackEvent("share_native_web_api_invoked", { postId });
+    trackEvent("share_native_web_api_invoked", { postId: postId });
 
     try {
       await navigator.share({
-        title,
+        title: title,
         text: description,
         url: fullUrl,
       });
@@ -135,8 +131,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
       }
       setOpen(false);
     } catch (err: any) {
-      // Abort transitions silently since browser cancellations represent intentional user gestures
-      trackEvent("share_native_web_api_aborted", { postId, exceptionMessage: String(err) });
+      trackEvent("share_native_web_api_aborted", { postId: postId, exceptionMessage: String(err) });
     }
   };
 
@@ -162,26 +157,26 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
         style={{ contentVisibility: "auto" }}
       >
         <div className="max-w-md mx-auto">
-          {/* Section Dynamic Header layout */}
+          {/* Header Title Section */}
           <SheetHeader className="text-center mb-6">
             <div className="mx-auto w-12 h-1 bg-muted/60 rounded-full mb-2" />
             <SheetTitle className="text-sm font-bold flex items-center justify-center gap-2 text-foreground tracking-tight uppercase select-none">
               <Share2 className="h-4 w-4 text-primary shrink-0 animate-pulse" />
-              <span>Distribute Asset Content</span>
+              <span>Share Content</span>
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground leading-normal">
-              Select your targeted downstream professional network channel below.
+              Choose how you want to share this content with your network.
             </SheetDescription>
           </SheetHeader>
 
-          {/* Preset Visual Platform Selection Grid Track */}
+          {/* Platform Share Grid Selection */}
           <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto items-start pt-1">
-            {/* HANDSHAKE Anchor Node: WhatsApp */}
+            {/* Share Option: WhatsApp */}
             <button
               type="button"
               onClick={() => handleSocialHandshake("whatsapp")}
               className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
-              aria-label="Share update via WhatsApp channels"
+              aria-label="Share via WhatsApp"
             >
               <div className="h-14 w-14 rounded-2xl bg-[#25D366] flex items-center justify-center shadow-md shadow-[#25D366]/20 group-hover:scale-105 group-hover:rotate-2 transition-all duration-300 active:scale-95 border border-white/10 shrink-0">
                 <MessageCircle className="h-6 w-6 text-white fill-current" />
@@ -191,12 +186,12 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
               </span>
             </button>
 
-            {/* HANDSHAKE Anchor Node: LinkedIn */}
+            {/* Share Option: LinkedIn */}
             <button
               type="button"
               onClick={() => handleSocialHandshake("linkedin")}
               className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
-              aria-label="Publish asset path to LinkedIn feed"
+              aria-label="Share via LinkedIn"
             >
               <div className="h-14 w-14 rounded-2xl bg-[#0077b5] flex items-center justify-center shadow-md shadow-[#0077b5]/20 group-hover:scale-105 group-hover:-rotate-2 transition-all duration-300 active:scale-95 border border-white/10 shrink-0">
                 <Linkedin className="h-6 w-6 text-white fill-current" />
@@ -206,12 +201,12 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
               </span>
             </button>
 
-            {/* HANDSHAKE Anchor Node: Copy Link */}
+            {/* Share Option: Copy Link */}
             <button
               type="button"
               onClick={handleCopyProtocol}
               className="group flex flex-col items-center gap-2.5 outline-none cursor-pointer transform-gpu focus-visible:ring-2 focus-visible:ring-ring rounded-xl py-1"
-              aria-label="Copy absolute web address path to system clipboard"
+              aria-label="Copy link to clipboard"
             >
               <div
                 className={cn(
@@ -233,7 +228,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
             </button>
           </div>
 
-          {/* SYSTEM OVERRIDE: Web Native Device Share Action Bar */}
+          {/* Browser Native Device Share Shortcut Option Button */}
           {hasNativeShareSupport && (
             <div className="mt-6 pt-5 border-t border-border/30 w-full animate-in fade-in zoom-in-95 duration-200">
               <Button
@@ -243,7 +238,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
                 className="w-full h-10 rounded-xl font-bold text-xs gap-2 tracking-wide border-border/40 hover:bg-accent active:scale-[0.99] transition-transform shadow-sm cursor-pointer"
               >
                 <Globe className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
-                <span>More sharing choices</span>
+                <span>More sharing options</span>
               </Button>
             </div>
           )}
