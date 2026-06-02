@@ -1,9 +1,12 @@
 /**
- * Typed wrappers around agents-domain edge functions (Phase 9c + 9h).
+ * Group Academy — Agents Domain API Layer
+ * Version: Phase 10j.5 Hardened (Production Candidate)
+ * Integration Map: Typed wrappers enforcing contract validation for Deno Edge Runtimes.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
 import { parseEdgeResponse } from "@/edge/parseEdgeResponse";
+import { trackError } from "@/lib/errorTracking";
 import {
   AdminSupportAssistantResponseSchema,
   AgentBlueprintResponseSchema,
@@ -34,123 +37,55 @@ import {
   type TriggerAgentPitchResponse,
 } from "@/edge/contracts/agents";
 
-export async function agentRuntime(
-  req: AgentRuntimeRequest,
-): Promise<AgentRuntimeResponse> {
-  const { data, error } = await supabase.functions.invoke("agent-runtime", {
-    body: req,
-  });
-  if (error) throw new EdgeFunctionError("agent-runtime", error);
-  return parseEdgeResponse("agent-runtime", AgentRuntimeResponseSchema, data ?? {});
+async function invokeAgentEdge<TRequest, TResponse>(
+  functionName: string,
+  schema: any,
+  req: TRequest,
+): Promise<TResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke(functionName, { body: req });
+    if (error) throw new EdgeFunctionError(functionName, error);
+    return parseEdgeResponse(functionName, schema, data ?? {});
+  } catch (err: any) {
+    trackError(`agents-api-${functionName}-failure`, { error: err.message, payload: req });
+    throw err;
+  }
 }
 
-export async function aiGeneralChat(
-  req: AiGeneralChatRequest,
-): Promise<AiGeneralChatResponse> {
-  const { data, error } = await supabase.functions.invoke("ai-general-chat", {
-    body: req,
-  });
-  if (error) throw new EdgeFunctionError("ai-general-chat", error);
-  return parseEdgeResponse("ai-general-chat", AiGeneralChatResponseSchema, data ?? {});
+export async function agentRuntime(req: AgentRuntimeRequest): Promise<AgentRuntimeResponse> {
+  return invokeAgentEdge("agent-runtime", AgentRuntimeResponseSchema, req);
 }
 
-export async function adminSupportAssistant(
-  req: AdminSupportAssistantRequest,
-): Promise<AdminSupportAssistantResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "admin-support-assistant",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("admin-support-assistant", error);
-  return parseEdgeResponse(
-    "admin-support-assistant",
-    AdminSupportAssistantResponseSchema,
-    data ?? {},
-  );
+export async function aiGeneralChat(req: AiGeneralChatRequest): Promise<AiGeneralChatResponse> {
+  return invokeAgentEdge("ai-general-chat", AiGeneralChatResponseSchema, req);
 }
 
-export async function aiSupportAssistant(
-  req: AiSupportAssistantRequest,
-): Promise<AiSupportAssistantResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "ai-support-assistant",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("ai-support-assistant", error);
-  return parseEdgeResponse(
-    "ai-support-assistant",
-    AiSupportAssistantResponseSchema,
-    data ?? { reply: "" },
-  );
+export async function adminSupportAssistant(req: AdminSupportAssistantRequest): Promise<AdminSupportAssistantResponse> {
+  return invokeAgentEdge("admin-support-assistant", AdminSupportAssistantResponseSchema, req);
 }
 
-export async function agentBlueprint(
-  req: AgentBlueprintRequest,
-): Promise<AgentBlueprintResponse> {
-  const { data, error } = await supabase.functions.invoke("agent-blueprint", {
-    body: req,
-  });
-  if (error) throw new EdgeFunctionError("agent-blueprint", error);
-  return parseEdgeResponse("agent-blueprint", AgentBlueprintResponseSchema, data ?? {});
+export async function aiSupportAssistant(req: AiSupportAssistantRequest): Promise<AiSupportAssistantResponse> {
+  return invokeAgentEdge("ai-support-assistant", AiSupportAssistantResponseSchema, req);
 }
 
-export async function ingestAgentKnowledge(
-  req: IngestAgentKnowledgeRequest,
-): Promise<IngestAgentKnowledgeResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "ingest-agent-knowledge",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("ingest-agent-knowledge", error);
-  return parseEdgeResponse(
-    "ingest-agent-knowledge",
-    IngestAgentKnowledgeResponseSchema,
-    data ?? {},
-  );
+export async function agentBlueprint(req: AgentBlueprintRequest): Promise<AgentBlueprintResponse> {
+  return invokeAgentEdge("agent-blueprint", AgentBlueprintResponseSchema, req);
+}
+
+export async function ingestAgentKnowledge(req: IngestAgentKnowledgeRequest): Promise<IngestAgentKnowledgeResponse> {
+  return invokeAgentEdge("ingest-agent-knowledge", IngestAgentKnowledgeResponseSchema, req);
 }
 
 export async function agentEventDispatcher(
   req: AgentEventDispatcherRequest = {},
 ): Promise<AgentEventDispatcherResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "agent-event-dispatcher",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("agent-event-dispatcher", error);
-  return parseEdgeResponse(
-    "agent-event-dispatcher",
-    AgentEventDispatcherResponseSchema,
-    data ?? {},
-  );
+  return invokeAgentEdge("agent-event-dispatcher", AgentEventDispatcherResponseSchema, req);
 }
 
-// Phase 9h additions --------------------------------------------------------
-export async function companyAgentTools(
-  req: CompanyAgentToolsRequest,
-): Promise<CompanyAgentToolsResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "company-agent-tools",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("company-agent-tools", error);
-  return parseEdgeResponse(
-    "company-agent-tools",
-    CompanyAgentToolsResponseSchema,
-    data ?? {},
-  );
+export async function companyAgentTools(req: CompanyAgentToolsRequest): Promise<CompanyAgentToolsResponse> {
+  return invokeAgentEdge("company-agent-tools", CompanyAgentToolsResponseSchema, req);
 }
 
-export async function triggerAgentPitch(
-  req: TriggerAgentPitchRequest,
-): Promise<TriggerAgentPitchResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "trigger-agent-pitch",
-    { body: req },
-  );
-  if (error) throw new EdgeFunctionError("trigger-agent-pitch", error);
-  return parseEdgeResponse(
-    "trigger-agent-pitch",
-    TriggerAgentPitchResponseSchema,
-    data ?? {},
-  );
+export async function triggerAgentPitch(req: TriggerAgentPitchRequest): Promise<TriggerAgentPitchResponse> {
+  return invokeAgentEdge("trigger-agent-pitch", TriggerAgentPitchResponseSchema, req);
 }
