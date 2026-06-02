@@ -82,7 +82,7 @@ export {
   getContactUnlocksSummary,
   getCompanyDetail,
   getCompaniesWithSignal
-} from "./companiesApi";
+} from "../repo/companiesRepo";
 
 // Re-export explicit structural layout types for state management hydration
 export type {
