@@ -7,25 +7,57 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // ---- AuthN: require a signed-in user ----
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerUserId = userData.user.id;
+
     const { talent_id, amount_bdt, requested_credits, trx_id } = await req.json();
 
     if (!talent_id || !trx_id || !requested_credits) {
       throw new Error("Missing required fields: talent_id, requested_credits, and trx_id are required.");
     }
 
-    // Initialize Supabase with Service Role to bypass RLS for internal logging
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // ---- AuthZ: verify caller owns this talent record ----
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: talentRow, error: talentErr } = await admin
+      .from("talents")
+      .select("id, user_id")
+      .eq("id", talent_id)
+      .maybeSingle();
 
-    // 1. Log the pending request in the database
-    const { data: request, error: dbError } = await supabase
+    if (talentErr || !talentRow || talentRow.user_id !== callerUserId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- Insert request ----
+    const { data: request, error: dbError } = await admin
       .from("manual_payment_requests")
       .insert({
         talent_id,
@@ -39,14 +71,12 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
 
-    // 2. Transmit Alert to Telegram (ChatOps)
+    // ---- Notify Telegram ----
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const adminChatId = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID");
 
     if (botToken && adminChatId) {
       const message = `🚨 *New Payment Request*\n\n*Amount:* ৳${amount_bdt || "N/A"}\n*Credits Requested:* ${requested_credits}\n*TrxID:* \`${trx_id}\`\n\nApprove this transaction to fund the user's wallet?`;
-
-      // Inline Keyboard for 1-Tap Approval
       const keyboard = {
         inline_keyboard: [
           [
@@ -55,7 +85,6 @@ serve(async (req) => {
           ],
         ],
       };
-
       const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,10 +95,7 @@ serve(async (req) => {
           reply_markup: keyboard,
         }),
       });
-
-      if (!tgResponse.ok) {
-        console.warn("Telegram transmission failed:", await tgResponse.text());
-      }
+      if (!tgResponse.ok) console.warn("Telegram transmission failed:", await tgResponse.text());
     } else {
       console.warn("Telegram credentials missing in Edge Secrets. Logged to DB only.");
     }
