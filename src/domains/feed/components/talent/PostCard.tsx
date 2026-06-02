@@ -19,12 +19,6 @@ import { trackError, trackEvent } from "@/lib/errorTracking";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-/**
- * PostCard — compact, plain-language social feed node.
- * Hardened according to GroUp Academy Phase Z0 highly professional SAAS UI specifications
- * and Digital Workforce automated content telemetry guidelines.
- */
-
 interface PollOption {
   id: string;
   text: string;
@@ -69,6 +63,10 @@ const TYPE_META: Record<string, { label: string; className: string } | null> = {
   media: null,
 };
 
+/**
+ * Compact social feed card representing user-generated text updates, 
+ * polls, external link previews, or media attachments.
+ */
 export function PostCard({ post }: PostCardProps) {
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -77,7 +75,7 @@ export function PostCard({ post }: PostCardProps) {
   const saved = isSaved(post.id, "post" as any);
   const pollOptions = post.pollOptions || [];
 
-  // 1. Core Server-State Sync for poll responses
+  // Synchronize server state queries for community poll data parameters
   const {
     hasVoted,
     userVote,
@@ -87,7 +85,7 @@ export function PostCard({ post }: PostCardProps) {
     isLoading: pollLoading,
   } = usePollVoting(post.id, pollOptions);
 
-  // Monitor impression state rendering tracking cycles
+  // Monitor visibility state to track card content impressions
   useEffect(() => {
     if (post?.id) {
       trackEvent("feed_postcard_impression", {
@@ -99,7 +97,7 @@ export function PostCard({ post }: PostCardProps) {
   }, [post]);
 
   if (!post || !post.id) {
-    trackError("PostCard component mounted without valid post context bindings.", {
+    trackError("PostCard component mounted without valid post context data bindings.", {
       component: "PostCard",
       action: "null_pointer_assertion",
     });
@@ -117,7 +115,7 @@ export function PostCard({ post }: PostCardProps) {
     try {
       await toggleSave(post.id, "post" as any);
 
-      // Cache Bridge Invalidation: Sync bookmarks layout state instantly across components
+      // Invalidate query tags to refresh bookmarked list layout immediately
       queryClient.invalidateQueries({ queryKey: ["saved-items"] });
 
       toast.success(saved ? "Removed from saved items" : "Post saved successfully");
@@ -131,7 +129,6 @@ export function PostCard({ post }: PostCardProps) {
     }
   };
 
-  // Safely parse URL components to protect rendering threads from malformed string payloads
   const parseHostnameSafe = (urlStr: string): string => {
     try {
       if (!urlStr) return "link";
@@ -165,7 +162,7 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         <CardContent className="p-4 space-y-3.5">
-          {/* Author Block Row */}
+          {/* Post Author Profile Info Header */}
           <div className="flex items-start justify-between gap-3 select-none">
             <PostAuthor
               name={post.authorName}
@@ -178,6 +175,7 @@ export function PostCard({ post }: PostCardProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  type="button"
                   className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
                   aria-label="More options"
                 >
@@ -210,7 +208,7 @@ export function PostCard({ post }: PostCardProps) {
             </DropdownMenu>
           </div>
 
-          {/* Core Body Text Content Panel */}
+          {/* Core Post Message Description */}
           <div className="text-left select-text selection:bg-primary/20 space-y-2">
             {typeMeta && (
               <Badge
@@ -232,6 +230,7 @@ export function PostCard({ post }: PostCardProps) {
                   setIsExpanded(nextState);
                   trackEvent("feed_post_expansion_toggled", { postId: post.id, targetState: nextState });
                 }}
+                type="button"
                 className="inline-block text-xs font-bold text-primary mt-1 hover:text-primary/80 focus-visible:underline cursor-pointer select-none"
               >
                 {isExpanded ? "Show less" : "Read full update"}
@@ -239,7 +238,7 @@ export function PostCard({ post }: PostCardProps) {
             )}
           </div>
 
-          {/* Hashtag Taxonomy Grid Node array */}
+          {/* Taxonomy Hashtag Badges */}
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 select-none pt-0.5">
               {post.tags.map((tag) => {
@@ -257,12 +256,12 @@ export function PostCard({ post }: PostCardProps) {
             </div>
           )}
 
-          {/* Media Content Box Container — Constrained spatial layout mapping */}
+          {/* Media Attachments Layer Box */}
           {post.mediaUrl && post.contentType !== "poll" && (
             <div className="relative overflow-hidden rounded-xl border border-border/30 bg-muted/10 shadow-inner max-w-full select-none w-full max-h-72 aspect-video sm:aspect-auto">
               <img
                 src={post.mediaUrl}
-                alt="Feed entry visualization container file"
+                alt="Post attachment"
                 className="w-full h-full max-h-72 object-cover transition-transform duration-300"
                 loading="lazy"
                 decoding="async"
@@ -277,7 +276,7 @@ export function PostCard({ post }: PostCardProps) {
             </div>
           )}
 
-          {/* Interactive Consensus Poll Block Node */}
+          {/* Interactive Consensus Poll Element */}
           {post.contentType === "poll" && pollOptions.length > 0 && (
             <PollWidget
               options={pollOptions}
@@ -292,7 +291,7 @@ export function PostCard({ post }: PostCardProps) {
             />
           )}
 
-          {/* External Link Rich Content Preview Section */}
+          {/* Rich Shared Link Preview Section */}
           {post.linkUrl && post.linkPreview && (
             <a
               href={post.linkUrl}
@@ -306,7 +305,7 @@ export function PostCard({ post }: PostCardProps) {
               {post.linkPreview.image && (
                 <img
                   src={post.linkPreview.image}
-                  alt="Link destination metadata cover thumbnail preview"
+                  alt="Link destination banner preview"
                   className="w-full max-h-36 object-cover border-b border-border/10 select-none"
                   loading="lazy"
                 />
@@ -328,7 +327,7 @@ export function PostCard({ post }: PostCardProps) {
             </a>
           )}
 
-          {/* Authoritative Action Ribbon Footer Control Strip */}
+          {/* Interactive Engagement Action Button Strip */}
           <PostActionBar
             postId={post.id}
             initialHypeCount={0}
