@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
-import type { AdminThreadSummary } from "../hooks/useAgentRuntimeThread";
-import { useAdminAgents } from "../hooks/useAdminAgents";
+import type { AdminThreadSummary } from "./hooks/useAgentRuntimeThread";
+import { useAdminAgents } from "./hooks/useAdminAgents";
 
 /**
  * Group Academy — Agent Rail Navigation Component
