@@ -8,12 +8,6 @@ import {
 import { useTalent } from "@/hooks/useTalent";
 import { useToast } from "@/hooks/use-toast";
 
-/**
- * Feed Recommendations — React Query powered with infinite pagination.
- * v3.0: Migrated from useState/useEffect to useInfiniteQuery for caching,
- * dedup, and proper pagination via createdAt cursor.
- */
-
 export interface FeedItem {
   id: string;
   type: "course" | "video" | "blog" | "post";
@@ -76,6 +70,10 @@ const getYoutubeThumbnail = (url: string): string | null => {
   return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
 };
 
+/**
+ * Fetch a paginated chunk of feed recommendations from collective domain endpoints.
+ * Integrates, flattens, sorts, and attaches author geography/profession meta parameters.
+ */
 async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; nextCursor?: string }> {
   const { coursesRes, blogsRes, postsRes } = await fetchFeedRecommendationPage({
     olderThan,
@@ -115,7 +113,7 @@ async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; n
     });
   });
 
-  // Batch author enrichment
+  // Collect unique author IDs for batch profile hydration queries
   const authorIds = Array.from(
     new Set((postsRes.data || []).map((p: any) => p.author_user_id).filter(Boolean)),
   );
@@ -148,6 +146,7 @@ async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; n
     });
   });
 
+  // Pin items to top first, then organize chronologically by generation timestamp
   items.sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
@@ -155,13 +154,17 @@ async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; n
   });
 
   const nextCursor = items.length > 0 ? items[items.length - 1].createdAt : undefined;
-  // Stop paging when both sources return empty
+  
   const hasMore = (postsRes.data?.length || 0) >= PAGE_SIZE_POSTS ||
                   (coursesRes.data?.length || 0) >= PAGE_SIZE_COURSES;
 
   return { items, nextCursor: hasMore ? nextCursor : undefined };
 }
 
+/**
+ * State manager hook facilitating infinite layout navigation over personalized feeds.
+ * Includes scope filters, client dismissal states, and engagement action bindings.
+ */
 export function useFeedRecommendations() {
   const { talent } = useTalent();
   const { toast } = useToast();
@@ -169,6 +172,7 @@ export function useFeedRecommendations() {
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
+  // Initialize filters parsing persistent parameters from local storage definitions
   const [filters, setFiltersState] = useState<FeedFilters>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_FILTERS);
@@ -184,12 +188,13 @@ export function useFeedRecommendations() {
     localStorage.setItem(STORAGE_KEY_FILTERS, JSON.stringify(newFilters));
   }, []);
 
+  // TanStack Query Infinite pagination core implementation handler
   const query = useInfiniteQuery({
     queryKey: ["feed-recommendations"],
     queryFn: ({ pageParam }) => fetchFeedPage(pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor,
-    staleTime: 1000 * 60 * 2, // 2 min
+    staleTime: 1000 * 60 * 2, // 2-minute stale data buffer ceiling definition
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
@@ -202,12 +207,13 @@ export function useFeedRecommendations() {
   const talentCountry = talent?.country;
   const talentProfession = (talent as any)?.customProfession || (talent as any)?.custom_profession;
 
-  // Stable randomized insights — generated once
-  const insightsRef = useRef<string[]>();
+  // Select stable random advice insights once per workflow instantiation session
+  const insightsRef = useRef<string[]>(undefined);
   if (!insightsRef.current) {
     insightsRef.current = [...STATIC_INSIGHTS].sort(() => 0.5 - Math.random()).slice(0, 3);
   }
 
+  // Memoize data slices based on type, local constraints, and geographical user parameters
   const filteredItems = useMemo(
     () =>
       allItems
