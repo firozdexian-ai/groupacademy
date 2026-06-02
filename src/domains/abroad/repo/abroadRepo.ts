@@ -275,13 +275,53 @@ export async function listActiveLanguageInstructorsByCode(languageCode: string) 
   return data ?? [];
 }
 
-export async function listAbroadApplicationsForCurrentUser(userId: string) {
+export async function listAbroadApplicationsForCurrentUser(userId?: string) {
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const { data: auth } = await supabase.auth.getUser();
+    resolvedUserId = auth.user?.id;
+  }
+  if (!resolvedUserId) return [];
+
   const { data, error } = await supabase
     .from("abroad_applications")
     .select("id, target_country, intake_term, stage, updated_at, created_at")
-    .eq("talent_user_id", userId)
+    .eq("talent_user_id", resolvedUserId)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
   return data ?? [];
+}
+
+// ─── SCHOOL DETAIL (TALENT-FACING) ────────────────────────────────────────
+export async function getSchoolBySlugWithAcademy(slug: string) {
+  const { data, error } = await supabase
+    .from("schools" as any)
+    .select("id, name, slug, description, academies(name, slug)")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function listProfessionCategoriesForSchool(schoolId: string) {
+  const { data, error } = await supabase
+    .from("profession_categories" as any)
+    .select("id, name, slug, description, icon, career_outcome, school_id, ai_instructors(id, name)")
+    .eq("school_id", schoolId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertInstructorConnectionRequest(payload: {
+  talent_id: string;
+  school_id: string;
+  profession_id: string;
+  instructor_id: string | null;
+  message: string | null;
+}): Promise<{ error: any | null }> {
+  const { error } = await supabase
+    .from("instructor_connection_requests" as any)
+    .insert([payload as any]);
+  return { error };
 }
