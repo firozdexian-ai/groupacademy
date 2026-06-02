@@ -82,12 +82,12 @@ export async function getAbroadGraphMaster() {
 
 // ─── ROADMAP INTAKE PIPELINES (TALENT-FACING) ─────────────────────────────
 export async function insertRoadmapContactLead(payload: Record<string, any>): Promise<{ error: any | null }> {
-  const { error } = await supabase.from("contacts").insert([payload]);
+  const { error } = await supabase.from("contacts").insert([payload as any]);
   return { error };
 }
 
 export async function insertStudyAbroadRoadmap(payload: Record<string, any>): Promise<{ id: string }> {
-  const { data, error } = await supabase.from("study_abroad_roadmaps").insert([payload]).select("id").maybeSingle();
+  const { data, error } = await supabase.from("study_abroad_roadmaps").insert([payload as any]).select("id").maybeSingle();
 
   if (error) throw error;
   if (!data) throw new Error("ROADMAP_INSERT_FAILED: Target entity allocation failed.");
