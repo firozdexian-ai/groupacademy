@@ -12,16 +12,13 @@ interface CreditBalanceProps {
 }
 
 /**
- * GroUp Academy: Fiscal Asset HUD Terminal (V5.6.0)
- * CTO Reference: High-performance financial telemetry panel showing user system credit allocations.
- * Architecture: Optimized via type-safe arithmetic coercions and layout-matched skeleton states.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
+ * GroUp Academy: Wallet Balance Monitor Component
+ * Renders user credit balances across multiple UI scopes with matched skeleton states.
  */
 export function CreditBalance({ variant = "default", onClick, className }: CreditBalanceProps) {
   const { balance: rawBalance, earnedBalance: rawEarned, freeBalance: rawFree, isLoading } = useCredits();
 
-  // --- PHASE: LEAD_METRICS_COERCION_BARRIER ---
-  // Architecture Fix: Defensively protect the layout from throwing NaN exceptions if raw state records arrive null
+  // Safeguard layout variables from parsing anomalies if backend telemetry values arrive undefined
   const ledgerMetrics = useMemo(() => {
     return {
       balance: Number(rawBalance ?? 0),
@@ -30,11 +27,10 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
     };
   }, [rawBalance, rawEarned, rawFree]);
 
-  // --- PHASE: POLYMORPHIC_VARIANT_LOADING_GRID ---
-  // Architecture Fix: Skeletons dynamically match output styles to stop layout shift glitches
+  // Loading frameworks optimized to match standard component layout parameters
   if (isLoading) {
     if (variant === "compact") {
-      return <Skeleton className={cn("h-7 w-12 rounded-full bg-warning/10", className)} />;
+      return <Skeleton className={cn("h-7 w-12 rounded-full bg-amber-500/10", className)} />;
     }
     if (variant === "full" || variant === "vault") {
       return <Skeleton className={cn("h-[164px] w-full rounded-[24px] bg-muted/20 border-2", className)} />;
@@ -42,46 +38,45 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
     return <Skeleton className={cn("h-11 w-32 rounded-2xl bg-muted/10 border-2", className)} />;
   }
 
-  // --- HUD VIEWPORT: COMPACT_NAVBAR_CHIP_INGRESS ---
+  // --- VIEWPORT VARIANT: COMPACT NAVBAR STATUS CHIP ---
   if (variant === "compact") {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/5 border border-warning/20 select-none animate-in fade-in duration-300",
+          "flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/5 border border-amber-500/20 select-none animate-in fade-in duration-300",
           className,
         )}
       >
-        <Coins className="h-4 w-4 text-warning fill-current animate-pulse shrink-0" />
-        <span className="font-black text-xs italic tabular-nums tracking-tighter text-warning font-mono">
+        <Coins className="h-4 w-4 text-amber-500 fill-current animate-pulse shrink-0" />
+        <span className="font-bold text-xs tabular-nums tracking-tight text-amber-600">
           {ledgerMetrics.balance}
         </span>
       </div>
     );
   }
 
-  // --- HUD VIEWPORT: FULL_REGISTRY_WALLET_CARD ---
+  // --- VIEWPORT VARIANT: DETAILED WALLET INTERFACE CARD ---
   if (variant === "full" || variant === "vault") {
     return (
       <div
         className={cn(
-          "relative overflow-hidden space-y-4 p-5 rounded-[24px] border-2 backdrop-blur-xl transition-all duration-500 text-left select-none animate-in fade-in duration-500",
-          "bg-card/30 border-border/40 shadow-2xl",
+          "relative overflow-hidden space-y-4 p-5 rounded-[24px] border-2 backdrop-blur-xl transition-all duration-300 text-left select-none animate-in fade-in",
+          "bg-card/30 border-border/40 shadow-sm",
           className,
         )}
       >
-        {/* ATMOSPHERIC_GLOW_EFFECT */}
-        <div className="absolute -top-10 -right-10 h-32 w-32 bg-warning/10 blur-[64px] rounded-full pointer-events-none" />
+        <div className="absolute -top-10 -right-10 h-32 w-32 bg-amber-500/5 blur-[64px] rounded-full pointer-events-none" />
 
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground/60 font-mono">
-              Registry_Total
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+              Total Balance
             </span>
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-warning/10 border border-warning/20 shrink-0">
-                <Coins className="h-5 w-5 text-warning" />
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
+                <Coins className="h-5 w-5 text-amber-500" />
               </div>
-              <span className="text-3xl font-black italic tracking-tighter tabular-nums text-foreground font-mono">
+              <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
                 {ledgerMetrics.balance}
               </span>
             </div>
@@ -94,31 +89,33 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
           )}
         </div>
 
-        {/* METRICS_LEDGER_BREAKDOWN_SUBGRID */}
-        <div className="grid grid-cols-1 gap-2 pt-4 border-t border-border/10 font-mono">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 group transition-all hover:border-emerald-500/30">
+        {/* METRICS SEGMENTATION BREAKDOWN */}
+        <div className="grid grid-cols-1 gap-2 pt-4 border-t border-border/10">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 group transition-all duration-200 hover:border-emerald-500/30">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600/80">Earned</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700/80">Earned Balance</span>
             </div>
-            <span className="font-black italic tabular-nums text-emerald-500 text-sm">
+            <span className="font-bold tabular-nums text-emerald-600 text-sm">
               {ledgerMetrics.earnedBalance}
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-xl bg-sky-500/5 border border-sky-500/10 group transition-all hover:border-sky-500/30">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-sky-500/5 border border-sky-500/10 group transition-all duration-200 hover:border-sky-500/30">
             <div className="flex items-center gap-2">
               <Zap className="h-3.5 w-3.5 text-sky-500 fill-current shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-sky-600/80">Free credits</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-sky-700/80">Promo Credits</span>
             </div>
-            <span className="font-black italic tabular-nums text-sky-500 text-sm">{ledgerMetrics.freeBalance}</span>
+            <span className="font-bold tabular-nums text-sky-600 text-sm">
+              {ledgerMetrics.freeBalance}
+            </span>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- HUD VIEWPORT: DEFAULT_INTERACTIVE_TRIGGER_BUTTON ---
+  // --- VIEWPORT VARIANT: DEFAULT INTERACTIVE ACCOUNT BUTTON ---
   return (
     <Button
       type="button"
@@ -127,17 +124,17 @@ export function CreditBalance({ variant = "default", onClick, className }: Credi
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        "h-11 px-4 rounded-2xl gap-3 bg-muted/10 border-2 border-border/40 transition-all hover:bg-muted/20 active:scale-95 text-left select-none font-sans",
+        "h-11 px-4 rounded-2xl gap-3 bg-muted/10 border-2 border-border/40 transition-all duration-200 hover:bg-muted/20 active:scale-95 text-left select-none font-sans",
         !onClick && "cursor-default hover:bg-muted/10",
         className,
       )}
     >
-      <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-warning/10 shadow-inner shrink-0">
-        <Coins className="h-4 w-4 text-warning fill-current" />
+      <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-amber-500/10 shadow-inner shrink-0">
+        <Coins className="h-4 w-4 text-amber-500 fill-current" />
       </div>
-      <div className="flex flex-col items-start leading-none space-y-0.5 font-mono">
-        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Sync_Balance</span>
-        <span className="text-sm font-black italic tracking-tighter tabular-nums text-foreground">
+      <div className="flex flex-col items-start leading-none space-y-0.5">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">Credits</span>
+        <span className="text-sm font-bold tracking-tight tabular-nums text-foreground">
           {ledgerMetrics.balance}
         </span>
       </div>
