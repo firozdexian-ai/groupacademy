@@ -71,9 +71,9 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
   }, [item]);
 
   if (!item) {
-    trackError("Feed card mounted without active data object references", {
+    trackError("Feed card loaded without a valid content item definition", {
       component: "FeedCardRedesigned",
-      action: "null_pointer_assertion",
+      action: "null_item_handling",
     });
     return null;
   }
@@ -99,9 +99,9 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
     try {
       await toggleSave(item.id, itemType);
     } catch (err) {
-      trackError(err instanceof Error ? err : String(err), {
+      trackError(err instanceof Error ? err.message : "Could not update bookmark state", {
         component: "FeedCardRedesigned",
-        action: "handleToggleSave_fault",
+        action: "bookmark_toggle_error",
         contentId: item.id,
       });
     }
@@ -143,7 +143,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
                   <img
                     src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover/yt:scale-102"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/yt:scale-[1.02]"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/yt:bg-black/30 transition-colors duration-300">
@@ -159,14 +159,14 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               <img
                 src={item.mediaUrl}
                 alt={item.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-101"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
                 loading="lazy"
                 decoding="async"
               />
             </div>
           ) : null}
 
-          {/* Action overlay shortcuts panel */}
+          {/* Top-right action shortcuts overlay */}
           <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 pointer-events-auto">
             <Button
               variant="ghost"
@@ -178,7 +178,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
                   : "bg-background/80 hover:bg-background border-border/40 text-foreground",
               )}
               onClick={handleToggleSave}
-              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark item"}
+              aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
             >
               <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
             </Button>
@@ -189,6 +189,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
             )}
           </div>
 
+          {/* Top-left content format badge */}
           <div className="absolute top-2.5 left-2.5 z-10">
             <Badge
               className={cn(
@@ -225,7 +226,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
                   ? "bg-primary text-primary-foreground border-primary"
                   : "text-muted-foreground hover:bg-muted/40",
               )}
-              aria-label="Toggle bookmark"
+              aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
             >
               <Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} />
             </button>
