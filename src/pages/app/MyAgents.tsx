@@ -14,8 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Bot, TrendingUp, Coins, Wallet, PlusCircle, Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { CreatorOnboardingDialog } from "@/components/agents/CreatorOnboardingDialog";
-import { PayoutDialog } from "@/components/agents/PayoutDialog"; // Recommended extraction
+import { CreatorOnboardingDialog } from "@/domains/agents/components/talent/CreatorOnboardingDialog";
+import { PayoutDialog } from "@/domains/agents/components/talent/PayoutDialog"; // Recommended extraction
 import { cn } from "@/lib/utils";
 import { InlineSpinner } from "@/components/common/InlineSpinner";
 

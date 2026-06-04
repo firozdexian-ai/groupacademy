@@ -12,7 +12,7 @@ import {
  listAgentChatSessionsForTalentAgent,
 } from "@/domains/agents/repo/agentsRepo";
 import { useTalent } from "@/hooks/useTalent";
-import { AgentReviewSection } from "@/components/agents/AgentReviewSection";
+import { AgentReviewSection } from "@/domains/agents/components/talent/AgentReviewSection";
 import { cn } from "@/lib/utils";
 import { InlineSpinner } from "@/components/common/InlineSpinner";
 
