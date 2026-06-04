@@ -23,7 +23,7 @@ export default function Gro10xJobsList() {
 
   const mutate = useMutation({
     mutationFn: async ({ tool, job_id }: { tool: string; job_id: string }) => {
-      const data = await companyAgentTools({ tool_key: tool, args: { job_id } });
+      const data = await companyAgentTools({ tool_key: tool, args: { job_id }, company_id: companyId });
       if (!data?.ok) {
         throw new Error(data?.error ?? "Failed");
       }
