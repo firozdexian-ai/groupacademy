@@ -1,13 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPaymentConfigSettings } from "@/domains/finance/repo/financeRepo";
 
-/**
- * GroUp Academy: Fiscal Gateway Orchestrator (V5.6.0)
- * CTO Reference: Authoritative controller for bimodal checkout infrastructure.
- * Architecture: Digital Workforce enabled - logs fiscal config drops to Admin OS.
- * Phase: Z0 Code Freeze Hardened (May 2026 Launch Edition).
- */
-
 export type PaymentGateway = "whatsapp" | "stripe" | "both";
 
 export interface PaymentConfig {
@@ -20,31 +13,29 @@ export interface PaymentConfig {
 }
 
 /**
- * Orchestrates platform-wide payment infrastructure parameters.
- * Implements 5-minute cache stability to minimize repetitive configuration fetches.
+ * GroUp Academy: Payment Infrastructure Configuration Sensor Hook
+ * Orchestrates platform-wide transaction routing preferences, publishable keys, and localized checkout channels.
+ * Implements a strict 5-minute cache visibility window to minimize repetitive configuration database round-trips.
  */
 export function usePaymentConfig() {
   const { data, isLoading } = useQuery({
     queryKey: ["payment-config"],
-    // Performance Baseline: 5-minute cache residency for institutional settings
+    // Performance Baseline: 5-minute cache residency for shared workspace properties
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<PaymentConfig> => {
-      // HUD: FETCH_INSTITUTIONAL_SETTINGS_REGISTRY
       let settings: Array<{ key: string; value: string }>;
       try {
         settings = await getPaymentConfigSettings();
       } catch (error: any) {
-        console.error("[Digital Workforce] ANOMALY: platform_settings ingress failure.", error);
+        console.error("[Payment Configuration] Error loading gateway parameters from repository logs:", error);
         throw error;
       }
 
-      // SYNC: ATOMIC_REGISTRY_MAPPING
       const registry = new Map(settings?.map((s) => [s.key, s.value]) || []);
       const stripeKey = registry.get("stripe_publishable_key") || null;
       const rawGateway = registry.get("payment_gateway");
       const rawMode = registry.get("stripe_mode");
 
-      // HUD: FISCAL_PARAMETER_NORMALIZATION
       const gateway: PaymentGateway =
         rawGateway === "stripe" || rawGateway === "both" || rawGateway === "whatsapp" ? rawGateway : "whatsapp";
 
@@ -61,8 +52,7 @@ export function usePaymentConfig() {
     },
   });
 
-  // --- HUD: VIEWPORT_DIAGNOSTIC_API ---
-  // Provides high-velocity access flags for conditional checkout rendering.
+  // Provides high-velocity flags for conditional checkout layout rendering blocks.
   return {
     config: data,
     isLoading,
