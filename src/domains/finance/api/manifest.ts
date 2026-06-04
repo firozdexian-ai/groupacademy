@@ -1,12 +1,9 @@
 /**
- * Finance domain — barrel re-exporting typed edge wrappers (Phase 9g).
- * Legacy `financeApi` const removed.
+ * GroUp Academy: Finance Domain Core API Module Entry (Barrel Router)
+ * Centralizes named execution hooks and typed definitions for credit checkouts, webhook secrets, and payout disbursement routes.
  */
-export {
-  updateStripeSecret,
-  processWithdrawal,
-  createCheckout,
-} from "./financeApi";
+
+export { updateStripeSecret, processWithdrawal, createCheckout, requestInstructorPayout } from "./financeApi";
 
 export type {
   UpdateStripeSecretRequest,
@@ -15,4 +12,6 @@ export type {
   ProcessWithdrawalResponse,
   CreateCheckoutRequest,
   CreateCheckoutResponse,
+  RequestInstructorPayoutRequest,
+  RequestInstructorPayoutResponse,
 } from "@/edge/contracts/finance";
