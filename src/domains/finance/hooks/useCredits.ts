@@ -186,7 +186,7 @@ export function useCredits() {
         });
       }
     },
-    onThemeError: (err: any, vars: any) => {
+    onError: (err: any, vars: any) => {
       console.error("[Credit Operations] Credit update account injection bottleneck encountered:", {
         talentId: talent?.id,
         type: vars.type,
