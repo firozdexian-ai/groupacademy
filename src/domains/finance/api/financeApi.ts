@@ -1,5 +1,6 @@
 /**
- * Finance domain — typed edge function wrappers (Phase 9g + 9h).
+ * GroUp Academy: Finance Domain Serverless Edge Function Wrappers
+ * Safe, explicitly typed integration pathways coordinating platform checkout flows and payout operations.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { EdgeFunctionError } from "@/edge/EdgeFunctionError";
@@ -19,61 +20,42 @@ import {
   type UpdateStripeSecretResponse,
 } from "@/edge/contracts/finance";
 
-export async function updateStripeSecret(
-  req: UpdateStripeSecretRequest,
-): Promise<UpdateStripeSecretResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "update-stripe-secret",
-    { body: req },
-  );
+/**
+ * Validates, checks, or updates Stripe private access tokens and webhook secret properties.
+ */
+export async function updateStripeSecret(req: UpdateStripeSecretRequest): Promise<UpdateStripeSecretResponse> {
+  const { data, error } = await supabase.functions.invoke("update-stripe-secret", { body: req });
   if (error) throw new EdgeFunctionError("update-stripe-secret", error);
-  return parseEdgeResponse(
-    "update-stripe-secret",
-    UpdateStripeSecretResponseSchema,
-    data ?? {},
-  );
+  return parseEdgeResponse("update-stripe-secret", UpdateStripeSecretResponseSchema, data ?? {});
 }
 
-export async function processWithdrawal(
-  req: ProcessWithdrawalRequest,
-): Promise<ProcessWithdrawalResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "process-withdrawal",
-    { body: req },
-  );
+/**
+ * Executes or modifies an active user cash withdrawal/balance disbursement operation request.
+ */
+export async function processWithdrawal(req: ProcessWithdrawalRequest): Promise<ProcessWithdrawalResponse> {
+  const { data, error } = await supabase.functions.invoke("process-withdrawal", { body: req });
   if (error) throw new EdgeFunctionError("process-withdrawal", error);
-  return parseEdgeResponse(
-    "process-withdrawal",
-    ProcessWithdrawalResponseSchema,
-    data ?? {},
-  );
+  return parseEdgeResponse("process-withdrawal", ProcessWithdrawalResponseSchema, data ?? {});
 }
 
-export async function createCheckout(
-  req: CreateCheckoutRequest,
-): Promise<CreateCheckoutResponse> {
+/**
+ * Requests an authenticated, automated checkout session token for candidate credit top-ups.
+ */
+export async function createCheckout(req: CreateCheckoutRequest): Promise<CreateCheckoutResponse> {
   const { data, error } = await supabase.functions.invoke("create-checkout", {
     body: req,
   });
   if (error) throw new EdgeFunctionError("create-checkout", error);
-  return parseEdgeResponse(
-    "create-checkout",
-    CreateCheckoutResponseSchema,
-    data ?? {},
-  );
+  return parseEdgeResponse("create-checkout", CreateCheckoutResponseSchema, data ?? {});
 }
 
+/**
+ * Submits an automated creator split earnings withdrawal request back to administration for validation.
+ */
 export async function requestInstructorPayout(
   req: RequestInstructorPayoutRequest,
 ): Promise<RequestInstructorPayoutResponse> {
-  const { data, error } = await supabase.functions.invoke(
-    "request-instructor-payout",
-    { body: req },
-  );
+  const { data, error } = await supabase.functions.invoke("request-instructor-payout", { body: req });
   if (error) throw new EdgeFunctionError("request-instructor-payout", error);
-  return parseEdgeResponse(
-    "request-instructor-payout",
-    RequestInstructorPayoutResponseSchema,
-    data ?? {},
-  );
+  return parseEdgeResponse("request-instructor-payout", RequestInstructorPayoutResponseSchema, data ?? {});
 }
