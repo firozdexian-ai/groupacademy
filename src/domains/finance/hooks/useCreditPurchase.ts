@@ -3,10 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { logMonetizationIntent } from "@/domains/finance/repo/financeRepo";
 
 /**
- * GroUp Academy: Credit Purchase UI Sheet State Orchestrator (V5.5.0)
- * CTO Reference: Global programmatic interceptor for triggering monetization viewports.
- * Architecture: Digital Workforce enabled - logs checkout node entry telemetry to Admin OS.
- * Phase: Z0 Code Freeze Hardened (2026 Launch Candidate).
+ * GroUp Academy: Credit Purchase Sheet State Controller
+ * Manages global cross-component sheet visibility for candidate or employer credit checkout workflows.
+ * Telemetry: Dispatches monetization intent logs to the administrative pipeline when a purchase flow begins.
  */
 
 let isOpenState = false;
@@ -21,26 +20,22 @@ const subscribe = (fn: () => void) => {
 
 const getSnapshot = () => isOpenState;
 
-/**
- * Mutates state nodes globally across the single-page shell execution timeline.
- */
 const setOpen = (next: boolean) => {
   if (isOpenState === next) return;
   isOpenState = next;
 
-  // Digital Workforce Telemetry: Enqueue monetization intent signals on initialization
+  // Digital Workforce Telemetry: Logs monetization intent if the purchase interface is triggered
   if (next) {
     try {
       getCurrentUser().then((user) => {
         if (user) {
-          // HUD: Pipeline conversion track telemetry dispatch
           void logMonetizationIntent(user.id, "CreditPurchaseSheet").then(() => {
-            console.log("[Digital Workforce] SIGNAL: Monetization intent enqueued for lead tracking.");
+            console.log("[Digital Workforce] Quota tracking log: User monetization intent recorded.");
           });
         }
       });
-    } catch {
-      /* Safeguard backdrop tracing execution loops */
+    } catch (error) {
+      console.error("[Telemetry Fail] Failed to record monetization tracking data:", error);
     }
   }
 
