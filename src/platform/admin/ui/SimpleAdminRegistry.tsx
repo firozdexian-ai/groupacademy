@@ -24,6 +24,7 @@ export interface SimpleField {
  label: string;
  type?: "text" | "number" | "textarea" | "email";
  required?: boolean;
+ placeholder?: string;
 }
 
 interface Props {
