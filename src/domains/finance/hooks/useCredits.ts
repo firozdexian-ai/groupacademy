@@ -9,13 +9,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
 
-/**
- * GroUp Academy: Fiscal Ingress & Ledger Node (V4.7.0)
- * CTO Reference: Authoritative transactional store tracking fractional credit models.
- * Architecture: Digital Workforce enabled - logs checkout bottlenecks directly to Admin OS.
- * Phase: Z0 Code Freeze Hardened.
- */
-
 export interface CreditTransaction {
   id: string;
   amount: number;
@@ -37,16 +30,20 @@ const isValidUUID = (id: any): boolean => {
   return uuidRegex.test(id);
 };
 
+/**
+ * GroUp Academy: Wallet State and Balance Management Hook
+ * Coordinates real-time candidate credit metrics, transaction histories, and secure atomic deductions.
+ */
 export function useCredits() {
   const { talent } = useTalent();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // --------------------------------------------------------
-  // PHASE: Core Financial Query Sensors
+  // Core Wallet Queries
   // --------------------------------------------------------
 
-  // Hydrates wallet balance directly from public database schema nodes
+  // Hydrates wallet balance metrics from the secure account ledger schema
   const {
     data: balanceData,
     isLoading: isBalanceLoading,
@@ -54,18 +51,18 @@ export function useCredits() {
   } = useQuery({
     queryKey: ["talent-credits-balance", talent?.id],
     enabled: !!talent?.id,
-    staleTime: 30000, // 30-second ledger consistency window
+    staleTime: 30000, // 30-second cash consistency window
     queryFn: async (): Promise<CreditBalanceNode> => {
       try {
         return await getTalentCreditBalance(talent!.id);
       } catch (error) {
-        console.error("[Digital Workforce] FAULT: talent_credits wallet node read failure.", error);
+        console.error("[Credit Operations] Wallet balance node read failure:", error);
         throw error;
       }
     },
   });
 
-  // Pulls transactional logs with safety bounds enforced
+  // Pulls recent account ledger histories up to strict batch limits
   const { data: txHistory = [] } = useQuery({
     queryKey: ["talent-credit-transactions", talent?.id],
     enabled: !!talent?.id,
@@ -75,7 +72,7 @@ export function useCredits() {
       try {
         data = await listTalentCreditTransactions(talent!.id, 20);
       } catch (error) {
-        console.error("[Digital Workforce] FAULT: credit_transactions stream read failure.", error);
+        console.error("[Credit Operations] Transaction history logs feed read failure:", error);
         throw error;
       }
 
@@ -92,12 +89,12 @@ export function useCredits() {
   });
 
   // --------------------------------------------------------
-  // PHASE: Central Fiscal Transaction Mutations
+  // Core Wallet Mutations
   // --------------------------------------------------------
 
   /**
-   * Safe Atomic Deduction Mutation. Encapsulates business logic splits
-   * away from unsafe client calculation routines.
+   * Safe Atomic Deduction Mutation. Encapsulates business rules checking
+   * on the server side away from unsafe local presentation manipulations.
    */
   const deductMutation = useMutation({
     mutationFn: async ({
@@ -120,7 +117,6 @@ export function useCredits() {
 
       const safeRefId = isValidUUID(referenceId) ? referenceId : null;
 
-      // HUD: EXECUTING_RPC_ATOMIC_DEDUCTION
       const data = await deductCreditsRpc({
         amount,
         serviceType,
@@ -146,7 +142,7 @@ export function useCredits() {
           variant: "destructive",
         });
       } else {
-        console.error("[credits] deduct failed", {
+        console.error("[Credit Operations] Credit deduction transaction rejected:", {
           talentId: talent?.id,
           message: msg,
         });
@@ -174,11 +170,10 @@ export function useCredits() {
     }) => {
       if (!talent?.id) throw new Error("AUTH_REQUIRED");
 
-      // HUD: EXECUTING_RPC_ATOMIC_INGRESS
       return await addCreditsRpc({
         amount,
         transactionType: type,
-        description: description || `${type} sync`,
+        description: description || `${type} adjustment`,
       });
     },
     onSuccess: (_, vars) => {
@@ -191,8 +186,8 @@ export function useCredits() {
         });
       }
     },
-    onError: (err: any, vars) => {
-      console.error("[Digital Workforce] ANOMALY: add_credits database ingress checkpoint failed.", {
+    onThemeError: (err: any, vars: any) => {
+      console.error("[Credit Operations] Credit update account injection bottleneck encountered:", {
         talentId: talent?.id,
         type: vars.type,
         message: err.message,
@@ -201,7 +196,7 @@ export function useCredits() {
   });
 
   // --------------------------------------------------------
-  // PHASE: Viewport Relational Map Mappings (Immutable Return Layer)
+  // Relational Map Mappings (Immutable Return Layer)
   // --------------------------------------------------------
   const currentBalance = balanceData?.balance ?? 0;
   const currentEarned = balanceData?.earned_balance ?? 0;
