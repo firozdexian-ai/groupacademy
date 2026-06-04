@@ -501,9 +501,10 @@ export async function getPaymentConfigSettings(): Promise<Array<{ key: string; v
  */
 export async function logMonetizationIntent(userId: string, surface: string): Promise<void> {
   const { error } = await supabase.from("platform_events").insert({
-    event_type: "monetization_intent_detected",
-    user_id: userId,
-    metadata: { surface, timestamp: new Date().toISOString() },
+    event_kind: "monetization_intent_detected",
+    subject_kind: "user",
+    subject_id: userId,
+    payload: { surface, timestamp: new Date().toISOString() },
   });
   if (error) {
     console.error(`[Telemetry Broker] Failed to enqueue monetization metrics point for user ${userId}:`, error);
