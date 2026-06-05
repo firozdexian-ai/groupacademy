@@ -12,3 +12,9 @@ export {
   HrGradesTab,
 } from "./components/admin/HrSimpleTabs";
 export { useHrGraph } from "./components/admin/hooks/useHrGraph";
+export type {
+  HrVertical,
+  HrFunction,
+  HrTeam,
+  HrGrade,
+} from "./components/admin/hooks/useHrGraph";
