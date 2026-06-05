@@ -444,8 +444,8 @@ export default function App() {
                     <Route path="services" element={<Navigate to="/app/jobs?tab=tools" replace />} />
                     <Route path="abroad" element={<AbroadHub />} />
                     <Route path="abroad/destinations/:country" element={<DestinationGate />} />
-                    <Route path="abroad/applications" element={<AbroadApplications />} />
-                    <Route path="counsellor" element={<AbroadCounsellor />} />
+                    <Route path="abroad/applications" element={<ComingSoonGate featureKey="abroad-applications" title="Abroad Applications coming soon" description="We're connecting partner consultancies in your destination. Join the waitlist and we'll notify you the moment we open." secondaryCtaLabel="Back to Study Abroad" secondaryCtaHref="/app/abroad" />} />
+                    <Route path="counsellor" element={<ComingSoonGate featureKey="abroad-counsellor" title="Abroad Counsellor coming soon" description="Our certified abroad counsellors are coming online. Sign up to claim an early slot." secondaryCtaLabel="Back to Study Abroad" secondaryCtaHref="/app/abroad" />} />
                     <Route path="abroad/ielts" element={<IELTSCoach />} />
                     <Route path="abroad/ielts/mock/:section" element={<IELTSMockRunner />} />
                     <Route path="abroad/ielts/results/:id" element={<IELTSResults />} />
@@ -454,14 +454,14 @@ export default function App() {
                     <Route path="languages/:code/instructors" element={<LanguageInstructorsPage />} />
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="my-agents" element={<MyAgents />} />
-                    <Route path="agent-marketplace" element={<AgentMarketplace />} />
+                    <Route path="agent-marketplace" element={<ComingSoonGate featureKey="agent-marketplace" title="Agent Marketplace coming soon" description="A curated marketplace of AI agents built by our community is on the way. Join the waitlist for first access." secondaryCtaLabel="Explore AI Agents" secondaryCtaHref="/app/agents" />} />
                     <Route path="gigs" element={<Gigs />} />
                     <Route path="gigs/new" element={<NewGigWizard />} />
                     <Route path="gigs/appeals" element={<GigAppeals />} />
                     <Route path="gigs/disputes" element={<GigDisputes />} />
                     <Route path="reviewer" element={<ReviewerCockpit />} />
-                    <Route path="projects" element={<MyProjects />} />
-                    <Route path="projects/:projectId" element={<ProjectRoom />} />
+                    <Route path="projects" element={<ComingSoonGate featureKey="talent-projects" title="Managed Projects coming soon" description="Team up on funded, escrow-backed projects. Join the waitlist and we'll match you to the first cohort." secondaryCtaLabel="Browse Gigs" secondaryCtaHref="/app/gigs" />} />
+                    <Route path="projects/:projectId" element={<ComingSoonGate featureKey="talent-projects" title="Managed Projects coming soon" description="Team up on funded, escrow-backed projects. Join the waitlist and we'll match you to the first cohort." secondaryCtaLabel="Browse Gigs" secondaryCtaHref="/app/gigs" />} />
                     <Route path="marketplace" element={<Navigate to="/app/gigs?tab=projects" replace />} />
                     <Route path="marketplace/:id" element={<MarketplaceGigDetail />} />
                     <Route path="my-gigs" element={<Navigate to="/app/gigs?tab=activity" replace />} />
@@ -505,8 +505,8 @@ export default function App() {
                     <Route path="submissions/:submissionId" element={<AppSubmissionDetail />} />
                     <Route path="learning/events" element={<AppEvents />} />
                     <Route path="learning/webinars" element={<AppEvents />} />
-                    <Route path="learning/competitions" element={<Competitions />} />
-                    <Route path="learning/competitions/:slug" element={<CompetitionDetail />} />
+                    <Route path="learning/competitions" element={<ComingSoonGate featureKey="learning-competitions" title="Competitions coming soon" description="Skill-building competitions with cash and credit prizes are launching shortly. Get notified at launch." secondaryCtaLabel="Back to Learning" secondaryCtaHref="/app/learning" />} />
+                    <Route path="learning/competitions/:slug" element={<ComingSoonGate featureKey="learning-competitions" title="Competitions coming soon" description="Skill-building competitions with cash and credit prizes are launching shortly. Get notified at launch." secondaryCtaLabel="Back to Learning" secondaryCtaHref="/app/learning" />} />
                     <Route path="learning/blog" element={<Blog />} />
                     <Route path="learning/blog/:slug" element={<BlogPost />} />
 
