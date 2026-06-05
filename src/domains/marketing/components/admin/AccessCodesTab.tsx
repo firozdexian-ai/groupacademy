@@ -27,7 +27,7 @@ import { StandaloneMockInterviewCodeGenerator } from "@/domains/marketing/compon
 import { StandaloneSalaryCodeGenerator } from "@/domains/marketing/components/admin/StandaloneSalaryCodeGenerator";
 import { JobApplicationCodeGenerator } from "@/domains/jobs/components/admin/codes/JobApplicationCodeGenerator";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedPaidContent } from "@/domains/marketing/repo/marketingRepo";
 import { cn } from "@/lib/utils";
 
 export function AccessCodesTab() {
@@ -36,16 +36,7 @@ export function AccessCodesTab() {
 
   const { data: paidContent } = useQuery({
     queryKey: ["paid_content_for_codes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, price")
-        .gt("price", 0)
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: listPublishedPaidContent,
   });
 
   const [selectedContentId, setSelectedContentId] = useState("");
@@ -79,8 +70,8 @@ export function AccessCodesTab() {
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-          <Key className="h-6 w-6 text-indigo-600" />
+        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+          <Key className="h-6 w-6 text-primary" />
         </div>
         <div>
           <h2 className="text-xl font-semibold uppercase italic tracking-tight">Access Codes</h2>
@@ -146,7 +137,7 @@ export function AccessCodesTab() {
               <Button
                 onClick={handleInitializeKey}
                 disabled={upsertAccessCode.isPending || !selectedContentId}
-                className="w-full h-10 rounded-xl font-semibold uppercase italic tracking-tight gap-3 bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="w-full h-10 rounded-xl font-semibold uppercase italic tracking-tight gap-3 bg-primary hover:bg-primary-dark text-primary-foreground"
               >
                 {upsertAccessCode.isPending ? (
                   <RefreshCw className="h-5 w-5 animate-spin" />
@@ -187,8 +178,8 @@ export function AccessCodesTab() {
                               className={cn(
                                 "font-black uppercase text-[10px]",
                                 isExhausted
-                                  ? "bg-rose-500/10 text-rose-600"
-                                  : "bg-emerald-500/10 text-emerald-600",
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "bg-success/10 text-success",
                               )}
                             >
                               {row.current_uses} / {row.max_uses} Uses
@@ -206,14 +197,14 @@ export function AccessCodesTab() {
                                   navigator.clipboard.writeText(row.code);
                                   toast.success("KEY COPIED");
                                 }}
-                                className="hover:bg-indigo-500/10 hover:text-indigo-600"
+                                className="hover:bg-primary/10 hover:text-primary"
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon" aria-label="Delete"
-                                className="hover:bg-rose-500/10 hover:text-rose-600"
+                                className="hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => {
                                   if (confirm("Purge Code?")) deleteAccessCode.mutate(row.id);
                                 }}

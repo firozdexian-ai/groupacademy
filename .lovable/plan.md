@@ -1,130 +1,81 @@
+# Re-audit: institutions + ir (post-cleanup)
 
-# Talent-side Drop-off Audit & Fix Plan (E1)
+Findings from second-pass sweep:
 
-A deep-dive of every "coming soon" surface, stub view, and orphaned page that's causing talents to bounce. Split into **what's actually broken**, **why it's broken**, and **what we ship** — grouped so we can land it in one focused track without touching backend logic.
+| Check | Result |
+|---|---|
+| TODO/FIXME/HACK | none |
+| Hex / rgb literals | none |
+| Supabase leaks outside repo | none |
+| Edge function leaks | none |
+| Mailto present (B2B rule) | ✅ EmailComposer + InvestorDetailSheet |
+| Transactional email misuse | none |
+| Mobile safe-area | n/a (admin shell handles it) |
+| Console leftovers | **1 stray** `console.log` in `StakeholderRegistry.tsx:156` (Digital Workforce signal) |
+| Raw Tailwind palette colors | **significant drift in IR** — pipeline accents + status pills |
 
----
+## Items to fix (carry-over)
 
-## 1. What we found
+### A. Stray console.log
+- `src/domains/institutions/components/admin/StakeholderRegistry.tsx:156` — remove `console.log("[Digital Workforce Agent Signal] …")`.
 
-### 1a. Hard "Coming Soon" gates on routes that DO have real code
+### B. Raw palette colors (status / brand)
+Convert these to semantic tokens (no functional change, just token discipline):
 
-| Route | Gate (App.tsx) | Real page that exists but is bypassed |
-|---|---|---|
-| `/app/languages` | `ComingSoonGate languages-hub` | `src/pages/app/LanguagesHub.tsx` (full hub) |
-| `/app/languages/:code/practice` | `ComingSoonGate languages-practice` | `src/pages/app/LanguagePracticePage.tsx` |
-| `/app/languages/:code/instructors` | `ComingSoonGate languages-instructors` | `src/pages/app/LanguageInstructorsPage.tsx` |
-| `/app/talents` | `ComingSoonGate talent-directory` | `src/pages/app/TalentDirectory.tsx` (working, used by Connections) |
-| `/app/learning/competitions` | `ComingSoonGate competitions` | Detail page `CompetitionDetail.tsx` exists; list page is the only thing missing |
-| `/app/projects` | `ComingSoonGate managed-projects` | `MyProjects.tsx` + `ProjectRoom.tsx` ship; gate hides the index |
-| `/app/reviewer` | `ComingSoonGate reviewer-program` | `ReviewerCockpit.tsx` exists (full screen) |
+- `InvestorsManager.tsx` — `text-blue-500`, `bg-emerald-500/10 text-emerald-500`, gradients with `via-blue-600 to-indigo-500`, `bg-blue-500` → semantic (`text-primary`, `bg-success/10 text-success`, gradient simplified to `from-primary via-primary to-primary`).
+- `InvestorDetailSheet.tsx` — active pill `bg-emerald-500/10 text-emerald-500`, blue badge, emerald borders → `bg-success/10 text-success`, `bg-primary/10 text-primary`.
+- `InteractionLogger.tsx` — gradient via `blue-600` → primary-only gradient.
+- `pipeline/PipelineCard.tsx` — info pill `bg-blue-500/10 text-blue-600`, warn `amber-500`, purple, emerald arrow → `bg-primary/10 text-primary`, `bg-warning/10 text-warning`, `bg-accent/10 text-accent`, `text-success`.
+- `StakeholderRegistry.tsx:283` — `text-blue-500` link → `text-primary`.
 
-These are the **single biggest drop-off cause** — links inside the app (AbroadHub → `/app/languages`, public profile → `/app/talents/:id`, CoursesTab/EventsTab → competitions, Connections → `/app/talents/:id`) lead to a dead "Join the waitlist" form even though the destination page is built.
+### C. Kanban stage accents (decision needed)
+`IRPipelineBoard.tsx` defines 8 stage colors (`bg-slate/blue/indigo/violet/amber/emerald/teal/rose-500`) for the pipeline header strip. Project rule says semantic tokens only — but there are no 8 distinct stage tokens.
 
-### 1b. Stub view files inside the domain structure
+**Two options:**
+1. **Add `--stage-1 … --stage-8` tokens** to `index.css` + `tailwind.config.ts` (proper fix, adds 8 lines to design system).
+2. **Document as acceptable drift** — kanban stages are categorical and intentionally distinct; preserve as-is.
 
-| File | State | Impact |
-|---|---|---|
-| `src/domains/learning/components/talent/views/TracksView.tsx` | 3 lines, returns `"Career Path coming soon."` | `/app/learning?tab=tracks` shows a one-liner — Career Path is the **2nd tab** of Learning Hub |
-| `src/domains/learning/components/talent/views/MyHubView.tsx` | 33 lines, only renders sessions rail + courses list | Missing: Next-Best-Action card, Talent Mirror summary, Skill Credentials — all of which are already built components (`NextActionsCard`, `TalentMirrorPanel`, `SkillCredentialsPanel`) and just not wired in |
-| `src/pages/app/CareerAbroad.tsx` | Legacy redirect only — fine, keep |
-| `src/pages/app/TalentMirror.tsx` | Works but isolated from `/app/learning` |
-
-### 1c. Disabled feature affordances inside live pages
-
-- `src/domains/feed/components/talent/ComposePost.tsx` — Image upload and AI rewrite buttons exist but are disabled with `"coming soon"` tooltips (2 places each). Image upload was previously working via `feed_posts.media_url`; AI rewrite has an edge function already (`ai-content-originality`, `ai-item-rewrite`). Re-enabling these is a UI wire-up.
-- `LearningCareerTracksTab` (admin side) still says `(Coming Soon)` in an `<h2>` — admin only, low priority but mentioned for completeness.
-
-### 1d. Public-side cosmetic gate
-- `PublicLeaderboard.tsx` still title-cases `"Top reviewers · Coming soon"` even though reviewer leaderboard data flows. Minor; tied to 1a if we ungate reviewer.
-
----
-
-## 2. Why this hurts conversion
-
-Three failure modes, in order of severity:
-
-1. **Click → dead end.** AbroadHub, Connections, public profile, course/event cards all link to gated routes. The user took an action and got a waitlist form.
-2. **Tab → empty screen.** `Career Path` tab in Learning Hub renders a single grey sentence.
-3. **Affordance teases.** Compose post shows disabled buttons with "coming soon" tooltips, signalling the product is incomplete.
-
-The previous v0.5 jargon work (D1–D4) cleaned copy but didn't reconnect these wires.
+I recommend Option 1 (clean) but it's a 5-minute design-system addition. Will confirm before doing it.
 
 ---
 
-## 3. What we ship (E1 — talent reconnect pass)
+# Next two domains
 
-Grouped so each chunk is independently shippable. **Frontend only — no schema, no edge functions added.**
+Following the same SOP. Remaining domains: `jobs`, `learn`, `marketing`, `messaging`, `profile`, `talent`, `ugc`, `workforce`.
 
-### E1.1 — Ungate routes that have real pages
-Edit `src/App.tsx` only:
-- `/app/languages` → `<LanguagesHub />`
-- `/app/languages/:code/practice` → `<LanguagePracticePage />`
-- `/app/languages/:code/instructors` → `<LanguageInstructorsPage />`
-- `/app/talents` → `<TalentDirectory />`
-- `/app/projects` → `<MyProjects />` (project room already lives at `/app/projects/:projectId`)
-- `/app/reviewer` → `<ReviewerCockpit />`
+**Proposed pair: `marketing` + `messaging`** — both are smaller, focused surfaces and a good warm-up before the heavyweight `jobs` and `learn` pair.
 
-Keep `ComingSoonGate` only for **`/app/learning/competitions`** (no built list page) and `abroad-country-*` per-country gates (intentional regional rollout).
+(If you'd rather tackle the biggest pair first, say so and I'll switch to `jobs` + `learn`.)
 
-### E1.2 — Build the Career Path (TracksView) properly
-Replace `views/TracksView.tsx` stub with a real composition of components that already exist:
-- `CareerTracksPreview` (already exported from domain index)
-- `TracksTab` (already in the domain barrel)
-- Empty-state CTA → `/app/learning/tracks` (which routes to `AppProfessions`)
+## Plan per domain (mirrors the institutions/ir SOP)
 
-No new components — pure assembly of existing ones.
+### Phase 1 — Structural audit (read-only)
+- Confirm no legacy `src/components/marketing/`, `src/components/messaging/` folders remain.
+- List `src/domains/marketing/` and `src/domains/messaging/` shape; check for `repo/`, `api/`, `components/`, `index.ts`.
+- Verify shell wiring (`src/shells/admin/routes/marketing.ts`, etc.) and talent-facing page importers.
 
-### E1.3 — Enrich MyHubView (Learning home)
-Insert into `MyHubView.tsx` (in this order, above Enrolled Courses):
-- `<NextActionsCard />` — Next-Best-Action, already built
-- `<TrackProgressRing />` — when user is on a track
-- `<SkillCredentialsPanel compact />` — collapsible, already built
-- Keep existing UpcomingSessionsRail + MyCoursesTab
+### Phase 2 — Architectural hygiene
+- Move any direct `@/integrations/supabase` calls from `components/` into the repo layer.
+- Slim domain barrels to named exports of consumed entries (eliminate `export *` where unused), matching gtm/ir pattern.
+- Drop dead imports.
 
-`TalentMirror` page stays as the deep-link; the panel becomes a *summary* on the hub.
+### Phase 3 — UI / design-token compliance
+- Replace raw `text-white`, `bg-black`, raw palette colors with semantic tokens.
+- Spot-check mobile-vertical + safe-area where these surfaces render on talent app.
 
-### E1.4 — Re-enable Feed compose affordances
-In `ComposePost.tsx`:
-- Wire image upload to existing `feed-media` storage bucket pattern used elsewhere (Profile cover, talent CV) — single file, ≤5 MB.
-- Wire "AI rewrite" button to existing `ai-content-originality` edge function (already invoked elsewhere), or fall back to a simple `/functions/v1/ai-instructor-chat` call. If wiring the AI is out of scope for a pure UI pass, hide the button instead of showing it disabled with "coming soon".
+### Phase 4 — Wiring & monetization preservation
+- Confirm hooks/edge functions referenced still resolve and respond.
+- **Marketing-specific:** preserve UTM / campaign tracking, no transactional email misuse.
+- **Messaging-specific:** preserve 5k-credit inbox gate (`mem://product/creator-economy-hype-and-connections`), realtime channels, dedup logic from agentic feed notifications, no PII leaks (`mem://security/pii-and-storage-hardening`).
+- Bug-fix in scope; new features/schema not.
 
-### E1.5 — Public leaderboard polish
-Drop the `"Coming soon"` suffix from `PublicLeaderboard.tsx` reviewer title once E1.1 ungates `/app/reviewer`.
+### Phase 5 — Verify
+- `rg` checks: zero supabase leaks in components, zero raw palette colors, zero stray console.
+- TypeScript build clean.
 
-### E1.6 — Cleanup
-- Remove `LearningCareerTracksTab` admin stub or replace with a "Manage tracks" link to the working admin Tracks page.
-- Remove the `Career Abroad coming soon` line from `TracksView` after E1.2.
+## Out of scope
+- New tables / columns / RLS / RPCs / edge functions.
+- New features or UX rewrites.
+- Other 6 domains.
 
----
-
-## 4. Out of scope (next tracks)
-
-- **E2 — Competitions list page** (only remaining real "coming soon"; needs design + a `competitions` query).
-- **E3 — Per-country abroad gates** (deliberate go-to-market rollout, leave gated).
-- **D5 — Gigs/projects talent-hub copy scrub** (continuing the jargon series).
-- Backend / RLS / edge functions.
-- Visual redesign.
-
----
-
-## 5. Technical notes
-
-- All page imports for E1.1 already exist in `src/pages/app/` — no new files.
-- `MyProjects.tsx` already filters by `auth.uid()` via existing hooks; no policy changes needed.
-- `TalentDirectory.tsx` uses `search_public_talents` RPC — already shipping for employer CRM (memory: *Employer CRM & Sourcing*).
-- `ReviewerCockpit` is gated behind `has_role(_, 'reviewer')` server-side; ungating the route is safe — non-reviewers see the apprentice-onboarding state already built into the page.
-- `ComposePost` media wiring uses the same `storage_upload` pattern as `CoverImageUpload`.
-
----
-
-## 6. Deliverable
-
-One PR-equivalent batch:
-- 1 file changed in `src/App.tsx` (route swaps).
-- 2 files rewritten (`TracksView.tsx`, `MyHubView.tsx`).
-- 1 file edited (`ComposePost.tsx`).
-- 1 small edit in `PublicLeaderboard.tsx`.
-- Optional: 1 admin tab cleanup.
-
-Followed by a verification sweep: `rg -n "coming soon"` should return only the competitions route, per-country abroad gates, and (if we hide rather than wire) the feed AI button — all intentional.
+Ready to execute the institutions/ir carry-over fixes + start `marketing` + `messaging` on approval.

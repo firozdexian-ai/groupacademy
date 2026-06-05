@@ -80,14 +80,14 @@ export function ThreadListItem({ thread, onClick }: Props) {
           {/* Theme Hardening: Replaced dirty inline style calculations with semantic structural utility bindings */}
           <AvatarFallback
             className={cn(
-              "rounded-full text-white font-extrabold flex items-center justify-center w-full h-full shadow-inner",
+              "rounded-full text-primary-foreground font-extrabold flex items-center justify-center w-full h-full shadow-inner",
               isSystem ? "bg-blue-600 dark:bg-blue-500" : "bg-emerald-600 dark:bg-emerald-500",
             )}
           >
             {isSystem ? (
-              <Sparkles className="h-4.5 w-4.5 text-white stroke-[2.2] animate-pulse" />
+              <Sparkles className="h-4.5 w-4.5 text-primary-foreground stroke-[2.2] animate-pulse" />
             ) : (
-              <Bot className="h-4.5 w-4.5 text-white stroke-[2.2]" />
+              <Bot className="h-4.5 w-4.5 text-primary-foreground stroke-[2.2]" />
             )}
           </AvatarFallback>
         </Avatar>

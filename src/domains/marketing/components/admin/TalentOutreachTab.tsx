@@ -80,7 +80,7 @@ export function TalentOutreachTab() {
         </div>
         <Button
           onClick={() => setActiveTab("generator")}
-          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 text-white"
+          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 text-primary-foreground"
         >
           <Bot className="h-4 w-4" /> Trigger Campaign
         </Button>

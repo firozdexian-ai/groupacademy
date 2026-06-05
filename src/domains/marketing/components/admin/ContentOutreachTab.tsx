@@ -369,12 +369,12 @@ export function ContentOutreachTab() {
  className={cn(
  "w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black transition-all border",
  activeTab === ch.id
- ? "bg-primary border-primary text-white shadow-sm"
+ ? "bg-primary border-primary text-primary-foreground shadow-sm"
  : "bg-muted/10 border-border/10 hover:border-primary/20",
  )}
  >
  <div className="flex items-center gap-4">
- <ch.icon className={cn("w-4 h-4", activeTab === ch.id ? "text-white" : ch.color)} />
+ <ch.icon className={cn("w-4 h-4", activeTab === ch.id ? "text-primary-foreground" : ch.color)} />
  <span>{ch.label}</span>
  </div>
  {isShared(ch.id) && <ShieldCheck className="w-4 h-4" />}
@@ -400,7 +400,7 @@ export function ContentOutreachTab() {
  variant="ghost"
  size="icon" aria-label="Copy"
  onClick={() => copyTemplate(activeTab === "linkedin" ? templates.english : templates.bangla)}
- className="absolute bottom-4 right-4 h-10 w-10 rounded-xl hover:bg-primary hover:text-white transition-all shadow-inner border border-border/40"
+ className="absolute bottom-4 right-4 h-10 w-10 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all shadow-inner border border-border/40"
  >
  <Copy className="w-4 h-4" />
  </Button>
@@ -513,7 +513,7 @@ export function ContentOutreachTab() {
  <Badge
  className={cn(
  "rounded-lg font-black text-[9px] px-4 py-1.5 border-none shadow-sm",
- isPitched(talent.id) ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
+ isPitched(talent.id) ? "bg-emerald-500 text-primary-foreground" : "bg-muted text-muted-foreground",
  )}
  >
  {isPitched(talent.id) ? "PITCHED" : "PENDING"}

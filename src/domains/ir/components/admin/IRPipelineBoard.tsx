@@ -134,24 +134,24 @@ export function IRPipelineBoard() {
           label="Momentum"
           value={String(stats.followers)}
           hint="Followers / syndicate"
-          color="text-blue-500"
-          bg="bg-blue-500/10"
+          color="text-accent"
+          bg="bg-accent/10"
         />
         <KpiCard
           icon={<TrendingUp className="h-4 w-4" />}
           label="Weighted Pipeline"
           value={formatUSD(stats.pipelineValue)}
           hint="Σ Check × Probability"
-          color="text-amber-500"
-          bg="bg-amber-500/10"
+          color="text-warning"
+          bg="bg-warning/10"
         />
         <KpiCard
           icon={<Banknote className="h-4 w-4" />}
           label="Term Sheet Phase"
           value={formatUSD(stats.termSheetValue)}
           hint="Capital in final diligence"
-          color="text-emerald-500"
-          bg="bg-emerald-500/10"
+          color="text-success"
+          bg="bg-success/10"
         />
       </div>
 

@@ -213,7 +213,7 @@ export function InvestorsManager() {
  onClick={() => setLinkedinImportOpen(true)}
  className="h-12 px-6 rounded-2xl border font-medium text-xs gap-2 shadow-sm bg-background/50"
  >
- <FileJson2 className="h-4 w-4 text-blue-500" /> Neural Import
+ <FileJson2 className="h-4 w-4 text-primary" /> Neural Import
  </Button>
  <Button
  onClick={() => {
@@ -266,7 +266,7 @@ export function InvestorsManager() {
 
  {/* CORE REGISTRY TABLE */}
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-indigo-500" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary to-accent" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -351,9 +351,9 @@ export function InvestorsManager() {
  <Badge
  className={cn(
  "font-black text-[9px] uppercase italic rounded-full px-3 py-1 border-none",
- investor.subscription_status === "active"
- ? "bg-emerald-500/10 text-emerald-500"
- : "bg-muted text-muted-foreground/60",
+  investor.subscription_status === "active"
+  ? "bg-success/10 text-success"
+  : "bg-muted text-muted-foreground/60",
  )}
  >
  {investor.subscription_status}
@@ -400,7 +400,7 @@ export function InvestorsManager() {
  {/* DEPLOYMENT DIALOG */}
  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
  <DialogContent className="max-w-2xl rounded-2xl border-4 border-border/40 p-0 overflow-hidden bg-background shadow-sm">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary-light to-primary" />
  <div className="p-10 pb-0 text-left">
  <DialogHeader className="mb-8">
  <div className="flex items-center gap-4">
@@ -595,11 +595,11 @@ export function InvestorsManager() {
  {/* NEURAL IMPORT DIALOG */}
  <Dialog open={linkedinImportOpen} onOpenChange={setLinkedinImportOpen}>
  <DialogContent className="max-w-xl rounded-2xl border-4 border-border/40 p-0 overflow-hidden bg-background text-left shadow-sm">
- <div className="h-2 w-full bg-blue-500" />
+ <div className="h-2 w-full bg-primary" />
  <div className="p-10">
  <DialogHeader className="mb-8">
  <div className="flex items-center gap-4">
- <FileJson2 className="h-8 w-8 text-blue-500" />
+ <FileJson2 className="h-8 w-8 text-primary" />
  <div className="space-y-1 text-left">
  <DialogTitle className="text-3xl font-semibold leading-none">
  Neural Import

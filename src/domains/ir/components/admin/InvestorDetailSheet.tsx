@@ -83,7 +83,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
  <Badge
  className={cn(
  "font-black text-[10px] border-none px-3 py-1",
- status === "active" ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground/60",
+ status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground/60",
  )}
  >
  {option?.label || status}
@@ -94,7 +94,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
  return (
  <Sheet open={open} onOpenChange={onOpenChange}>
  <SheetContent className="w-full sm:max-w-xl border-l-2 border-border/40 bg-background/80 p-0 overflow-hidden flex flex-col shadow-sm">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary shrink-0" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary-light to-primary shrink-0" />
 
  {isLoadingInvestor || !investor ? (
  // CTO FIX: Render Skeletons inside the Sheet to preserve the slide-in animation
@@ -201,7 +201,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
  </Badge>
  ))}
  {investor.investment_stage_pref && (
- <Badge className="bg-blue-600/10 text-blue-600 border-none font-semibold text-[9px] rounded-xl px-3 py-1.5 shadow-sm">
+ <Badge className="bg-primary/10 text-primary border-none font-semibold text-[9px] rounded-xl px-3 py-1.5 shadow-sm">
  STAGE: {investor.investment_stage_pref}
  </Badge>
  )}
@@ -242,7 +242,7 @@ export function InvestorDetailSheet({ investorId, open, onOpenChange }: Investor
  className={cn(
  "h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 shadow-sm transition-transform group-hover:scale-110",
  interaction.sentiment === "positive"
- ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+ ? "bg-success/10 text-success border-success/20"
  : interaction.sentiment === "negative"
  ? "bg-destructive/10 text-destructive border-destructive/20"
  : "bg-muted/50 text-muted-foreground border-border/40",

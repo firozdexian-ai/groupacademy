@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getMarketingAnalyticsTelemetry } from "@/domains/marketing/repo/marketingRepo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -87,33 +87,8 @@ export function MarketingAnalyticsTab() {
       const startDate = startOfDay(subDays(new Date(), parseInt(dateRange)));
       const endDate = endOfDay(new Date());
 
-      const [jobClicksRes, jobSharesRes, contentClicksRes, contentSharesRes, topJobsDataRes] = await Promise.all([
-        supabase
-          .from("job_analytics")
-          .select("source")
-          .gte("clicked_at", startDate.toISOString())
-          .lte("clicked_at", endDate.toISOString()),
-        supabase
-          .from("job_share_logs")
-          .select("channel")
-          .gte("shared_at", startDate.toISOString())
-          .lte("shared_at", endDate.toISOString()),
-        supabase
-          .from("content_analytics")
-          .select("source")
-          .gte("clicked_at", startDate.toISOString())
-          .lte("clicked_at", endDate.toISOString()),
-        supabase
-          .from("content_share_logs")
-          .select("channel")
-          .gte("shared_at", startDate.toISOString())
-          .lte("shared_at", endDate.toISOString()),
-        supabase
-          .from("job_analytics")
-          .select("job_id, jobs(id, title, company_name)")
-          .gte("clicked_at", startDate.toISOString())
-          .lte("clicked_at", endDate.toISOString()),
-      ]);
+      const { jobClicks, jobShares, contentClicks, contentShares, topJobsRaw } =
+        await getMarketingAnalyticsTelemetry(startDate.toISOString(), endDate.toISOString());
 
       const aggregate = (arr: any[], field: string): AnalyticsRecord[] => {
         const counts = arr.reduce(
@@ -129,7 +104,7 @@ export function MarketingAnalyticsTab() {
           .sort((a, b) => b.count - a.count);
       };
 
-      const jobPulseMap = (topJobsDataRes.data || []).reduce((acc: Record<string, TopJobRecord>, item: any) => {
+      const jobPulseMap = (topJobsRaw || []).reduce((acc: Record<string, TopJobRecord>, item: any) => {
         if (item.jobs) {
           const id = item.jobs.id;
           if (!acc[id]) acc[id] = { id, title: item.jobs.title, company_name: item.jobs.company_name, clicks: 0 };
@@ -143,16 +118,16 @@ export function MarketingAnalyticsTab() {
         .slice(0, 5);
 
       setAnalyticsData({
-        jobClicks: aggregate(jobClicksRes.data || [], "source"),
-        jobShares: aggregate(jobSharesRes.data || [], "channel"),
-        contentClicks: aggregate(contentClicksRes.data || [], "source"),
-        contentShares: aggregate(contentSharesRes.data || [], "channel"),
+        jobClicks: aggregate(jobClicks || [], "source"),
+        jobShares: aggregate(jobShares || [], "channel"),
+        contentClicks: aggregate(contentClicks || [], "source"),
+        contentShares: aggregate(contentShares || [], "channel"),
         topJobs: sortedTopJobs,
         totals: {
-          jobClicks: jobClicksRes.data?.length || 0,
-          jobShares: jobSharesRes.data?.length || 0,
-          contentClicks: contentClicksRes.data?.length || 0,
-          contentShares: contentSharesRes.data?.length || 0,
+          jobClicks: jobClicks?.length || 0,
+          jobShares: jobShares?.length || 0,
+          contentClicks: contentClicks?.length || 0,
+          contentShares: contentShares?.length || 0,
         },
       });
     } catch (error) {
@@ -206,7 +181,7 @@ export function MarketingAnalyticsTab() {
             variant="outline"
             size="icon" aria-label="Refresh"
             onClick={loadExecutiveTelemetry}
-            className="h-12 w-12 rounded-xl border-2 hover:bg-orange-500 hover:text-white transition-all text-orange-500 border-orange-500/20 bg-orange-500/5"
+            className="h-12 w-12 rounded-xl border-2 hover:bg-orange-500 hover:text-primary-foreground transition-all text-orange-500 border-orange-500/20 bg-orange-500/5"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
