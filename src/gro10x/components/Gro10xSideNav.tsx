@@ -5,12 +5,9 @@ import {
   Building2,
   Activity,
   GraduationCap,
-  Bot,
   Users,
   Search,
-  Package,
   CreditCard,
-  Briefcase,
 } from "lucide-react";
 
 const primary = [
@@ -22,11 +19,8 @@ const primary = [
 ];
 
 const secondary = [
-  { to: "/gro10x/agents", label: "Agents", Icon: Bot },
   { to: "/gro10x/crm", label: "CRM", Icon: Users },
   { to: "/gro10x/sourcing", label: "Sourcing", Icon: Search },
-  { to: "/gro10x/offerings", label: "Offerings", Icon: Package },
-  { to: "/gro10x/learn/ops", label: "Learning Ops", Icon: Briefcase },
   { to: "/gro10x/billing", label: "Billing", Icon: CreditCard },
 ];
 
