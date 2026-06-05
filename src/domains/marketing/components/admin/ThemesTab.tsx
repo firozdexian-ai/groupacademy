@@ -47,7 +47,7 @@ export function ThemesTab() {
  </div>
  <Button
  onClick={() => { setDraft(defaultDraft); setOpen(true); }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-fuchsia-500/20 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-fuchsia-500/20 bg-fuchsia-600 hover:bg-fuchsia-700 text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Inject Theme
  </Button>
@@ -220,7 +220,7 @@ export function ThemesTab() {
  </div>
  <Button
  onClick={() => upsertTheme.mutate(draft, { onSuccess: () => setOpen(false) })}
- className="h-14 rounded-xl font-medium bg-fuchsia-600 hover:bg-fuchsia-700 text-white w-full"
+ className="h-14 rounded-xl font-medium bg-fuchsia-600 hover:bg-fuchsia-700 text-primary-foreground w-full"
  >
  Enforce Theme
  </Button>

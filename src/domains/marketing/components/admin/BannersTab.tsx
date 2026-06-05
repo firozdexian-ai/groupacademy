@@ -475,9 +475,9 @@ export const BannerManager = () => {
                           className={cn(
                             "rounded-lg font-black uppercase text-[8px] tracking-widest px-3 py-1 border-none shadow-sm",
                             banner.placement === "hero"
-                              ? "bg-primary text-white"
+                              ? "bg-primary text-primary-foreground"
                               : banner.placement === "learning"
-                                ? "bg-amber-500 text-white"
+                                ? "bg-amber-500 text-primary-foreground"
                                 : "bg-muted text-muted-foreground",
                           )}
                         >

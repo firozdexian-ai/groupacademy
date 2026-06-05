@@ -366,7 +366,7 @@ export function ServiceOutreachTab() {
  </div>
  <div className="grid grid-cols-2 gap-4">
  <Button
- className="h-16 rounded-2xl font-semibold uppercase italic text-sm gap-3 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+ className="h-16 rounded-2xl font-semibold uppercase italic text-sm gap-3 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-primary-foreground"
  onClick={() => handleSocialShare(activeTab)}
  >
  <ExternalLink className="h-5 w-5" /> Launch {activeTab.toUpperCase()}
@@ -420,7 +420,7 @@ export function ServiceOutreachTab() {
  </div>
  </div>
  <Button
- className="w-full h-16 rounded-2xl font-semibold uppercase italic text-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+ className="w-full h-16 rounded-2xl font-semibold uppercase italic text-sm bg-emerald-600 hover:bg-emerald-700 text-primary-foreground"
  onClick={() => {
  if (customChannel) recordShare(customChannel);
  }}

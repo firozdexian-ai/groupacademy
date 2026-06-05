@@ -156,7 +156,7 @@ export const SalaryAnalysisCodeGenerator = ({ leadEmail, leadName }: SalaryAnaly
  variant="outline"
  size="icon" aria-label="Confirm"
  onClick={handleCopy}
- className="h-16 w-16 rounded-2xl border hover:bg-primary hover:text-white transition-all shadow-md"
+ className="h-16 w-16 rounded-2xl border hover:bg-primary hover:text-primary-foreground transition-all shadow-md"
  >
  {copied ? <Check className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
  </Button>
