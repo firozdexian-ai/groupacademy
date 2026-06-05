@@ -35,18 +35,13 @@ export function JobsOutreachTab() {
 
   useEffect(() => {
     const fetchActiveNodes = async () => {
-      const { data } = await supabase
-        .from("jobs")
-        .select("id,title,company_name,location,job_type,application_type,application_url,application_email")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
+      const data = await listActiveJobsForOutreach(100);
       const list = (data || []) as JobOption[];
       setJobs(list);
       if (list.length && !selectedJobId) setSelectedJobId(list[0].id);
       setLoading(false);
     };
+
 
     fetchActiveNodes();
   }, []);
