@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { insertJobsBulk } from "@/domains/jobs/repo/jobsRepo";
+import { insertJobsBulk, listExistingJobSourceUrls } from "@/domains/jobs/repo/jobsRepo";
+import { listCompaniesByNames, insertCompaniesBulk } from "@/domains/companies/repo/companiesRepo";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
