@@ -8,6 +8,7 @@ import { useActiveCompany } from "@/gro10x/hooks/useActiveCompany";
 import { GRO10X_BG, GRO10X_TEXT, GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { Gro10xLoading } from "@/gro10x/components/Gro10xLoading";
 
 export default function Gro10xSourcingLists() {
   const { companyId } = useActiveCompany();
@@ -43,7 +44,7 @@ export default function Gro10xSourcingLists() {
         </Button>
       </div>
 
-      {isLoading && <p className={`text-sm ${GRO10X_MUTED}`}>Loading…</p>}
+      {isLoading && <Gro10xLoading label="Loading lists…" />}
 
       <div className="space-y-2">
         {(lists ?? []).map((l) => (

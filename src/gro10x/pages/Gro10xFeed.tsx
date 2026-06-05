@@ -12,6 +12,7 @@ import {
 } from "@/domains/companies/repo/companiesRepo";
 import { listAudienceFeedPosts, insertFeedPost } from "@/domains/feed/repo/feedRepo";
 import { getTalentMiniProfileByUser } from "@/domains/talent/repo/talentRepo";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 interface FeedPost {
   id: string;
@@ -326,7 +327,7 @@ export default function Gro10xFeed() {
 
       {/* Feed */}
       <section className="px-4 mt-4 pb-6">
-        {loading && <p className="text-center text-sm text-slate-400 py-6">Loading feed…</p>}
+        {loading && <Gro10xLoading label="Loading feed…" />}
         {!loading && posts.length === 0 && (
           <div className="text-center text-sm text-slate-400 py-8">
             No posts yet.{" "}

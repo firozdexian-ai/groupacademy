@@ -13,6 +13,7 @@ import { getTalentCountryByUserId } from "@/domains/talent/repo/talentRepo";
 import { creditsToUSD, formatMoney, formatUSD } from "@/lib/currency";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { TelegramTopUpModal } from "../components/TelegramTopUpModal";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 const TOPUP_PACKS = [
   { credits: 100, popular: false },
@@ -62,7 +63,11 @@ export default function Gro10xBilling() {
   };
 
   if (isLoading) {
-    return <div className="max-w-md md:max-w-5xl mx-auto p-6 text-center text-slate-400 text-sm">Loading billing…</div>;
+    return (
+      <div className="max-w-md md:max-w-5xl mx-auto">
+        <Gro10xLoading label="Loading billing…" />
+      </div>
+    );
   }
 
   return (

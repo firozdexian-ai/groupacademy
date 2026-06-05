@@ -20,6 +20,7 @@ import { GRO10X_MUTED } from "../lib/tokens";
 import { Plus, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { TalentPipelinePanel } from "../components/TalentPipelinePanel";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 type CrmTab = "sales" | "talent";
 
@@ -107,7 +108,7 @@ export default function Gro10xCRM() {
     );
   }
 
-  if (isLoading) return <div className="p-6 text-center text-sm text-slate-400">Loading…</div>;
+  if (isLoading) return <Gro10xLoading label="Loading CRM…" />;
   if (!companyId) {
     return (
       <div className="max-w-md md:max-w-5xl mx-auto p-6 text-center">

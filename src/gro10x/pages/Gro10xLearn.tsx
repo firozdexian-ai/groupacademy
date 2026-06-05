@@ -15,6 +15,7 @@ import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { useB2BCatalog, useMyAssignments } from "../hooks/useCourseAssignments";
 import { useMyTrackAssignments } from "@/domains/learning";
 import { TrackProgressRing } from "@/domains/learning/components/talent/TrackProgressRing";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 export default function Gro10xLearn() {
   const catalog = useB2BCatalog();
@@ -93,7 +94,7 @@ export default function Gro10xLearn() {
         </div>
 
         {assignments.isLoading ? (
-          <p className="text-xs text-slate-500">Loading…</p>
+          <Gro10xLoading label="Loading assignments…" />
         ) : !assignments.data || assignments.data.length === 0 ? (
           <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4 text-center`}>
             <p className="text-xs text-slate-400">
@@ -146,7 +147,7 @@ export default function Gro10xLearn() {
         </h2>
 
         {catalog.isLoading ? (
-          <p className="text-xs text-slate-500">Loading…</p>
+          <Gro10xLoading label="Loading catalog…" />
         ) : !catalog.data || catalog.data.length === 0 ? (
           <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4 text-center`}>
             <p className="text-xs text-slate-400">

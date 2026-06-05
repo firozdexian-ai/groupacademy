@@ -5,6 +5,7 @@ import { useGro10xThreads } from "../hooks/useGro10xThreads";
 import { getAgentMeta } from "../lib/agents";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 function formatTime(iso: string | null): string {
   if (!iso) return "";
@@ -80,9 +81,7 @@ export default function Gro10xInbox() {
         </div>
       </header>
 
-      {loading && (
-        <div className="px-4 py-8 text-center text-sm text-slate-400">Loading your inbox…</div>
-      )}
+      {loading && <Gro10xLoading label="Loading your inbox…" />}
 
       {!loading && !companyId && (
         <div className="px-4 py-10 text-center">
