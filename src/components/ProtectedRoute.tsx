@@ -41,6 +41,21 @@ export function ProtectedRoute({
   const isMountedRef = useRef<boolean>(true);
   const auditLockBusyRef = useRef<boolean>(false);
 
+  // Latest-value refs so the audit/redirect callbacks stay reference-stable
+  // even when child pages call `setSearchParams` / `navigate` inside the same
+  // protected route. Previously, `location` in deps recreated callbacks on
+  // every URL change, re-running the audit and flashing the loader, which
+  // unmounted child pages mid-render (e.g. /dashboard/chat got stuck in a
+  // "Verifying Core Clearance Tokens…" / "Syncing thread history…" loop).
+  const locationRef = useRef(location);
+  locationRef.current = location;
+  const authTypeRef = useRef(authType);
+  authTypeRef.current = authType;
+  const requireAdminRef = useRef(requireAdmin);
+  requireAdminRef.current = requireAdmin;
+  const requireAnyAdminRoleRef = useRef(requireAnyAdminRole);
+  requireAnyAdminRoleRef.current = requireAnyAdminRole;
+
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [fault, setFault] = useState<string | null>(null);
@@ -68,14 +83,15 @@ export function ProtectedRoute({
         }
       }
 
-      const returnUrlStr = location.pathname + location.search;
-      const ingressNodeStr = authType === "classic" ? "/auth/classic" : "/auth";
+      const loc = locationRef.current;
+      const returnUrlStr = loc.pathname + loc.search;
+      const ingressNodeStr = authTypeRef.current === "classic" ? "/auth/classic" : "/auth";
       const compiledRedirectDestinationStr = `${ingressNodeStr}?returnTo=${encodeURIComponent(returnUrlStr)}`;
 
       trackEvent("protected_route_redirect_handshake", { destination: compiledRedirectDestinationStr });
       navigate(compiledRedirectDestinationStr, { replace: true });
     },
-    [navigate, location, authType, queryClient],
+    [navigate, queryClient],
   );
 
   const executeFirewallAudit = useCallback(async () => {
@@ -90,7 +106,6 @@ export function ProtectedRoute({
     let globalTimerTrackerId: NodeJS.Timeout | null = null;
 
     try {
-      // Phase 1: Establish self-clearing network timeout barrier promise structures
       const diagnosticTimeoutPromise = new Promise<never>((_, rejectNode) => {
         globalTimerTrackerId = setTimeout(() => {
           rejectNode(new Error("SYNC_TIMEOUT"));
@@ -116,8 +131,7 @@ export function ProtectedRoute({
         return;
       }
 
-      // Phase 2: Structural Institutional Role Validation Checking
-      if (requireAdmin || requireAnyAdminRole) {
+      if (requireAdminRef.current || requireAnyAdminRoleRef.current) {
         const userRolesPayloadRows = await listUserRoles(sessionPayload.user.id);
 
         const flattenedActiveRolesArray = (userRolesPayloadRows || []).map((roleRowItem) => roleRowItem.role);
@@ -126,14 +140,14 @@ export function ProtectedRoute({
           mappedRoles: flattenedActiveRolesArray,
         });
 
-        if (requireAdmin && !flattenedActiveRolesArray.includes("admin")) {
+        if (requireAdminRef.current && !flattenedActiveRolesArray.includes("admin")) {
           toast.error("You don't have access to this area.");
           navigate("/app/learning", { replace: true });
           return;
         }
 
         if (
-          requireAnyAdminRole &&
+          requireAnyAdminRoleRef.current &&
           !flattenedActiveRolesArray.some((roleKey) => (ADMIN_ROLES as readonly string[]).includes(roleKey))
         ) {
           toast.error("You don't have access to this area.");
@@ -174,8 +188,12 @@ export function ProtectedRoute({
         setIsChecking(false);
       }
     }
-  }, [requireAdmin, requireAnyAdminRole, temporalThresholdNum, executeRedirectHandshake, navigate]);
+  }, [temporalThresholdNum, executeRedirectHandshake, navigate]);
 
+  // Audit runs once on mount and only re-runs on real auth lifecycle changes.
+  // Route or search-param changes inside a protected page MUST NOT retrigger
+  // it — that previously flashed the verification loader and unmounted the
+  // page below on every URL update.
   useEffect(() => {
     executeFirewallAudit();
 
@@ -194,7 +212,8 @@ export function ProtectedRoute({
     return () => {
       subscription.unsubscribe();
     };
-  }, [executeFirewallAudit, executeRedirectHandshake]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // =========================================================================
   // INTERFACE PROTOCOL RENDER A: RECTILINEAR SECURE HUB LOADER PROGRESS FILL
