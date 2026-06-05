@@ -243,7 +243,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  return (
  <Dialog open={open} onOpenChange={onOpenChange}>
  <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col p-0 border-4 border-border/40 bg-background/95 shadow-sm rounded-2xl">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-primary" />
 
  <DialogHeader className="p-8 pb-4 text-left">
  <div className="flex justify-between items-center">
@@ -327,7 +327,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
  />
  <button
  onClick={() => updateField("company_logo_url", "")}
- className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 shadow-lg"
+ className="absolute -top-2 -right-2 bg-destructive text-primary-foreground rounded-full p-1 shadow-lg"
  >
  <X className="h-3 w-3" />
  </button>

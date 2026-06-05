@@ -30,8 +30,8 @@ export function LearningWebinarsTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-pink-500">
- <CalendarDays className="h-8 w-8 text-pink-500 fill-pink-500/20" />
+ <div className="flex items-center gap-3 text-destructive">
+ <CalendarDays className="h-8 w-8 text-destructive fill-destructive/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Webinars
  </h2>
@@ -45,14 +45,14 @@ export function LearningWebinarsTab() {
  setDraft({ status: "draft", content_type: "live_webinar" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-pink-500/20 bg-pink-600 hover:bg-pink-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-pink-500/20 bg-destructive hover:bg-destructive text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Inject Webinar
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-pink-400 via-rose-500 to-pink-600" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-destructive via-destructive to-destructive" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -85,11 +85,11 @@ export function LearningWebinarsTab() {
  </TableRow>
  ) : (
  webinars.map((row) => (
- <TableRow key={row.id} className="group hover:bg-pink-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-destructive/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <Video className="h-3 w-3 text-pink-500" />
+ <Video className="h-3 w-3 text-destructive" />
  </div>
  <span className="font-black text-sm font-medium">{row.title}</span>
  </div>
@@ -104,8 +104,8 @@ export function LearningWebinarsTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.status === "published"
- ? "bg-emerald-500/10 text-emerald-600"
- : "bg-amber-500/10 text-amber-600",
+ ? "bg-success/10 text-success"
+ : "bg-warning/10 text-warning",
  )}
  >
  {row.status}
@@ -120,7 +120,7 @@ export function LearningWebinarsTab() {
  variant="ghost"
  size="icon" aria-label="Manage sessions"
  onClick={() => setSessionsRow(row)}
- className="hover:bg-pink-500/10 hover:text-pink-600"
+ className="hover:bg-destructive/10 hover:text-destructive"
  title="Manage sessions"
  >
  <CalendarClock className="h-4 w-4" />
@@ -132,7 +132,7 @@ export function LearningWebinarsTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-pink-500/10 hover:text-pink-600"
+ className="hover:bg-destructive/10 hover:text-destructive"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -160,7 +160,7 @@ export function LearningWebinarsTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-pink-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-destructive flex items-center gap-2">
  <CalendarDays className="h-6 w-6" /> Inject Webinar
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -186,12 +186,12 @@ export function LearningWebinarsTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent>
- <SelectItem value="draft" className="font-bold text-xs text-amber-500">
+ <SelectItem value="draft" className="font-bold text-xs text-warning">
  Draft / Scheduled
  </SelectItem>
  <SelectItem
  value="published"
- className="font-bold text-xs text-emerald-500"
+ className="font-bold text-xs text-success"
  >
  Published
  </SelectItem>
@@ -206,7 +206,7 @@ export function LearningWebinarsTab() {
  delete payload.status;
  upsertContent.mutate(payload, { onSuccess: () => setOpen(false) });
  }}
- className="h-14 rounded-xl font-medium bg-pink-600 hover:bg-pink-700 text-white"
+ className="h-14 rounded-xl font-medium bg-destructive hover:bg-destructive text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Authorize Event
  </Button>
@@ -215,7 +215,7 @@ export function LearningWebinarsTab() {
  <Dialog open={!!sessionsRow} onOpenChange={(o) => !o && setSessionsRow(null)}>
  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 border border-border/60">
  <DialogHeader>
- <DialogTitle className="text-xl font-medium italic tracking-tight text-pink-500 flex items-center gap-2">
+ <DialogTitle className="text-xl font-medium italic tracking-tight text-destructive flex items-center gap-2">
  <CalendarClock className="h-5 w-5" /> Sessions — {sessionsRow?.title}
  </DialogTitle>
  </DialogHeader>

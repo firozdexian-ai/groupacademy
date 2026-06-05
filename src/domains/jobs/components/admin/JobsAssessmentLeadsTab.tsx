@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listCareerAssessmentLeads } from "@/domains/jobs/repo/jobsRepo";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "@/platform/admin/chrome/DashboardSkeleton";
@@ -48,11 +48,11 @@ interface AssessmentLead {
 }
 
 const readinessColors: Record<string, string> = {
-  beginner: "bg-red-500/10 text-red-600 border-red-200",
-  developing: "bg-orange-500/10 text-orange-600 border-orange-200",
-  competent: "bg-amber-500/10 text-amber-600 border-amber-200",
-  proficient: "bg-blue-500/10 text-blue-600 border-blue-200",
-  expert: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+  beginner: "bg-destructive/10 text-destructive border-destructive",
+  developing: "bg-warning/10 text-warning border-warning",
+  competent: "bg-warning/10 text-warning border-warning",
+  proficient: "bg-primary/10 text-primary border-primary",
+  expert: "bg-success/10 text-success border-success",
 };
 
 const PAGE_SIZE = 20;
@@ -76,38 +76,15 @@ export function JobsAssessmentLeadsTab() {
     setLoading(true);
     setError(null);
     try {
-      const {
-        data,
-        error: queryError,
-        count,
-      } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("career_assessments")
-            .select(
-              `
-              id,
-              full_name,
-              email,
-              phone,
-              percentage,
-              readiness_level,
-              created_at,
-              profession_category:profession_categories(name)
-            `,
-              { count: "exact" },
-            )
-            .order("created_at", { ascending: false })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1),
-        ),
+      const { rows, count } = await withTimeout(
+        listCareerAssessmentLeads({ page, pageSize: PAGE_SIZE }),
         TIMEOUTS.DEFAULT,
         "Registry Link Timeout",
       );
-
-      if (queryError) throw queryError;
-      setLeads(data || []);
-      setTotalCount(count || 0);
+      setLeads(rows);
+      setTotalCount(count);
     } catch (err: any) {
+
       console.error("Registry Sync Fault:", err);
       setError(err.message || "Failed to synchronize assessment leads");
     } finally {

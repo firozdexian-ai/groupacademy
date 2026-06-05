@@ -94,7 +94,7 @@ function Sparkline({ points = [] }: { points: Array<{ date: string; quiz: number
     <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="h-7 w-full overflow-visible select-none transform-gpu">
       <path
         d={svgCalculatedPathString}
-        className="stroke-cyan-500 dark:stroke-cyan-400 fill-none"
+        className="stroke-accent dark:stroke-accent fill-none"
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -223,7 +223,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
                   {totalDueNowItemsCount} review due
                 </span>
               ) : (
-                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold shrink-0 uppercase tracking-wider text-[9px]">
+                <span className="text-success dark:text-success font-extrabold shrink-0 uppercase tracking-wider text-[9px]">
                   All caught up
                 </span>
               )}
@@ -277,7 +277,7 @@ export function AdaptiveSnapshotCard({ moduleId, contentId, compact = false, cla
                         </span>
                       )}
                     </span>
-                    <span className="font-bold text-[11px] tracking-wide text-rose-600 dark:text-rose-400 bg-rose-500/5 border border-rose-500/10 px-1.5 py-0.5 rounded shadow-sm tabular-nums shrink-0">
+                    <span className="font-bold text-[11px] tracking-wide text-destructive dark:text-destructive bg-destructive/5 border border-destructive/10 px-1.5 py-0.5 rounded shadow-sm tabular-nums shrink-0">
                       {Math.round(weakNodeItem.mastery * 100)}%
                     </span>
                   </Link>

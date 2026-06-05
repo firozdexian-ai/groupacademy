@@ -22,9 +22,9 @@ const pct = (v: number | null | undefined) => (v === null || v === undefined ? "
 
 const masteryTone = (v: number | null) => {
   if (v === null) return "text-muted-foreground";
-  if (v < 0.4) return "text-rose-600 dark:text-rose-400";
-  if (v < 0.7) return "text-amber-600 dark:text-amber-400";
-  return "text-emerald-600 dark:text-emerald-400";
+  if (v < 0.4) return "text-destructive dark:text-destructive";
+  if (v < 0.7) return "text-warning dark:text-warning";
+  return "text-success dark:text-success";
 };
 
 export interface ItemBankAnalyticsPanelProps {
@@ -103,16 +103,16 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
 
   if (error) {
     return (
-      <Card className="border border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full">
+      <Card className="border border-destructive/20 bg-destructive/5 rounded-2xl text-left w-full max-w-full">
         <CardContent className="p-5 text-center space-y-4 select-none">
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center mx-auto shadow-inner">
-            <AlertTriangle className="h-5 w-5 text-rose-500 stroke-[2.2]" />
+          <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto shadow-inner">
+            <AlertTriangle className="h-5 w-5 text-destructive stroke-[2.2]" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+            <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
               Unable to load analytics
             </p>
-            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
+            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-destructive/10 mt-1.5">
               {error.message || "Something went wrong. Please refresh the page to try again."}
             </p>
           </div>
@@ -335,7 +335,7 @@ function Stat({
       className={cn(
         "rounded-xl border p-3 py-2.5 text-left w-full min-w-0 flex flex-col justify-center transition-colors shadow-sm",
         tone === "warn"
-          ? "border-rose-500/20 bg-rose-500/[0.01] dark:bg-rose-500/[0.002]"
+          ? "border-destructive/20 bg-destructive/[0.01] dark:bg-destructive/[0.002]"
           : "border-border/40 bg-card/60 backdrop-blur-md",
       )}
     >
@@ -345,7 +345,7 @@ function Stat({
       <p
         className={cn(
           "text-base sm:text-lg font-black tracking-tight tabular-nums leading-none pt-0.5",
-          tone === "warn" && "text-rose-600 dark:text-rose-400",
+          tone === "warn" && "text-destructive dark:text-destructive",
         )}
       >
         {value}
@@ -364,7 +364,7 @@ function FlagBadges({ flags }: { flags: string[] }) {
         <Badge
           key={flagKeyItem}
           variant="destructive"
-          className="text-[9px] font-extrabold h-4.5 px-1.5 rounded uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm leading-none flex items-center shrink-0"
+          className="text-[9px] font-extrabold h-4.5 px-1.5 rounded uppercase tracking-wider bg-destructive/10 text-destructive dark:text-destructive border border-destructive/20 shadow-sm leading-none flex items-center shrink-0"
         >
           {FLAG_LABEL[flagKeyItem] ?? flagKeyItem?.replace(/_/g, " ")}
         </Badge>
@@ -380,9 +380,9 @@ function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
     normalizedPValue === null
       ? "text-muted-foreground/60"
       : normalizedPValue < 0.3
-        ? "text-rose-600 dark:text-rose-400"
+        ? "text-destructive dark:text-destructive"
         : normalizedPValue > 0.9
-          ? "text-amber-600 dark:text-amber-400"
+          ? "text-warning dark:text-warning"
           : "text-foreground/90";
 
   const isAnomalousNodeFlagged = Array.isArray(q.needs_review) && q.needs_review.filter(Boolean).length > 0;
@@ -454,10 +454,10 @@ function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => v
     normalizedOverallScore === null
       ? "text-muted-foreground/60"
       : normalizedOverallScore < 0.4
-        ? "text-rose-600 dark:text-rose-400"
+        ? "text-destructive dark:text-destructive"
         : normalizedOverallScore < 0.7
-          ? "text-amber-600 dark:text-amber-400"
-          : "text-emerald-600 dark:text-emerald-400";
+          ? "text-warning dark:text-warning"
+          : "text-success dark:text-success";
 
   const isAnomalousNodeFlagged = Array.isArray(s.needs_review) && s.needs_review.filter(Boolean).length > 0;
 

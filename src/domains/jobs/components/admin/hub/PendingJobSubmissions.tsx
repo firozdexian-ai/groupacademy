@@ -84,7 +84,7 @@ export function PendingJobSubmissions() {
 
   return (
     <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden text-left animate-in fade-in duration-500">
-      <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-primary to-amber-400" />
+      <div className="h-2 w-full bg-gradient-to-r from-warning via-primary to-warning" />
       <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-1">

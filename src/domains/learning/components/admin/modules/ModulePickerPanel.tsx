@@ -148,7 +148,7 @@ export default function ModulePickerPanel({ contentId: contentIdProp, onClose }:
                     {c.content_type === "recorded_course" ? "Course" : "Webinar"}
                   </Badge>
                   {c.is_published ? (
-                    <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                    <Badge className="text-[9px] bg-success/10 text-success border-success/30">
                       Published
                     </Badge>
                   ) : (

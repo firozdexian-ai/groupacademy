@@ -78,10 +78,10 @@ export function QuickActionCard({ icon: Icon, label, count, path, description, c
           {count !== undefined && count > 0 ? (
             <div className="flex items-center gap-1.5 mt-1.5 select-none leading-none tabular-nums">
               <div className="relative h-2 w-2 shrink-0">
-                <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </div>
-              <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-wide pt-0.5">
+              <p className="text-[10px] font-semibold text-success dark:text-success tracking-wide pt-0.5">
                 {count.toLocaleString()} Tasks Open
               </p>
             </div>

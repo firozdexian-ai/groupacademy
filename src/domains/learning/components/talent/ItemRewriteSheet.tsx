@@ -165,7 +165,7 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags = [],
                 <Badge
                   key={flagItem}
                   variant="destructive"
-                  className="text-[9px] font-extrabold px-2 h-5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm uppercase tracking-wide leading-none flex items-center shrink-0"
+                  className="text-[9px] font-extrabold px-2 h-5 rounded bg-destructive/10 text-destructive dark:text-destructive border border-destructive/20 shadow-sm uppercase tracking-wide leading-none flex items-center shrink-0"
                 >
                   Review Trigger: {flagItem?.replace(/_/g, " ")}
                 </Badge>
@@ -209,10 +209,10 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags = [],
             )}
 
             {error && !loading && (
-              <Card className="border border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full shrink-0">
+              <Card className="border border-destructive/20 bg-destructive/5 rounded-2xl text-left w-full max-w-full shrink-0">
                 <CardContent className="p-5 text-center space-y-4 select-none">
-                  <AlertTriangle className="h-5 w-5 mx-auto text-rose-500 stroke-[2.2]" />
-                  <p className="text-xs font-semibold text-muted-foreground/80 italic select-text selection:bg-rose-500/10 leading-normal">
+                  <AlertTriangle className="h-5 w-5 mx-auto text-destructive stroke-[2.2]" />
+                  <p className="text-xs font-semibold text-muted-foreground/80 italic select-text selection:bg-destructive/10 leading-normal">
                     {error}
                   </p>
                   <Button
@@ -448,7 +448,7 @@ function TranslatePanel({ kind, itemId }: { kind: "quiz" | "scenario"; itemId: s
           <Card
             className={cn(
               "border border-border/40 bg-card rounded-2xl shadow-sm overflow-hidden w-full min-w-0 text-left",
-              !isJsonTextStringValid && "border-rose-500/30 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]",
+              !isJsonTextStringValid && "border-destructive/30 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]",
             )}
           >
             <CardContent className="p-4 space-y-3.5 w-full min-w-0">
@@ -479,7 +479,7 @@ function TranslatePanel({ kind, itemId }: { kind: "quiz" | "scenario"; itemId: s
                 className={cn(
                   "text-xs font-mono font-semibold min-h-[160px] max-h-64 p-3.5 leading-relaxed bg-muted/20 border border-border/30 rounded-xl resize-y focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/40 text-foreground/90 select-text",
                   !isJsonTextStringValid &&
-                    "focus-visible:ring-rose-500/30 focus-visible:border-rose-500/40 text-rose-700 dark:text-rose-400 font-bold",
+                    "focus-visible:ring-destructive/30 focus-visible:border-destructive/40 text-destructive dark:text-destructive font-bold",
                 )}
               />
 
@@ -525,7 +525,7 @@ function QuizPreview({ s }: { s: QuizSuggestion }) {
               className={cn(
                 "p-2.5 rounded-xl border flex items-start gap-2.5 break-all leading-tight",
                 isCorrectIndexNode
-                  ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                  ? "bg-success/5 border-success/20 text-success dark:text-success font-extrabold"
                   : "bg-muted/10 border-border/20 text-muted-foreground/90 font-medium",
               )}
             >
@@ -533,7 +533,7 @@ function QuizPreview({ s }: { s: QuizSuggestion }) {
                 className={cn(
                   "h-5 w-5 rounded-md flex items-center justify-center border text-[10px] font-mono shrink-0 select-none",
                   isCorrectIndexNode
-                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
+                    ? "bg-success/10 border-success/20 text-success"
                     : "bg-background border-border/40 text-muted-foreground",
                 )}
               >
@@ -639,7 +639,7 @@ export function QuizEditor({ draft, setDraft }: { draft: any; setDraft: (d: any)
                   className={cn(
                     "w-8 h-8 rounded-lg font-mono font-extrabold text-xs shrink-0 select-none p-0 transition-transform active:scale-90 cursor-pointer shadow-sm border border-border/60",
                     isTargetCorrectOptionNode &&
-                      "bg-emerald-600 hover:bg-emerald-600 border-transparent text-white shadow-inner",
+                      "bg-success hover:bg-success border-transparent text-primary-foreground shadow-inner",
                   )}
                   onClick={() => {
                     trackEvent("ai_calibration_editor_key_marked", { correctIdx: index });

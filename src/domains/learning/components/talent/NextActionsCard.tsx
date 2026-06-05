@@ -16,10 +16,10 @@ const ICON: Record<NextActionType, React.ComponentType<{ className?: string }>> 
 };
 
 const TONE: Record<NextActionType, string> = {
-  review_due: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
-  practice_weakness: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
+  review_due: "text-destructive dark:text-destructive bg-destructive/10 border-destructive/20",
+  practice_weakness: "text-warning dark:text-warning bg-warning/10 border-warning/20",
   take_scenario: "text-primary bg-primary/10 border-primary/20",
-  finish_module: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  finish_module: "text-success dark:text-success bg-success/10 border-success/20",
 };
 
 /**

@@ -239,13 +239,13 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label className="text-[10px] font-black text-emerald-500 ml-1">
+                      <Label className="text-[10px] font-black text-success ml-1">
                         Resolution (Back)
                       </Label>
                       <Textarea
                         value={card.back}
                         onChange={(e) => updateLogicPair(card.id, "back", e.target.value)}
-                        className="min-h-[120px] rounded-2xl border-2 bg-muted/5 font-medium italic focus-visible:ring-emerald-500/20 p-6"
+                        className="min-h-[120px] rounded-2xl border-2 bg-muted/5 font-medium italic focus-visible:ring-success/20 p-6"
                         placeholder="Enter resolution data..."
                       />
                     </div>
@@ -283,7 +283,7 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
                 onClick={copyPayload}
                 className="h-10 rounded-xl px-6 border-2 font-black uppercase text-[10px] gap-2"
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Synced" : "Sync Payload"}
               </Button>
             </CardHeader>
@@ -369,16 +369,16 @@ export function FlashcardEditor({ initialCards = [], onChange, onSave }: Flashca
 
                   {/* Back Face */}
                   <div
-                    className="absolute inset-0 backface-hidden rounded-[48px] border-4 border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-background to-emerald-500/5 flex flex-col items-center justify-center p-12 text-center shadow-sm rotate-y-180"
+                    className="absolute inset-0 backface-hidden rounded-[48px] border-4 border-success/20 bg-gradient-to-br from-success/10 via-background to-success/5 flex flex-col items-center justify-center p-12 text-center shadow-sm rotate-y-180"
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
-                    <div className="absolute top-8 left-8 h-10 w-10 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center">
-                      <Check className="h-5 w-5 text-emerald-500" />
+                    <div className="absolute top-8 left-8 h-10 w-10 rounded-xl bg-success/10 border-2 border-success/20 flex items-center justify-center">
+                      <Check className="h-5 w-5 text-success" />
                     </div>
-                    <Badge className="mb-6 bg-emerald-500 text-white font-black tracking-[0.3em] uppercase text-[9px] border-none">
+                    <Badge className="mb-6 bg-success text-primary-foreground font-black tracking-[0.3em] uppercase text-[9px] border-none">
                       Verified_Resolution
                     </Badge>
-                    <p className="text-3xl font-black tracking-tight italic text-emerald-600 uppercase">
+                    <p className="text-3xl font-black tracking-tight italic text-success uppercase">
                       {validCards[previewIndex]?.back}
                     </p>
                   </div>

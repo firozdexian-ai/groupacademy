@@ -44,10 +44,10 @@ export function OpsTracksTab() {
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-slate-500">Loading…</p>
+        <p className="text-xs text-muted-foreground">Loading…</p>
       ) : !tracks || tracks.length === 0 ? (
-        <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-6 text-center`}>
-          <BookOpen className="h-6 w-6 mx-auto text-slate-500" />
+        <div className={`${GRO10X_PANEL} border border-background/10 rounded-2xl p-6 text-center`}>
+          <BookOpen className="h-6 w-6 mx-auto text-muted-foreground" />
           <p className="text-sm mt-2">No tracks yet.</p>
           <p className={`text-[11px] ${GRO10X_MUTED} mt-1`}>
             Create a track to bundle courses (e.g. "Sales onboarding").
@@ -109,14 +109,14 @@ function TrackCard({
   const used = new Set((items ?? []).map((i: any) => i.content_id));
 
   return (
-    <li className={`${GRO10X_PANEL} border border-white/10 rounded-2xl overflow-hidden`}>
-      <button onClick={onToggle} className="w-full p-3 flex items-center gap-3 text-left hover:bg-white/[0.03]">
-        <div className="h-10 w-10 rounded-xl bg-[#0B1220] border border-white/10 grid place-items-center shrink-0">
-          <BookOpen className="h-4 w-4 text-slate-400" />
+    <li className={`${GRO10X_PANEL} border border-background/10 rounded-2xl overflow-hidden`}>
+      <button onClick={onToggle} className="w-full p-3 flex items-center gap-3 text-left hover:bg-background/[0.03]">
+        <div className="h-10 w-10 rounded-xl bg-[#0B1220] border border-background/10 grid place-items-center shrink-0">
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{track.title}</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-[10px] text-muted-foreground mt-0.5">
             {track.is_sequential ? "Sequential" : "Open"} · {track.is_published ? "Published" : "Draft"}
           </p>
         </div>
@@ -126,7 +126,7 @@ function TrackCard({
               e.stopPropagation();
               onPublishToggle();
             }}
-            className="text-slate-400 hover:text-white p-1"
+            className="text-muted-foreground hover:text-primary-foreground p-1"
             title={track.is_published ? "Unpublish" : "Publish"}
           >
             {track.is_published ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -135,21 +135,21 @@ function TrackCard({
       </button>
 
       {isOpen && (
-        <div className="border-t border-white/5 p-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500">Steps</p>
+        <div className="border-t border-background/5 p-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Steps</p>
           {(items ?? []).length === 0 ? (
-            <p className="text-xs text-slate-500">No courses yet.</p>
+            <p className="text-xs text-muted-foreground">No courses yet.</p>
           ) : (
             <ul className="space-y-1">
               {(items as any[]).map((it, idx) => (
-                <li key={it.id} className="flex items-center gap-2 text-xs bg-white/[0.02] rounded-lg px-2 py-1.5">
-                  <span className="text-slate-500 w-5">{idx + 1}.</span>
+                <li key={it.id} className="flex items-center gap-2 text-xs bg-background/[0.02] rounded-lg px-2 py-1.5">
+                  <span className="text-muted-foreground w-5">{idx + 1}.</span>
                   <span className="flex-1 truncate">{it.content?.title ?? "Course"}</span>
-                  {!it.is_required && <span className="text-[9px] text-slate-500">optional</span>}
+                  {!it.is_required && <span className="text-[9px] text-muted-foreground">optional</span>}
                   {isAdmin && (
                     <button
                       onClick={() => removeItem.mutate({ id: it.id, track_id: track.id })}
-                      className="text-rose-400 hover:text-rose-300"
+                      className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -161,7 +161,7 @@ function TrackCard({
 
           {isAdmin && (
             <div className="pt-2">
-              <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Add a course</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Add a course</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-48 overflow-y-auto">
                 {(catalog ?? [])
                   .filter((c: any) => !used.has(c.id))
@@ -177,7 +177,7 @@ function TrackCard({
                           is_required: true,
                         })
                       }
-                      className="text-left text-[11px] px-2 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] truncate"
+                      className="text-left text-[11px] px-2 py-1.5 rounded-lg bg-background/[0.02] hover:bg-background/[0.06] truncate"
                     >
                       + {c.title}
                     </button>
@@ -206,14 +206,14 @@ function NewTrackSheet({
   const [seq, setSeq] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 grid place-items-end md:place-items-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-foreground/60 grid place-items-end md:place-items-center p-3" onClick={onClose}>
       <div
-        className={`${GRO10X_PANEL} border border-white/10 rounded-2xl w-full max-w-md p-4 space-y-3`}
+        className={`${GRO10X_PANEL} border border-background/10 rounded-2xl w-full max-w-md p-4 space-y-3`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">New track</h3>
-          <button onClick={onClose}><X className="h-4 w-4 text-slate-400" /></button>
+          <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
         </div>
         <div className="space-y-2">
           <Input

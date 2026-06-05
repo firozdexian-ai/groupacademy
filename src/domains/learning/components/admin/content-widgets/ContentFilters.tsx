@@ -137,7 +137,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
       <Select value={values.levelId} onValueChange={(v) => updateLogic("levelId", v)}>
         <SelectTrigger className="w-[160px] h-11 rounded-xl border-2 bg-card font-black uppercase text-[10px] tracking-widest transition-all hover:border-primary/40 focus:ring-0">
           <div className="flex items-center gap-2">
-            <Zap className="w-3.5 h-3.5 text-amber-500/60" />
+            <Zap className="w-3.5 h-3.5 text-warning/60" />
             <SelectValue placeholder="Tier: Global" />
           </div>
         </SelectTrigger>
@@ -168,7 +168,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
           <SelectItem value="inactive_only" className="font-bold uppercase text-[9px] text-destructive">
             Inactive Only (Not Ready)
           </SelectItem>
-          <SelectItem value="ready_only" className="font-bold uppercase text-[9px] text-emerald-500">
+          <SelectItem value="ready_only" className="font-bold uppercase text-[9px] text-success">
             Ready Only
           </SelectItem>
           <SelectItem value="published" className="font-bold uppercase text-[9px]">

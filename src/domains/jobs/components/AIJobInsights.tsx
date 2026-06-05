@@ -169,18 +169,18 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
 
   const getIntensityColor = (scoreValue: number): string => {
     const rawNum = Number(scoreValue) || 0;
-    if (rawNum >= 80) return "text-emerald-600 dark:text-emerald-400";
-    if (rawNum >= 60) return "text-amber-600 dark:text-amber-400";
-    return "text-rose-600 dark:text-rose-400";
+    if (rawNum >= 80) return "text-success dark:text-success";
+    if (rawNum >= 60) return "text-warning dark:text-warning";
+    return "text-destructive dark:text-destructive";
   };
 
   return (
-    <Card className="rounded-3xl border border-purple-500/20 bg-card/60 backdrop-blur-md shadow-sm transition-all duration-300 relative overflow-hidden select-none w-full max-w-full">
+    <Card className="rounded-3xl border border-accent/20 bg-card/60 backdrop-blur-md shadow-sm transition-all duration-300 relative overflow-hidden select-none w-full max-w-full">
       <CardContent className="p-4 sm:p-5 w-full min-w-0">
         {/* HUD: SECTION IDENTITY HEADER */}
         <div className="flex items-center gap-3.5 mb-5 select-none border-b border-border/10 pb-3">
-          <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/10 flex items-center justify-center shrink-0 shadow-sm">
-            <Brain className="h-5 w-5 text-purple-500 animate-pulse stroke-[2.2]" />
+          <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/10 flex items-center justify-center shrink-0 shadow-sm">
+            <Brain className="h-5 w-5 text-accent animate-pulse stroke-[2.2]" />
           </div>
           <div className="min-w-0 flex-1 text-left flex flex-col justify-center">
             <h3 className="text-sm font-bold tracking-tight text-foreground uppercase tracking-wide">
@@ -213,18 +213,18 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   variant="outline"
                   type="button"
                   disabled={loadingMatch || loadingMarket}
-                  className="w-full h-12 rounded-xl justify-between px-4 border border-border/40 hover:border-purple-500/30 bg-background/40 hover:bg-background/80 cursor-pointer transition-all active:scale-[0.99] group shadow-sm text-left gap-4"
+                  className="w-full h-12 rounded-xl justify-between px-4 border border-border/40 hover:border-accent/30 bg-background/40 hover:bg-background/80 cursor-pointer transition-all active:scale-[0.99] group shadow-sm text-left gap-4"
                   onClick={executeMatchSync}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <Sparkles className="h-4 w-4 text-purple-500 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
+                    <Sparkles className="h-4 w-4 text-accent group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
                     <span className="font-bold uppercase text-xs tracking-wide text-foreground/90 truncate">
                       Analyze My Fit
                     </span>
                   </div>
                   <Badge
                     variant="secondary"
-                    className="gap-1.5 bg-amber-500/10 dark:bg-amber-500/5 text-amber-600 dark:text-amber-500 border border-amber-500/20 px-2.5 h-6.5 rounded-lg text-xs font-bold shrink-0 tabular-nums shadow-inner"
+                    className="gap-1.5 bg-warning/10 dark:bg-warning/5 text-warning dark:text-warning border border-warning/20 px-2.5 h-6.5 rounded-lg text-xs font-bold shrink-0 tabular-nums shadow-inner"
                   >
                     <Coins className="h-3 w-3 fill-current stroke-[2.2]" />
                     <span>10 cr</span>
@@ -232,15 +232,15 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                 </Button>
               )
             ) : (
-              <div className="w-full border border-purple-500/20 bg-purple-500/[0.01] rounded-2xl p-2.5">
+              <div className="w-full border border-accent/20 bg-accent/[0.01] rounded-2xl p-2.5">
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
                     type="button"
-                    className="w-full h-12 rounded-xl justify-between px-3 hover:bg-purple-500/5 transition-colors cursor-pointer text-left gap-4"
+                    className="w-full h-12 rounded-xl justify-between px-3 hover:bg-accent/5 transition-colors cursor-pointer text-left gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <ShieldCheck className="h-5 w-5 text-purple-500 shrink-0 stroke-[2.2]" />
+                      <ShieldCheck className="h-5 w-5 text-accent shrink-0 stroke-[2.2]" />
                       <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
                         <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none mb-0.5">
                           Overall Match
@@ -256,9 +256,9 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                       </div>
                     </div>
                     {matchOpen ? (
-                      <ChevronUp className="h-4 w-4 text-purple-500 shrink-0 stroke-[2.5]" />
+                      <ChevronUp className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-purple-500 shrink-0 stroke-[2.5]" />
+                      <ChevronDown className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
                     )}
                   </Button>
                 </CollapsibleTrigger>
@@ -268,7 +268,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   <div className="space-y-1.5 w-full min-w-0">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider select-none leading-none pl-0.5">
                       <p className="text-muted-foreground/80">Skills Match</p>
-                      <span className="text-purple-500 bg-purple-500/5 px-2 py-0.5 border border-purple-500/10 rounded-md tabular-nums font-extrabold">
+                      <span className="text-accent bg-accent/5 px-2 py-0.5 border border-accent/10 rounded-md tabular-nums font-extrabold">
                         {matchResult.skills_match?.percentage || 0}%
                       </span>
                     </div>
@@ -278,7 +278,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                         <Badge
                           key={i}
                           variant="outline"
-                          className="gap-1.5 bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold py-0.5 px-2 rounded-md tracking-tight uppercase shadow-sm"
+                          className="gap-1.5 bg-success/5 border-success/20 text-success dark:text-success text-[10px] font-bold py-0.5 px-2 rounded-md tracking-tight uppercase shadow-sm"
                         >
                           <CheckCircle className="h-3 w-3 shrink-0 stroke-[2.5]" />
                           <span className="truncate max-w-[110px]">{skill}</span>
@@ -288,7 +288,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                         <Badge
                           key={i}
                           variant="outline"
-                          className="gap-1.5 bg-rose-500/5 border-rose-500/20 text-rose-500 dark:text-rose-400 text-[10px] font-bold py-0.5 px-2 rounded-md tracking-tight uppercase shadow-sm"
+                          className="gap-1.5 bg-destructive/5 border-destructive/20 text-destructive dark:text-destructive text-[10px] font-bold py-0.5 px-2 rounded-md tracking-tight uppercase shadow-sm"
                         >
                           <XCircle className="h-3 w-3 shrink-0 stroke-[2.5]" />
                           <span className="truncate max-w-[110px]">{skill}</span>
@@ -359,18 +359,18 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   variant="outline"
                   type="button"
                   disabled={loadingMatch || loadingMarket}
-                  className="w-full h-12 rounded-xl justify-between px-4 border border-border/40 hover:border-blue-500/30 bg-background/40 hover:bg-background/80 cursor-pointer transition-all active:scale-[0.99] group shadow-sm text-left gap-4"
+                  className="w-full h-12 rounded-xl justify-between px-4 border border-border/40 hover:border-primary/30 bg-background/40 hover:bg-background/80 cursor-pointer transition-all active:scale-[0.99] group shadow-sm text-left gap-4"
                   onClick={executeMarketTelemetry}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <Users className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
+                    <Users className="h-4 w-4 text-primary group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
                     <span className="font-bold uppercase text-xs tracking-wide text-foreground/90 truncate">
                       See Market Insights
                     </span>
                   </div>
                   <Badge
                     variant="secondary"
-                    className="gap-1.5 bg-amber-500/10 dark:bg-amber-500/5 text-amber-600 dark:text-amber-500 border border-amber-500/20 px-2.5 h-6.5 rounded-lg text-xs font-bold shrink-0 tabular-nums shadow-inner"
+                    className="gap-1.5 bg-warning/10 dark:bg-warning/5 text-warning dark:text-warning border border-warning/20 px-2.5 h-6.5 rounded-lg text-xs font-bold shrink-0 tabular-nums shadow-inner"
                   >
                     <Coins className="h-3 w-3 fill-current stroke-[2.2]" />
                     <span>15 cr</span>
@@ -378,28 +378,28 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                 </Button>
               )
             ) : (
-              <div className="w-full border border-blue-500/20 bg-blue-500/[0.01] rounded-2xl p-2.5">
+              <div className="w-full border border-primary/20 bg-primary/[0.01] rounded-2xl p-2.5">
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
                     type="button"
-                    className="w-full h-12 rounded-xl justify-between px-3 hover:bg-blue-500/5 transition-colors cursor-pointer text-left gap-4"
+                    className="w-full h-12 rounded-xl justify-between px-3 hover:bg-primary/5 transition-colors cursor-pointer text-left gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <TrendingUp className="h-5 w-5 text-blue-500 shrink-0 stroke-[2.2]" />
+                      <TrendingUp className="h-5 w-5 text-primary shrink-0 stroke-[2.2]" />
                       <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
                         <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none mb-0.5">
                           Market Competition
                         </span>
-                        <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-blue-600 dark:text-blue-400">
+                        <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-primary dark:text-primary">
                           {marketInsight.competition_level || "Standard"}
                         </span>
                       </div>
                     </div>
                     {marketOpen ? (
-                      <ChevronUp className="h-4 w-4 text-blue-500 shrink-0 stroke-[2.5]" />
+                      <ChevronUp className="h-4 w-4 text-primary shrink-0 stroke-[2.5]" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-blue-500 shrink-0 stroke-[2.5]" />
+                      <ChevronDown className="h-4 w-4 text-primary shrink-0 stroke-[2.5]" />
                     )}
                   </Button>
                 </CollapsibleTrigger>
@@ -439,8 +439,8 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                   </div>
 
                   {/* Fiscal Compensation Range Indicators Analysis */}
-                  <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 select-text text-left shadow-sm">
-                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1 select-none pl-0.5">
+                  <div className="p-4 rounded-xl border border-success/20 bg-success/5 select-text text-left shadow-sm">
+                    <span className="text-[9px] font-bold text-success dark:text-success uppercase tracking-wider block mb-1 select-none pl-0.5">
                       Salary Insights
                     </span>
                     <p className="text-xs font-extrabold text-foreground/90 tracking-tight tabular-nums pl-0.5 leading-tight">
@@ -466,7 +466,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                             key={index}
                             className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/10 shadow-sm w-full min-w-0 animate-in slide-in-from-left-2 duration-150"
                           >
-                            <Zap className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5 fill-amber-500/5 stroke-[2.2]" />
+                            <Zap className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5 fill-warning/5 stroke-[2.2]" />
                             <span className="text-xs font-semibold leading-relaxed text-muted-foreground/90 break-words flex-1">
                               {tipStringItem.trim()}
                             </span>

@@ -54,8 +54,8 @@ function getStatusInfo(stats: ModuleStats | undefined, appliesPlayableRule: bool
 }
 
 const toneClasses: Record<string, string> = {
-  emerald: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  amber: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  emerald: "bg-success/15 text-success border-success/30",
+  amber: "bg-warning/15 text-warning border-warning/30",
   destructive: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
@@ -107,7 +107,7 @@ const ContentReadinessBadge = ({
   const playablePct = Math.round(((stats.playable_modules ?? stats.modules_with_video) / stats.module_count) * 100);
 
   const getStatusColor = (pct: number) =>
-    pct === 100 ? "text-emerald-500" : pct > 0 ? "text-amber-500" : "text-destructive";
+    pct === 100 ? "text-success" : pct > 0 ? "text-warning" : "text-destructive";
 
   return (
     <div className={cn("space-y-2.5", className)}>
@@ -132,7 +132,7 @@ const ContentReadinessBadge = ({
       <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
         <Progress
           value={playablePct}
-          className={cn("h-full transition-all duration-700", playablePct === 100 ? "bg-emerald-500" : "bg-primary")}
+          className={cn("h-full transition-all duration-700", playablePct === 100 ? "bg-success" : "bg-primary")}
         />
       </div>
 

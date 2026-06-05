@@ -2064,3 +2064,297 @@ export async function getCertificateByVerifyCode(code: string) {
     .single();
   return { data: data as any, error };
 }
+
+// === Phase 10b: additional repo helpers ===
+
+/** Realtime subscribe to module_progress for a given enrollment. */
+export function subscribeToModuleProgress(
+  enrollmentId: string,
+  onChange: () => void,
+): () => void {
+  const channel = supabase
+    .channel(`public:module_progress_sync:${enrollmentId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "module_progress", filter: `enrollment_id=eq.${enrollmentId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
+export async function listCourseBriefs(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("course_briefs" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function insertCourseBrief(input: Record<string, any>): Promise<any> {
+  const { data, error } = await supabase
+    .from("course_briefs" as any)
+    .insert(input as any)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// (listModuleResourcesForModule already defined above)
+
+
+export async function listStudentResourceProgress(studentId: string, moduleId: string) {
+  const { data, error } = await supabase
+    .from("student_resource_progress")
+    .select(`*, resource:resource_id!inner(module_id)`)
+    .eq("student_id", studentId)
+    .eq("resource.module_id", moduleId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listMyTrackAssignments() {
+  const { data, error } = await supabase
+    .from("learning_track_assignments")
+    .select("*, learning_tracks(id, slug, title, summary, cover_url)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listLearningTracksByCompany(companyId: string) {
+  const { data, error } = await supabase
+    .from("learning_tracks")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listPublishedLearningTracks(limit = 24) {
+  const { data, error } = await supabase
+    .from("learning_tracks")
+    .select("*")
+    .eq("is_published", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertLearningTrack(input: Record<string, any>) {
+  const { data, error } = await supabase
+    .from("learning_tracks")
+    .insert(input as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listLearningTrackItems(trackId: string) {
+  const { data, error } = await supabase
+    .from("learning_track_items")
+    .select("id, content_id, position, is_required, content(title, slug, credit_cost)")
+    .eq("track_id", trackId)
+    .order("position");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertLearningTrackItem(input: {
+  track_id: string;
+  content_id: string;
+  position: number;
+  is_required: boolean;
+}) {
+  const { error } = await supabase.from("learning_track_items").insert(input);
+  if (error) throw error;
+}
+
+export async function listInstructorEarnings(limit = 100) {
+  const { data, error } = await supabase
+    .from("course_revenue_splits")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listInstructorCreditLedger(contentId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("instructor_credit_ledger")
+    .select("*")
+    .eq("content_id", contentId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function submitContentForReview(contentId: string) {
+  const { error } = await supabase
+    .from("content")
+    .update({
+      author_status: "submitted",
+      submitted_at: new Date().toISOString(),
+    } as any)
+    .eq("id", contentId);
+  if (error) throw error;
+}
+
+export async function listTalentEnrollmentsFull(talentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(`
+      id, status, enrolled_at, completed_at, progress,
+      content:content_id (
+        id, title, slug, content_type, thumbnail_url, cover_image_url,
+        instructor_name, whatsapp_group_link
+      )
+    `)
+    .eq("talent_id", talentId)
+    .order("last_accessed_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listPublishedDiscoveryContent(limit = 12) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title, slug, thumbnail_url, cover_image_url, description, credit_cost, content_type, event_date")
+    .eq("is_published", true)
+    .order("display_order")
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listPublishedBlogPostsLite(limit = 6) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("id, title, slug, featured_image, excerpt, reading_time_mins")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getTalentIdByUserId(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.id ?? null;
+}
+
+export async function listTalentEnrollmentsLite(talentId: string) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id, progress, status, content:content_id(title)")
+    .eq("talent_id", talentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listActiveProfessionCategoriesPreview(limit = 8) {
+  const { data, error } = await supabase
+    .from("profession_categories")
+    .select("id, name, slug, icon, description")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listUpcomingOfflineSeminarsForTalent(cutoff: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
+    )
+    .eq("is_published", true)
+    .eq("is_ready", true)
+    .eq("content_type", "offline_seminar")
+    .not("event_date", "is", null)
+    .gte("event_date", cutoff)
+    .order("event_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listActiveCompetitions() {
+  const { data, error } = await supabase
+    .from("competitions")
+    .select("id, title, slug, status, category, prizes, is_featured, featured_image, start_date")
+    .order("is_featured", { ascending: false })
+    .order("start_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listPublicCoursesPaged(from: number, to: number) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      "id, title, slug, description, content_type, price, instructor_name, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment",
+    )
+    .eq("is_published", true)
+    .eq("is_private", false)
+    .eq("is_ready", true)
+    .in("content_type", ["recorded_course", "live_webinar", "batch_class"])
+    .order("display_order")
+    .range(from, to);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listOfflineSeminarsRich(cutoff: string) {
+  const { data, error } = await supabase
+    .from("content")
+    .select(
+      "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, venue_name, whatsapp_group_link, price, instructor_name",
+    )
+    .eq("is_published", true)
+    .eq("is_ready", true)
+    .eq("content_type", "offline_seminar")
+    .not("event_date", "is", null)
+    .gte("event_date", cutoff)
+    .order("event_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listCompanyCourseAssignmentsAdmin(limit = 200) {
+  const { data, error } = await supabase
+    .from("company_course_assignments")
+    .select(
+      "id, status, due_at, completed_at, budget_credits, created_at, company:company_id(id,name), content:content_id(id,title), assigned_to",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listContentForModulePicker(limit = 200) {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title, content_type, thumbnail_url, is_published")
+    .in("content_type", ["recorded_course", "live_webinar"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}

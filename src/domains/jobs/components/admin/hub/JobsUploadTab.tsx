@@ -97,7 +97,7 @@ export function JobsUploadTab() {
         {/* AI PARSER CONTENT */}
         <TabsContent value="ai-parse" className="focus-visible:ring-0">
           <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
-            <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+            <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-primary" />
             <CardHeader className="p-8 pb-4">
               <div className="flex justify-between items-center">
                 <div className="space-y-1">
@@ -225,7 +225,7 @@ function TabTriggerNode({ value, icon: Icon, label }: any) {
   return (
     <TabsTrigger
       value={value}
-      className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-2xl px-6 py-3 transition-all font-semibold uppercase italic text-[10px] tracking-widest gap-3 border-2 border-transparent"
+      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-2xl px-6 py-3 transition-all font-semibold uppercase italic text-[10px] tracking-widest gap-3 border-2 border-transparent"
     >
       <Icon className="h-4 w-4" />
       {label}

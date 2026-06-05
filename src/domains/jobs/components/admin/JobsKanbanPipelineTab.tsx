@@ -14,41 +14,41 @@ export function JobsKanbanPipelineTab() {
       id: "pending",
       label: "Inbox",
       icon: Clock,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
+      color: "text-warning",
+      bg: "bg-warning/10",
+      border: "border-warning/20",
     },
     {
       id: "in_review",
       label: "Reviewing",
       icon: Users,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-primary/20",
     },
     {
       id: "interviewing",
       label: "Interview",
       icon: Briefcase,
-      color: "text-indigo-500",
-      bg: "bg-indigo-500/10",
-      border: "border-indigo-500/20",
+      color: "text-accent",
+      bg: "bg-accent/10",
+      border: "border-accent/20",
     },
     {
       id: "hired",
       label: "Hired",
       icon: CheckCircle2,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
+      color: "text-success",
+      bg: "bg-success/10",
+      border: "border-success/20",
     },
     {
       id: "rejected",
       label: "Archived",
       icon: XCircle,
-      color: "text-rose-500",
-      bg: "bg-rose-500/10",
-      border: "border-rose-500/20",
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+      border: "border-destructive/20",
     },
   ];
 
@@ -56,8 +56,8 @@ export function JobsKanbanPipelineTab() {
     <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6 h-[calc(100vh-100px)] flex flex-col">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60 shrink-0">
         <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-cyan-500">
-            <KanbanSquare className="h-8 w-8 text-cyan-500 fill-cyan-500/20" />
+          <div className="flex items-center gap-3 text-accent">
+            <KanbanSquare className="h-8 w-8 text-accent fill-accent/20" />
             <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-foreground">
               Active Pipeline
             </h2>
@@ -68,7 +68,7 @@ export function JobsKanbanPipelineTab() {
         </div>
         <Badge
           variant="outline"
-          className="h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest gap-2 border-cyan-500/50 text-cyan-600 bg-cyan-500/10"
+          className="h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest gap-2 border-accent/50 text-accent bg-accent/10"
         >
           {data?.applications?.length || 0} Total Nodes
         </Badge>

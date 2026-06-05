@@ -31,9 +31,9 @@ export function LearningStreak({ streak, className }: LearningStreakProps) {
       className={cn(
         "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wide transition-all duration-500 border shadow-sm select-none antialiased transform-gpu shrink-0",
         isActive
-          ? "bg-gradient-to-br from-orange-500/15 via-amber-500/5 to-transparent text-orange-600 dark:text-orange-400 border-orange-500/20 shadow-orange-500/[0.02]"
+          ? "bg-gradient-to-br from-warning/15 via-warning/5 to-transparent text-warning dark:text-warning border-warning/20 shadow-orange-500/[0.02]"
           : "bg-muted/30 text-muted-foreground/50 border-dashed border-border/40 shadow-none",
-        isHot && "ring-4 ring-orange-500/10 dark:ring-orange-500/5 animate-in zoom-in-98",
+        isHot && "ring-4 ring-warning/10 dark:ring-warning/5 animate-in zoom-in-98",
         className,
       )}
     >
@@ -48,7 +48,7 @@ export function LearningStreak({ streak, className }: LearningStreakProps) {
               )}
             />
             {isHot && (
-              <div className="absolute inset-0 bg-orange-50 rounded-full blur-xl opacity-60 animate-pulse pointer-events-none transform-gpu backface-hidden will-change-transform" />
+              <div className="absolute inset-0 bg-warning rounded-full blur-xl opacity-60 animate-pulse pointer-events-none transform-gpu backface-hidden will-change-transform" />
             )}
           </div>
 
@@ -102,16 +102,16 @@ export function LearningStatsRow({ streak, hoursLearned, coursesCompleted, class
 
       {/* Aggregate Cumulative Hours Learned Tag */}
       {normalizedHours > 0 && (
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-extrabold uppercase tracking-wide shrink-0 shadow-sm leading-none select-text tabular-nums">
-          <TrendingUp className="h-3.5 w-3.5 text-blue-500 shrink-0 stroke-[2.2]" />
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary/10 dark:bg-primary/5 text-primary dark:text-primary border border-primary/20 text-[10px] font-extrabold uppercase tracking-wide shrink-0 shadow-sm leading-none select-text tabular-nums">
+          <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0 stroke-[2.2]" />
           <span>{normalizedHours.toLocaleString()} Hours Learned</span>
         </div>
       )}
 
       {/* Completed Courses Tracking Yield Tag */}
       {normalizedCourses > 0 && (
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-wide shrink-0 shadow-sm leading-none select-text tabular-nums">
-          <Trophy className="h-3.5 w-3.5 text-emerald-500 shrink-0 stroke-[2.2]" />
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-success/10 dark:bg-success/5 text-success dark:text-success border border-success/20 text-[10px] font-extrabold uppercase tracking-wide shrink-0 shadow-sm leading-none select-text tabular-nums">
+          <Trophy className="h-3.5 w-3.5 text-success shrink-0 stroke-[2.2]" />
           <span>{normalizedCourses.toLocaleString()} Courses Finished</span>
         </div>
       )}

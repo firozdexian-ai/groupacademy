@@ -52,33 +52,33 @@ function getIconForCategory(name: string = ""): React.ElementType {
 
 const TRACK_STYLES = [
   {
-    bg: "bg-blue-500/10",
-    text: "text-blue-500",
-    border: "group-hover:border-blue-500/30",
+    bg: "bg-primary/10",
+    text: "text-primary",
+    border: "group-hover:border-primary/30",
     shadow: "shadow-blue-500/5",
   },
   {
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-500",
-    border: "group-hover:border-emerald-500/30",
+    bg: "bg-success/10",
+    text: "text-success",
+    border: "group-hover:border-success/30",
     shadow: "shadow-emerald-500/5",
   },
   {
-    bg: "bg-violet-500/10",
-    text: "text-violet-500",
-    border: "group-hover:border-violet-500/30",
+    bg: "bg-accent/10",
+    text: "text-accent",
+    border: "group-hover:border-accent/30",
     shadow: "shadow-violet-500/5",
   },
   {
-    bg: "bg-amber-500/10",
-    text: "text-amber-500",
-    border: "group-hover:border-amber-500/30",
+    bg: "bg-warning/10",
+    text: "text-warning",
+    border: "group-hover:border-warning/30",
     shadow: "shadow-amber-500/5",
   },
   {
-    bg: "bg-rose-500/10",
-    text: "text-rose-500",
-    border: "group-hover:border-rose-500/30",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    border: "group-hover:border-destructive/30",
     shadow: "shadow-rose-500/5",
   },
 ];
@@ -189,7 +189,7 @@ export function CareerTracksPreview() {
                   {/* Mapped Graphic Icon Shield */}
                   <div
                     className={cn(
-                      "h-12 w-12 rounded-xl flex items-center justify-center shadow-inner border border-white/5 transition-transform duration-500 group-hover:rotate-3 shrink-0 select-none",
+                      "h-12 w-12 rounded-xl flex items-center justify-center shadow-inner border border-background/5 transition-transform duration-500 group-hover:rotate-3 shrink-0 select-none",
                       style.bg,
                       style.text,
                     )}

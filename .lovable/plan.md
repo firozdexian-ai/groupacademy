@@ -1,84 +1,84 @@
-# Sequence recap
+# Re-audit Profile/Talent + Refactor Jobs & Learning
 
-Done so far: **gigs + gtm** → **institutions + ir** → **marketing + messaging**.
-Next pair (this plan): **profile + talent**.
-Remaining after this: **jobs + learning** → **ugc + workforce**.
+## Part A — Profile + Talent carry-over (small)
 
-So the running order is: gigs · gtm · institutions · ir · marketing · messaging · **profile · talent** · jobs · learning · ugc · workforce.
+Audit confirmed both domains are clean: no `console.log`, no TODO/FIXME, no `export *` leaks, no supabase leaks in components. Only one residual finding:
 
----
+- `src/domains/talent/components/admin/SupportAITab.tsx` — 1 remaining raw `text-white`/`bg-black` site → map to `text-primary-foreground` / `bg-foreground`.
 
-# Part A — Re-audit carry-over for marketing + messaging
+No other carry-over work required.
 
-Second-pass sweep found everything clean **except raw palette colors** (which the first pass partially missed). No supabase leaks, no edge invokes, no `export *`, no console, no TODOs, no transactional misuse. Mailto preserved.
+## Part B — Jobs domain refactor
 
-### A1. Messaging palette drift → semantic tokens
-- `messaging/components/talent/ThreadListItem.tsx:84` — `bg-blue-600/bg-emerald-600` avatar fallback → `bg-primary` / `bg-success`.
-- `messaging/components/admin/MessagingChannelsTab.tsx` — `from-primary to-blue-500`, `bg-blue-500/10 text-blue-500`, `from-emerald-400 to-emerald-500`, emerald/orange status pills → `from-primary to-accent`, `bg-primary/10 text-primary`, `bg-success/10 text-success`, `bg-warning/10 text-warning`.
+### B1. Barrel hygiene
+`src/domains/jobs/index.ts` currently uses 20+ `export *` lines. Rewrite as explicit named exports (hooks, components, api manifest) matching the ir/marketing/messaging/profile pattern.
 
-### A2. Marketing palette drift → semantic tokens
-- `MarketingAnalyticsTab.tsx` — heavy orange/blue/emerald/fuchsia/indigo/violet/green/rose palette throughout the header, stat cards, log rows, and pulse bars. Map: orange→`primary`, blue→`accent`, emerald/green→`success`, amber→`warning`, fuchsia/violet/indigo/rose→`accent` variants (we already have `--accent`; for the 4-bar PulseBar grid use `bg-primary / bg-accent / bg-success / bg-warning` as the canonical 4-slot palette).
-- `MarketingAnalyticsTab.tsx:62` `CHART_COLORS` hex array and `:244,:293` hex color props → replace with `hsl(var(--primary))`, `hsl(var(--success))`, `hsl(var(--warning))`, `hsl(var(--accent))`, `hsl(var(--destructive))`, `hsl(var(--muted-foreground))`.
-- `LeadsActivitiesTab.tsx:18-19` — `text-indigo-500` → `text-accent`.
-- `ServiceOutreachTab.tsx` — blue/amber/emerald stat config + emerald header icon → `primary` / `warning` / `success`.
-- `StandaloneSalaryCodeGenerator.tsx:114` and `StandaloneMockInterviewCodeGenerator.tsx:113` — `via-blue-600` in gradient → `via-accent`.
+### B2. Repository pattern (supabase leaks)
+Move all direct `@/integrations/supabase` calls from components/hooks into `src/domains/jobs/repo/jobsRepo.ts`:
 
-### A3. Marketing hex literals (legitimate brand swatches — preserve)
-- `ThemesTab.tsx:21,79` — `#2A7DDE` brand-color default for theme rows is data, not styling. **Keep.**
-- `messaging/hooks/useMessageThreads.ts:81` — `#2A7DDE` fallback for system thread color. **Keep** (it's mapped into a per-thread accent, not a stylesheet color).
+- `hooks/useApplicationMessages.ts` — queries + realtime subscription → `listApplicationMessages`, `sendApplicationMessage`, `subscribeToApplicationMessages`.
+- `components/JobPreferencesSheet.tsx` — preferences read/write → `getJobPreferences`, `upsertJobPreferences`.
+- `components/ScoreMeJobPicker.tsx` — jobs list query → `listJobsForScoring`.
+- `components/admin/JobsLinkedInBatchUpload.tsx` — batch insert → `bulkInsertJobs`.
+- `components/admin/hub/JobsOutreachTab.tsx` — outreach reads/writes → repo methods.
+- `components/admin/hub/JobsManageTab.tsx` — admin job mutations → repo methods.
+- `components/admin/hub/AIRelevanceScore.tsx` — score read/write → repo methods.
+- `components/admin/JobsAssessmentLeadsTab.tsx` — leads queries → repo methods.
 
-No new tokens needed (using existing `--primary`, `--accent`, `--success`, `--warning`, `--destructive`, `--muted-foreground`). No functional change.
+(`api/jobsApi.ts` keeps its `supabase.functions.invoke` calls — that is the legitimate edge boundary.)
 
----
+### B3. UI token migration
+Sweep raw palette colors in `src/domains/jobs/**` (blue/emerald/green/amber/orange/red/rose/indigo/violet/purple/fuchsia/cyan/slate) and map to semantic tokens:
+- blue → `primary`
+- emerald/green → `success`
+- amber/orange → `warning`
+- red/rose → `destructive`
+- indigo/violet/purple/fuchsia/cyan → `accent`
+- slate → `muted-foreground`
+- raw `text-white` / `bg-black` → `text-primary-foreground` / `bg-foreground`
 
-# Part B — Profile + Talent refactor (mirrors SOP)
+### B4. Preservation (must not change)
+- Multi-currency rendering and `score_talent_job_mastery` boost in matching.
+- Free per-card match% on Jobs Hub, `get_jobs_hub_dashboard` single-RPC contract.
+- Hiring Loop kanban, `application_messages` realtime, `notify-application-status` edge.
+- External-apply prep flow, Apply with AI assistant gating.
+- VerifiedMatchBadge + WhyYouMatchPanel signal sources.
 
-### Scope
-- `src/domains/profile/` (talent-facing profile editing, public settings, history cards)
-- `src/domains/talent/` (admin-facing talent registry, batch upload, outreach, professions, creator economy)
+## Part C — Learning domain refactor
 
-### Phase 1 — Structural audit (read-only confirm)
-- No legacy `src/components/profile/` or `src/components/talent/` folders remain (initial check clean).
-- Confirm shell wiring via `src/shells/admin/routes/talent.ts` resolves all listed talent admin exports.
-- Confirm `ProfileEditDialog` and friends are imported from `@/domains/profile` by talent pages (`TalentHome`, profile page).
+### C1. Barrel hygiene
+`src/domains/learning/index.ts` has 50+ `export *` lines. Rewrite explicitly (hooks → components/talent → api). Keep the documented exclusion of Postgres RPCs from `api/manifest.ts`.
 
-### Phase 2 — Architectural hygiene
-- **Supabase leak (1 file):** `profile/hooks/useTalentPitches.ts` imports `@/integrations/supabase` directly. Move the queries/mutations into `profileRepo.ts` (create one if it doesn't exist; mirrors `marketingRepo`/`messagingRepo` pattern) and have the hook call repo functions.
-- **Barrel hygiene — profile:** replace 15 `export *` lines with explicit named exports matching what shells/pages consume (same pattern we did for ir/marketing/messaging). Hook re-exports stay explicit.
-- **Barrel — talent:** already named exports ✅, no change.
-- Drop any dead imports surfaced by the audit.
+### C2. Repository pattern
+Move direct `@/integrations/supabase` calls into `src/domains/learning/repo/learningRepo.ts`:
 
-### Phase 3 — UI / design-token compliance
-- **`text-white` / `bg-black`** in 7 files (BatchTalentUpload, SkillsEditor, ProfilePhotoUpload, TalentDetailDialog, SupportAITab, TalentOutreachConsoleTab, LinkedInJsonUpload) → `text-primary-foreground` / `bg-foreground/20`.
-- **Raw palette colors** across ~24 files. Map consistently: blue→`primary`, emerald/green→`success`, amber/orange→`warning`, red/rose→`destructive`, indigo/violet/purple/fuchsia/cyan→`accent`, slate→`muted-foreground`. Heaviest files: `SupportAITab.tsx` (20), `ServiceHistoryCard.tsx` (11), `TalentOverviewTab.tsx` (10), `CVUploadSection.tsx` (9), `ProfileCompletionMeter.tsx` (7).
-- Spot-check `ProfileEditDialog` / `PublicProfileSettings` on mobile: vertical layout, safe-area, compact spacing (3:1 banner ratio for `CoverImageUpload`).
+- Hooks: `useProgress.ts`, `useCourseBriefs.ts`, `useModuleResources.ts`, `useLearningTracks.ts`, `useInstructorWorkspace.ts` → add `getCourseProgress`, `listCourseBriefs`, `listModuleResources`, `listLearningTracks`, `getInstructorWorkspace*`, plus their mutations/subscriptions.
+- Talent components: `MyCoursesTab.tsx`, `UnifiedDiscovery.tsx`, `TracksTab.tsx`, `CareerTracksPreview.tsx`, `EventsTab.tsx`, `CoursesTab.tsx` → call repo, not supabase directly.
+- Admin components: `BulkResourceUpload.tsx`, `LearningB2BEngagementsTab.tsx`, `modules/ModulePickerPanel.tsx`, `modules/QuizResultsViewer.tsx` → repo methods.
+- Remove the stray `console.log/debug` in `hooks/useCertificate.ts`.
 
-### Phase 4 — Wiring & monetization preservation
-- **Public profile opt-in** (`mem://product/public-talent-profile`) — preserve `get_public_talent_profile` flow in `PublicProfileSettings`.
-- **CV / IdentityDocs** — keep signed-URL pattern for `talent-cvs` bucket (`mem://security/pii-and-storage-hardening`); no PII in logs.
-- **PayoutAccountsManager** — preserve managed-payments wiring (no schema change).
-- **Creator Economy / Hype** (`mem://product/creator-economy-hype-and-connections`) — preserve 5k-credit inbox gate, 80/20 split, dynamic connection fees in `CreatorEconomyTab`.
-- **Outreach** (`TalentOutreachConsoleTab`) — preserve mailto-only B2B contract (`mem://architecture/email-outreach-vs-transactional-strategy`).
-- **LinkedIn import** — preserve normalization rules (`mem://admin/talent-management/linkedin-import-logic`).
-- **Talent readiness** (`computeReadiness`) — leave logic untouched.
-- Bug-fixes in scope; new tables / RLS / RPCs / edge functions / features **out of scope**.
+`api/learningApi.ts` keeps its edge invokes.
 
-### Phase 5 — Verify
-`rg` sweeps must show zero results in profile + talent for:
-- `@/integrations/supabase` outside `repo/`
-- `text-white|bg-black\b` (raw)
-- `(text|bg|border|from|to|via)-(blue|emerald|green|amber|orange|red|indigo|violet|purple|fuchsia|rose|teal|slate|cyan|pink|yellow|sky|lime)-[0-9]`
-- `console\.(log|debug)`
-- `TODO|FIXME|HACK`
+### C3. UI token migration
+Same semantic-token sweep as B3, applied across `src/domains/learning/**`.
 
-Plus TypeScript build clean.
+### C4. Preservation (must not change)
+- Item Bank analytics, multilingual sidecar, AI rewrite/translate flows.
+- Cohorts + live sessions + attendance, Talent Mirror, Next-Best-Action.
+- Verifiable Skill Credentials, certificate kinds, learning tracks.
+- Instructor monetization (60/40 splits, payouts), course briefs → instructor jobs trigger.
+- Gro10x B2B sponsorship modes (`free` / `company_credits` / `employee_credits`), org assignments, branded `/c/:slug/learn` catalog.
+- AI Tutor mastery context injection, review queue flows.
 
----
+## Verification (after each domain)
+- `rg "@/integrations/supabase" src/domains/<domain>` → only `repo/` + `api/`.
+- `rg "export \*" src/domains/<domain>/index.ts` → empty.
+- `rg "text-white|bg-black"` and raw palette regex → empty in that domain.
+- `rg "console\.(log|debug)"` and `rg "TODO|FIXME|HACK"` → empty.
+- Build clean.
 
-# Out of scope (unchanged from prior SOP)
-- New DB schema, RLS policies, RPCs, edge functions, storage buckets.
-- New features, UX rewrites, route changes.
-- The 4 remaining domains (jobs, learning, ugc, workforce).
-- Pricing values **may** be adjusted only if a bug is found; bug-fixes for broken hooks/edge calls in scope.
+## Out of scope
+No new tables, RLS, RPCs, edge functions, or feature changes. Bug-fixes only if surfaced incidentally.
 
-Approve to execute Part A + Part B in one pass.
+## Next pair after this
+`ugc` + `workforce` — final pair to close the refactor sweep.

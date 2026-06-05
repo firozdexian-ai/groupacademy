@@ -228,7 +228,7 @@ export function TracksTab() {
                   <Card
                     key={enrollmentItem.id}
                    
-                    className="group relative cursor-pointer rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.001] text-left shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden transition-all duration-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 flex items-center"
+                    className="group relative cursor-pointer rounded-2xl border border-success/20 bg-success/[0.02] dark:bg-success/[0.001] text-left shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring w-full overflow-hidden transition-all duration-300 hover:border-success/40 hover:bg-success/5 flex items-center"
                     onClick={() =>
                       handleTrackNavigationRedirect(
                         "/app/learning?tab=my-courses",
@@ -238,8 +238,8 @@ export function TracksTab() {
                   >
                     <CardContent className="p-3.5 flex items-center justify-between gap-4 w-full min-w-0">
                       <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
-                        <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/5 flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-2 transition-transform">
-                          <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+                        <div className="h-10 w-10 rounded-xl bg-success/10 border border-success/5 flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-2 transition-transform">
+                          <GraduationCap className="h-5 w-5 text-success dark:text-success stroke-[2.2]" />
                         </div>
                         <div className="min-w-0 flex-1 space-y-1 flex flex-col justify-center leading-none">
                           <p className="text-xs sm:text-sm font-bold text-foreground/90 tracking-tight leading-tight truncate text-ellipsis select-all pr-1">
@@ -247,13 +247,13 @@ export function TracksTab() {
                           </p>
                           <Badge
                             variant="outline"
-                            className="text-[9px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none w-fit leading-none shadow-sm mt-0.5 select-none"
+                            className="text-[9px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded bg-success/10 text-success dark:text-success border-none w-fit leading-none shadow-sm mt-0.5 select-none"
                           >
                             Verified Framework
                           </Badge>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-emerald-600/40 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all stroke-[2.5] shrink-0 select-none" />
+                      <ChevronRight className="h-4 w-4 text-success/40 group-hover:text-success group-hover:translate-x-0.5 transition-all stroke-[2.5] shrink-0 select-none" />
                     </CardContent>
                   </Card>
                 );

@@ -14,9 +14,9 @@ const pct = (v: number | null | undefined) => (v === null || v === undefined ? "
 
 const tone = (v: number | null) => {
   if (v === null) return "text-muted-foreground/60";
-  if (v < 0.4) return "text-rose-600 dark:text-rose-400 bg-rose-500/5 border border-rose-500/10";
-  if (v < 0.7) return "text-amber-600 dark:text-amber-400 bg-amber-500/5 border border-amber-500/10";
-  return "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 border border-emerald-500/10";
+  if (v < 0.4) return "text-destructive dark:text-destructive bg-destructive/5 border border-destructive/10";
+  if (v < 0.7) return "text-warning dark:text-warning bg-warning/5 border border-warning/10";
+  return "text-success dark:text-success bg-success/5 border border-success/10";
 };
 
 /**
@@ -93,16 +93,16 @@ export function TalentMirrorPanel() {
 
   if (error) {
     return (
-      <Card className="border border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full">
+      <Card className="border border-destructive/20 bg-destructive/5 rounded-2xl text-left w-full max-w-full">
         <CardContent className="p-5 text-center space-y-4 select-none">
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center mx-auto shadow-inner">
-            <AlertTriangle className="h-5 w-5 text-rose-500 stroke-[2.2]" />
+          <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto shadow-inner">
+            <AlertTriangle className="h-5 w-5 text-destructive stroke-[2.2]" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+            <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
               Couldn't load
             </p>
-            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
+            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-destructive/10 mt-1.5">
               {error || "Something went wrong. Please try again."}
             </p>
           </div>
@@ -194,7 +194,7 @@ export function TalentMirrorPanel() {
         <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
           <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
             <CardTitle className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0 stroke-[2.2]" />
+              <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 stroke-[2.2]" />
               <span>Critical Workspace Learning Revision Gaps</span>
             </CardTitle>
           </CardHeader>
@@ -240,7 +240,7 @@ export function TalentMirrorPanel() {
         <Card className="border border-border/40 bg-card/60 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
           <CardHeader className="p-3 px-4 border-b border-border/10 select-none bg-muted/20">
             <CardTitle className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 stroke-[2.2]" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 stroke-[2.2]" />
               <span>Validated Strengths & Trajectory Assets</span>
             </CardTitle>
           </CardHeader>
@@ -270,7 +270,7 @@ function Stat({
       className={cn(
         "rounded-xl border p-3 py-2.5 text-left w-full min-w-0 flex flex-col justify-center transition-colors shadow-sm",
         tone === "warn"
-          ? "border-rose-500/20 bg-rose-500/[0.01] dark:bg-rose-500/[0.002]"
+          ? "border-destructive/20 bg-destructive/[0.01] dark:bg-destructive/[0.002]"
           : "border-border/40 bg-card/60 backdrop-blur-md",
       )}
     >
@@ -280,7 +280,7 @@ function Stat({
       <p
         className={cn(
           "text-base sm:text-lg font-black tracking-tight tabular-nums leading-none pt-0.5",
-          tone === "warn" && "text-rose-600 dark:text-rose-400",
+          tone === "warn" && "text-destructive dark:text-destructive",
         )}
       >
         {value}
@@ -335,7 +335,7 @@ function CourseRow({ c, onOpen }: { c: TalentMirrorCourse; onOpen: () => void })
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none leading-none pt-0.5 tabular-nums">
             {c.modules || 0} core modules &bull; {c.topics || 0} criteria metrics logged
             {Number(c.due_now || 0) > 0 && (
-              <span className="text-rose-600 dark:text-rose-400 font-extrabold px-1">
+              <span className="text-destructive dark:text-destructive font-extrabold px-1">
                 &bull; {c.due_now} parameters outstanding
               </span>
             )}
@@ -369,7 +369,7 @@ function CourseRow({ c, onOpen }: { c: TalentMirrorCourse; onOpen: () => void })
               <Badge
                 key={weakTopicItem.topic_tag}
                 variant="outline"
-                className="text-[9px] font-extrabold px-2 h-4.5 bg-rose-500/5 text-rose-600 dark:text-rose-400 border-rose-500/10 shadow-sm uppercase tracking-wide rounded max-w-[40%] truncate text-ellipsis"
+                className="text-[9px] font-extrabold px-2 h-4.5 bg-destructive/5 text-destructive dark:text-destructive border-destructive/10 shadow-sm uppercase tracking-wide rounded max-w-[40%] truncate text-ellipsis"
               >
                 <span className="truncate text-ellipsis">
                   {weakTopicItem.topic_tag} &bull; {pct(weakTopicItem.mastery)}

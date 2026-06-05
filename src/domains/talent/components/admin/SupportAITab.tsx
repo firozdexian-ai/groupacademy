@@ -136,7 +136,7 @@ export function SupportAITab() {
             <div className="h-1.5 w-full bg-gradient-to-r from-accent to-primary" />
             <CardContent className="p-8 space-y-8 text-left">
               {imagePreview ? (
-                <div className="relative group rounded-2xl overflow-hidden border-2 border-accent/20 bg-black/40 shadow-inner">
+                <div className="relative group rounded-2xl overflow-hidden border-2 border-accent/20 bg-foreground/40 shadow-inner">
                   <img src={imagePreview} alt="Conversation" className="w-full max-h-[400px] object-contain" />
                   <Button
                     variant="destructive"

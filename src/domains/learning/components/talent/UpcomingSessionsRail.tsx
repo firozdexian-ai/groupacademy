@@ -60,7 +60,7 @@ export function UpcomingSessionsRail() {
       {/* HUD HEADER TITLE BAR METADATA */}
       <div className="flex items-center justify-between px-0.5 select-none w-full leading-none">
         <h2 className="text-xs font-bold uppercase tracking-wider text-foreground/80 inline-flex items-center gap-1.5 leading-none">
-          <Radio className="h-3.5 w-3.5 text-rose-500 shrink-0 stroke-[2.2]" />
+          <Radio className="h-3.5 w-3.5 text-destructive shrink-0 stroke-[2.2]" />
           <span>Upcoming Live Synchronous Channels</span>
         </h2>
         <Badge
@@ -106,7 +106,7 @@ export function UpcomingSessionsRail() {
                 </div>
 
                 {isLiveActiveNode ? (
-                  <Badge className="bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[9px] font-extrabold px-2 h-5 rounded uppercase tracking-wide shrink-0 shadow-sm gap-0.5 flex items-center select-none leading-none animate-pulse">
+                  <Badge className="bg-destructive/10 border border-destructive/20 text-destructive dark:text-destructive text-[9px] font-extrabold px-2 h-5 rounded uppercase tracking-wide shrink-0 shadow-sm gap-0.5 flex items-center select-none leading-none animate-pulse">
                     <Radio className="h-2.5 w-2.5 text-current stroke-[2.5]" />
                     <span>Live</span>
                   </Badge>

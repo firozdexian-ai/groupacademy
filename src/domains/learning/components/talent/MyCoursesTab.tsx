@@ -96,8 +96,8 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
             <BookOpen className="h-5 w-5 text-primary/30 stroke-[2.2]" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none z-10">
-          <PlayCircle className="text-white h-7 w-7 stroke-[2.2] drop-shadow-md transform-gpu scale-95 group-hover:scale-100 transition-transform duration-300" />
+        <div className="absolute inset-0 bg-foreground/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none z-10">
+          <PlayCircle className="text-primary-foreground h-7 w-7 stroke-[2.2] drop-shadow-md transform-gpu scale-95 group-hover:scale-100 transition-transform duration-300" />
         </div>
       </div>
 
@@ -115,10 +115,10 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
               className={cn(
                 "text-[9px] font-extrabold px-1.5 h-4.5 rounded uppercase tracking-wide border-none select-none tabular-nums shadow-sm shrink-0",
                 status === "active"
-                  ? "bg-emerald-500/10 text-emerald-600"
+                  ? "bg-success/10 text-success"
                   : status === "completed"
                     ? "bg-primary/10 text-primary"
-                    : "bg-amber-500/10 text-amber-600",
+                    : "bg-warning/10 text-warning",
               )}
             >
               {status === "pending_payment" ? "Awaiting Payment" : status || "Enrolled"}
@@ -155,11 +155,11 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
                 variant="outline"
                 size="sm"
                 type="button"
-                className="flex-1 h-7 rounded-xl text-[10px] font-bold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 shadow-sm transition-colors cursor-pointer"
+                className="flex-1 h-7 rounded-xl text-[10px] font-bold border-success/20 text-success hover:bg-success/5 shadow-sm transition-colors cursor-pointer"
                 onClick={handleWhatsAppRedirectHandshake}
                 aria-label="Join class cohort WhatsApp group"
               >
-                <MessageCircle className="w-3.5 h-3.5 mr-1 text-emerald-500 shrink-0 stroke-[2.2]" />
+                <MessageCircle className="w-3.5 h-3.5 mr-1 text-success shrink-0 stroke-[2.2]" />
                 <span>Join WhatsApp Group</span>
               </Button>
             )}
@@ -259,9 +259,9 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
 
   if (queryFetchError) {
     return (
-      <Card className="border border-dashed border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full">
+      <Card className="border border-dashed border-destructive/20 bg-destructive/5 rounded-2xl text-left w-full max-w-full">
         <CardContent className="p-5 text-center space-y-3.5 select-none">
-          <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+          <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
             Unable to load your courses
           </p>
           <p className="text-xs font-semibold italic text-muted-foreground/80 max-w-xs mx-auto leading-normal">

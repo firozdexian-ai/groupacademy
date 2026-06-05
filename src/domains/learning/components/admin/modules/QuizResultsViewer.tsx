@@ -165,30 +165,30 @@ export function QuizResultsViewer() {
  label: "Registry Nodes",
  val: summaryStats.total,
  icon: FileText,
- color: "text-blue-500",
- bg: "bg-blue-500/10",
+ color: "text-primary",
+ bg: "bg-primary/10",
  },
  {
  label: "Verified Pass",
  val: summaryStats.passed,
  icon: Trophy,
- color: "text-emerald-500",
- bg: "bg-emerald-500/10",
+ color: "text-success",
+ bg: "bg-success/10",
  },
  {
  label: "Global Median",
  val: `${summaryStats.avg}%`,
  icon: Target,
- color: "text-amber-500",
- bg: "bg-amber-500/10",
+ color: "text-warning",
+ bg: "bg-warning/10",
  progress: true,
  },
  {
  label: "Success Rate",
  val: `${summaryStats.rate}%`,
  icon: CheckCircle2,
- color: "text-purple-500",
- bg: "bg-purple-500/10",
+ color: "text-accent",
+ bg: "bg-accent/10",
  progress: true,
  },
  ].map((kpi, i) => (
@@ -201,7 +201,7 @@ export function QuizResultsViewer() {
  className={cn(
  "h-12 w-12 rounded-2xl flex items-center justify-center border shadow-inner group-hover:rotate-6 transition-transform",
  kpi.bg,
- "border-white/5",
+ "border-background/5",
  )}
  >
  <kpi.icon className={cn("h-6 w-6", kpi.color)} />
@@ -220,7 +220,7 @@ export function QuizResultsViewer() {
 
  {/* Main Registry */}
  <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card">
- <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary to-primary" />
  <CardHeader className="p-8 border-b border-border/10">
  <CardTitle className="text-xl font-semibold uppercase tracking-tight italic flex items-center gap-3">
  <ShieldCheck className="h-5 w-5 text-primary" /> Performance Log
@@ -287,7 +287,7 @@ export function QuizResultsViewer() {
  <Badge
  className={cn(
  "rounded-lg font-black text-[8px] uppercase px-3 py-1 border-none",
- attempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
+ attempt.passed ? "bg-success text-primary-foreground" : "bg-destructive text-primary-foreground",
  )}
  >
  {attempt.passed ? "PASSED" : "FAILED"}
@@ -322,7 +322,7 @@ export function QuizResultsViewer() {
  {/* Audit Forensics (Detail Dialog) */}
  <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
  <DialogContent className="max-w-3xl rounded-2xl border-4 border-border/40 bg-background/95 p-0 overflow-hidden shadow-sm">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-primary" />
  <div className="p-10 max-h-[85vh] overflow-y-auto no-scrollbar">
  <DialogHeader className="mb-10 text-left">
  <div className="flex items-center gap-5">
@@ -349,7 +349,7 @@ export function QuizResultsViewer() {
  <p
  className={cn(
  "text-6xl font-semibold tracking-tighter leading-none",
- selectedAttempt.passed ? "text-emerald-500" : "text-destructive",
+ selectedAttempt.passed ? "text-success" : "text-destructive",
  )}
  >
  {selectedAttempt.totalQuestions > 0
@@ -361,7 +361,7 @@ export function QuizResultsViewer() {
  <Badge
  className={cn(
  "rounded-lg font-black text-[10px] px-5 py-1.5 border-none",
- selectedAttempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
+ selectedAttempt.passed ? "bg-success text-primary-foreground" : "bg-destructive text-primary-foreground",
  )}
  >
  {selectedAttempt.passed ? "PASSED" : "FAILED"}
@@ -378,7 +378,7 @@ export function QuizResultsViewer() {
  key={index}
  className={cn(
  "rounded-xl border bg-muted/5 overflow-hidden",
- answer.isCorrect ? "border-emerald-500/20" : "border-destructive/20",
+ answer.isCorrect ? "border-success/20" : "border-destructive/20",
  )}
  >
  <CardContent className="p-6 flex gap-5 text-left">
@@ -386,7 +386,7 @@ export function QuizResultsViewer() {
  className={cn(
  "h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner shrink-0",
  answer.isCorrect
- ? "bg-emerald-500/10 text-emerald-500"
+ ? "bg-success/10 text-success"
  : "bg-destructive/10 text-destructive",
  )}
  >
@@ -403,16 +403,16 @@ export function QuizResultsViewer() {
  <p
  className={cn(
  "text-xs font-bold",
- answer.isCorrect ? "text-emerald-600" : "text-destructive",
+ answer.isCorrect ? "text-success" : "text-destructive",
  )}
  >
  {answer.selectedAnswer}
  </p>
  </div>
  {!answer.isCorrect && (
- <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/30">
- <p className="text-[8px] font-semibold uppercase text-emerald-600/40">Verified_Target</p>
- <p className="text-xs font-bold text-emerald-700">{answer.correctAnswer}</p>
+ <div className="p-3 rounded-xl bg-success/5 border border-success/30">
+ <p className="text-[8px] font-semibold uppercase text-success/40">Verified_Target</p>
+ <p className="text-xs font-bold text-success">{answer.correctAnswer}</p>
  </div>
  )}
  </div>

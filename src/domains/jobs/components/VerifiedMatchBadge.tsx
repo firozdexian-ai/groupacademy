@@ -56,13 +56,13 @@ export function VerifiedMatchBadge({
           <Badge
             variant="outline"
             className={cn(
-              "gap-1.5 border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 select-none transform-gpu shadow-sm h-5.5 rounded-md tabular-nums font-extrabold uppercase",
+              "gap-1.5 border-success/20 bg-success/10 dark:bg-success/5 text-success dark:text-success select-none transform-gpu shadow-sm h-5.5 rounded-md tabular-nums font-extrabold uppercase",
               compact ? "text-[9px] px-2 tracking-wide" : "text-[10px] px-2.5 tracking-tight normal-case",
               className,
             )}
           >
             <ShieldCheck
-              className={cn("shrink-0 stroke-[2.5] text-emerald-500", compact ? "h-3 w-3" : "h-3.5 w-3.5")}
+              className={cn("shrink-0 stroke-[2.5] text-success", compact ? "h-3 w-3" : "h-3.5 w-3.5")}
             />
             <span>{compact ? "Verified" : labelsTextStringValue}</span>
           </Badge>

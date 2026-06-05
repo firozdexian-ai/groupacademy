@@ -19,8 +19,8 @@ export function JobsKpiTab() {
     <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
         <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-pink-500">
-            <Activity className="h-8 w-8 text-pink-500 fill-pink-500/20" />
+          <div className="flex items-center gap-3 text-destructive">
+            <Activity className="h-8 w-8 text-destructive fill-destructive/20" />
             <h2 className="text-3xl font-semibold uppercase tracking-tight italic leading-none text-foreground">
               Recruitment KPIs
             </h2>
@@ -44,24 +44,24 @@ export function JobsKpiTab() {
             value={`${conversionRate}%`}
             subtitle={`${hiredApps} Total Hires`}
             icon={TrendingUp}
-            color="text-emerald-500"
-            bg="bg-emerald-500/10"
+            color="text-success"
+            bg="bg-success/10"
           />
           <KpiCard
             title="Application Volume"
             value={totalApps}
             subtitle={`${activeJobs} Active Roles`}
             icon={Users}
-            color="text-blue-500"
-            bg="bg-blue-500/10"
+            color="text-primary"
+            bg="bg-primary/10"
           />
           <KpiCard
             title="Sourced Pipeline"
             value={totalCrm}
             subtitle="CRM Candidates"
             icon={Crosshair}
-            color="text-pink-500"
-            bg="bg-pink-500/10"
+            color="text-destructive"
+            bg="bg-destructive/10"
           />
         </div>
       )}
@@ -81,7 +81,7 @@ function KpiCard({ title, value, subtitle, icon: Icon, color, bg }: any) {
       <CardContent className="p-8 flex flex-col h-full relative z-10">
         <div
           className={cn(
-            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-white/5 shadow-inner mb-6",
+            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-background/5 shadow-inner mb-6",
             bg,
             color,
           )}

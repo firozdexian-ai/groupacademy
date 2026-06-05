@@ -45,22 +45,22 @@ export function QuickStats({ coursesCompleted, hoursLearned, modulesCompleted, c
       label: "Courses Finished",
       value: String(normalizedCourses),
       icon: Award,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-500/10 border-emerald-500/10",
+      color: "text-success dark:text-success",
+      bgColor: "bg-success/10 border-success/10",
     },
     {
       label: "Hours Learned",
       value: formattedHoursValue,
       icon: Clock,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-500/10 border-blue-500/10",
+      color: "text-primary dark:text-primary",
+      bgColor: "bg-primary/10 border-primary/10",
     },
     {
       label: "Modules Finished",
       value: String(normalizedModules),
       icon: BookOpen,
-      color: "text-violet-600 dark:text-violet-400",
-      bgColor: "bg-violet-500/10 border-violet-500/10",
+      color: "text-accent dark:text-accent",
+      bgColor: "bg-accent/10 border-accent/10",
     },
   ];
 
@@ -74,7 +74,7 @@ export function QuickStats({ coursesCompleted, hoursLearned, modulesCompleted, c
       {/* Header Label Row */}
       <div className="flex items-center justify-between px-0.5 select-none w-full leading-none">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0" />
+          <div className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0" />
           <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 leading-none">
             Your Progress
           </h2>

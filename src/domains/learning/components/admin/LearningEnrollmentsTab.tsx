@@ -25,8 +25,8 @@ export function LearningEnrollmentsTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-blue-500">
- <Users className="h-8 w-8 text-blue-500 fill-blue-500/20" />
+ <div className="flex items-center gap-3 text-primary">
+ <Users className="h-8 w-8 text-primary fill-primary/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Enrollments
  </h2>
@@ -40,14 +40,14 @@ export function LearningEnrollmentsTab() {
  setDraft({ status: "active" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-blue-500/20 bg-primary hover:bg-primary text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Force Enrollment
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-600" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-primary via-accent to-primary" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -82,11 +82,11 @@ export function LearningEnrollmentsTab() {
  </TableRow>
  ) : (
  data?.enrollments?.map((row) => (
- <TableRow key={row.id} className="group hover:bg-blue-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-primary/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <BookOpen className="h-3 w-3 text-blue-500" />
+ <BookOpen className="h-3 w-3 text-primary" />
  </div>
  <span className="font-mono text-xs uppercase tracking-tight text-muted-foreground">
  {row.content_id?.substring(0, 8) || "N/A"}
@@ -95,7 +95,7 @@ export function LearningEnrollmentsTab() {
  </TableCell>
  <TableCell>
  <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
- <User className="h-3 w-3 text-blue-500" />{" "}
+ <User className="h-3 w-3 text-primary" />{" "}
  {row.talent_id ? row.talent_id.substring(0, 8) : "Unknown"}
  </span>
  </TableCell>
@@ -104,10 +104,10 @@ export function LearningEnrollmentsTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.status === "completed"
- ? "bg-emerald-500/10 text-emerald-600"
+ ? "bg-success/10 text-success"
  : row.status === "dropped"
- ? "bg-rose-500/10 text-rose-600"
- : "bg-blue-500/10 text-blue-600",
+ ? "bg-destructive/10 text-destructive"
+ : "bg-primary/10 text-primary",
  )}
  >
  {row.status}
@@ -125,7 +125,7 @@ export function LearningEnrollmentsTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-blue-500/10 hover:text-blue-600"
+ className="hover:bg-primary/10 hover:text-primary"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -153,7 +153,7 @@ export function LearningEnrollmentsTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-blue-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-primary flex items-center gap-2">
  <Users className="h-6 w-6" /> Evaluate Enrollment
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -194,16 +194,16 @@ export function LearningEnrollmentsTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent>
- <SelectItem value="active" className="font-bold text-xs text-blue-500">
+ <SelectItem value="active" className="font-bold text-xs text-primary">
  Active
  </SelectItem>
  <SelectItem
  value="completed"
- className="font-bold text-xs text-emerald-500"
+ className="font-bold text-xs text-success"
  >
  Completed
  </SelectItem>
- <SelectItem value="dropped" className="font-bold text-xs text-rose-500">
+ <SelectItem value="dropped" className="font-bold text-xs text-destructive">
  Dropped
  </SelectItem>
  </SelectContent>
@@ -213,7 +213,7 @@ export function LearningEnrollmentsTab() {
  <Button
  disabled={!draft.content_id || upsertEnrollment.isPending}
  onClick={() => upsertEnrollment.mutate(draft, { onSuccess: () => setOpen(false) })}
- className="h-14 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white"
+ className="h-14 rounded-xl font-medium bg-primary hover:bg-primary text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Status
  </Button>

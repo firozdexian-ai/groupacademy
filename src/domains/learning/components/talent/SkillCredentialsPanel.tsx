@@ -17,17 +17,17 @@ const LEVEL_META: Record<SkillCredential["level"], { icon: any; label: string; t
   foundational: {
     icon: BadgeCheck,
     label: "Foundational",
-    tone: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20",
+    tone: "text-primary dark:text-primary bg-primary/10 border-primary/20",
   },
   proficient: {
     icon: Award,
     label: "Proficient",
-    tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    tone: "text-success dark:text-success bg-success/10 border-success/20",
   },
   expert: {
     icon: Trophy,
     label: "Expert",
-    tone: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
+    tone: "text-warning dark:text-warning bg-warning/10 border-warning/20",
   },
 };
 

@@ -52,8 +52,8 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<SessionStatus, string> = {
- scheduled: "bg-blue-500/10 text-blue-600 border-blue-500/20",
- ongoing: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 animate-pulse",
+ scheduled: "bg-primary/10 text-primary border-primary/20",
+ ongoing: "bg-success/10 text-success border-success/20 animate-pulse",
  completed: "bg-muted text-muted-foreground border-border",
  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
 };
@@ -219,7 +219,7 @@ export default function CourseSessionsManager({
  {sessions.map((s, idx) => {
  const past = new Date(s.scheduled_date).getTime() < Date.now();
  return (
- <Card key={s.id} className={cn("rounded-2xl border transition-colors", past && s.status === "scheduled" && "border-amber-500/30")}>
+ <Card key={s.id} className={cn("rounded-2xl border transition-colors", past && s.status === "scheduled" && "border-warning/30")}>
  <CardContent className="p-4 space-y-3">
  <div className="flex items-start justify-between gap-3">
  <div className="flex-1 min-w-0">
@@ -245,8 +245,8 @@ export default function CourseSessionsManager({
  )}
  {s.recording_link && (
  <div className="flex items-center gap-2 mt-1">
- <Play className="w-3 h-3 text-emerald-600" />
- <code className="text-[10px] text-emerald-600 truncate">{s.recording_link}</code>
+ <Play className="w-3 h-3 text-success" />
+ <code className="text-[10px] text-success truncate">{s.recording_link}</code>
  </div>
  )}
  </div>
@@ -256,7 +256,7 @@ export default function CourseSessionsManager({
  <Edit2 className="w-3 h-3 mr-1" /> Edit
  </Button>
  {s.status === "scheduled" && (
- <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs font-medium text-emerald-600"
+ <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs font-medium text-success"
  onClick={() => setStatus(s, "completed")}>
  <CheckCircle2 className="w-3 h-3 mr-1" /> Done
  </Button>

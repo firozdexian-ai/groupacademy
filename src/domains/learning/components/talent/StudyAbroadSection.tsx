@@ -126,8 +126,8 @@ export function StudyAbroadSection() {
           onClick={() => handleGlobalNavigationTrigger("/app/abroad/ielts", "ielts_preparation_hub")}
         >
           <CardContent className="p-3.5 space-y-3 w-full flex flex-col justify-center">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/5 flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-2 transition-transform">
-              <BookOpen className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+            <div className="h-9 w-9 rounded-xl bg-success/10 border border-success/5 flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-2 transition-transform">
+              <BookOpen className="h-4.5 w-4.5 text-success dark:text-success stroke-[2.2]" />
             </div>
             <div className="space-y-0.5 flex flex-col justify-center leading-none w-full min-w-0">
               <p className="text-xs sm:text-sm font-bold text-foreground/90 tracking-tight leading-none group-hover:text-primary transition-colors">
@@ -220,7 +220,7 @@ export function StudyAbroadSection() {
           </div>
 
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/60 select-none leading-none tabular-nums pl-0.5">
-            <Coins className="h-3.5 w-3.5 text-amber-500 stroke-[2.2] shrink-0" />
+            <Coins className="h-3.5 w-3.5 text-warning stroke-[2.2] shrink-0" />
             <span>
               Costs{" "}
               <span className="text-primary font-black">{roadmapCost.toLocaleString()} credits</span> from your balance

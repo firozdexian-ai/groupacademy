@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listAdminJobs,
   updateJobsBulk,
@@ -7,7 +6,9 @@ import {
   updateJob,
   deleteJob,
   getJobEngagementCounts,
+  archiveExpiredJobs,
 } from "@/domains/jobs/repo/jobsRepo";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,10 +83,9 @@ export function JobsManageTab() {
     if (!confirm("Archive all jobs past their deadline (and inactive-stale jobs >90d old)?")) return;
     setPurging(true);
     try {
-      const { data, error } = await (supabase as any).rpc("archive_expired_jobs");
-      if (error) throw error;
-      const archived = Number(data ?? 0);
+      const archived = await archiveExpiredJobs();
       toast.success(`Purged ${archived} expired job${archived === 1 ? "" : "s"}`);
+
       queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["jobs-hub-dashboard"] });
       loadJobs();
@@ -236,7 +236,7 @@ export function JobsManageTab() {
                 variant="outline"
                 onClick={purgeExpired}
                 disabled={purging}
-                className="h-10 px-5 rounded-xl border-2 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 font-semibold uppercase text-[10px] tracking-widest gap-2"
+                className="h-10 px-5 rounded-xl border-2 border-warning/40 text-warning hover:bg-warning/10 font-semibold uppercase text-[10px] tracking-widest gap-2"
                 title="Archive jobs past deadline or stale (>90d)"
               >
                 <Flame className="h-4 w-4" />
@@ -356,7 +356,7 @@ export function JobsManageTab() {
                             className="font-semibold text-[9px] uppercase italic border-2 bg-background"
                           >
                             {job.source_platform === "linkedin" && (
-                              <Linkedin className="w-3 h-3 mr-1.5 text-blue-500" />
+                              <Linkedin className="w-3 h-3 mr-1.5 text-primary" />
                             )}
                             {(job.source_platform || "other").replace("_", " ")}
                           </Badge>
@@ -365,7 +365,7 @@ export function JobsManageTab() {
                           <Switch
                             checked={job.is_active}
                             onCheckedChange={(v) => inlineToggle(job.id, "is_active", v)}
-                            className="data-[state=checked]:bg-emerald-500"
+                            className="data-[state=checked]:bg-success"
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -384,13 +384,13 @@ export function JobsManageTab() {
                               <MousePointer2 className="w-3 h-3" /> {e.clicks}
                             </span>
                             <span
-                              className="flex items-center gap-1 hover:text-amber-500 transition-colors"
+                              className="flex items-center gap-1 hover:text-warning transition-colors"
                               title="SAVES"
                             >
                               <Bookmark className="w-3 h-3" /> {e.saves}
                             </span>
                             <span
-                              className="flex items-center gap-1 hover:text-blue-500 transition-colors"
+                              className="flex items-center gap-1 hover:text-primary transition-colors"
                               title="AI_HITS"
                             >
                               <Brain className="w-3 h-3" /> {e.recommendations}

@@ -1045,3 +1045,138 @@ export async function listRelatedJobsFeatured(excludeIds: string[], limit = 6) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+/**
+ * Realtime subscription to inserts on application_messages for a single
+ * application. Returns a cleanup function the caller must invoke on unmount.
+ */
+export function subscribeToApplicationMessages(
+  applicationId: string,
+  onInsert: (row: ApplicationMessageRow) => void,
+): () => void {
+  const ch = supabase
+    .channel(`app_msg_${applicationId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "application_messages",
+        filter: `application_id=eq.${applicationId}`,
+      },
+      (payload) => onInsert(payload.new as ApplicationMessageRow),
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
+
+/** AI relevance score writeback for a job application. */
+export async function updateApplicationAIScore(
+  applicationId: string,
+  patch: { ai_match_score: number; ai_match_rationale: string },
+): Promise<void> {
+  const { error } = await supabase
+    .from("job_applications")
+    .update({
+      ai_match_score: patch.ai_match_score,
+      ai_match_rationale: patch.ai_match_rationale,
+      ai_scored_at: new Date().toISOString(),
+    })
+    .eq("id", applicationId);
+  if (error) throw error;
+}
+
+/** RPC: archive jobs past their deadline + inactive-stale jobs >90d. */
+export async function archiveExpiredJobs(): Promise<number> {
+  const { data, error } = await (supabase as any).rpc("archive_expired_jobs");
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+/** Active jobs payload tailored for the JobsOutreachTab job picker. */
+export async function listActiveJobsForOutreach(limit = 100) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(
+      "id,title,company_name,location,job_type,application_type,application_url,application_email",
+    )
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+/** Saved job ids for the ScoreMe picker. */
+export async function listSavedJobIdsForUser(userId: string, limit = 20): Promise<string[]> {
+  const { data, error } = await (supabase.from("saved_items") as any)
+    .select("item_id")
+    .eq("user_id", userId)
+    .eq("item_type", "job")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => r.item_id).filter(Boolean);
+}
+
+export async function listJobsByIdsForPicker(ids: string[]) {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, title, company_name")
+    .in("id", ids);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; title: string; company_name: string | null }>;
+}
+
+export async function listRecentActiveJobsForPicker(limit = 20) {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, title, company_name")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; title: string; company_name: string | null }>;
+}
+
+/** LinkedIn batch importer: existing source_urls to dedupe against. */
+export async function listExistingJobSourceUrls(sourceUrls: string[]): Promise<string[]> {
+  if (!sourceUrls.length) return [];
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("source_url")
+    .in("source_url", sourceUrls);
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => r.source_url).filter(Boolean);
+}
+
+/** Assessment leads page for JobsAssessmentLeadsTab. */
+export async function listCareerAssessmentLeads(args: {
+  page: number;
+  pageSize: number;
+}): Promise<{ rows: any[]; count: number }> {
+  const { page, pageSize } = args;
+  const { data, error, count } = await supabase
+    .from("career_assessments")
+    .select(
+      `
+        id,
+        full_name,
+        email,
+        phone,
+        percentage,
+        readiness_level,
+        created_at,
+        profession_category:profession_categories(name)
+      `,
+      { count: "exact" },
+    )
+    .order("created_at", { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+  if (error) throw error;
+  return { rows: (data ?? []) as any[], count: count ?? 0 };
+}
+
