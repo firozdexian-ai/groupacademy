@@ -192,7 +192,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
  onClick={() => setEventTab("upcoming")}
  className={cn(
  "px-6 py-2 rounded-lg text-[10px] font-medium transition-all",
- eventTab === "upcoming" ? "bg-primary text-white shadow-lg" : "text-muted-foreground",
+ eventTab === "upcoming" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground",
  )}
  >
  Upcoming
@@ -201,7 +201,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
  onClick={() => setEventTab("past")}
  className={cn(
  "px-6 py-2 rounded-lg text-[10px] font-medium transition-all",
- eventTab === "past" ? "bg-primary text-white shadow-lg" : "text-muted-foreground",
+ eventTab === "past" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground",
  )}
  >
  Past
@@ -433,7 +433,7 @@ function ChildRegistry({ table, title, description, fields, badgeKey, icon: Icon
  <AlertDialogCancel className="h-12 rounded-xl font-medium text-[10px]">Cancel</AlertDialogCancel>
  <AlertDialogAction
  onClick={() => purgeId && remove.mutate(purgeId)}
- className="h-12 bg-destructive text-white rounded-xl font-medium text-[10px]"
+ className="h-12 bg-destructive text-destructive-foreground rounded-xl font-medium text-[10px]"
  >
  Confirm Termination
  </AlertDialogAction>

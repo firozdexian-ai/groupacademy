@@ -492,7 +492,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
             <AlertDialogCancel className="h-12 rounded-xl font-medium text-[10px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => purgeId && purgeMutation.mutate(purgeId)}
-              className="h-12 bg-destructive text-white rounded-xl font-medium text-[10px]"
+              className="h-12 bg-destructive text-destructive-foreground rounded-xl font-medium text-[10px]"
             >
               Confirm Termination
             </AlertDialogAction>

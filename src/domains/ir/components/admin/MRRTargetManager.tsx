@@ -250,7 +250,7 @@ export function MRRTargetManager() {
  <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 bg-primary/10 rounded-full blur-3xl" />
  <CardContent className="p-10 text-center space-y-6 relative z-10">
  <div className="mx-auto h-20 w-20 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-sm mb-2">
- <TrendingUp className="h-10 w-10 text-white" />
+ <TrendingUp className="h-10 w-10 text-primary-foreground" />
  </div>
  <div className="space-y-2">
  <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-primary italic">

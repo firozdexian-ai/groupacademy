@@ -265,7 +265,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
             "w-full h-16 rounded-xl text-sm font-medium gap-3 shadow-sm transition-all",
             isDeploying || !subject.trim() || !body.trim() || !selectedInvestor?.email
               ? "bg-muted text-muted-foreground border border-border/40 cursor-not-allowed"
-              : "bg-gradient-to-r from-primary via-blue-600 to-primary hover:scale-[1.02] text-white shadow-primary/20",
+              : "bg-gradient-to-r from-primary via-primary to-primary hover:scale-[1.02] text-primary-foreground shadow-primary/20",
           )}
         >
           {isDeploying ? <InlineSpinner size="md" /> : <ExternalLink className="h-5 w-5 fill-current" />}
