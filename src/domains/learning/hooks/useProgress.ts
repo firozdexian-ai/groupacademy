@@ -95,21 +95,11 @@ export function useProgress({ enrollmentId, contentId }: UseProgressOptions) {
   // --- HUD: REALTIME_CDC_THROTTLED_SYNCHRONIZER ---
   useMemo(() => {
     if (!enrollmentId) return;
-
-    const channel = supabase
-      .channel(`public:module_progress_sync:${enrollmentId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "module_progress", filter: `enrollment_id=eq.${enrollmentId}` },
-        () => {
-          // Trigger controlled background revalidation without clearing existing layout states
-          void qc.invalidateQueries({ queryKey });
-        },
-      )
-      .subscribe();
-
+    const unsubscribe = subscribeToModuleProgress(enrollmentId, () => {
+      void qc.invalidateQueries({ queryKey });
+    });
     return () => {
-      void supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [enrollmentId, qc, queryKey]);
 
