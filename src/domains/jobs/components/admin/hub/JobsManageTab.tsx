@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listAdminJobs,
   updateJobsBulk,
@@ -7,7 +6,9 @@ import {
   updateJob,
   deleteJob,
   getJobEngagementCounts,
+  archiveExpiredJobs,
 } from "@/domains/jobs/repo/jobsRepo";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
