@@ -18,6 +18,7 @@ import { CreatorOnboardingDialog } from "@/domains/agents/components/talent/Crea
 import { PayoutDialog } from "@/domains/agents/components/talent/PayoutDialog"; // Recommended extraction
 import { cn } from "@/lib/utils";
 import { InlineSpinner } from "@/components/common/InlineSpinner";
+import { ComingSoonGate } from "@/components/launch/ComingSoonGate";
 
 // =========================================================================
 // DETERMINISTIC CONTRACTS
@@ -123,9 +124,26 @@ export default function MyAgents() {
  <p className="text-xs text-muted-foreground mt-1">{a.description}</p>
  </Card>
  ))}
- </TabsContent>
- {/* ... Implement Earnings/Payouts Content tabs using similar pattern ... */}
- </Tabs>
+  </TabsContent>
+  <TabsContent value="earnings" className="space-y-3">
+   <ComingSoonGate
+    featureKey="my-agents-earnings"
+    title="Earnings ledger coming soon"
+    description="A per-agent earnings ledger with daily roll-ups is on the way. Join the waitlist and we'll ping you the moment it opens."
+    secondaryCtaLabel="Back to agents"
+    secondaryCtaHref="/app/my-agents"
+   />
+  </TabsContent>
+  <TabsContent value="payouts" className="space-y-3">
+   <ComingSoonGate
+    featureKey="my-agents-payouts"
+    title="Payouts dashboard coming soon"
+    description="Self-serve payout history and statements land here next. Until then, request a payout using the button above and we'll process it manually."
+    secondaryCtaLabel="Back to agents"
+    secondaryCtaHref="/app/my-agents"
+   />
+  </TabsContent>
+  </Tabs>
  </div>
  );
 }

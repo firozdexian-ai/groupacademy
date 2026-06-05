@@ -255,9 +255,50 @@ export default function ReviewerCockpit() {
  <TabsTrigger value="history" className="rounded-xl font-black uppercase text-[9px] tracking-widest">
  History
  </TabsTrigger>
- </TabsList>
- {/* List Views implemented with consistent card geometry... */}
- </Tabs>
+  </TabsList>
+  {(["offered", "claimed", "history"] as const).map((bucket) => {
+   const items = assignments.filter((a) => {
+    if (bucket === "offered") return a.status === "offered";
+    if (bucket === "claimed") return a.status === "claimed";
+    return a.status !== "offered" && a.status !== "claimed";
+   });
+   return (
+    <TabsContent key={bucket} value={bucket} className="space-y-2 pt-3">
+     {items.length === 0 ? (
+      <Card className="rounded-2xl border-dashed border-border/60">
+       <CardContent className="p-6 text-center text-xs text-muted-foreground italic">
+        No {bucket} assignments right now.
+       </CardContent>
+      </Card>
+     ) : (
+      items.map((a) => (
+       <Card key={a.id} className="rounded-2xl border border-border/60">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+         <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+           {a.kind}
+          </div>
+          <div className="text-xs truncate">Due {new Date(a.due_at).toLocaleDateString()}</div>
+         </div>
+         {bucket === "offered" ? (
+          <Button size="sm" disabled={working} onClick={() => claim(a.id)}>
+           Claim
+          </Button>
+         ) : bucket === "claimed" ? (
+          <Button size="sm" variant="outline" onClick={() => openItem(a.id)}>
+           Open
+          </Button>
+         ) : (
+          <Badge variant="outline" className="uppercase">{a.verdict || a.status}</Badge>
+         )}
+        </CardContent>
+       </Card>
+      ))
+     )}
+    </TabsContent>
+   );
+  })}
+  </Tabs>
  )}
  </div>
  );
