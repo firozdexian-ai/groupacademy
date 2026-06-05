@@ -49,24 +49,13 @@ export default function MyGigs() {
  queryKey: ["app-my-gigs-dashboard", talent?.id],
  enabled: !!talent?.id,
  queryFn: async () => {
- const [bids, contracts] = await Promise.all([
- supabase
- .from("marketplace_bids")
- .select("*, marketplace_gigs(title, skill_category, employer_name)")
- .eq("talent_id", talent!.id)
- .order("created_at", { ascending: false }),
- supabase
- .from("marketplace_contracts")
- .select("*, marketplace_gigs:gig_id(title, skill_category)")
- .eq("freelancer_id", talent!.id)
- .order("created_at", { ascending: false }),
- ]);
- return {
- bids: (bids.data as unknown as BidRecord[]) ?? [],
- contracts: (contracts.data as unknown as ContractRecord[]) ?? [],
- };
- },
- });
+    const { bids, contracts } = await getMyMarketplaceBidsAndContracts(talent!.id);
+    return {
+      bids: bids as unknown as BidRecord[],
+      contracts: contracts as unknown as ContractRecord[],
+    };
+   },
+   });
 
  if (isLoading)
  return (

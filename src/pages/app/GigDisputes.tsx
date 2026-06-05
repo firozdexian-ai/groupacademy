@@ -36,26 +36,20 @@ export default function GigDisputes() {
  const isThreadActiveFlag = { current: true };
  setIsDataLayerLoading(true);
 
- const loadDisputesLedgerHistory = async () => {
- try {
- const { data: dbDisputesPayload, error: queryHandshakeError } = await supabase
- .from("gig_disputes")
- .select("id, gig_id, reason_code, status, final_verdict, created_at, opened_by_role")
- .order("created_at", { ascending: false });
-
- if (queryHandshakeError) throw queryHandshakeError;
-
- if (isThreadActiveFlag.current) {
- setDisputesRegistryItems((dbDisputesPayload as unknown as DisputeRecord[]) ?? []);
- }
- } catch (fatalHandshakeException) {
- console.error("[gigs] Failed to load disputes:", fatalHandshakeException);
- } finally {
- if (isThreadActiveFlag.current) {
- setIsDataLayerLoading(false);
- }
- }
- };
+  const loadDisputesLedgerHistory = async () => {
+   try {
+     const data = await listVisibleGigDisputes();
+     if (isThreadActiveFlag.current) {
+       setDisputesRegistryItems(data as unknown as DisputeRecord[]);
+     }
+   } catch (fatalHandshakeException) {
+     console.error("[gigs] Failed to load disputes:", fatalHandshakeException);
+   } finally {
+     if (isThreadActiveFlag.current) {
+       setIsDataLayerLoading(false);
+     }
+   }
+  };
 
  loadDisputesLedgerHistory();
 
