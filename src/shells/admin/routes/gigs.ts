@@ -2,7 +2,16 @@ import React from "react";
 
 export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
   "gigs-overview": React.lazy(() => import("@/domains/gigs/components/admin/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
-  "gigs-scoper": React.lazy(() => import("@/domains/gigs/components/admin/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
+  "gigs-scoper": React.lazy(() =>
+    import("@/shells/admin/components/AdminTabPlaceholder").then((m) => ({
+      default: () =>
+        React.createElement(m.AdminTabPlaceholder, {
+          tabKey: "gigs-scoper",
+          title: "AI scoper queue",
+          note: "Auto-scoped gig briefs awaiting admin review. The dedicated scoper queue is reserved — for now check Marketplace and Quick Actions.",
+        }),
+    })),
+  ),
   "gigs-quick-actions": React.lazy(() => import("@/domains/gigs/components/admin/GigsQuickActionsTab").then(m => ({ default: m.GigsQuickActionsTab }))),
   "gigs-marketplace": React.lazy(() => import("@/domains/gigs/components/admin/GigsMarketplaceTab").then(m => ({ default: m.GigsMarketplaceTab }))),
   "gigs-course-projects": React.lazy(() => import("@/domains/gigs/components/admin/GigsCourseProjectsTab").then(m => ({ default: m.GigsCourseProjectsTab }))),

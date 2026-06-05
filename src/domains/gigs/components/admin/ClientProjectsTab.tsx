@@ -1,15 +1,13 @@
-import { Card } from "@/components/ui/card";
+import AdminTabPlaceholder from "@/shells/admin/components/AdminTabPlaceholder";
+
 export function ClientProjectsTab() {
   return (
-    <Card className="p-6">
-      <h2 className="text-xl font-semibold">Client Projects</h2>
-      <p className="text-sm text-muted-foreground mt-1">
-        Real client briefs posted to the marketplace. Reuses the Marketplace
-        Gigs queue with <code>source = 'client'</code>.
-      </p>
-    </Card>
+    <AdminTabPlaceholder
+      tabKey="gigs-client-projects"
+      title="Client Projects"
+      note="Real client briefs posted to the marketplace (source = 'client'). This dedicated queue is reserved — for now the Marketplace tab shows all gigs regardless of source."
+    />
   );
 }
-
 
 export default ClientProjectsTab;

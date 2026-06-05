@@ -1,9 +1,12 @@
+import AdminTabPlaceholder from "@/shells/admin/components/AdminTabPlaceholder";
+
 export function LearningCareerTracksTab() {
   return (
-    <div className="p-8 text-center text-muted-foreground">
-      <h2 className="text-2xl font-bold mb-2">LearningCareerTracks (Coming Soon)</h2>
-      <p>This Phase 6 surface is under construction.</p>
-    </div>
+    <AdminTabPlaceholder
+      tabKey="learning-career-tracks"
+      title="Career Tracks"
+      note="Curated multi-course career tracks (Phase 6). Track authoring and progress will surface here once the catalog ships."
+    />
   );
 }
 
