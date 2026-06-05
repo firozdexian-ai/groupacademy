@@ -197,3 +197,26 @@ export async function listMessagingChannelsByAgentKey(agentKey: string): Promise
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10i.4: realtime subscription helper ────────────────────────────
+/**
+ * Subscribe to messaging_channels postgres changes scoped to a single agent.
+ * Returns an unsubscribe function; consumers should call it from useEffect
+ * cleanup to detach the realtime channel.
+ */
+export function subscribeToMessagingChannelsByAgent(
+  agentKey: string,
+  onChange: () => void,
+): () => void {
+  const ch = supabase
+    .channel(`messaging_channels_admin:${agentKey}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "messaging_channels", filter: `agent_key=eq.${agentKey}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(ch);
+  };
+}

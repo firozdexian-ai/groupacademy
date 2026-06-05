@@ -712,3 +712,56 @@ export async function listPortfolioRequestsByEmailFull(email: string) {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── Phase 10i.4: leaked component queries pulled into repo ────────────────
+
+/** Paid, published content used by the Access Codes generator. */
+export async function listPublishedPaidContent() {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title, price")
+    .gt("price", 0)
+    .eq("is_published", true)
+    .order("title");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** All service share telemetry rows for the outreach attribution screen. */
+export async function listServiceShareLogs() {
+  const { data, error } = await supabase
+    .from("service_share_logs")
+    .select("channel, shared_at, service_slug")
+    .order("shared_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function recordServiceShare(serviceSlug: string, channel: string) {
+  const { error } = await supabase
+    .from("service_share_logs")
+    .insert({ service_slug: serviceSlug, channel: channel.toLowerCase() });
+  if (error) throw error;
+}
+
+/** Aggregate marketing telemetry for the analytics dashboard. */
+export async function getMarketingAnalyticsTelemetry(startISO: string, endISO: string) {
+  const [jobClicksRes, jobSharesRes, contentClicksRes, contentSharesRes, topJobsDataRes] = await Promise.all([
+    supabase.from("job_analytics").select("source").gte("clicked_at", startISO).lte("clicked_at", endISO),
+    supabase.from("job_share_logs").select("channel").gte("shared_at", startISO).lte("shared_at", endISO),
+    supabase.from("content_analytics").select("source").gte("clicked_at", startISO).lte("clicked_at", endISO),
+    supabase.from("content_share_logs").select("channel").gte("shared_at", startISO).lte("shared_at", endISO),
+    supabase
+      .from("job_analytics")
+      .select("job_id, jobs(id, title, company_name)")
+      .gte("clicked_at", startISO)
+      .lte("clicked_at", endISO),
+  ]);
+  return {
+    jobClicks: jobClicksRes.data ?? [],
+    jobShares: jobSharesRes.data ?? [],
+    contentClicks: contentClicksRes.data ?? [],
+    contentShares: contentSharesRes.data ?? [],
+    topJobsRaw: topJobsDataRes.data ?? [],
+  };
+}
