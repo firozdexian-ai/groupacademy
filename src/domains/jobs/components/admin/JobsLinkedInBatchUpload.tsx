@@ -164,12 +164,8 @@ async function resolveCompanies(
  });
  });
 
- const { data: existing } = await supabase
- .from("companies")
- .select("*")
- .in(
- "name",
- [...uniqueCompanies.values()].map((c) => c.name),
+ const existing = await listCompaniesByNames(
+   [...uniqueCompanies.values()].map((c) => c.name),
  );
  const nameToId = new Map<string, string>();
  const toCreate: CompanyData[] = [];
@@ -185,13 +181,11 @@ async function resolveCompanies(
 
  let createdCount = 0;
  if (toCreate.length > 0) {
- const { data: created } = await supabase
- .from("companies")
- .insert(toCreate as any)
- .select("id, name");
+ const created = await insertCompaniesBulk(toCreate as any);
  created?.forEach((c) => nameToId.set(c.name.toLowerCase(), c.id));
  createdCount = created?.length || 0;
  }
+
 
  return { nameToId, created: createdCount, enriched: 0 };
 }
