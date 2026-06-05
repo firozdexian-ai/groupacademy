@@ -20,6 +20,7 @@ import { GRO10X_MUTED } from "../lib/tokens";
 import { Plus, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { TalentPipelinePanel } from "../components/TalentPipelinePanel";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 type CrmTab = "sales" | "talent";
 

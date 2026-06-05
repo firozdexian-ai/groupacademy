@@ -12,6 +12,7 @@ import {
 } from "@/domains/companies/repo/companiesRepo";
 import { listAudienceFeedPosts, insertFeedPost } from "@/domains/feed/repo/feedRepo";
 import { getTalentMiniProfileByUser } from "@/domains/talent/repo/talentRepo";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 interface FeedPost {
   id: string;

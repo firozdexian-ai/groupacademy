@@ -15,6 +15,7 @@ import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { useB2BCatalog, useMyAssignments } from "../hooks/useCourseAssignments";
 import { useMyTrackAssignments } from "@/domains/learning";
 import { TrackProgressRing } from "@/domains/learning/components/talent/TrackProgressRing";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 export default function Gro10xLearn() {
   const catalog = useB2BCatalog();

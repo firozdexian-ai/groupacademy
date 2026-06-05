@@ -13,6 +13,7 @@ import { getTalentCountryByUserId } from "@/domains/talent/repo/talentRepo";
 import { creditsToUSD, formatMoney, formatUSD } from "@/lib/currency";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { TelegramTopUpModal } from "../components/TelegramTopUpModal";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 const TOPUP_PACKS = [
   { credits: 100, popular: false },

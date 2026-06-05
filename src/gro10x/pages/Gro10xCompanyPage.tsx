@@ -15,6 +15,7 @@ import {
 } from "@/domains/companies/repo/companiesRepo";
 import { listTalentMiniProfilesByUserIds } from "@/domains/talent/repo/talentRepo";
 import { listActiveJobsByCompanyId } from "@/domains/jobs/repo/jobsRepo";
+import { Gro10xLoading } from "../components/Gro10xLoading";
 
 interface Company {
   id: string;
