@@ -2157,25 +2157,6 @@ export async function insertLearningTrack(input: Record<string, any>) {
   return data;
 }
 
-export async function listLearningTrackItems(trackId: string) {
-  const { data, error } = await supabase
-    .from("learning_track_items")
-    .select("id, content_id, position, is_required, content(title, slug, credit_cost)")
-    .eq("track_id", trackId)
-    .order("position");
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function insertLearningTrackItem(input: {
-  track_id: string;
-  content_id: string;
-  position: number;
-  is_required: boolean;
-}) {
-  const { error } = await supabase.from("learning_track_items").insert(input);
-  if (error) throw error;
-}
 
 export async function listInstructorEarnings(limit = 100) {
   const { data, error } = await supabase
@@ -2282,7 +2263,7 @@ export async function listUpcomingOfflineSeminarsForTalent(cutoff: string) {
   const { data, error } = await supabase
     .from("content")
     .select(
-      "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
+      "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link, price, instructor_name",
     )
     .eq("is_published", true)
     .eq("is_ready", true)
@@ -2357,4 +2338,31 @@ export async function listContentForModulePicker(limit = 200) {
     .limit(limit);
   if (error) throw error;
   return (data ?? []) as any[];
+}
+
+export async function listQuizEnabledCourses() {
+  const { data, error } = await supabase
+    .from("content")
+    .select("id, title")
+    .eq("quiz_enabled", true)
+    .eq("is_published", true)
+    .order("title");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listQuizAttemptsAdmin(contentId: string | null, limit = 100) {
+  let query = supabase
+    .from("quiz_attempts")
+    .select(
+      `id, student_id, content_id, score, total_questions, passed, answers, created_at,
+       content:content_id (id, title),
+       students:student_id (id, full_name, email)`,
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (contentId) query = query.eq("content_id", contentId);
+  const { data, error } = await query;
+  if (error) return [];
+  return data ?? [];
 }

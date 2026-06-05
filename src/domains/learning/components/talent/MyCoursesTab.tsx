@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listTalentEnrollmentsFull } from "@/domains/learning/repo/learningRepo";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -205,21 +205,7 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
     enabled: !!talent?.id,
     refetchOnWindowFocus: false, // Drop redundant window re-focus polling layers
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select(
-          `
-          id, status, enrolled_at, completed_at, progress,
-          content:content_id (
-            id, title, slug, content_type, thumbnail_url, cover_image_url,
-            instructor_name, whatsapp_group_link
-          )
-        `,
-        )
-        .eq("talent_id", talent!.id)
-        .order("last_accessed_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await listTalentEnrollmentsFull(talent!.id);
       return (data as any[]).filter((e) => e.content?.content_type !== "free_video") as Enrollment[];
     },
   });

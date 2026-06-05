@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeader } from "@/components/ui/section-header";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfessionCategoriesPreview } from "@/domains/learning/repo/learningRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
@@ -96,14 +96,7 @@ export function CareerTracksPreview() {
     staleTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profession_categories")
-        .select("id, name, slug, icon, description")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .limit(8);
-
-      if (error) throw error;
+      const data = await listActiveProfessionCategoriesPreview(8);
       return data || [];
     },
   });

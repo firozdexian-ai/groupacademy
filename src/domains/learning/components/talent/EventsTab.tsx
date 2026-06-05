@@ -1,7 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listUpcomingOfflineSeminarsForTalent,
+  listActiveCompetitions,
+} from "@/domains/learning/repo/learningRepo";
 import { Calendar, MapPin, Users, Trophy, Gift, Globe, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,19 +84,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from("content")
-        .select(
-          "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
-        )
-        .eq("is_published", true)
-        .eq("is_ready", true)
-        .eq("content_type", "offline_seminar")
-        .not("event_date", "is", null)
-        .gte("event_date", cutoff)
-        .order("event_date", { ascending: true });
-
-      if (error) throw error;
+      const data = await listUpcomingOfflineSeminarsForTalent(cutoff);
       return data || [];
     },
   });
@@ -109,13 +100,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("competitions")
-        .select("id, title, slug, status, category, prizes, is_featured, featured_image, start_date")
-        .order("is_featured", { ascending: false })
-        .order("start_date", { ascending: true });
-
-      if (error) throw error;
+      const data = await listActiveCompetitions();
       return data || [];
     },
   });

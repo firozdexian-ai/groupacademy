@@ -1,7 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPublicCoursesPaged,
+  listUpcomingOfflineSeminarsForTalent,
+  listActiveCompetitions,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -100,20 +104,7 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     queryFn: async ({ pageParam = 0 }) => {
       const from = (pageParam as number) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-
-      const { data, error } = await supabase
-        .from("content")
-        .select(
-          "id, title, slug, description, content_type, price, instructor_name, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment",
-        )
-        .eq("is_published", true)
-        .eq("is_private", false)
-        .eq("is_ready", true)
-        .in("content_type", ["recorded_course", "live_webinar", "batch_class"])
-        .order("display_order")
-        .range(from, to);
-
-      if (error) throw error;
+      const data = await listPublicCoursesPaged(from, to);
       return (data || []) as Course[];
     },
     getNextPageParam: (lastPage, allPages) => (lastPage.length < PAGE_SIZE ? undefined : allPages.length),
@@ -159,19 +150,7 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from("content")
-        .select(
-          "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, venue_name, whatsapp_group_link, price, instructor_name",
-        )
-        .eq("is_published", true)
-        .eq("is_ready", true)
-        .eq("content_type", "offline_seminar")
-        .not("event_date", "is", null)
-        .gte("event_date", cutoff)
-        .order("event_date", { ascending: true });
-
-      if (error) throw error;
+      const data = await listUpcomingOfflineSeminarsForTalent(cutoff);
       return (data || []) as Course[];
     },
   });
@@ -187,13 +166,7 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("competitions")
-        .select("id, title, slug, status, category, prizes, is_featured, featured_image, start_date")
-        .order("is_featured", { ascending: false })
-        .order("start_date", { ascending: true });
-
-      if (error) throw error;
+      const data = await listActiveCompetitions();
       return data || [];
     },
   });

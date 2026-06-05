@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+ listQuizEnabledCourses,
+ listQuizAttemptsAdmin,
+} from "@/domains/learning/repo/learningRepo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -56,37 +59,17 @@ export function QuizResultsViewer() {
  const { data: courses, isLoading: coursesLoading } = useQuery({
  queryKey: ["admin-quiz-courses"],
  queryFn: async () => {
- const { data, error } = await supabase
- .from("content")
- .select("id, title")
- .eq("quiz_enabled", true)
- .eq("is_published", true)
- .order("title");
- if (error) throw error;
- return data;
+ return await listQuizEnabledCourses();
  },
  });
 
  const { data: quizAttempts, isLoading: attemptsLoading } = useQuery({
  queryKey: ["admin-quiz-attempts", selectedCourse],
  queryFn: async (): Promise<QuizAttempt[]> => {
- let query = supabase
- .from("quiz_attempts")
- .select(
- `
- id, student_id, content_id, score, total_questions,
- passed, answers, created_at,
- content:content_id (id, title),
- students:student_id (id, full_name, email)
- `,
- )
- .order("created_at", { ascending: false })
- .limit(100);
-
- if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
-
- const { data, error } = await query;
- if (error) return [];
+ const data = await listQuizAttemptsAdmin(
+ selectedCourse !== "all" ? selectedCourse : null,
+ 100,
+ );
 
  return (data || []).map(
  (attempt: any): QuizAttempt => ({

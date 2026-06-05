@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { getInstructorSummary } from "@/domains/learning/repo/learningRepo";
+import {
+  getInstructorSummary,
+  listInstructorEarnings,
+  listInstructorCreditLedger,
+  submitContentForReview,
+} from "@/domains/learning/repo/learningRepo";
 import { toast } from "sonner";
 
 /**
@@ -71,17 +75,12 @@ export function useInstructorEarnings() {
   return useQuery({
     queryKey: ["instructor-earnings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_revenue_splits")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) {
+      try {
+        return await listInstructorEarnings(100);
+      } catch (error) {
         console.error("[Digital Workforce] FAULT: course_revenue_splits registry sync failed.", error);
         throw error;
       }
-      return data ?? [];
     },
   });
 }
@@ -94,15 +93,7 @@ export function useInstructorCreditLedger(contentId?: string) {
     queryKey: ["instructor-credit-ledger", contentId],
     enabled: !!contentId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("instructor_credit_ledger")
-        .select("*")
-        .eq("content_id", contentId!)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data ?? [];
+      return await listInstructorCreditLedger(contentId!, 50);
     },
   });
 }
@@ -115,15 +106,7 @@ export function useSubmitForReview() {
   return useMutation({
     mutationFn: async (contentId: string) => {
       // HUD: ATOMIC_CONTENT_STATUS_TRANSITION
-      const { error } = await supabase
-        .from("content")
-        .update({
-          author_status: "submitted",
-          submitted_at: new Date().toISOString(),
-        } as any)
-        .eq("id", contentId);
-
-      if (error) throw error;
+      await submitContentForReview(contentId);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instructor-summary"] });

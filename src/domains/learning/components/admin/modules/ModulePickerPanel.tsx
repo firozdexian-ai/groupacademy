@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listContentForModulePicker } from "@/domains/learning/repo/learningRepo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,15 +41,13 @@ export default function ModulePickerPanel({ contentId: contentIdProp, onClose }:
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, content_type, thumbnail_url, is_published")
-        .in("content_type", ["recorded_course", "live_webinar"])
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (!cancelled) {
-        if (!error) setCourses((data as any) ?? []);
-        setLoading(false);
+      try {
+        const data = await listContentForModulePicker(200);
+        if (!cancelled) setCourses((data as any) ?? []);
+      } catch {
+        if (!cancelled) setCourses([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {

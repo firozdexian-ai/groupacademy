@@ -3,22 +3,14 @@
  * Cross-company view of sponsored learning assignments.
  */
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listCompanyCourseAssignmentsAdmin } from "@/domains/learning/repo/learningRepo";
 import { Building2 } from "lucide-react";
 
 export function LearningB2BEngagementsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-b2b-engagements"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_course_assignments")
-        .select(
-          "id, status, due_at, completed_at, budget_credits, created_at, company:company_id(id,name), content:content_id(id,title), assigned_to",
-        )
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
+      return await listCompanyCourseAssignmentsAdmin(200);
     },
   });
 

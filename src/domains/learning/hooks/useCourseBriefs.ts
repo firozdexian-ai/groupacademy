@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listCourseBriefs, insertCourseBrief } from "@/domains/learning/repo/learningRepo";
 import { createInstructorJobFromBrief } from "@/domains/learning/api/learningApi";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -41,20 +41,16 @@ export function useCourseBriefs() {
     queryKey: ["course-briefs"],
     staleTime: 5 * 60 * 1000, // 5-minute stability baseline
     queryFn: async (): Promise<CourseBrief[]> => {
-      // HUD: EXECUTING_INDEX_SYNC
-      const { data, error } = await supabase
-        .from("course_briefs" as any)
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
+      try {
+        const data = await listCourseBriefs();
+        return (data ?? []) as unknown as CourseBrief[];
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: course_briefs table selection failure.", {
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return (data ?? []) as unknown as CourseBrief[];
     },
   });
 }
@@ -73,21 +69,11 @@ export function useCreateBrief() {
       }
 
       // HUD: ATOMIC_INGRESS_TRANSACTION
-      const { data, error } = await supabase
-        .from("course_briefs" as any)
-        .insert({ ...input, created_by: user.id } as any)
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
+      const data = await insertCourseBrief({ ...input, created_by: user.id });
       if (!data) {
         // Enforce fallback transparency if row is hidden via strict RLS settings
         throw new Error("Brief saved but could not be read back due to row isolation settings. Refresh screen.");
       }
-
       return data as unknown as CourseBrief;
     },
     onSuccess: () => {

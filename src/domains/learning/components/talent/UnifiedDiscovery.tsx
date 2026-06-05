@@ -6,7 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPublishedDiscoveryContent,
+  listPublishedBlogPostsLite,
+} from "@/domains/learning/repo/learningRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
@@ -64,15 +67,8 @@ export function UnifiedDiscovery() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, slug, thumbnail_url, cover_image_url, description, credit_cost, content_type, event_date")
-        .eq("is_published", true)
-        .order("display_order")
-        .limit(12);
-
-      if (error) throw error;
-      return (data || []).map((item) => ({
+      const data = await listPublishedDiscoveryContent(12);
+      return (data || []).map((item: any) => ({
         id: item.id,
         title: item.title,
         slug: item.slug,
@@ -95,15 +91,8 @@ export function UnifiedDiscovery() {
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, featured_image, excerpt, reading_time_mins")
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(6);
-
-      if (error) throw error;
-      return (data || []).map((item) => ({
+      const data = await listPublishedBlogPostsLite(6);
+      return (data || []).map((item: any) => ({
         id: item.id,
         title: item.title,
         slug: item.slug,
