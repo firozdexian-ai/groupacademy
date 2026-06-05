@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listHrTargets,
+  listActiveWorkforceMembersWithName,
+  upsertHrTarget,
+  deleteHrTarget,
+} from "../../repo/workforceRepo";
 import { useHrGraph } from "./hooks/useHrGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,8 +38,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const sb = supabase as any;
-
 export function HrTargetsTab() {
  const qc = useQueryClient();
  const { hrGraphQuery } = useHrGraph();
@@ -42,54 +45,32 @@ export function HrTargetsTab() {
  const [draft, setDraft] = useState<any>({ scope: "team" });
 
  const targetsQuery = useQuery({
- queryKey: ["hr_targets"],
- queryFn: async () => {
- const { data, error } = await sb.from("hr_targets").select("*").order("created_at", { ascending: false });
- if (error) throw error;
- return data as any[];
- },
+   queryKey: ["hr_targets"],
+   queryFn: listHrTargets,
  });
 
  const workforceQuery = useQuery({
- queryKey: ["workforce_min"],
- queryFn: async () => {
- const { data, error } = await sb
- .from("workforce_members")
- .select("id, talents(full_name)")
- .eq("status", "active");
- if (error) throw error;
- return data as any[];
- },
+   queryKey: ["workforce_min"],
+   queryFn: listActiveWorkforceMembersWithName,
  });
 
  const upsertTarget = useMutation({
- mutationFn: async (payload: any) => {
- if (payload.id) {
- const { error } = await sb.from("hr_targets").update(payload).eq("id", payload.id);
- if (error) throw error;
- } else {
- const { error } = await sb.from("hr_targets").insert(payload);
- if (error) throw error;
- }
- },
- onSuccess: () => {
- qc.invalidateQueries({ queryKey: ["hr_targets"] });
- toast.success("Targets saved");
- setOpen(false);
- },
- onError: (e: Error) => toast.error(`Sync Failed: ${e.message}`),
+   mutationFn: (payload: any) => upsertHrTarget(payload),
+   onSuccess: () => {
+     qc.invalidateQueries({ queryKey: ["hr_targets"] });
+     toast.success("Targets saved");
+     setOpen(false);
+   },
+   onError: (e: Error) => toast.error(`Sync Failed: ${e.message}`),
  });
 
  const deleteTarget = useMutation({
- mutationFn: async (id: string) => {
- const { error } = await sb.from("hr_targets").delete().eq("id", id);
- if (error) throw error;
- },
- onSuccess: () => {
- qc.invalidateQueries({ queryKey: ["hr_targets"] });
- toast.success("Target Purged");
- },
- onError: (e: Error) => toast.error(`Purge Failed: ${e.message}`),
+   mutationFn: (id: string) => deleteHrTarget(id),
+   onSuccess: () => {
+     qc.invalidateQueries({ queryKey: ["hr_targets"] });
+     toast.success("Target Purged");
+   },
+   onError: (e: Error) => toast.error(`Purge Failed: ${e.message}`),
  });
 
  const getScopeDetails = (scope: string, id: string) => {
