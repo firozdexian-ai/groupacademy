@@ -69,21 +69,11 @@ export function useCreateBrief() {
       }
 
       // HUD: ATOMIC_INGRESS_TRANSACTION
-      const { data, error } = await supabase
-        .from("course_briefs" as any)
-        .insert({ ...input, created_by: user.id } as any)
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
+      const data = await insertCourseBrief({ ...input, created_by: user.id });
       if (!data) {
         // Enforce fallback transparency if row is hidden via strict RLS settings
         throw new Error("Brief saved but could not be read back due to row isolation settings. Refresh screen.");
       }
-
       return data as unknown as CourseBrief;
     },
     onSuccess: () => {
