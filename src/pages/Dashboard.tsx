@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/components/ProtectedRoute";
 import { toast } from "sonner";
 import { TAB_COMPONENTS, TAB_TITLES } from "@/shells/admin/routes";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 /**
  * Phase 7 — Dashboard Thin Shell Frame
@@ -80,6 +81,7 @@ const Dashboard = () => {
           </header>
 
           <div className="p-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-top-2 duration-500">
+            <RouteErrorBoundary>
             <Suspense
               fallback={
                 <div className="space-y-6">
@@ -139,6 +141,7 @@ const Dashboard = () => {
                 })()
               )}
             </Suspense>
+            </RouteErrorBoundary>
           </div>
         </main>
       </div>

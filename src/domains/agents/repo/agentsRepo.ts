@@ -777,7 +777,7 @@ export async function listAdminAgentBasics() {
     const { data, error } = await supabase
       .from("ai_agents")
       .select("agent_key, name, description, icon, color, display_order, personality_traits, sample_conversations")
-      .eq("agent_type", "admin")
+      .eq("audience", "admin")
       .eq("is_active", true)
       .order("display_order", { ascending: true });
     if (error) throw error;
