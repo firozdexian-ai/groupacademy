@@ -59,14 +59,7 @@ export function QuizResultsViewer() {
  const { data: courses, isLoading: coursesLoading } = useQuery({
  queryKey: ["admin-quiz-courses"],
  queryFn: async () => {
- const { data, error } = await supabase
- .from("content")
- .select("id, title")
- .eq("quiz_enabled", true)
- .eq("is_published", true)
- .order("title");
- if (error) throw error;
- return data;
+ return await listQuizEnabledCourses();
  },
  });
 
