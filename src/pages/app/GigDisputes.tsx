@@ -1,5 +1,5 @@
 import * as React from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listVisibleGigDisputes } from "@/domains/gigs/repo/gigsRepo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Scale, Calendar, ShieldAlert } from "lucide-react";
