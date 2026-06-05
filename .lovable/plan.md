@@ -1,81 +1,84 @@
-# Re-audit: institutions + ir (post-cleanup)
+# Sequence recap
 
-Findings from second-pass sweep:
+Done so far: **gigs + gtm** → **institutions + ir** → **marketing + messaging**.
+Next pair (this plan): **profile + talent**.
+Remaining after this: **jobs + learning** → **ugc + workforce**.
 
-| Check | Result |
-|---|---|
-| TODO/FIXME/HACK | none |
-| Hex / rgb literals | none |
-| Supabase leaks outside repo | none |
-| Edge function leaks | none |
-| Mailto present (B2B rule) | ✅ EmailComposer + InvestorDetailSheet |
-| Transactional email misuse | none |
-| Mobile safe-area | n/a (admin shell handles it) |
-| Console leftovers | **1 stray** `console.log` in `StakeholderRegistry.tsx:156` (Digital Workforce signal) |
-| Raw Tailwind palette colors | **significant drift in IR** — pipeline accents + status pills |
-
-## Items to fix (carry-over)
-
-### A. Stray console.log
-- `src/domains/institutions/components/admin/StakeholderRegistry.tsx:156` — remove `console.log("[Digital Workforce Agent Signal] …")`.
-
-### B. Raw palette colors (status / brand)
-Convert these to semantic tokens (no functional change, just token discipline):
-
-- `InvestorsManager.tsx` — `text-blue-500`, `bg-emerald-500/10 text-emerald-500`, gradients with `via-blue-600 to-indigo-500`, `bg-blue-500` → semantic (`text-primary`, `bg-success/10 text-success`, gradient simplified to `from-primary via-primary to-primary`).
-- `InvestorDetailSheet.tsx` — active pill `bg-emerald-500/10 text-emerald-500`, blue badge, emerald borders → `bg-success/10 text-success`, `bg-primary/10 text-primary`.
-- `InteractionLogger.tsx` — gradient via `blue-600` → primary-only gradient.
-- `pipeline/PipelineCard.tsx` — info pill `bg-blue-500/10 text-blue-600`, warn `amber-500`, purple, emerald arrow → `bg-primary/10 text-primary`, `bg-warning/10 text-warning`, `bg-accent/10 text-accent`, `text-success`.
-- `StakeholderRegistry.tsx:283` — `text-blue-500` link → `text-primary`.
-
-### C. Kanban stage accents (decision needed)
-`IRPipelineBoard.tsx` defines 8 stage colors (`bg-slate/blue/indigo/violet/amber/emerald/teal/rose-500`) for the pipeline header strip. Project rule says semantic tokens only — but there are no 8 distinct stage tokens.
-
-**Two options:**
-1. **Add `--stage-1 … --stage-8` tokens** to `index.css` + `tailwind.config.ts` (proper fix, adds 8 lines to design system).
-2. **Document as acceptable drift** — kanban stages are categorical and intentionally distinct; preserve as-is.
-
-I recommend Option 1 (clean) but it's a 5-minute design-system addition. Will confirm before doing it.
+So the running order is: gigs · gtm · institutions · ir · marketing · messaging · **profile · talent** · jobs · learning · ugc · workforce.
 
 ---
 
-# Next two domains
+# Part A — Re-audit carry-over for marketing + messaging
 
-Following the same SOP. Remaining domains: `jobs`, `learn`, `marketing`, `messaging`, `profile`, `talent`, `ugc`, `workforce`.
+Second-pass sweep found everything clean **except raw palette colors** (which the first pass partially missed). No supabase leaks, no edge invokes, no `export *`, no console, no TODOs, no transactional misuse. Mailto preserved.
 
-**Proposed pair: `marketing` + `messaging`** — both are smaller, focused surfaces and a good warm-up before the heavyweight `jobs` and `learn` pair.
+### A1. Messaging palette drift → semantic tokens
+- `messaging/components/talent/ThreadListItem.tsx:84` — `bg-blue-600/bg-emerald-600` avatar fallback → `bg-primary` / `bg-success`.
+- `messaging/components/admin/MessagingChannelsTab.tsx` — `from-primary to-blue-500`, `bg-blue-500/10 text-blue-500`, `from-emerald-400 to-emerald-500`, emerald/orange status pills → `from-primary to-accent`, `bg-primary/10 text-primary`, `bg-success/10 text-success`, `bg-warning/10 text-warning`.
 
-(If you'd rather tackle the biggest pair first, say so and I'll switch to `jobs` + `learn`.)
+### A2. Marketing palette drift → semantic tokens
+- `MarketingAnalyticsTab.tsx` — heavy orange/blue/emerald/fuchsia/indigo/violet/green/rose palette throughout the header, stat cards, log rows, and pulse bars. Map: orange→`primary`, blue→`accent`, emerald/green→`success`, amber→`warning`, fuchsia/violet/indigo/rose→`accent` variants (we already have `--accent`; for the 4-bar PulseBar grid use `bg-primary / bg-accent / bg-success / bg-warning` as the canonical 4-slot palette).
+- `MarketingAnalyticsTab.tsx:62` `CHART_COLORS` hex array and `:244,:293` hex color props → replace with `hsl(var(--primary))`, `hsl(var(--success))`, `hsl(var(--warning))`, `hsl(var(--accent))`, `hsl(var(--destructive))`, `hsl(var(--muted-foreground))`.
+- `LeadsActivitiesTab.tsx:18-19` — `text-indigo-500` → `text-accent`.
+- `ServiceOutreachTab.tsx` — blue/amber/emerald stat config + emerald header icon → `primary` / `warning` / `success`.
+- `StandaloneSalaryCodeGenerator.tsx:114` and `StandaloneMockInterviewCodeGenerator.tsx:113` — `via-blue-600` in gradient → `via-accent`.
 
-## Plan per domain (mirrors the institutions/ir SOP)
+### A3. Marketing hex literals (legitimate brand swatches — preserve)
+- `ThemesTab.tsx:21,79` — `#2A7DDE` brand-color default for theme rows is data, not styling. **Keep.**
+- `messaging/hooks/useMessageThreads.ts:81` — `#2A7DDE` fallback for system thread color. **Keep** (it's mapped into a per-thread accent, not a stylesheet color).
 
-### Phase 1 — Structural audit (read-only)
-- Confirm no legacy `src/components/marketing/`, `src/components/messaging/` folders remain.
-- List `src/domains/marketing/` and `src/domains/messaging/` shape; check for `repo/`, `api/`, `components/`, `index.ts`.
-- Verify shell wiring (`src/shells/admin/routes/marketing.ts`, etc.) and talent-facing page importers.
+No new tokens needed (using existing `--primary`, `--accent`, `--success`, `--warning`, `--destructive`, `--muted-foreground`). No functional change.
+
+---
+
+# Part B — Profile + Talent refactor (mirrors SOP)
+
+### Scope
+- `src/domains/profile/` (talent-facing profile editing, public settings, history cards)
+- `src/domains/talent/` (admin-facing talent registry, batch upload, outreach, professions, creator economy)
+
+### Phase 1 — Structural audit (read-only confirm)
+- No legacy `src/components/profile/` or `src/components/talent/` folders remain (initial check clean).
+- Confirm shell wiring via `src/shells/admin/routes/talent.ts` resolves all listed talent admin exports.
+- Confirm `ProfileEditDialog` and friends are imported from `@/domains/profile` by talent pages (`TalentHome`, profile page).
 
 ### Phase 2 — Architectural hygiene
-- Move any direct `@/integrations/supabase` calls from `components/` into the repo layer.
-- Slim domain barrels to named exports of consumed entries (eliminate `export *` where unused), matching gtm/ir pattern.
-- Drop dead imports.
+- **Supabase leak (1 file):** `profile/hooks/useTalentPitches.ts` imports `@/integrations/supabase` directly. Move the queries/mutations into `profileRepo.ts` (create one if it doesn't exist; mirrors `marketingRepo`/`messagingRepo` pattern) and have the hook call repo functions.
+- **Barrel hygiene — profile:** replace 15 `export *` lines with explicit named exports matching what shells/pages consume (same pattern we did for ir/marketing/messaging). Hook re-exports stay explicit.
+- **Barrel — talent:** already named exports ✅, no change.
+- Drop any dead imports surfaced by the audit.
 
 ### Phase 3 — UI / design-token compliance
-- Replace raw `text-white`, `bg-black`, raw palette colors with semantic tokens.
-- Spot-check mobile-vertical + safe-area where these surfaces render on talent app.
+- **`text-white` / `bg-black`** in 7 files (BatchTalentUpload, SkillsEditor, ProfilePhotoUpload, TalentDetailDialog, SupportAITab, TalentOutreachConsoleTab, LinkedInJsonUpload) → `text-primary-foreground` / `bg-foreground/20`.
+- **Raw palette colors** across ~24 files. Map consistently: blue→`primary`, emerald/green→`success`, amber/orange→`warning`, red/rose→`destructive`, indigo/violet/purple/fuchsia/cyan→`accent`, slate→`muted-foreground`. Heaviest files: `SupportAITab.tsx` (20), `ServiceHistoryCard.tsx` (11), `TalentOverviewTab.tsx` (10), `CVUploadSection.tsx` (9), `ProfileCompletionMeter.tsx` (7).
+- Spot-check `ProfileEditDialog` / `PublicProfileSettings` on mobile: vertical layout, safe-area, compact spacing (3:1 banner ratio for `CoverImageUpload`).
 
 ### Phase 4 — Wiring & monetization preservation
-- Confirm hooks/edge functions referenced still resolve and respond.
-- **Marketing-specific:** preserve UTM / campaign tracking, no transactional email misuse.
-- **Messaging-specific:** preserve 5k-credit inbox gate (`mem://product/creator-economy-hype-and-connections`), realtime channels, dedup logic from agentic feed notifications, no PII leaks (`mem://security/pii-and-storage-hardening`).
-- Bug-fix in scope; new features/schema not.
+- **Public profile opt-in** (`mem://product/public-talent-profile`) — preserve `get_public_talent_profile` flow in `PublicProfileSettings`.
+- **CV / IdentityDocs** — keep signed-URL pattern for `talent-cvs` bucket (`mem://security/pii-and-storage-hardening`); no PII in logs.
+- **PayoutAccountsManager** — preserve managed-payments wiring (no schema change).
+- **Creator Economy / Hype** (`mem://product/creator-economy-hype-and-connections`) — preserve 5k-credit inbox gate, 80/20 split, dynamic connection fees in `CreatorEconomyTab`.
+- **Outreach** (`TalentOutreachConsoleTab`) — preserve mailto-only B2B contract (`mem://architecture/email-outreach-vs-transactional-strategy`).
+- **LinkedIn import** — preserve normalization rules (`mem://admin/talent-management/linkedin-import-logic`).
+- **Talent readiness** (`computeReadiness`) — leave logic untouched.
+- Bug-fixes in scope; new tables / RLS / RPCs / edge functions / features **out of scope**.
 
 ### Phase 5 — Verify
-- `rg` checks: zero supabase leaks in components, zero raw palette colors, zero stray console.
-- TypeScript build clean.
+`rg` sweeps must show zero results in profile + talent for:
+- `@/integrations/supabase` outside `repo/`
+- `text-white|bg-black\b` (raw)
+- `(text|bg|border|from|to|via)-(blue|emerald|green|amber|orange|red|indigo|violet|purple|fuchsia|rose|teal|slate|cyan|pink|yellow|sky|lime)-[0-9]`
+- `console\.(log|debug)`
+- `TODO|FIXME|HACK`
 
-## Out of scope
-- New tables / columns / RLS / RPCs / edge functions.
-- New features or UX rewrites.
-- Other 6 domains.
+Plus TypeScript build clean.
 
-Ready to execute the institutions/ir carry-over fixes + start `marketing` + `messaging` on approval.
+---
+
+# Out of scope (unchanged from prior SOP)
+- New DB schema, RLS policies, RPCs, edge functions, storage buckets.
+- New features, UX rewrites, route changes.
+- The 4 remaining domains (jobs, learning, ugc, workforce).
+- Pricing values **may** be adjusted only if a bug is found; bug-fixes for broken hooks/edge calls in scope.
+
+Approve to execute Part A + Part B in one pass.
