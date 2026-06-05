@@ -135,6 +135,28 @@ export async function listCompaniesByIds(ids: string[]): Promise<Array<{ id: str
   return (data ?? []) as Array<{ id: string; name: string }>;
 }
 
+/** Look up existing company rows by exact name (case-sensitive at the DB level). */
+export async function listCompaniesByNames(names: string[]): Promise<Array<{ id: string; name: string }>> {
+  if (!names.length) return [];
+  const { data, error } = await supabase.from("companies").select("id, name").in("name", names);
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+
+/** Bulk insert minimal company rows; returns id+name for cache mapping. */
+export async function insertCompaniesBulk(
+  payloads: Array<Record<string, any> & { name: string }>,
+): Promise<Array<{ id: string; name: string }>> {
+  if (!payloads.length) return [];
+  const { data, error } = await supabase
+    .from("companies")
+    .insert(payloads as any)
+    .select("id, name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+}
+
 export async function countCompaniesWithNullIndustry(): Promise<number> {
   const { count, error } = await supabase
     .from("companies")
