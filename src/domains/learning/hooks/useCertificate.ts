@@ -53,7 +53,6 @@ export function useCertificate() {
       // HUD: REGISTRY_AUDIT — prevent redundant artifact creation
       const existing = await getCertificateMinimalByEnrollment(params.enrollment_id);
       if (existing) {
-        console.log("[Digital Workforce] Existing_Artifact_Found: Re-linking layout tokens.");
         return existing;
       }
 
