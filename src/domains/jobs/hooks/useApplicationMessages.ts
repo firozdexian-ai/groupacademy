@@ -39,32 +39,14 @@ export function useApplicationMessages(applicationId: string | undefined) {
     void load();
   }, [load]);
 
-  // Realtime subscription (not a repo concern — channel API).
+  // Realtime subscription (delegated to repo channel helper).
   useEffect(() => {
     if (!applicationId) return;
-    const ch = supabase
-      .channel(`app_msg_${applicationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "application_messages",
-          filter: `application_id=eq.${applicationId}`,
-        },
-        (payload) => {
-          setMessages((prev) => {
-            const next = payload.new as ApplicationMessage;
-            if (prev.find((m) => m.id === next.id)) return prev;
-            return [...prev, next];
-          });
-        },
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(ch);
-    };
+    return subscribeToApplicationMessages(applicationId, (next) => {
+      setMessages((prev) => (prev.find((m) => m.id === next.id) ? prev : [...prev, next]));
+    });
   }, [applicationId]);
+
 
   const send = useCallback(
     async (body: string, senderRole: "talent" | "recruiter" | "admin") => {
