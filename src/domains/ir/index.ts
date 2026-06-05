@@ -1,38 +1,21 @@
-// IR (Investor Relations) domain — public surface.
+/**
+ * IR (Investor Relations) Domain: Public Interface Surface
+ * Deep imports remain valid; this barrel exposes the admin shell-routed entries,
+ * hooks, and API manifest. Internal helpers (PipelineCard, MetricEntrySheet, etc.)
+ * are consumed via deep imports inside the domain and are intentionally not re-exported.
+ */
+export { IRDashboard } from "./components/admin/IRDashboard";
+export { MRRTargetManager } from "./components/admin/MRRTargetManager";
+export { VCFirmsManager } from "./components/admin/VCFirmsManager";
+export { InvestorsManager } from "./components/admin/InvestorsManager";
+export { IRPipelineBoard } from "./components/admin/IRPipelineBoard";
+export { EmailComposer } from "./components/admin/EmailComposer";
+export { DataRoomManager } from "./components/admin/dataroom/DataRoomManager";
+export { UnitEconomics } from "./components/admin/economics/UnitEconomics";
+export { default as KeyInfluencersTab } from "./components/admin/KeyInfluencersTab";
 
-// Admin
-export * from "./components/admin/EmailComposer";
-export * from "./components/admin/IRDashboard";
-export * from "./components/admin/IRPipelineBoard";
-export * from "./components/admin/InteractionLogger";
-export * from "./components/admin/InvestorDetailSheet";
-export * from "./components/admin/InvestorsManager";
-export * from "./components/admin/KeyInfluencersTab";
-export * from "./components/admin/MRRTargetManager";
-export * from "./components/admin/VCFirmsManager";
-
-// Dataroom
-export * from "./components/admin/dataroom/DataRoomManager";
-export * from "./components/admin/dataroom/DocumentTelemetryDrawer";
-export * from "./components/admin/dataroom/ShareLinkDialog";
-export * from "./components/admin/dataroom/UploadDocumentDialog";
-
-// Economics
-export * from "./components/admin/economics/CohortRetentionCard";
-export * from "./components/admin/economics/HitLCogsCard";
-export * from "./components/admin/economics/MetricEntrySheet";
-export * from "./components/admin/economics/RetentionCard";
-export * from "./components/admin/economics/RevPerEmployeeCard";
-export * from "./components/admin/economics/UnitEconomics";
-
-// Pipeline
-export * from "./components/admin/pipeline/PipelineCard";
-export * from "./components/admin/pipeline/PipelineColumn";
-
-// Hooks
 export * from "./components/admin/hooks/useDataRoom";
 export * from "./components/admin/hooks/useIRPipeline";
 
-// API
 export { irApi } from "./api/manifest";
 export type { IrApi } from "./api/manifest";

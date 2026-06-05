@@ -134,7 +134,7 @@ export default function KeyInfluencersTab() {
  </div>
  <Button
  onClick={() => handleOpenDialog()}
- className="h-12 px-8 rounded-xl font-semibold uppercase text-xs shadow-sm bg-amber-500 hover:bg-amber-600 text-white"
+ className="h-12 px-8 rounded-xl font-semibold uppercase text-xs shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
  >
  <Plus className="h-4 w-4 mr-2" /> Register Node
  </Button>

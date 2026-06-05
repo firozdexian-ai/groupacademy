@@ -75,7 +75,7 @@ export default function InstitutionsOverviewTab() {
         <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 bg-primary/10 rounded-full blur-3xl" />
         <CardContent className="p-10 flex flex-col md:flex-row items-center gap-8 relative z-10">
           <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-xl shadow-primary/20 shrink-0">
-            <Activity className="h-10 w-10 text-white" />
+            <Activity className="h-10 w-10 text-primary-foreground" />
           </div>
           <div className="space-y-2 text-left">
             <h3 className="text-2xl font-semibold uppercase italic tracking-tight text-foreground">
