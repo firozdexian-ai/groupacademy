@@ -462,7 +462,7 @@ export const BannerManager = () => {
                       alt="Artifact"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
 
                   <div className="flex-1 space-y-4">
