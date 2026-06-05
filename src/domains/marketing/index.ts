@@ -1,29 +1,35 @@
-// Marketing domain — public surface.
+/**
+ * Marketing domain barrel.
+ * Exposes the admin tab surface, leads sub-area, the marketing graph hook,
+ * and the typed API manifest. Repo helpers are imported directly via
+ * `@/domains/marketing/repo/marketingRepo` from external consumers.
+ */
 
 // Admin tabs
-export * from "./components/admin/AccessCodesTab";
-export * from "./components/admin/AdminsRepsTab";
-export * from "./components/admin/BannersTab";
-export * from "./components/admin/CommunityMessagingChannelTab";
-export * from "./components/admin/ContentOutreachTab";
-export * from "./components/admin/LeadsActivitiesTab";
-export * from "./components/admin/MarketingAnalyticsTab";
-export * from "./components/admin/MktSimpleTabs";
-export * from "./components/admin/ServiceOutreachTab";
-export * from "./components/admin/StandaloneMockInterviewCodeGenerator";
-export * from "./components/admin/StandaloneSalaryCodeGenerator";
-export * from "./components/admin/TalentOutreachTab";
-export * from "./components/admin/ThemesTab";
+export { AccessCodesTab } from "./components/admin/AccessCodesTab";
+export { AdminsRepsTab } from "./components/admin/AdminsRepsTab";
+export { BannersTab } from "./components/admin/BannersTab";
+export { CommunityMessagingChannelTab } from "./components/admin/CommunityMessagingChannelTab";
+export { ContentOutreachTab } from "./components/admin/ContentOutreachTab";
+export { LeadsActivitiesTab } from "./components/admin/LeadsActivitiesTab";
+export { MarketingAnalyticsTab } from "./components/admin/MarketingAnalyticsTab";
+export { MktSimpleTabs } from "./components/admin/MktSimpleTabs";
+export { ServiceOutreachTab } from "./components/admin/ServiceOutreachTab";
+export { StandaloneMockInterviewCodeGenerator } from "./components/admin/StandaloneMockInterviewCodeGenerator";
+export { StandaloneSalaryCodeGenerator } from "./components/admin/StandaloneSalaryCodeGenerator";
+export { TalentOutreachTab } from "./components/admin/TalentOutreachTab";
+export { ThemesTab } from "./components/admin/ThemesTab";
 
 // Admin leads
-export * from "./components/admin/leads/LeadHunterManager";
-export * from "./components/admin/leads/MockInterviewCodeGenerator";
-export * from "./components/admin/leads/MockInterviewLeadsManager";
-export * from "./components/admin/leads/SalaryAnalysisCodeGenerator";
-export * from "./components/admin/leads/SalaryAnalysisLeadsManager";
+export { LeadHunterManager } from "./components/admin/leads/LeadHunterManager";
+export { MockInterviewCodeGenerator } from "./components/admin/leads/MockInterviewCodeGenerator";
+export { MockInterviewLeadsManager } from "./components/admin/leads/MockInterviewLeadsManager";
+export { SalaryAnalysisCodeGenerator } from "./components/admin/leads/SalaryAnalysisCodeGenerator";
+export { SalaryAnalysisLeadsManager } from "./components/admin/leads/SalaryAnalysisLeadsManager";
 
 // Hooks
-export * from "./components/admin/hooks/useMarketingGraph";
+export { useMarketingGraph } from "./components/admin/hooks/useMarketingGraph";
 
 // API
-export * from "./api/manifest";
+export { marketingApi } from "./api/manifest";
+export type { MarketingApi } from "./api/manifest";
