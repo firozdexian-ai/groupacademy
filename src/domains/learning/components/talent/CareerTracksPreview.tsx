@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeader } from "@/components/ui/section-header";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveProfessionCategoriesPreview } from "@/domains/learning/repo/learningRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
 import { cn } from "@/lib/utils";
 
