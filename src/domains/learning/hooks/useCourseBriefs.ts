@@ -41,20 +41,16 @@ export function useCourseBriefs() {
     queryKey: ["course-briefs"],
     staleTime: 5 * 60 * 1000, // 5-minute stability baseline
     queryFn: async (): Promise<CourseBrief[]> => {
-      // HUD: EXECUTING_INDEX_SYNC
-      const { data, error } = await supabase
-        .from("course_briefs" as any)
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
+      try {
+        const data = await listCourseBriefs();
+        return (data ?? []) as unknown as CourseBrief[];
+      } catch (error: any) {
         console.error("[Digital Workforce] FAULT: course_briefs table selection failure.", {
-          message: error.message,
-          code: error.code,
+          message: error?.message,
+          code: error?.code,
         });
         throw error;
       }
-      return (data ?? []) as unknown as CourseBrief[];
     },
   });
 }
