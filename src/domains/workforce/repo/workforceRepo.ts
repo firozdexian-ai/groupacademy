@@ -225,3 +225,38 @@ export async function getWorkforceDashboard(): Promise<any[]> {
   if (error) throw error;
   return (data ?? []) as any[];
 }
+
+// ─── HR Targets (Phase 10i.3) ──────────────────────────────────────────────
+export async function listHrTargets(): Promise<any[]> {
+  const { data, error } = await (supabase as any)
+    .from("hr_targets")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function listActiveWorkforceMembersWithName(): Promise<any[]> {
+  const { data, error } = await (supabase as any)
+    .from("workforce_members")
+    .select("id, talents(full_name)")
+    .eq("status", "active");
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
+export async function upsertHrTarget(payload: Record<string, any>): Promise<void> {
+  if (payload?.id) {
+    const { id, ...patch } = payload;
+    const { error } = await (supabase as any).from("hr_targets").update(patch).eq("id", id);
+    if (error) throw error;
+  } else {
+    const { error } = await (supabase as any).from("hr_targets").insert(payload);
+    if (error) throw error;
+  }
+}
+
+export async function deleteHrTarget(id: string): Promise<void> {
+  const { error } = await (supabase as any).from("hr_targets").delete().eq("id", id);
+  if (error) throw error;
+}
