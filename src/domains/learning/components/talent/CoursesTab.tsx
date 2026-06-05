@@ -1,7 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listPublicCoursesPaged,
+  listUpcomingOfflineSeminarsForTalent,
+  listActiveCompetitions,
+} from "@/domains/learning/repo/learningRepo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
