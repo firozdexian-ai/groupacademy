@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Gro10xAppShell } from "./components/Gro10xAppShell";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const Gro10xLanding = lazy(() => import("./pages/Gro10xLanding"));
 const Gro10xAuth = lazy(() => import("./pages/Gro10xAuth"));
@@ -42,8 +43,14 @@ export function Gro10xRoutes() {
         <Route path="signin" element={<Gro10xSignIn />} />
         <Route path="welcome" element={<Gro10xWelcome />} />
 
-        {/* App shell with bottom nav */}
-        <Route element={<Gro10xAppShell />}>
+        {/* App shell with bottom nav — auth required */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Gro10xAppShell />
+            </ProtectedRoute>
+          }
+        >
           <Route path="inbox" element={<Gro10xInbox />} />
           <Route path="c/:agentKey" element={<Gro10xChat />} />
           <Route path="feed" element={<Gro10xFeed />} />

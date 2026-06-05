@@ -58,6 +58,7 @@ import logoIcon from "@/assets/logo-icon.png";
 import { CreditPurchaseSheet } from "@/domains/finance/components/talent/CreditPurchaseSheet";
 import { useCreditPurchase } from "@/domains/finance/hooks/useCreditPurchase";
 import { GlobalAIBubble } from "@/components/ai/GlobalAIBubble";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 /**
  * GroUp Academy: Institutional User Experience Perimeter
@@ -565,7 +566,9 @@ export function TalentAppShell() {
 
       {/* --- HUD: MAIN_CONTENT_NODES --- */}
       <main className="max-w-7xl mx-auto py-2 md:py-6 px-0 md:px-4 pb-24 md:pb-6">
-        <Outlet />
+        <RouteErrorBoundary fallbackPath="/app/feed" fallbackLabel="Back to home">
+          <Outlet />
+        </RouteErrorBoundary>
       </main>
 
       {/* GLOBAL: Credit Purchase Sheet (any component can open via useCreditPurchase) */}
