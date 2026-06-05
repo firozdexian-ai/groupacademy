@@ -145,6 +145,25 @@ export async function listAgentPitchLog(talentId: string, limit: number) {
   return (data ?? []) as any[];
 }
 
+export function subscribeToAgentPitchLog(talentId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`public:agent_pitch_changes:${talentId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "agent_pitch_log",
+        filter: `talent_id=eq.${talentId}`,
+      },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Identity documents (KYC)
 // -----------------------------------------------------------------------------
