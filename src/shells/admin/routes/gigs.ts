@@ -5,11 +5,11 @@ export const ROUTES: Record<string, React.LazyExoticComponent<any>> = {
   "gigs-scoper": React.lazy(() =>
     import("@/shells/admin/components/AdminTabPlaceholder").then((m) => ({
       default: () =>
-        m.AdminTabPlaceholder({
+        React.createElement(m.AdminTabPlaceholder, {
           tabKey: "gigs-scoper",
           title: "AI scoper queue",
           note: "Auto-scoped gig briefs awaiting admin review. The dedicated scoper queue is reserved — for now check Marketplace and Quick Actions.",
-        }) as any,
+        }),
     })),
   ),
   "gigs-quick-actions": React.lazy(() => import("@/domains/gigs/components/admin/GigsQuickActionsTab").then(m => ({ default: m.GigsQuickActionsTab }))),
