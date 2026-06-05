@@ -558,3 +558,87 @@ export async function listShareableActiveContent() {
     return c.event_date >= cutoff;
   });
 }
+
+// ---------------------------------------------------------------------------
+// Talent-facing page bundles (moved out of page-level supabase calls)
+// ---------------------------------------------------------------------------
+
+/**
+ * Bids + contracts for the talent's "My Gigs" workspace.
+ */
+export async function getMyMarketplaceBidsAndContracts(talentId: string) {
+  const [bids, contracts] = await Promise.all([
+    supabase
+      .from("marketplace_bids")
+      .select("*, marketplace_gigs(title, skill_category, employer_name)")
+      .eq("talent_id", talentId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("marketplace_contracts")
+      .select("*, marketplace_gigs:gig_id(title, skill_category)")
+      .eq("freelancer_id", talentId)
+      .order("created_at", { ascending: false }),
+  ]);
+  return {
+    bids: (bids.data as any[]) ?? [],
+    contracts: (contracts.data as any[]) ?? [],
+  };
+}
+
+/**
+ * Public marketplace gig catalog, optionally filtered by skill category.
+ */
+export async function listMarketplaceGigsCatalog(category?: string | null) {
+  let q = supabase
+    .from("marketplace_gigs")
+    .select(
+      "id, title, description, skill_category, pricing_type, budget_amount, deadline, total_bids, is_featured, created_at",
+    )
+    .in("status", ["approved", "active"])
+    .order("is_featured", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (category) q = q.eq("skill_category", category);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+/**
+ * Disputes scoped by RLS to the current actor (talent or employer side).
+ */
+export async function listVisibleGigDisputes() {
+  const { data, error } = await supabase
+    .from("gig_disputes")
+    .select("id, gig_id, reason_code, status, final_verdict, created_at, opened_by_role")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+/**
+ * Verification appeals scoped by RLS to the current talent.
+ */
+export async function listVisibleVerificationAppeals() {
+  const { data, error } = await supabase
+    .from("gig_verification_appeals")
+    .select(
+      "id, verification_id, reason, status, resolution_notes, created_at, gig_verifications(id, status, verdict_notes, created_at)",
+    )
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+/**
+ * Talent verification status for gating gig features.
+ */
+export async function getTalentVerificationStatus(talentId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("verification_status")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.verification_status as string) || "unverified";
+}
+

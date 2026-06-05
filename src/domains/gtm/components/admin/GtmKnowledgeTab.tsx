@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmPurge } from "./ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 
 export function GtmKnowledgeTab() {
  const { gtmGraphQuery, mutations: { upsertKnowledgePack, deleteKnowledgePack } } = useGtmGraph();

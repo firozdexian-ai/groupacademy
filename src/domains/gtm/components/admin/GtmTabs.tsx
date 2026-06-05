@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ConfirmPurge } from "./ConfirmPurge";
+import { ConfirmPurge } from "@/platform/admin/ui/ConfirmPurge";
 import { X } from "lucide-react";
 
 // ───────────────────────── Generic Registry Shell ─────────────────────────

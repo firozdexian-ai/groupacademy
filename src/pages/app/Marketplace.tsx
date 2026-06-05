@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listMarketplaceGigsCatalog } from "@/domains/gigs/repo/gigsRepo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,24 +46,10 @@ export default function Marketplace() {
  const { data: gigsRegistryPayload = [], isLoading: isRegistryLoading } = useQuery<GigRecord[]>({
  queryKey: ["app-marketplace-gigs-registry", activeCategoryFilter],
  queryFn: async (): Promise<GigRecord[]> => {
- let queryBuilder = supabase
- .from("marketplace_gigs")
- .select(
- "id, title, description, skill_category, pricing_type, budget_amount, deadline, total_bids, is_featured, created_at",
- )
- .in("status", ["approved", "active"])
- .order("is_featured", { ascending: false })
- .order("created_at", { ascending: false });
-
- if (activeCategoryFilter) {
- queryBuilder = queryBuilder.eq("skill_category", activeCategoryFilter);
- }
-
- const { data, error } = await queryBuilder;
- if (error) throw error;
- return (data as unknown as GigRecord[]) ?? [];
- },
- });
+     const data = await listMarketplaceGigsCatalog(activeCategoryFilter);
+     return data as unknown as GigRecord[];
+   },
+   });
 
  // =========================================================================
  // MEMOIZED PARAMETER SECTOR: SECURE SEARCH FILTERING STREAM
