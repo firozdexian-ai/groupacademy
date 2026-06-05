@@ -5,6 +5,7 @@ import { Gro10xTopBar } from "./Gro10xTopBar";
 import { Gro10xSideNav } from "./Gro10xSideNav";
 import { Gro10xCommandPalette } from "./Gro10xCommandPalette";
 import { GRO10X_BG, GRO10X_TEXT } from "../lib/tokens";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 interface Props {
   children?: ReactNode;
