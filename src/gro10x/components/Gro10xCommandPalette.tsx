@@ -33,11 +33,8 @@ const NAV_ITEMS = [
   { url: "/gro10x/learn", label: "Learn", icon: GraduationCap },
   { url: "/gro10x/feed", label: "Feed", icon: Newspaper },
   { url: "/gro10x/page", label: "Company Page", icon: Building2 },
-  { url: "/gro10x/agents", label: "Agents", icon: Bot },
   { url: "/gro10x/crm", label: "CRM", icon: Users },
   { url: "/gro10x/sourcing", label: "Sourcing", icon: SearchIcon },
-  { url: "/gro10x/offerings", label: "Offerings", icon: Package },
-  { url: "/gro10x/learn/ops", label: "Learning Ops", icon: Briefcase },
   { url: "/gro10x/billing", label: "Billing", icon: CreditCard },
 ];
 
