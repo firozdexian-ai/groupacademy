@@ -41,17 +41,10 @@ export default function GigAppeals() {
  // =========================================================================
  const { data: appealsLedgerPayload = [], isLoading: isLedgerCacheResolving } = useQuery<VerificationAppealRecord[]>({
  queryKey: ["app-talent-gig-appeals-ledger"],
- queryFn: async (): Promise<VerificationAppealRecord[]> => {
- const { data: dbAppealsPayload, error: queryHandshakeError } = await supabase
- .from("gig_verification_appeals")
- .select(
- "id, verification_id, reason, status, resolution_notes, created_at, gig_verifications(id, status, verdict_notes, created_at)",
- )
- .order("created_at", { ascending: false });
-
- if (queryHandshakeError) throw queryHandshakeError;
- return (dbAppealsPayload as unknown as VerificationAppealRecord[]) ?? [];
- },
+   queryFn: async (): Promise<VerificationAppealRecord[]> => {
+     const data = await listVisibleVerificationAppeals();
+     return data as unknown as VerificationAppealRecord[];
+   },
  staleTime: 2 * 60 * 1000, // Optimize read telemetry lifecycle
  });
 
