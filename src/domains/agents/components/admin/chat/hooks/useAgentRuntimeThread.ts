@@ -172,8 +172,11 @@ export function useAgentRuntimeThread(agentKey: string | null): UseAgentRuntimeT
     async (text: string) => {
       const content = text.trim();
       if (!content || !agentKey || sending) return;
-      const agent = agents.find((a: any) => a.agent_key === agentKey);
-      if (!agent) return;
+      const agent = agents.find((a: any) => a.key === agentKey || a.agent_key === agentKey);
+      if (!agent) {
+        trackError("agents-hook-send-unknown-agent", { agentKey });
+        return;
+      }
 
       lastUserMsgRef.current = content;
       setMessages((prev) => [...prev, { role: "user", content }, { role: "assistant", content: "" }]);
