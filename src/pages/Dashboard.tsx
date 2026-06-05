@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/components/ProtectedRoute";
 import { toast } from "sonner";
 import { TAB_COMPONENTS, TAB_TITLES } from "@/shells/admin/routes";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 /**
  * Phase 7 — Dashboard Thin Shell Frame
