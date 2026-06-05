@@ -151,22 +151,16 @@ export default function Gigs() {
  if (!talentProfileRecord?.id) return;
 
  let isThreadActive = true;
- const loadVerificationStatusCredentials = async () => {
- try {
- const { data: dbTalentRow, error: queryHandshakeError } = await supabase
- .from("talents")
- .select("verification_status")
- .eq("id", talentProfileRecord.id)
- .maybeSingle();
-
- if (!queryHandshakeError && dbTalentRow && isThreadActive) {
- const castRow = dbTalentRow as unknown as TalentVerificationResponse;
- setVerificationStatusState(castRow.verification_status || "unverified");
- }
- } catch (suppressedException) {
- // Suppress credential tracking anomalies safely from parent layout frames
- }
- };
+  const loadVerificationStatusCredentials = async () => {
+   try {
+     const status = await getTalentVerificationStatus(talentProfileRecord.id);
+     if (isThreadActive) {
+       setVerificationStatusState(status);
+     }
+   } catch (suppressedException) {
+     // Suppress credential tracking anomalies safely from parent layout frames
+   }
+  };
 
  loadVerificationStatusCredentials();
 
