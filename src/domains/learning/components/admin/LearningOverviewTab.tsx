@@ -23,8 +23,8 @@ export function LearningOverviewTab() {
       {/* Executive Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
         <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-cyan-500">
-            <BookOpen className="h-8 w-8 text-cyan-500 fill-cyan-500/20" />
+          <div className="flex items-center gap-3 text-accent">
+            <BookOpen className="h-8 w-8 text-accent fill-accent/20" />
             <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none text-foreground">
               Learning Command
             </h2>
@@ -36,7 +36,7 @@ export function LearningOverviewTab() {
         {totalPendingActions > 0 && (
           <Badge
             variant="outline"
-            className="h-12 px-6 rounded-xl font-semibold uppercase text-xs tracking-widest gap-2 border-cyan-500/50 text-cyan-600 bg-cyan-500/10 animate-pulse"
+            className="h-12 px-6 rounded-xl font-semibold uppercase text-xs tracking-widest gap-2 border-accent/50 text-accent bg-accent/10 animate-pulse"
           >
             <AlertCircle className="h-4 w-4" /> {totalPendingActions} Pending Actions
           </Badge>
@@ -57,29 +57,29 @@ export function LearningOverviewTab() {
               label="Live Content"
               value={activeCourses.length}
               icon={BookOpen}
-              color="text-cyan-500"
-              bg="bg-cyan-500/10"
+              color="text-accent"
+              bg="bg-accent/10"
             />
             <MetricTile
               label="Active Enrollments"
               value={activeEnrollments.length}
               icon={Users}
-              color="text-blue-500"
-              bg="bg-blue-500/10"
+              color="text-primary"
+              bg="bg-primary/10"
             />
             <MetricTile
               label="Live Cohorts"
               value={data.cohorts.length}
               icon={Video}
-              color="text-emerald-500"
-              bg="bg-emerald-500/10"
+              color="text-success"
+              bg="bg-success/10"
             />
             <MetricTile
               label="Issued Certificates"
               value={data.certificates.length}
               icon={Award}
-              color="text-violet-500"
-              bg="bg-violet-500/10"
+              color="text-accent"
+              bg="bg-accent/10"
             />
           </div>
 
@@ -88,19 +88,19 @@ export function LearningOverviewTab() {
             {/* Priority Action Queue (Left 2 Columns) */}
             <div className="xl:col-span-2 space-y-6">
               <div className="flex items-center gap-2 mb-4 px-2">
-                <Clock className="h-4 w-4 text-cyan-500" />
+                <Clock className="h-4 w-4 text-accent" />
                 <h3 className="text-xs font-semibold text-muted-foreground italic">
                   Priority Financial & Ops Queue
                 </h3>
               </div>
 
               <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-                <div className="h-1.5 w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500" />
+                <div className="h-1.5 w-full bg-gradient-to-r from-accent via-primary to-accent" />
                 <CardContent className="p-0">
                   {pendingPayouts.length === 0 && pendingBriefs.length === 0 ? (
                     <div className="p-20 text-center flex flex-col items-center justify-center space-y-3">
-                      <div className="h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center border-2 border-emerald-500/20">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                      <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center border-2 border-success/20">
+                        <CheckCircle2 className="h-8 w-8 text-success" />
                       </div>
                       <p className="text-[10px] font-semibold text-muted-foreground/50 italic">
                         Zero Active Escalations
@@ -112,18 +112,18 @@ export function LearningOverviewTab() {
                       {pendingPayouts.slice(0, 3).map((payout) => (
                         <div
                           key={payout.id}
-                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-emerald-500/[0.02] transition-colors group"
+                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-success/[0.02] transition-colors group"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center shadow-sm">
-                              <DollarSign className="h-5 w-5 text-emerald-500" />
+                            <div className="h-12 w-12 rounded-xl bg-success/10 border-2 border-success/20 flex items-center justify-center shadow-sm">
+                              <DollarSign className="h-5 w-5 text-success" />
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm uppercase italic tracking-tight text-foreground/90">
                                 Instructor Payout
                               </h4>
                               <p className="text-[10px] font-bold text-muted-foreground mt-1">
-                                Amount: <span className="text-emerald-500">{payout.amount_credits} Credits</span>
+                                Amount: <span className="text-success">{payout.amount_credits} Credits</span>
                               </p>
                             </div>
                           </div>
@@ -134,7 +134,7 @@ export function LearningOverviewTab() {
                             >
                               Instructor ID: {payout.instructor_user_id.substring(0, 8)}
                             </Badge>
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-bold uppercase text-[9px] tracking-widest">
+                            <Badge className="bg-success/10 text-success border-none font-bold uppercase text-[9px] tracking-widest">
                               Requires Authorization
                             </Badge>
                           </div>
@@ -145,11 +145,11 @@ export function LearningOverviewTab() {
                       {pendingBriefs.slice(0, 3).map((brief) => (
                         <div
                           key={brief.id}
-                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-blue-500/[0.02] transition-colors group"
+                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-primary/[0.02] transition-colors group"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 border-2 border-blue-500/20 flex items-center justify-center shadow-sm">
-                              <BookOpen className="h-5 w-5 text-blue-500" />
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-sm">
+                              <BookOpen className="h-5 w-5 text-primary" />
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm uppercase italic tracking-tight text-foreground/90">
@@ -167,7 +167,7 @@ export function LearningOverviewTab() {
                             >
                               Node ID: {brief.id.substring(0, 8)}
                             </Badge>
-                            <Badge className="bg-blue-500/10 text-blue-600 border-none font-bold uppercase text-[9px] tracking-widest">
+                            <Badge className="bg-primary/10 text-primary border-none font-bold uppercase text-[9px] tracking-widest">
                               Requires Review
                             </Badge>
                           </div>
@@ -182,7 +182,7 @@ export function LearningOverviewTab() {
             {/* Platform Pulse (Right Column) */}
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-4 px-2">
-                <Activity className="h-4 w-4 text-cyan-500" />
+                <Activity className="h-4 w-4 text-accent" />
                 <h3 className="text-xs font-semibold text-muted-foreground italic">
                   Learning Graph Pulse
                 </h3>
@@ -195,20 +195,20 @@ export function LearningOverviewTab() {
                       label="Recorded Courses"
                       value={data.content.filter((c) => c.content_type === "recorded_course").length}
                       max={200}
-                      color="bg-cyan-500"
+                      color="bg-accent"
                     />
                     <PulseBar
                       label="Live Webinars"
                       value={data.content.filter((c) => c.content_type === "live_webinar").length}
                       max={100}
-                      color="bg-blue-500"
+                      color="bg-primary"
                     />
-                    <PulseBar label="Active Cohorts" value={data.cohorts.length} max={100} color="bg-indigo-500" />
+                    <PulseBar label="Active Cohorts" value={data.cohorts.length} max={100} color="bg-accent" />
                     <PulseBar
                       label="Total Enrollments"
                       value={data.enrollments.length}
                       max={2000}
-                      color="bg-violet-500"
+                      color="bg-accent"
                     />
                   </div>
                 </CardContent>
@@ -230,7 +230,7 @@ function MetricTile({ label, value, icon: Icon, color, bg }: any) {
       <CardContent className="p-6 flex items-center gap-5">
         <div
           className={cn(
-            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-white/5 transition-transform group-hover:rotate-6 shadow-inner shrink-0",
+            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-background/5 transition-transform group-hover:rotate-6 shadow-inner shrink-0",
             bg,
             color,
           )}

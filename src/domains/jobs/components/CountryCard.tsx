@@ -116,7 +116,7 @@ export function CountryCard({ country, isUserCountry = false, onCityClick }: Pro
               )}
 
               {country.jobs_last_14d > 0 && (
-                <Badge className="bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 text-[9px] font-extrabold tracking-wide uppercase px-1.5 h-4.5 gap-0.5 shadow-sm shrink-0 tabular-nums animate-in slide-in-from-left-1 duration-200">
+                <Badge className="bg-success/10 dark:bg-success/5 text-success dark:text-success border border-success/10 text-[9px] font-extrabold tracking-wide uppercase px-1.5 h-4.5 gap-0.5 shadow-sm shrink-0 tabular-nums animate-in slide-in-from-left-1 duration-200">
                   <TrendingUp className="h-2.5 w-2.5 stroke-[2.5]" />
                   <span>+{country.jobs_last_14d} new</span>
                 </Badge>

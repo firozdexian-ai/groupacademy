@@ -163,7 +163,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
             </div>
           )}
           <Badge className="absolute top-2.5 left-2.5 bg-background/95 text-foreground/90 border border-border/20 text-[9px] font-extrabold uppercase tracking-wide px-2 rounded shadow-sm gap-1 flex items-center">
-            <MapPin className="w-3 h-3 text-rose-500 stroke-[2.5]" />
+            <MapPin className="w-3 h-3 text-destructive stroke-[2.5]" />
             <span>In-Person Seminar</span>
           </Badge>
         </div>
@@ -195,7 +195,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
                 <span
                   className={cn(
                     "flex items-center gap-1 bg-muted/40 border border-border/20 px-1.5 py-0.5 rounded uppercase tracking-wide text-[9px] font-extrabold",
-                    spotsLeft <= 5 && spotsLeft > 0 && "text-rose-600 bg-rose-500/5 border-rose-500/10 animate-pulse",
+                    spotsLeft <= 5 && spotsLeft > 0 && "text-destructive bg-destructive/5 border-destructive/10 animate-pulse",
                   )}
                 >
                   <Users className="h-3.5 w-3.5 stroke-[2.2]" />
@@ -221,7 +221,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
                   variant="outline"
                   size="sm"
                   type="button"
-                  className="h-8 px-3 rounded-xl text-[10px] font-extrabold uppercase tracking-wide border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 shrink-0 shadow-sm transition-colors cursor-pointer"
+                  className="h-8 px-3 rounded-xl text-[10px] font-extrabold uppercase tracking-wide border-success/20 text-success hover:bg-success/5 shrink-0 shadow-sm transition-colors cursor-pointer"
                   asChild
                 >
                   <a
@@ -293,8 +293,8 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
               {todayEvents.length > 0 && (
                 <section className="space-y-2.5 w-full">
                   <div className="flex items-center gap-2 px-0.5 select-none leading-none animate-in fade-in duration-200">
-                    <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                    <h2 className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    <div className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse shrink-0" />
+                    <h2 className="text-[10px] font-extrabold uppercase tracking-wider text-destructive dark:text-destructive">
                       Happening Today
                     </h2>
                   </div>
@@ -364,7 +364,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent p-3.5 flex flex-col justify-center text-left">
-                      <Badge className="bg-amber-500/10 text-amber-600 border-none text-[9px] font-extrabold px-2 py-0.5 rounded h-4.5 w-fit mb-1.5 uppercase tracking-wide">
+                      <Badge className="bg-warning/10 text-warning border-none text-[9px] font-extrabold px-2 py-0.5 rounded h-4.5 w-fit mb-1.5 uppercase tracking-wide">
                         {STATUS_LABEL[compItem.status] || "Upcoming"}
                       </Badge>
                       <h3 className="font-bold text-xs sm:text-sm text-foreground/90 tracking-tight leading-tight line-clamp-1 truncate w-full group-hover:text-primary transition-colors select-text pr-1">

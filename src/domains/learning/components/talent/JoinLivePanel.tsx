@@ -97,7 +97,7 @@ export function JoinLivePanel({ course }: Props) {
   };
 
   return (
-    <Card className="w-full text-left rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/[0.02] via-primary/[0.01] to-transparent shadow-sm antialiased select-none sm:select-text transform-gpu overflow-hidden">
+    <Card className="w-full text-left rounded-2xl border border-destructive/20 bg-gradient-to-br from-destructive/[0.02] via-primary/[0.01] to-transparent shadow-sm antialiased select-none sm:select-text transform-gpu overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0">
         {/* Livestream State Indicator Status Ribbon */}
         <div className="flex items-center justify-between gap-3.5 w-full select-none border-b border-border/10 pb-2">
@@ -106,9 +106,9 @@ export function JoinLivePanel({ course }: Props) {
             className={cn(
               "text-[9px] font-extrabold px-2 h-5.5 rounded-md uppercase tracking-wider border shadow-sm flex items-center gap-1 leading-none transition-colors duration-300 shrink-0",
               state === "live"
-                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                ? "bg-destructive/10 border-destructive/20 text-destructive dark:text-destructive"
                 : state === "joinable"
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 animate-pulse"
+                  ? "bg-success/10 border-success/20 text-success dark:text-success animate-pulse"
                   : state === "ended"
                     ? "bg-muted text-muted-foreground border-border/40"
                     : "bg-primary/5 text-primary border-primary/20",
@@ -155,13 +155,13 @@ export function JoinLivePanel({ course }: Props) {
         )}
 
         {state === "live" && (
-          <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-normal pl-0.5 italic animate-pulse">
+          <p className="text-xs font-bold text-destructive dark:text-destructive leading-normal pl-0.5 italic animate-pulse">
             &bull; The live session is active. Click below to enter the classroom.
           </p>
         )}
 
         {state === "joinable" && (
-          <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 leading-normal pl-0.5 italic animate-pulse">
+          <p className="text-xs font-bold text-success dark:text-success leading-normal pl-0.5 italic animate-pulse">
             &bull; The classroom doors are now open. Secure your seat below.
           </p>
         )}
@@ -228,7 +228,7 @@ export function JoinLivePanel({ course }: Props) {
                 asChild
                 variant="outline"
                 type="button"
-                className="w-full h-10 rounded-xl text-xs font-bold px-4 gap-1.5 border border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
+                className="w-full h-10 rounded-xl text-xs font-bold px-4 gap-1.5 border border-success/20 text-success hover:bg-success/5 shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
               >
                 <a
                   href={course.whatsapp_group_link}
@@ -238,7 +238,7 @@ export function JoinLivePanel({ course }: Props) {
                     handleLiveSessionHandshakeRedirect(course.whatsapp_group_link!, "whatsapp_cohort_chat")
                   }
                 >
-                  <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500 stroke-[2.2]" />
+                  <MessageCircle className="h-4 w-4 shrink-0 text-success stroke-[2.2]" />
                   <span>Join Class WhatsApp Group</span>
                 </a>
               </Button>
@@ -278,7 +278,7 @@ function Countdown({ ms }: { ms: number }) {
         </p>
       </div>
       <div className={cellStyleClass}>
-        <p className="text-sm sm:text-base font-black leading-none text-rose-500">{String(seconds).padStart(2, "0")}</p>
+        <p className="text-sm sm:text-base font-black leading-none text-destructive">{String(seconds).padStart(2, "0")}</p>
         <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-1 leading-none select-none">
           secs
         </p>

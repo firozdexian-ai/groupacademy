@@ -119,12 +119,12 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
 
               <div className="absolute bottom-4 left-4 right-4 z-10">
                 <div className="flex items-center justify-between mb-2 font-bold tabular-nums tracking-tight">
-                  <span className="text-[9px] text-white/70 uppercase tracking-wider italic">Your Course Progress</span>
+                  <span className="text-[9px] text-primary-foreground/70 uppercase tracking-wider italic">Your Course Progress</span>
                   <span className="text-xs text-primary bg-primary/5 border border-primary/10 rounded-md px-1.5 py-0.5 shadow-sm">
                     {Math.round(progress)}%
                   </span>
                 </div>
-                <Progress value={progress} className="h-1.5 rounded-full bg-white/10 shadow-inner" />
+                <Progress value={progress} className="h-1.5 rounded-full bg-background/10 shadow-inner" />
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
                     {content.content_type ? content.content_type.replace(/_/g, " ") : "Learning Track"}
                   </Badge>
                   {progress > 50 && (
-                    <Badge className="bg-emerald-500/10 border-none text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold uppercase tracking-wide px-2 h-5 rounded-md shadow-sm gap-1 flex items-center animate-pulse">
+                    <Badge className="bg-success/10 border-none text-success dark:text-success text-[9px] font-extrabold uppercase tracking-wide px-2 h-5 rounded-md shadow-sm gap-1 flex items-center animate-pulse">
                       <Sparkles className="h-3 w-3 shrink-0 stroke-[2.5]" />
                       <span>High Career Yield</span>
                     </Badge>
@@ -277,7 +277,7 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-primary/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm z-10">
-                        <PlayCircle className="text-white h-8 w-8 drop-shadow-md stroke-[2.2] transform-gpu scale-95 group-hover:scale-100 transition-transform duration-300" />
+                        <PlayCircle className="text-primary-foreground h-8 w-8 drop-shadow-md stroke-[2.2] transform-gpu scale-95 group-hover:scale-100 transition-transform duration-300" />
                       </div>
                     </div>
 

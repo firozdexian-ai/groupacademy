@@ -51,18 +51,18 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
   };
 
   return (
-    <Card className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 select-none sm:select-text antialiased transform-gpu shadow-sm relative overflow-hidden">
+    <Card className="rounded-2xl border border-success/20 bg-success/5 select-none sm:select-text antialiased transform-gpu shadow-sm relative overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0">
         {/* Header */}
-        <div className="flex items-center gap-2 w-full select-none border-b border-emerald-500/10 pb-2">
-          <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+        <div className="flex items-center gap-2 w-full select-none border-b border-success/10 pb-2">
+          <ShieldCheck className="h-4 w-4 text-success dark:text-success shrink-0 stroke-[2.5]" />
           <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground/90 uppercase tracking-wide">
             Why you match
           </h3>
           {typeof verifiedMatch.mastery_score === "number" && (
             <Badge
               variant="outline"
-              className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold h-5 px-2 rounded-md shadow-sm tabular-nums"
+              className="ml-auto border-success/30 bg-success/10 text-success dark:text-success text-[10px] font-extrabold h-5 px-2 rounded-md shadow-sm tabular-nums"
             >
               <span>{Math.round(verifiedMatch.mastery_score)} / 100 fit</span>
             </Badge>
@@ -86,7 +86,7 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
                   <Badge
                     key={compoundRowKey}
                     variant="outline"
-                    className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-2 h-5 rounded-md uppercase tracking-wide shrink-0 shadow-sm max-w-[45%] truncate text-ellipsis"
+                    className="border-success/20 bg-success/10 text-success dark:text-success text-[9px] font-extrabold px-2 h-5 rounded-md uppercase tracking-wide shrink-0 shadow-sm max-w-[45%] truncate text-ellipsis"
                   >
                     <span className="truncate text-ellipsis">
                       {credentialItem.topic_tag} &bull; {credentialItem.level}
@@ -127,9 +127,9 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
 
         {/* Skill gaps */}
         {gaps.length > 0 && (
-          <div className="space-y-1.5 pt-1.5 border-t border-emerald-500/10 w-full text-left">
+          <div className="space-y-1.5 pt-1.5 border-t border-success/10 w-full text-left">
             <div className="flex items-center gap-1.5 select-none leading-none pl-0.5">
-              <TrendingDown className="h-3.5 w-3.5 text-amber-500 shrink-0 stroke-[2.2]" />
+              <TrendingDown className="h-3.5 w-3.5 text-warning shrink-0 stroke-[2.2]" />
               <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">
                 Skills to practice
               </p>
@@ -144,7 +144,7 @@ export function WhyYouMatchPanel({ verifiedMatch }: WhyYouMatchPanelProps) {
                   <Badge
                     key={computedGapKey}
                     variant="outline"
-                    className="border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-extrabold px-2 h-5 rounded-md uppercase tracking-wide shrink-0 max-w-[45%] truncate text-ellipsis"
+                    className="border-warning/20 bg-warning/10 text-warning dark:text-warning text-[9px] font-extrabold px-2 h-5 rounded-md uppercase tracking-wide shrink-0 max-w-[45%] truncate text-ellipsis"
                   >
                     <span className="truncate text-ellipsis">{gapItem.tag}</span>
                   </Badge>

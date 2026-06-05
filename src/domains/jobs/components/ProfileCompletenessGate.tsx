@@ -140,7 +140,7 @@ export function ProfileCompletenessGate({ talent }: Props) {
               key={stepItem.key}
               className="flex items-center gap-2 text-muted-foreground/60 w-full min-w-0 animate-in fade-in duration-200 select-none"
             >
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 stroke-[2.5]" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 stroke-[2.5]" />
               <span className="truncate pr-1 line-through font-medium text-muted-foreground/40">{stepItem.label}</span>
             </div>
           ))}
@@ -153,7 +153,7 @@ export function ProfileCompletenessGate({ talent }: Props) {
           className="w-full h-9 rounded-xl font-bold text-xs tracking-wide shadow-sm active:scale-[0.99] transition-transform select-none cursor-pointer gap-1.5 mt-1 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <span>Complete Profile Settings</span>
-          <ArrowRight className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+          <ArrowRight className="h-3.5 w-3.5 text-primary-foreground stroke-[2.5]" />
         </Button>
       </CardContent>
     </Card>

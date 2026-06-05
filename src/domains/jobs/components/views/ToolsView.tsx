@@ -188,7 +188,7 @@ export function ToolsView() {
                         variant="outline"
                         className="gap-1 text-[10px] h-5 px-1.5 font-bold bg-background/50 border-border/60 tabular-nums shadow-sm shrink-0"
                       >
-                        <Coins className="h-2.5 w-2.5 text-amber-500 fill-amber-500/5 stroke-[2]" />
+                        <Coins className="h-2.5 w-2.5 text-warning fill-warning/5 stroke-[2]" />
                         <span>{meta.cost}</span>
                       </Badge>
                     </div>

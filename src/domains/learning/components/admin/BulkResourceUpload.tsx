@@ -181,17 +181,17 @@ export function BulkResourceUpload({
         {queue.length > 0 && (
           <div className="flex items-center gap-1.5">
             {uploadedCount > 0 && (
-              <Badge variant="outline" className="h-5 text-[9px] border-emerald-500/30 text-emerald-600">
+              <Badge variant="outline" className="h-5 text-[9px] border-success/30 text-success">
                 {uploadedCount} ready
               </Badge>
             )}
             {uploadingCount > 0 && (
-              <Badge variant="outline" className="h-5 text-[9px] border-blue-500/30 text-blue-600">
+              <Badge variant="outline" className="h-5 text-[9px] border-primary/30 text-primary">
                 {uploadingCount} uploading
               </Badge>
             )}
             {errorCount > 0 && (
-              <Badge variant="outline" className="h-5 text-[9px] border-rose-500/30 text-rose-600">
+              <Badge variant="outline" className="h-5 text-[9px] border-destructive/30 text-destructive">
                 {errorCount} failed
               </Badge>
             )}
@@ -250,10 +250,10 @@ export function BulkResourceUpload({
               className="flex items-center gap-2 rounded-lg border border-border/40 bg-background px-2.5 py-2"
             >
               <div className="shrink-0 h-7 w-7 rounded-md bg-muted/50 flex items-center justify-center">
-                {q.status === "uploading" && <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />}
+                {q.status === "uploading" && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
                 {q.status === "queued" && <Upload className="h-3.5 w-3.5 text-muted-foreground" />}
-                {q.status === "uploaded" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                {q.status === "error" && <AlertCircle className="h-3.5 w-3.5 text-rose-600" />}
+                {q.status === "uploaded" && <CheckCircle2 className="h-3.5 w-3.5 text-success" />}
+                {q.status === "error" && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
               </div>
               <Input
                 value={q.title}

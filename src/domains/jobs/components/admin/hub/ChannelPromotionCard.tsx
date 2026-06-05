@@ -29,10 +29,10 @@ import { InlineSpinner } from "@/components/common/InlineSpinner";
  */
 
 const CHANNELS = [
-  { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { key: "facebook", label: "Facebook", icon: Facebook, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { key: "email", label: "Email", icon: Mail, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-success", bg: "bg-success/10" },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-primary", bg: "bg-primary/10" },
+  { key: "facebook", label: "Facebook", icon: Facebook, color: "text-accent", bg: "bg-accent/10" },
+  { key: "email", label: "Email", icon: Mail, color: "text-warning", bg: "bg-warning/10" },
 ] as const;
 
 interface Props {
@@ -144,15 +144,15 @@ export function ChannelPromotionCard({ job }: Props) {
                 className={cn(
                   "h-12 rounded-2xl border-2 transition-all font-black uppercase text-[10px] italic tracking-tighter gap-2",
                   isActive
-                    ? "bg-primary text-white border-primary shadow-lg scale-[1.02]"
+                    ? "bg-primary text-primary-foreground border-primary shadow-lg scale-[1.02]"
                     : "border-border/20 hover:bg-primary/5",
-                  isPosted && !isActive ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600" : "",
+                  isPosted && !isActive ? "border-success/30 bg-success/5 text-success" : "",
                 )}
                 onClick={() => setActiveChannel(c.key)}
               >
-                <Icon className={cn("h-4 w-4", isActive ? "text-white" : c.color)} />
+                <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : c.color)} />
                 <span className="hidden sm:inline">{c.label}</span>
-                {isPosted && <CheckCircle2 className="h-3 w-3 ml-auto text-emerald-500 fill-emerald-500/10" />}
+                {isPosted && <CheckCircle2 className="h-3 w-3 ml-auto text-success fill-success/10" />}
               </Button>
             );
           })}

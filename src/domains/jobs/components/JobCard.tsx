@@ -251,7 +251,7 @@ export function JobCard({
       className={cn(
         "cursor-pointer overflow-hidden transition-all duration-300 group h-full flex flex-col relative border border-border/40 select-none sm:select-text transform-gpu shadow-sm rounded-2xl",
         "bg-card/40 backdrop-blur-md hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring outline-none",
-        job.is_featured && "border-amber-500/20 bg-amber-500/[0.01] dark:bg-amber-500/[0.003] shadow-inner",
+        job.is_featured && "border-warning/20 bg-warning/[0.01] dark:bg-warning/[0.003] shadow-inner",
         isClosed && "opacity-40 grayscale pointer-events-none select-none",
         className,
       )}
@@ -283,7 +283,7 @@ export function JobCard({
                 <p className="text-xs font-semibold text-muted-foreground/80 truncate max-w-[85%]">
                   {job.company_name}
                 </p>
-                {job.is_featured && <Zap className="h-3 w-3 text-amber-500 fill-amber-500/10 shrink-0 animate-pulse" />}
+                {job.is_featured && <Zap className="h-3 w-3 text-warning fill-warning/10 shrink-0 animate-pulse" />}
               </div>
             </div>
           </div>
@@ -355,15 +355,15 @@ export function JobCard({
           {dynamicSalaryStringValue && (
             <Badge
               variant="outline"
-              className="text-[9px] font-extrabold px-2.5 h-6 rounded-md border border-emerald-500/10 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 tabular-nums tracking-wide shadow-sm shrink-0 flex items-center gap-1"
+              className="text-[9px] font-extrabold px-2.5 h-6 rounded-md border border-success/10 dark:border-success/20 text-success dark:text-success bg-success/5 tabular-nums tracking-wide shadow-sm shrink-0 flex items-center gap-1"
             >
-              <Banknote className="w-3.5 h-3.5 text-emerald-500 shrink-0 stroke-[2.2]" />
+              <Banknote className="w-3.5 h-3.5 text-success shrink-0 stroke-[2.2]" />
               <span>{dynamicSalaryStringValue}</span>
             </Badge>
           )}
 
           {job.is_featured && (
-            <Badge className="bg-amber-500 border-none h-6 px-2.5 rounded-md text-[9px] font-bold tracking-wide uppercase shadow-sm select-none gap-1 shrink-0 text-white">
+            <Badge className="bg-warning border-none h-6 px-2.5 rounded-md text-[9px] font-bold tracking-wide uppercase shadow-sm select-none gap-1 shrink-0 text-primary-foreground">
               <Star className="w-3 h-3 fill-current shrink-0 stroke-[2.2]" />
               <span>Featured</span>
             </Badge>

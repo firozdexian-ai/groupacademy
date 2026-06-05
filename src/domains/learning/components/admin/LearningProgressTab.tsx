@@ -144,7 +144,7 @@ export function LearningProgressTab() {
  switch (status) {
  case "completed":
  return (
- <Badge className="bg-emerald-500 text-white border-none font-semibold text-[9px] px-3 py-1">
+ <Badge className="bg-success text-primary-foreground border-none font-semibold text-[9px] px-3 py-1">
  PASSED_COMPLETE
  </Badge>
  );
@@ -199,7 +199,7 @@ export function LearningProgressTab() {
  {/* Summary Telemetry Artifacts */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
  {[
- { label: "Total Nodes", val: summaryStats.total, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+ { label: "Total Nodes", val: summaryStats.total, icon: Users, color: "text-primary", bg: "bg-primary/10" },
  {
  label: "Active Cycle",
  val: summaryStats.active,
@@ -211,15 +211,15 @@ export function LearningProgressTab() {
  label: "Finalized Log",
  val: summaryStats.completed,
  icon: Trophy,
- color: "text-emerald-500",
- bg: "bg-emerald-500/10",
+ color: "text-success",
+ bg: "bg-success/10",
  },
  {
  label: "Global Yield",
  val: `${summaryStats.avg}%`,
  icon: BarChart3,
- color: "text-purple-500",
- bg: "bg-purple-500/10",
+ color: "text-accent",
+ bg: "bg-accent/10",
  progress: true,
  },
  ].map((kpi, i) => (
@@ -232,7 +232,7 @@ export function LearningProgressTab() {
  className={cn(
  "h-12 w-12 rounded-2xl flex items-center justify-center border transition-transform duration-500 group-hover:rotate-6 shadow-inner",
  kpi.bg,
- "border-white/5",
+ "border-background/5",
  )}
  >
  <kpi.icon className={cn("h-6 w-6", kpi.color)} />
@@ -252,7 +252,7 @@ export function LearningProgressTab() {
  {/* Course Performance Cluster */}
  {selectedCourse === "all" && (
  <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card">
- <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary to-primary" />
  <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
  <CardTitle className="text-xl font-semibold uppercase tracking-tight italic flex items-center gap-3">
  <ShieldCheck className="h-5 w-5 text-primary" /> Multi-Course Yield Analysis
@@ -293,7 +293,7 @@ export function LearningProgressTab() {
  {stats.activeEnrollments}
  </TableCell>
  <TableCell className="text-center">
- <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-semibold text-[10px] italic">
+ <Badge className="bg-success/10 text-success border-none font-semibold text-[10px] italic">
  {stats.averageProgress}%
  </Badge>
  </TableCell>
@@ -387,7 +387,7 @@ export function LearningProgressTab() {
  size="icon" aria-label="View Quiz Results"
  onClick={() => setSelectedEnrollment(learner)}
  title="View Quiz Results"
- className="hover:bg-violet-500/10 hover:text-violet-600"
+ className="hover:bg-accent/10 hover:text-accent"
  >
  <ClipboardCheck className="h-4 w-4" />
  </Button>
@@ -423,7 +423,7 @@ export function LearningProgressTab() {
  <Dialog open={!!selectedEnrollment} onOpenChange={(o) => !o && setSelectedEnrollment(null)}>
  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 border border-border/60">
  <DialogHeader>
- <DialogTitle className="text-xl font-semibold font-medium text-violet-500 flex items-center gap-2">
+ <DialogTitle className="text-xl font-semibold font-medium text-accent flex items-center gap-2">
  <ClipboardCheck className="h-5 w-5" /> Quiz Results
  {selectedEnrollment && <span className="text-xs text-muted-foreground"> — {selectedEnrollment.talentName}</span>}
  </DialogTitle>

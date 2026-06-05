@@ -25,8 +25,8 @@ export function LearningCourseBriefsTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-orange-500">
- <Sparkles className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+ <div className="flex items-center gap-3 text-warning">
+ <Sparkles className="h-8 w-8 text-warning fill-warning/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Course Briefs
  </h2>
@@ -40,14 +40,14 @@ export function LearningCourseBriefsTab() {
  setDraft({ status: "draft" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-orange-500/20 bg-warning hover:bg-warning text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Inject Brief
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-warning via-warning to-warning" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -79,18 +79,18 @@ export function LearningCourseBriefsTab() {
  </TableRow>
  ) : (
  data?.courseBriefs?.map((row) => (
- <TableRow key={row.id} className="group hover:bg-orange-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-warning/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <Sparkles className="h-3 w-3 text-orange-500" />
+ <Sparkles className="h-3 w-3 text-warning" />
  </div>
  <span className="font-black text-sm font-medium">{row.title}</span>
  </div>
  </TableCell>
  <TableCell>
  <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
- <Briefcase className="h-3 w-3 text-orange-500" />
+ <Briefcase className="h-3 w-3 text-warning" />
  {row.instructor_user_id ? row.instructor_user_id.substring(0, 8) : "Unassigned"}
  </span>
  </TableCell>
@@ -99,10 +99,10 @@ export function LearningCourseBriefsTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.status === "approved"
- ? "bg-emerald-500/10 text-emerald-600"
+ ? "bg-success/10 text-success"
  : row.status === "in_review"
- ? "bg-blue-500/10 text-blue-600"
- : "bg-amber-500/10 text-amber-600",
+ ? "bg-primary/10 text-primary"
+ : "bg-warning/10 text-warning",
  )}
  >
  {row.status}
@@ -117,7 +117,7 @@ export function LearningCourseBriefsTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-orange-500/10 hover:text-orange-600"
+ className="hover:bg-warning/10 hover:text-warning"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -145,7 +145,7 @@ export function LearningCourseBriefsTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-orange-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-warning flex items-center gap-2">
  <Sparkles className="h-6 w-6" /> Inject Brief
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -180,13 +180,13 @@ export function LearningCourseBriefsTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent>
- <SelectItem value="draft" className="font-bold text-xs text-amber-500">
+ <SelectItem value="draft" className="font-bold text-xs text-warning">
  Draft
  </SelectItem>
- <SelectItem value="in_review" className="font-bold text-xs text-blue-500">
+ <SelectItem value="in_review" className="font-bold text-xs text-primary">
  In Review
  </SelectItem>
- <SelectItem value="approved" className="font-bold text-xs text-emerald-500">
+ <SelectItem value="approved" className="font-bold text-xs text-success">
  Approved
  </SelectItem>
  </SelectContent>
@@ -198,7 +198,7 @@ export function LearningCourseBriefsTab() {
  onClick={() => {
  upsertCourseBrief.mutate(draft, { onSuccess: () => setOpen(false) });
  }}
- className="h-14 rounded-xl font-medium bg-orange-500 hover:bg-orange-600 text-white"
+ className="h-14 rounded-xl font-medium bg-warning hover:bg-warning text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Spec
  </Button>

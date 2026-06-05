@@ -316,7 +316,7 @@ export function JobsLinkedInBatchUpload({
  }}
  >
  <DialogContent className="max-w-5xl h-[85vh] max-h-[85vh] rounded-2xl border-4 border-border/40 bg-background/95 p-0 overflow-hidden shadow-sm flex flex-col">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary shrink-0" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-primary shrink-0" />
 
  <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
  <DialogHeader className="px-10 pt-8 pb-6 shrink-0">
@@ -383,19 +383,19 @@ export function JobsLinkedInBatchUpload({
  </p>
  <p className="text-3xl font-semibold tracking-tight leading-none">{mappedJobs.length}</p>
  </Card>
- <Card className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 shadow-sm">
- <p className="text-[9px] font-semibold uppercase text-emerald-600 tracking-widest mb-2 italic">
+ <Card className="rounded-2xl border border-success/30 bg-success/5 p-6 shadow-sm">
+ <p className="text-[9px] font-semibold uppercase text-success tracking-widest mb-2 italic">
  Ready for Injection
  </p>
- <p className="text-3xl font-semibold tracking-tight leading-none text-emerald-600">
+ <p className="text-3xl font-semibold tracking-tight leading-none text-success">
  {newJobs.length}
  </p>
  </Card>
- <Card className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 shadow-sm">
- <p className="text-[9px] font-semibold uppercase text-amber-600 tracking-widest mb-2 italic">
+ <Card className="rounded-2xl border border-warning/20 bg-warning/5 p-6 shadow-sm">
+ <p className="text-[9px] font-semibold uppercase text-warning tracking-widest mb-2 italic">
  Duplicate Nodes Purged
  </p>
- <p className="text-3xl font-semibold tracking-tight leading-none text-amber-600">
+ <p className="text-3xl font-semibold tracking-tight leading-none text-warning">
  {duplicateCount}
  </p>
  </Card>
@@ -442,7 +442,7 @@ export function JobsLinkedInBatchUpload({
  <Badge
  className={cn(
  "rounded-lg font-black text-[8px] border-none px-3 py-1",
- isDupe ? "bg-amber-500 text-white" : "bg-emerald-500 text-white",
+ isDupe ? "bg-warning text-primary-foreground" : "bg-success text-primary-foreground",
  )}
  >
  {isDupe ? "PURGED" : "VALID"}
@@ -483,17 +483,17 @@ export function JobsLinkedInBatchUpload({
  {step === "results" && (
  <div className="py-8 space-y-10 animate-in zoom-in-95">
  <div className="text-center space-y-4">
- <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto border-4 border-emerald-500/20 rotate-6 shadow-sm">
- <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+ <div className="h-20 w-20 rounded-full bg-success/10 flex items-center justify-center mx-auto border-4 border-success/20 rotate-6 shadow-sm">
+ <CheckCircle2 className="h-10 w-10 text-success" />
  </div>
  <h3 className="text-3xl font-semibold uppercase tracking-tight italic">Upload complete</h3>
  </div>
 
  <div className="grid grid-cols-2 gap-6">
- <Card className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 shadow-sm group">
+ <Card className="rounded-2xl border border-success/30 bg-success/5 p-8 shadow-sm group">
  <div className="flex items-center gap-6">
- <div className="h-16 w-16 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-emerald-500/40 shadow-sm transition-transform group-hover:rotate-6">
- <Zap className="h-8 w-8 text-white" />
+ <div className="h-16 w-16 rounded-2xl bg-success flex items-center justify-center shadow-emerald-500/40 shadow-sm transition-transform group-hover:rotate-6">
+ <Zap className="h-8 w-8 text-primary-foreground" />
  </div>
  <div>
  <p className="text-4xl font-semibold tracking-tight leading-none">{stats.created}</p>
@@ -503,10 +503,10 @@ export function JobsLinkedInBatchUpload({
  </div>
  </div>
  </Card>
- <Card className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-8 shadow-sm group">
+ <Card className="rounded-2xl border border-primary/30 bg-primary/5 p-8 shadow-sm group">
  <div className="flex items-center gap-6">
- <div className="h-16 w-16 rounded-2xl bg-blue-500 flex items-center justify-center shadow-blue-500/40 shadow-sm transition-transform group-hover:rotate-6">
- <Building2 className="h-8 w-8 text-white" />
+ <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-blue-500/40 shadow-sm transition-transform group-hover:rotate-6">
+ <Building2 className="h-8 w-8 text-primary-foreground" />
  </div>
  <div>
  <p className="text-4xl font-semibold tracking-tight leading-none">

@@ -27,8 +27,8 @@ export function LearningCohortsTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-indigo-500">
- <Users className="h-8 w-8 text-indigo-500 fill-indigo-500/20" />
+ <div className="flex items-center gap-3 text-accent">
+ <Users className="h-8 w-8 text-accent fill-accent/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Cohorts
  </h2>
@@ -42,14 +42,14 @@ export function LearningCohortsTab() {
  setDraft({ status: "upcoming" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-indigo-500/20 bg-accent hover:bg-accent text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Instantiate Cohort
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-600" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-accent via-accent to-accent" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -84,18 +84,18 @@ export function LearningCohortsTab() {
  </TableRow>
  ) : (
  data?.cohorts?.map((row) => (
- <TableRow key={row.id} className="group hover:bg-indigo-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-accent/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <Users className="h-3 w-3 text-indigo-500" />
+ <Users className="h-3 w-3 text-accent" />
  </div>
  <span className="font-black text-sm font-medium">{row.name}</span>
  </div>
  </TableCell>
  <TableCell>
  <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
- <BookOpen className="h-3 w-3 text-indigo-500" />{" "}
+ <BookOpen className="h-3 w-3 text-accent" />{" "}
  {row.content_id ? row.content_id.substring(0, 8) : "N/A"}
  </span>
  </TableCell>
@@ -104,10 +104,10 @@ export function LearningCohortsTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.status === "active"
- ? "bg-emerald-500/10 text-emerald-600"
+ ? "bg-success/10 text-success"
  : row.status === "completed"
- ? "bg-blue-500/10 text-blue-600"
- : "bg-amber-500/10 text-amber-600",
+ ? "bg-primary/10 text-primary"
+ : "bg-warning/10 text-warning",
  )}
  >
  {row.status}
@@ -123,7 +123,7 @@ export function LearningCohortsTab() {
  size="icon" aria-label="Manage live sessions"
  disabled={!row.content_id}
  onClick={() => setSessionsRow(row)}
- className="hover:bg-indigo-500/10 hover:text-indigo-600"
+ className="hover:bg-accent/10 hover:text-accent"
  title="Manage live sessions"
  >
  <Video className="h-4 w-4" />
@@ -135,7 +135,7 @@ export function LearningCohortsTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-indigo-500/10 hover:text-indigo-600"
+ className="hover:bg-accent/10 hover:text-accent"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -163,7 +163,7 @@ export function LearningCohortsTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-indigo-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-accent flex items-center gap-2">
  <Users className="h-6 w-6" /> Instantiate Cohort
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -211,13 +211,13 @@ export function LearningCohortsTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent>
- <SelectItem value="upcoming" className="font-bold text-xs text-amber-500">
+ <SelectItem value="upcoming" className="font-bold text-xs text-warning">
  Upcoming
  </SelectItem>
- <SelectItem value="active" className="font-bold text-xs text-emerald-500">
+ <SelectItem value="active" className="font-bold text-xs text-success">
  Active
  </SelectItem>
- <SelectItem value="completed" className="font-bold text-xs text-blue-500">
+ <SelectItem value="completed" className="font-bold text-xs text-primary">
  Completed
  </SelectItem>
  </SelectContent>
@@ -234,7 +234,7 @@ export function LearningCohortsTab() {
  delete payload.start_date;
  upsertCohort.mutate(payload, { onSuccess: () => setOpen(false) });
  }}
- className="h-14 rounded-xl font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+ className="h-14 rounded-xl font-medium bg-accent hover:bg-accent text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Cohort
  </Button>
@@ -243,7 +243,7 @@ export function LearningCohortsTab() {
  <Dialog open={!!sessionsRow} onOpenChange={(o) => !o && setSessionsRow(null)}>
  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 border border-border/60">
  <DialogHeader>
- <DialogTitle className="text-xl font-medium italic tracking-tight text-indigo-500 flex items-center gap-2">
+ <DialogTitle className="text-xl font-medium italic tracking-tight text-accent flex items-center gap-2">
  <Video className="h-5 w-5" /> Live Sessions — {sessionsRow?.name}
  </DialogTitle>
  </DialogHeader>

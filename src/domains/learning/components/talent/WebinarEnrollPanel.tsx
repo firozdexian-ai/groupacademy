@@ -112,14 +112,14 @@ export function WebinarEnrollPanel({ course }: Props) {
   };
 
   return (
-    <Card className="w-full text-left rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.03] to-emerald-500/[0.02] shadow-sm antialiased select-none sm:select-text transform-gpu overflow-hidden">
+    <Card className="w-full text-left rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.03] to-success/[0.02] shadow-sm antialiased select-none sm:select-text transform-gpu overflow-hidden">
       <CardContent className="p-4 space-y-3.5 w-full min-w-0 flex flex-col font-bold text-xs tracking-tight">
         {/* HUD LEVEL 1: LIVE BROADCAST STATE CHANNELS TAG */}
         <Badge
           variant="outline"
-          className="text-[9px] font-extrabold px-2 h-5 rounded uppercase tracking-wide bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 w-fit select-none leading-none shadow-sm gap-1 flex items-center"
+          className="text-[9px] font-extrabold px-2 h-5 rounded uppercase tracking-wide bg-destructive/10 text-destructive dark:text-destructive border border-destructive/15 w-fit select-none leading-none shadow-sm gap-1 flex items-center"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0 animate-pulse" />
           <span>Live Synchronous Track</span>
         </Badge>
 
@@ -149,7 +149,7 @@ export function WebinarEnrollPanel({ course }: Props) {
             <span
               className={cn(
                 "flex items-center gap-1.5 shrink-0 bg-muted/40 border border-border/20 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide",
-                seatsLeft <= 10 && seatsLeft > 0 ? "text-rose-600 bg-rose-500/5 border-rose-500/10 animate-pulse" : "",
+                seatsLeft <= 10 && seatsLeft > 0 ? "text-destructive bg-destructive/5 border-destructive/10 animate-pulse" : "",
               )}
             >
               <Users className="h-3.5 w-3.5 stroke-[2.2]" />
@@ -166,7 +166,7 @@ export function WebinarEnrollPanel({ course }: Props) {
         {/* HUD LEVEL 4: INTERACTIVE OPERATION ROUTE MODAL ACTIONS BUTTON */}
         {enrollment ? (
           <div className="space-y-2 pt-0.5 w-full select-none animate-in fade-in duration-200">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 pl-0.5 leading-none">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold text-success dark:text-success pl-0.5 leading-none">
               <CheckCircle2 className="h-4 w-4 stroke-[2.5]" />
               <span>Candidate Registration Confirmed Verified</span>
             </div>
@@ -175,7 +175,7 @@ export function WebinarEnrollPanel({ course }: Props) {
               <Button
                 variant="outline"
                 type="button"
-                className="w-full h-10 rounded-xl text-xs font-bold px-4 gap-1.5 border border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 shadow-sm transition-transform active:scale-[0.99] cursor-pointer"
+                className="w-full h-10 rounded-xl text-xs font-bold px-4 gap-1.5 border border-success/20 text-success hover:bg-success/5 shadow-sm transition-transform active:scale-[0.99] cursor-pointer"
                 asChild
               >
                 <a
@@ -184,7 +184,7 @@ export function WebinarEnrollPanel({ course }: Props) {
                   rel="noopener noreferrer"
                   onClick={handleWhatsAppRedirectHandshake}
                 >
-                  <MessageCircle className="h-4 w-4 text-emerald-500 shrink-0 stroke-[2.2]" />
+                  <MessageCircle className="h-4 w-4 text-success shrink-0 stroke-[2.2]" />
                   <span>Cohort WhatsApp Network</span>
                 </a>
               </Button>

@@ -279,11 +279,11 @@ export function ExternalApplicationPrep({
           {/* Error */}
           {error && (
             <div className="text-center py-10 space-y-4 animate-in fade-in duration-300 select-none w-full">
-              <div className="w-16 h-16 bg-rose-500/10 rounded-xl border border-rose-500/20 flex items-center justify-center mx-auto shadow-inner animate-bounce">
-                <AlertCircle className="w-6 h-6 text-rose-500 stroke-[2.2]" />
+              <div className="w-16 h-16 bg-destructive/10 rounded-xl border border-destructive/20 flex items-center justify-center mx-auto shadow-inner animate-bounce">
+                <AlertCircle className="w-6 h-6 text-destructive stroke-[2.2]" />
               </div>
               <div className="space-y-1 max-w-sm mx-auto px-2 text-center">
-                <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+                <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
                   Synchronization Protocol Fault
                 </p>
                 <p className="text-[11px] font-semibold text-muted-foreground/80 leading-normal italic select-text mt-1">
@@ -305,9 +305,9 @@ export function ExternalApplicationPrep({
           {/* Prompt */}
           {phase === "scrape_failed" && !error && (
             <div className="space-y-5 animate-in slide-in-from-bottom-3 duration-300 text-left w-full">
-              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl shadow-inner relative overflow-hidden select-none">
-                <Zap className="absolute -top-3 -right-3 h-14 w-14 text-amber-500 opacity-5 rotate-12 pointer-events-none select-none" />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500 mb-1 leading-none pl-0.5">
+              <div className="p-4 bg-warning/5 border border-warning/20 rounded-2xl shadow-inner relative overflow-hidden select-none">
+                <Zap className="absolute -top-3 -right-3 h-14 w-14 text-warning opacity-5 rotate-12 pointer-events-none select-none" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-warning dark:text-warning mb-1 leading-none pl-0.5">
                   Remote Scrape Gate Intercepted
                 </p>
                 <p className="text-[11px] font-medium text-muted-foreground/90 leading-relaxed italic pl-0.5 pr-2">
@@ -339,7 +339,7 @@ export function ExternalApplicationPrep({
                           trackEvent("external_application_screenshot_purged", { index: i });
                           setScreenshots((prev) => prev.filter((_, idx) => idx !== i));
                         }}
-                        className="absolute top-1.5 right-1.5 p-1 bg-rose-600 text-white rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute top-1.5 right-1.5 p-1 bg-destructive text-primary-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         aria-label="Remove screenshot"
                       >
                         <X className="w-3 h-3 stroke-[2.5]" />
@@ -380,7 +380,7 @@ export function ExternalApplicationPrep({
                     type="button"
                     className="flex-1 h-11 rounded-xl font-bold text-xs tracking-wide shadow-md active:scale-[0.99] transition-all cursor-pointer gap-2"
                   >
-                    <Upload className="w-4 h-4 text-white stroke-[2.2]" />
+                    <Upload className="w-4 h-4 text-primary-foreground stroke-[2.2]" />
                     <span>Initialize Vision Processing Matrix ({screenshots.length} / 5)</span>
                   </Button>
                   <Button
@@ -407,7 +407,7 @@ export function ExternalApplicationPrep({
                 <div className="space-y-3.5 w-full min-w-0">
                   <div className="flex items-center justify-between px-0.5 select-none border-b border-border/10 pb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 stroke-[2.5]" />
+                      <ShieldCheck className="h-4 w-4 text-success shrink-0 stroke-[2.5]" />
                       <h3 className="text-[10px] font-bold uppercase tracking-wider text-foreground/90 truncate pl-0.5">
                         Extracted Ingress Form Blocks
                       </h3>
@@ -452,7 +452,7 @@ export function ExternalApplicationPrep({
                             >
                               {copiedIndex === index ? (
                                 <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5] animate-in zoom-in-95 duration-200" />
+                                  <Check className="w-3.5 h-3.5 text-success stroke-[2.5] animate-in zoom-in-95 duration-200" />
                                   <span>Copied</span>
                                 </>
                               ) : (
@@ -493,7 +493,7 @@ export function ExternalApplicationPrep({
                         className="h-8 w-8 rounded-xl border border-border/40 bg-background/60 hover:bg-primary/5 cursor-pointer shadow-sm transition-transform active:scale-90 shrink-0"
                       >
                         {summaryCopied ? (
-                          <Check className="w-4 h-4 text-emerald-500 stroke-[2.5] animate-in zoom-in-95 duration-200" />
+                          <Check className="w-4 h-4 text-success stroke-[2.5] animate-in zoom-in-95 duration-200" />
                         ) : (
                           <Copy className="w-4 h-4 text-muted-foreground/80 stroke-[2.2]" />
                         )}
@@ -517,7 +517,7 @@ export function ExternalApplicationPrep({
                 }}
               >
                 <span>Launch Destination Career Portal</span>
-                <ExternalLink className="h-4 w-4 text-white stroke-[2.5]" />
+                <ExternalLink className="h-4 w-4 text-primary-foreground stroke-[2.5]" />
               </Button>
             </div>
           )}

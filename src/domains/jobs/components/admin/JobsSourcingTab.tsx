@@ -25,8 +25,8 @@ export function JobsSourcingTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-fuchsia-500">
- <UserPlus className="h-8 w-8 text-fuchsia-500 fill-fuchsia-500/20" />
+ <div className="flex items-center gap-3 text-accent">
+ <UserPlus className="h-8 w-8 text-accent fill-accent/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Sourcing
  </h2>
@@ -40,14 +40,14 @@ export function JobsSourcingTab() {
  setDraft({ status: "sent" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-fuchsia-500/20 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-fuchsia-500/20 bg-accent hover:bg-accent text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Send Invite
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-400 via-pink-500 to-rose-500" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-accent via-destructive to-destructive" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -80,11 +80,11 @@ export function JobsSourcingTab() {
  </TableRow>
  ) : (
  data?.invitations?.map((row) => (
- <TableRow key={row.id} className="group hover:bg-fuchsia-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-accent/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <UserPlus className="h-3 w-3 text-fuchsia-500" />
+ <UserPlus className="h-3 w-3 text-accent" />
  </div>
  <span className="font-mono text-xs uppercase tracking-tight text-muted-foreground">
  {row.job_id?.substring(0, 8) || "N/A"}
@@ -93,7 +93,7 @@ export function JobsSourcingTab() {
  </TableCell>
  <TableCell>
  <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
- <Mail className="h-3 w-3 text-fuchsia-500" />{" "}
+ <Mail className="h-3 w-3 text-accent" />{" "}
  {row.talent_id ? row.talent_id.substring(0, 8) : "Unknown"}
  </span>
  </TableCell>
@@ -102,10 +102,10 @@ export function JobsSourcingTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.status === "accepted"
- ? "bg-emerald-500/10 text-emerald-600"
+ ? "bg-success/10 text-success"
  : row.status === "declined"
- ? "bg-rose-500/10 text-rose-600"
- : "bg-amber-500/10 text-amber-600",
+ ? "bg-destructive/10 text-destructive"
+ : "bg-warning/10 text-warning",
  )}
  >
  {row.status}
@@ -123,7 +123,7 @@ export function JobsSourcingTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-fuchsia-500/10 hover:text-fuchsia-600"
+ className="hover:bg-accent/10 hover:text-accent"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -151,7 +151,7 @@ export function JobsSourcingTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-fuchsia-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-accent flex items-center gap-2">
  <UserPlus className="h-6 w-6" /> Sourcing Invite
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -192,13 +192,13 @@ export function JobsSourcingTab() {
  <SelectValue />
  </SelectTrigger>
  <SelectContent>
- <SelectItem value="sent" className="font-bold text-xs text-amber-500">
+ <SelectItem value="sent" className="font-bold text-xs text-warning">
  Sent
  </SelectItem>
- <SelectItem value="accepted" className="font-bold text-xs text-emerald-500">
+ <SelectItem value="accepted" className="font-bold text-xs text-success">
  Accepted
  </SelectItem>
- <SelectItem value="declined" className="font-bold text-xs text-rose-500">
+ <SelectItem value="declined" className="font-bold text-xs text-destructive">
  Declined
  </SelectItem>
  </SelectContent>
@@ -208,7 +208,7 @@ export function JobsSourcingTab() {
  <Button
  disabled={!draft.job_id || upsertInvitation.isPending}
  onClick={() => upsertInvitation.mutate(draft, { onSuccess: () => setOpen(false) })}
- className="h-14 rounded-xl font-medium bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+ className="h-14 rounded-xl font-medium bg-accent hover:bg-accent text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Status
  </Button>

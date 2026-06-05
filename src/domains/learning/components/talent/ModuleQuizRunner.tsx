@@ -213,9 +213,9 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
                   >
                     <div className="flex items-start gap-2.5 w-full min-w-0">
                       {isCorrectNode ? (
-                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                        <CheckCircle2 className="h-4.5 w-4.5 text-success dark:text-success shrink-0 mt-0.5 stroke-[2.5]" />
                       ) : (
-                        <XCircle className="h-4.5 w-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                        <XCircle className="h-4.5 w-4.5 text-destructive dark:text-destructive shrink-0 mt-0.5 stroke-[2.5]" />
                       )}
                       <p className="text-xs sm:text-sm font-bold text-foreground/90 leading-snug break-words flex-1 select-text">
                         {idx + 1}. {it.question}
@@ -227,8 +227,8 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
                         className={cn(
                           "p-2 rounded-lg border leading-tight select-text",
                           isCorrectNode
-                            ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-700"
-                            : "bg-rose-500/5 border-rose-500/10 text-rose-700",
+                            ? "bg-success/5 border-success/10 text-success"
+                            : "bg-destructive/5 border-destructive/10 text-destructive",
                         )}
                       >
                         <span className="font-extrabold uppercase tracking-wide text-[9px] block mb-0.5 opacity-60">
@@ -240,7 +240,7 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
                       {!isCorrectNode &&
                         (r as any).correct_index !== undefined &&
                         it.options[(r as any).correct_index] && (
-                          <p className="p-2 rounded-lg border border-emerald-500/10 bg-emerald-500/5 text-emerald-700 font-bold leading-tight select-text">
+                          <p className="p-2 rounded-lg border border-success/10 bg-success/5 text-success font-bold leading-tight select-text">
                             <span className="font-extrabold uppercase tracking-wide text-[9px] block mb-0.5 opacity-60">
                               Correct Answer
                             </span>

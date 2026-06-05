@@ -252,7 +252,7 @@ export function JobsApplicationsTab() {
                   <SelectItem value="unscored" className="text-[10px] font-bold uppercase">
                     Unscored
                   </SelectItem>
-                  <SelectItem value="strong" className="text-[10px] font-bold uppercase text-emerald-600">
+                  <SelectItem value="strong" className="text-[10px] font-bold uppercase text-success">
                     Strong (80+)
                   </SelectItem>
                   <SelectItem value="weak" className="text-[10px] font-bold uppercase text-destructive">

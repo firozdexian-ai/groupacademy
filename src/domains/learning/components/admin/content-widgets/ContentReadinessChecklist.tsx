@@ -30,8 +30,8 @@ const sevIcon = (s: CheckSeverity) =>
   s === "pass" ? CheckCircle2 : s === "warn" ? AlertTriangle : XCircle;
 
 const sevTone: Record<CheckSeverity, string> = {
-  pass: "text-emerald-600",
-  warn: "text-amber-600",
+  pass: "text-success",
+  warn: "text-warning",
   fail: "text-destructive",
 };
 
@@ -104,8 +104,8 @@ export default function ContentReadinessChecklist({
               sum.blockers > 0
                 ? "border-destructive/40 text-destructive bg-destructive/5"
                 : sum.warnings > 0
-                ? "border-amber-500/40 text-amber-600 bg-amber-500/5"
-                : "border-emerald-500/40 text-emerald-600 bg-emerald-500/5",
+                ? "border-warning/40 text-warning bg-warning/5"
+                : "border-success/40 text-success bg-success/5",
             )}
           >
             {sum.passed}/{sum.total}
@@ -143,7 +143,7 @@ export default function ContentReadinessChecklist({
 
         {moduleAudit.length > 0 && (
           <div className="pt-2 mt-2 border-t border-border/20 space-y-1">
-            <p className="text-[9px] font-black text-amber-600">Modules blocking</p>
+            <p className="text-[9px] font-black text-warning">Modules blocking</p>
             {moduleAudit.slice(0, 5).map((m) => (
               <p key={m.id} className="text-[10px] text-muted-foreground">
                 <span className="font-semibold text-foreground">{m.title}</span> — {m.reason}
@@ -175,7 +175,7 @@ export default function ContentReadinessChecklist({
                   size="sm"
                   disabled={busy}
                   onClick={forcePublish}
-                  className="rounded-xl text-[10px] font-bold text-amber-600 border-amber-500/30"
+                  className="rounded-xl text-[10px] font-bold text-warning border-warning/30"
                 >
                   <Zap className="w-3 h-3 mr-1.5" /> Force Publish
                 </Button>

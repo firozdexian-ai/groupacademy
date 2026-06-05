@@ -53,7 +53,7 @@ export default function JobsUploadApprovalTab() {
               <div className="flex gap-1">
                 <Button size="sm" variant="ghost" title="Approve & publish"
                   onClick={() => setActive.mutate({ id: j.id, is_active: true })}>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 </Button>
                 <Button size="sm" variant="ghost" title="Keep inactive"
                   onClick={() => setActive.mutate({ id: j.id, is_active: false })}>

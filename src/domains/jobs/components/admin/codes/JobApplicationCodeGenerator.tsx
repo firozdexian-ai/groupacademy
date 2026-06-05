@@ -115,7 +115,7 @@ export function JobApplicationCodeGenerator() {
 
   return (
     <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden animate-in fade-in duration-700">
-      <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+      <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary to-primary" />
       <CardHeader className="p-10 border-b border-border/10 bg-muted/10">
         <div className="flex items-center gap-5">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-primary/20 shadow-inner">
@@ -181,7 +181,7 @@ export function JobApplicationCodeGenerator() {
           <div className="space-y-6 pt-10 border-t border-border/10 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                <ShieldCheck className="h-5 w-5 text-success" />
                 <p className="text-[10px] font-semibold text-muted-foreground">
                   Generated Artifacts:
                 </p>
@@ -215,7 +215,7 @@ export function JobApplicationCodeGenerator() {
                     className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-colors"
                   >
                     {copiedCode === code ? (
-                      <Check className="h-4 w-4 text-emerald-500" />
+                      <Check className="h-4 w-4 text-success" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}

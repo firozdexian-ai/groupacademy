@@ -313,7 +313,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
 
           {isV1 && (
             <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/30 border border-border/10 text-[10px] sm:text-xs font-bold text-muted-foreground/80 leading-none select-none pl-3.5">
-              <Zap className="h-4 w-4 text-amber-500 fill-amber-500/5 stroke-[2.2]" />
+              <Zap className="h-4 w-4 text-warning fill-warning/5 stroke-[2.2]" />
               <p>Subject focus weights successfully saved. Your adaptive topic queues have been updated dynamically.</p>
             </div>
           )}
@@ -422,7 +422,7 @@ export function ModuleScenarioRunner({ moduleId, onComplete }: { moduleId: strin
             className="h-10 w-10 rounded-xl shrink-0 cursor-pointer shadow-md active:scale-95 transition-transform bg-primary text-primary-foreground hover:bg-primary/90"
             aria-label="Send message"
           >
-            <Send className="h-4 w-4 text-white stroke-[2.2]" />
+            <Send className="h-4 w-4 text-primary-foreground stroke-[2.2]" />
           </Button>
         </div>
 

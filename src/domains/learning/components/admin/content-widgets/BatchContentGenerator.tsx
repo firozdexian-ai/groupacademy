@@ -534,7 +534,7 @@ export function BatchContentGenerator() {
                         {isRunning ? (
                           <InlineSpinner size="md" />
                         ) : (
-                          <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                          <ShieldCheck className="h-6 w-6 text-success" />
                         )}
                         <span className="text-xl font-black uppercase tracking-tighter italic">
                           {isRunning ? "Synthesis Active" : "Cycle Verified"}
@@ -560,11 +560,11 @@ export function BatchContentGenerator() {
                         System Log Trace
                       </span>
                     </div>
-                    <div className="bg-black/90 rounded-2xl p-8 max-h-64 overflow-y-auto font-mono text-[11px] text-emerald-500 shadow-sm border border-border/40 selection:bg-emerald-500/20">
+                    <div className="bg-foreground/90 rounded-2xl p-8 max-h-64 overflow-y-auto font-mono text-[11px] text-success shadow-sm border border-border/40 selection:bg-success/20">
                       {batchLog.map((log, i) => (
                         <div
                           key={i}
-                          className={cn("py-1 border-b border-white/5", i === 0 && "text-white animate-pulse")}
+                          className={cn("py-1 border-b border-background/5", i === 0 && "text-primary-foreground animate-pulse")}
                         >
                           <span className="opacity-40 mr-4 inline-block w-20">{log.split("]")[0]}]</span>
                           {log.split("]")[1]}
@@ -624,7 +624,7 @@ export function BatchContentGenerator() {
                                 <Button
                                   onClick={() => approveDraftArtifact(draft)}
                                   disabled={approvingIds.has(draft.id)}
-                                  className="rounded-xl h-12 px-10 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500"
+                                  className="rounded-xl h-12 px-10 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/20 bg-success hover:bg-success"
                                 >
                                   {approvingIds.has(draft.id) ? (
                                     <Loader2 className="animate-spin mr-2" />

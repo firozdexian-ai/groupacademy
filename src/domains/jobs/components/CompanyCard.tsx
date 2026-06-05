@@ -139,7 +139,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
             variant="ghost"
             size="icon"
       
-            className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-rose-500 hover:bg-rose-500/10 shrink-0 cursor-pointer active:scale-90 transition-all select-none"
+            className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer active:scale-90 transition-all select-none"
             onClick={handleFollowRelationshipToggle}
             aria-label={
               isFollowing
@@ -151,7 +151,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
               className={cn(
                 "h-3.5 w-3.5 stroke-[2.2] transition-transform duration-300",
                 isFollowing
-                  ? "fill-rose-500 text-rose-500 scale-105 drop-shadow-[0_1px_4px_rgba(244,63,94,0.2)]"
+                  ? "fill-destructive text-destructive scale-105 drop-shadow-[0_1px_4px_rgba(244,63,94,0.2)]"
                   : "text-muted-foreground/60",
               )}
             />
@@ -162,7 +162,7 @@ export function CompanyCard({ company, isFollowing, onToggleFollow, onClick }: P
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5 select-none w-full max-w-full">
           {/* High Influx Volume Dynamic Alert Indicator */}
           {company.jobs_last_14d > 0 && (
-            <Badge className="bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 text-[9px] font-extrabold tracking-wide uppercase px-2 h-5.5 gap-1 shadow-sm shrink-0 tabular-nums animate-in slide-in-from-left-1 duration-200">
+            <Badge className="bg-success/10 dark:bg-success/5 text-success dark:text-success border border-success/10 text-[9px] font-extrabold tracking-wide uppercase px-2 h-5.5 gap-1 shadow-sm shrink-0 tabular-nums animate-in slide-in-from-left-1 duration-200">
               <TrendingUp className="h-3 w-3 stroke-[2.5]" />
               <span>+{company.jobs_last_14d} fresh</span>
             </Badge>

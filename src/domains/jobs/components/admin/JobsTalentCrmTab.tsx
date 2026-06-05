@@ -25,8 +25,8 @@ export function JobsTalentCrmTab() {
  <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
  <div className="space-y-1 text-left">
- <div className="flex items-center gap-3 text-emerald-500">
- <UserCheck className="h-8 w-8 text-emerald-500 fill-emerald-500/20" />
+ <div className="flex items-center gap-3 text-success">
+ <UserCheck className="h-8 w-8 text-success fill-success/20" />
  <h2 className="text-3xl font-medium tracking-tighter italic leading-none text-foreground">
  Talent CRM
  </h2>
@@ -40,14 +40,14 @@ export function JobsTalentCrmTab() {
  setDraft({ stage: "lead" });
  setOpen(true);
  }}
- className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 text-white"
+ className="h-12 px-8 rounded-xl font-medium text-xs gap-2 shadow-lg shadow-emerald-500/20 bg-success hover:bg-success text-primary-foreground"
  >
  <Plus className="h-4 w-4" /> Add Relationship
  </Button>
  </header>
 
  <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
- <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-success via-accent to-success" />
  <CardContent className="p-0">
  <div className="overflow-x-auto">
  <Table>
@@ -80,11 +80,11 @@ export function JobsTalentCrmTab() {
  </TableRow>
  ) : (
  data?.crmRecords?.map((row) => (
- <TableRow key={row.id} className="group hover:bg-emerald-500/[0.02]">
+ <TableRow key={row.id} className="group hover:bg-success/[0.02]">
  <TableCell className="py-6 pl-8">
  <div className="flex items-center gap-3">
  <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
- <UserCheck className="h-3 w-3 text-emerald-500" />
+ <UserCheck className="h-3 w-3 text-success" />
  </div>
  <span className="font-mono text-xs uppercase tracking-tight text-muted-foreground">
  {row.talent_id?.substring(0, 8) || "N/A"}
@@ -93,7 +93,7 @@ export function JobsTalentCrmTab() {
  </TableCell>
  <TableCell>
  <span className="font-mono text-[10px] text-foreground font-black flex items-center gap-1.5">
- <Building2 className="h-3 w-3 text-emerald-500" />{" "}
+ <Building2 className="h-3 w-3 text-success" />{" "}
  {row.company_id ? row.company_id.substring(0, 8) : "N/A"}
  </span>
  </TableCell>
@@ -102,9 +102,9 @@ export function JobsTalentCrmTab() {
  className={cn(
  "font-bold text-[9px] border-none px-3",
  row.stage === "hired"
- ? "bg-emerald-500/10 text-emerald-600"
+ ? "bg-success/10 text-success"
  : row.stage === "rejected"
- ? "bg-rose-500/10 text-rose-600"
+ ? "bg-destructive/10 text-destructive"
  : "bg-muted text-muted-foreground",
  )}
  >
@@ -123,7 +123,7 @@ export function JobsTalentCrmTab() {
  setDraft(row);
  setOpen(true);
  }}
- className="hover:bg-emerald-500/10 hover:text-emerald-600"
+ className="hover:bg-success/10 hover:text-success"
  >
  <Pencil className="h-4 w-4" />
  </Button>
@@ -151,7 +151,7 @@ export function JobsTalentCrmTab() {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogContent className="max-w-md rounded-2xl p-8 border-4 border-border/40 text-left">
  <DialogHeader>
- <DialogTitle className="text-2xl font-semibold text-emerald-500 flex items-center gap-2">
+ <DialogTitle className="text-2xl font-semibold text-success flex items-center gap-2">
  <UserCheck className="h-6 w-6" /> CRM Record
  </DialogTitle>
  <DialogDescription className="text-sm text-muted-foreground">
@@ -195,19 +195,19 @@ export function JobsTalentCrmTab() {
  <SelectItem value="lead" className="font-bold text-xs">
  Lead
  </SelectItem>
- <SelectItem value="contacted" className="font-bold text-xs text-amber-500">
+ <SelectItem value="contacted" className="font-bold text-xs text-warning">
  Contacted
  </SelectItem>
  <SelectItem
  value="interviewing"
- className="font-bold text-xs text-blue-500"
+ className="font-bold text-xs text-primary"
  >
  Interviewing
  </SelectItem>
- <SelectItem value="hired" className="font-bold text-xs text-emerald-500">
+ <SelectItem value="hired" className="font-bold text-xs text-success">
  Hired
  </SelectItem>
- <SelectItem value="rejected" className="font-bold text-xs text-rose-500">
+ <SelectItem value="rejected" className="font-bold text-xs text-destructive">
  Rejected
  </SelectItem>
  </SelectContent>
@@ -217,7 +217,7 @@ export function JobsTalentCrmTab() {
  <Button
  disabled={!draft.talent_id || upsertCrmRecord.isPending}
  onClick={() => upsertCrmRecord.mutate(draft, { onSuccess: () => setOpen(false) })}
- className="h-14 rounded-xl font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+ className="h-14 rounded-xl font-medium bg-success hover:bg-success text-primary-foreground"
  >
  <ShieldCheck className="mr-2 h-5 w-5" /> Enforce Stage
  </Button>

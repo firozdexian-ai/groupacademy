@@ -68,7 +68,7 @@ function TabNode({ value, icon: Icon, label }: { value: string; icon: any; label
   return (
     <TabsTrigger
       value={value}
-      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg rounded-2xl px-6 py-3 transition-all font-semibold uppercase italic text-[10px] tracking-widest gap-3 border-2 border-transparent hover:border-primary/20"
+      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg rounded-2xl px-6 py-3 transition-all font-semibold uppercase italic text-[10px] tracking-widest gap-3 border-2 border-transparent hover:border-primary/20"
     >
       <Icon className="h-4 w-4" />
       {label}

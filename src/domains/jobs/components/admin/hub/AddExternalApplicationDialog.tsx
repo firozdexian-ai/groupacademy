@@ -173,7 +173,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  return (
  <Dialog open={open} onOpenChange={handleClose}>
  <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-4 border-border/40 bg-background/95 shadow-sm rounded-2xl">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-primary" />
 
  <DialogHeader className="p-8 pb-4 text-left">
  <div className="flex justify-between items-center">
@@ -272,12 +272,12 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  type="email"
  />
  {talentExists === true && (
- <Badge className="bg-green-500/10 text-green-600 border-green-500/20 font-semibold text-[9px] px-3 py-1">
+ <Badge className="bg-success/10 text-success border-success/20 font-semibold text-[9px] px-3 py-1">
  REGISTERED_TALENT_DETECTED
  </Badge>
  )}
  {talentExists === false && (
- <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-semibold text-[9px] px-3 py-1">
+ <Badge className="bg-warning/10 text-warning border-warning font-semibold text-[9px] px-3 py-1">
  NEW_NODE_PROVISIONING
  </Badge>
  )}

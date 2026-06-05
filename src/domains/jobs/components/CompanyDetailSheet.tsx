@@ -146,7 +146,7 @@ export function CompanyDetailSheet({ companyName, open, onOpenChange }: Props) {
                   </span>
 
                   {header.jobs_last_14d > 0 && (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 text-[9px] font-bold px-2 h-5 gap-1 shrink-0">
+                    <Badge className="bg-success/10 text-success dark:text-success border border-success/10 text-[9px] font-bold px-2 h-5 gap-1 shrink-0">
                       <TrendingUp className="h-3 w-3" />
                       <span>+{header.jobs_last_14d} this fortnight</span>
                     </Badge>

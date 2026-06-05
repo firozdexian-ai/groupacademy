@@ -22,8 +22,8 @@ export function JobsOverviewTab() {
       {/* Executive Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-2xl border border-border/60">
         <div className="space-y-1 text-left">
-          <div className="flex items-center gap-3 text-indigo-500">
-            <Briefcase className="h-8 w-8 text-indigo-500 fill-indigo-500/20" />
+          <div className="flex items-center gap-3 text-accent">
+            <Briefcase className="h-8 w-8 text-accent fill-accent/20" />
             <h2 className="text-4xl font-semibold uppercase tracking-tight italic leading-none text-foreground">
               ATS Command
             </h2>
@@ -35,7 +35,7 @@ export function JobsOverviewTab() {
         {totalPendingActions > 0 && (
           <Badge
             variant="outline"
-            className="h-12 px-6 rounded-xl font-semibold uppercase text-xs tracking-widest gap-2 border-indigo-500/50 text-indigo-600 bg-indigo-500/10 animate-pulse"
+            className="h-12 px-6 rounded-xl font-semibold uppercase text-xs tracking-widest gap-2 border-accent/50 text-accent bg-accent/10 animate-pulse"
           >
             <AlertCircle className="h-4 w-4" /> {totalPendingActions} Pending Actions
           </Badge>
@@ -56,29 +56,29 @@ export function JobsOverviewTab() {
               label="Active Roles"
               value={activeJobs.length}
               icon={Briefcase}
-              color="text-indigo-500"
-              bg="bg-indigo-500/10"
+              color="text-accent"
+              bg="bg-accent/10"
             />
             <MetricTile
               label="Pending Applications"
               value={pendingApps.length}
               icon={Users}
-              color="text-blue-500"
-              bg="bg-blue-500/10"
+              color="text-primary"
+              bg="bg-primary/10"
             />
             <MetricTile
               label="Sourced Candidates"
               value={crmVolume}
               icon={UserPlus}
-              color="text-emerald-500"
-              bg="bg-emerald-500/10"
+              color="text-success"
+              bg="bg-success/10"
             />
             <MetricTile
               label="Active Assessments"
               value={data.assessments.length}
               icon={ClipboardList}
-              color="text-violet-500"
-              bg="bg-violet-500/10"
+              color="text-accent"
+              bg="bg-accent/10"
             />
           </div>
 
@@ -87,19 +87,19 @@ export function JobsOverviewTab() {
             {/* Priority Action Queue (Left 2 Columns) */}
             <div className="xl:col-span-2 space-y-6">
               <div className="flex items-center gap-2 mb-4 px-2">
-                <Clock className="h-4 w-4 text-indigo-500" />
+                <Clock className="h-4 w-4 text-accent" />
                 <h3 className="text-xs font-semibold text-muted-foreground italic">
                   Priority Recruitment Queue
                 </h3>
               </div>
 
               <Card className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-                <div className="h-1.5 w-full bg-gradient-to-r from-indigo-400 via-blue-500 to-violet-500" />
+                <div className="h-1.5 w-full bg-gradient-to-r from-accent via-primary to-accent" />
                 <CardContent className="p-0">
                   {pendingApps.length === 0 && pendingAssessments.length === 0 ? (
                     <div className="p-20 text-center flex flex-col items-center justify-center space-y-3">
-                      <div className="h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center border-2 border-emerald-500/20">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                      <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center border-2 border-success/20">
+                        <CheckCircle2 className="h-8 w-8 text-success" />
                       </div>
                       <p className="text-[10px] font-semibold text-muted-foreground/50 italic">
                         Inbox Zero Achieved
@@ -111,11 +111,11 @@ export function JobsOverviewTab() {
                       {pendingApps.slice(0, 3).map((app) => (
                         <div
                           key={app.id}
-                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-blue-500/[0.02] transition-colors group"
+                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-primary/[0.02] transition-colors group"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 border-2 border-blue-500/20 flex items-center justify-center shadow-sm">
-                              <Users className="h-5 w-5 text-blue-500" />
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-sm">
+                              <Users className="h-5 w-5 text-primary" />
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm uppercase italic tracking-tight text-foreground/90">
@@ -123,7 +123,7 @@ export function JobsOverviewTab() {
                               </h4>
                               <p className="text-[10px] font-bold text-muted-foreground mt-1">
                                 Submitted:{" "}
-                                <span className="text-blue-500">{new Date(app.created_at).toLocaleDateString()}</span>
+                                <span className="text-primary">{new Date(app.created_at).toLocaleDateString()}</span>
                               </p>
                             </div>
                           </div>
@@ -134,7 +134,7 @@ export function JobsOverviewTab() {
                             >
                               Talent ID: {app.talent_id.substring(0, 8)}
                             </Badge>
-                            <Badge className="bg-blue-500/10 text-blue-600 border-none font-bold uppercase text-[9px] tracking-widest">
+                            <Badge className="bg-primary/10 text-primary border-none font-bold uppercase text-[9px] tracking-widest">
                               Awaiting Review
                             </Badge>
                           </div>
@@ -145,11 +145,11 @@ export function JobsOverviewTab() {
                       {pendingAssessments.slice(0, 3).map((assess) => (
                         <div
                           key={assess.id}
-                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-violet-500/[0.02] transition-colors group"
+                          className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-accent/[0.02] transition-colors group"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-violet-500/10 border-2 border-violet-500/20 flex items-center justify-center shadow-sm">
-                              <ClipboardList className="h-5 w-5 text-violet-500" />
+                            <div className="h-12 w-12 rounded-xl bg-accent/10 border-2 border-accent/20 flex items-center justify-center shadow-sm">
+                              <ClipboardList className="h-5 w-5 text-accent" />
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm uppercase italic tracking-tight text-foreground/90">
@@ -167,7 +167,7 @@ export function JobsOverviewTab() {
                             >
                               Talent ID: {assess.talent_id.substring(0, 8)}
                             </Badge>
-                            <Badge className="bg-violet-500/10 text-violet-600 border-none font-bold uppercase text-[9px] tracking-widest">
+                            <Badge className="bg-accent/10 text-accent border-none font-bold uppercase text-[9px] tracking-widest">
                               Requires Grading
                             </Badge>
                           </div>
@@ -182,7 +182,7 @@ export function JobsOverviewTab() {
             {/* Platform Pulse (Right Column) */}
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-4 px-2">
-                <Activity className="h-4 w-4 text-indigo-500" />
+                <Activity className="h-4 w-4 text-accent" />
                 <h3 className="text-xs font-semibold text-muted-foreground italic">
                   Pipeline Distribution
                 </h3>
@@ -191,19 +191,19 @@ export function JobsOverviewTab() {
               <Card className="rounded-2xl border border-border/60 bg-card shadow-sm">
                 <CardContent className="p-8">
                   <div className="space-y-6">
-                    <PulseBar label="Live Job Postings" value={activeJobs.length} max={100} color="bg-indigo-500" />
+                    <PulseBar label="Live Job Postings" value={activeJobs.length} max={100} color="bg-accent" />
                     <PulseBar
                       label="Total Applications"
                       value={data.applications.length}
                       max={1000}
-                      color="bg-blue-500"
+                      color="bg-primary"
                     />
-                    <PulseBar label="CRM Pipeline" value={crmVolume} max={500} color="bg-emerald-500" />
+                    <PulseBar label="CRM Pipeline" value={crmVolume} max={500} color="bg-success" />
                     <PulseBar
                       label="Sent Invitations"
                       value={data.invitations.length}
                       max={200}
-                      color="bg-violet-500"
+                      color="bg-accent"
                     />
                   </div>
                 </CardContent>
@@ -222,7 +222,7 @@ function MetricTile({ label, value, icon: Icon, color, bg }: any) {
       <CardContent className="p-6 flex items-center gap-5">
         <div
           className={cn(
-            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-white/5 transition-transform group-hover:rotate-6 shadow-inner shrink-0",
+            "h-14 w-14 rounded-2xl flex items-center justify-center border-2 border-background/5 transition-transform group-hover:rotate-6 shadow-inner shrink-0",
             bg,
             color,
           )}

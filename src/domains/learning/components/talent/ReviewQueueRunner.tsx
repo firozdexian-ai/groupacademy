@@ -175,7 +175,7 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
             {overdueLabel && (
               <>
                 <span>&bull;</span>
-                <span className="text-rose-600 dark:text-rose-400 font-extrabold uppercase text-[9px] tracking-wide animate-pulse">
+                <span className="text-destructive dark:text-destructive font-extrabold uppercase text-[9px] tracking-wide animate-pulse">
                   {overdueLabel}
                 </span>
               </>
@@ -204,7 +204,7 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
           </div>
           <Badge
             variant="outline"
-            className="shrink-0 text-[9px] font-extrabold px-2 h-5 bg-rose-500/5 border-rose-500/10 text-rose-600 dark:text-rose-400 uppercase tracking-wide rounded animate-pulse shadow-sm"
+            className="shrink-0 text-[9px] font-extrabold px-2 h-5 bg-destructive/5 border-destructive/10 text-destructive dark:text-destructive uppercase tracking-wide rounded animate-pulse shadow-sm"
           >
             <Clock className="h-3 w-3 mr-1 shrink-0 stroke-[2.2]" />
             <span>{overdueLabel || "due"}</span>
@@ -246,9 +246,9 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
                 >
                   <div className="flex items-start gap-2.5 w-full min-w-0 leading-snug">
                     {isCorrectNode ? (
-                      <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                      <CheckCircle2 className="h-4.5 w-4.5 text-success dark:text-success shrink-0 mt-0.5 stroke-[2.5]" />
                     ) : (
-                      <XCircle className="h-4.5 w-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                      <XCircle className="h-4.5 w-4.5 text-destructive dark:text-destructive shrink-0 mt-0.5 stroke-[2.5]" />
                     )}
                     <p className="text-xs sm:text-sm font-bold text-foreground/90 break-words flex-1 select-text">
                       {it.question}
@@ -256,7 +256,7 @@ function TopicCard({ topic, onCompleted }: { topic: ReviewTopic; onCompleted: ()
                   </div>
 
                   {!isCorrectNode && r.correct_index !== undefined && (
-                    <p className="text-[11px] sm:text-xs pl-7 font-bold text-emerald-700 bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg leading-tight select-text select-all">
+                    <p className="text-[11px] sm:text-xs pl-7 font-bold text-success bg-success/5 border border-success/10 p-2 rounded-lg leading-tight select-text select-all">
                       <span className="font-extrabold uppercase text-[9px] block mb-0.5 opacity-60 select-none">
                         Reconciled Valid Lock Target
                       </span>
@@ -383,16 +383,16 @@ export function ReviewQueueRunner() {
 
   if (error) {
     return (
-      <Card className="border border-rose-500/20 bg-rose-500/5 rounded-2xl text-left w-full max-w-full">
+      <Card className="border border-destructive/20 bg-destructive/5 rounded-2xl text-left w-full max-w-full">
         <CardContent className="p-5 text-center space-y-4 select-none">
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center mx-auto shadow-inner">
-            <AlertTriangle className="h-5 w-5 text-rose-500 stroke-[2.2]" />
+          <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto shadow-inner">
+            <AlertTriangle className="h-5 w-5 text-destructive stroke-[2.2]" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
+            <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
               Couldn't load
             </p>
-            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-rose-500/10 mt-1.5">
+            <p className="text-xs font-medium italic text-muted-foreground/80 leading-normal select-text selection:bg-destructive/10 mt-1.5">
               {error || "Something went wrong. Please try again."}
             </p>
           </div>
@@ -413,8 +413,8 @@ export function ReviewQueueRunner() {
   if (!data || data.topics.length === 0) {
     return (
       <Card className="border border-dashed border-border/60 bg-card/40 backdrop-blur-md rounded-2xl p-6 text-center select-none w-full max-w-md mx-auto flex flex-col justify-center items-center animate-in fade-in duration-300 py-10">
-        <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3.5 border border-emerald-500/5 shadow-inner">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+        <div className="h-11 w-11 rounded-xl bg-success/10 flex items-center justify-center mb-3.5 border border-success/5 shadow-inner">
+          <CheckCircle2 className="h-5 w-5 text-success dark:text-success stroke-[2.5]" />
         </div>
         <h3 className="text-sm font-bold text-foreground/90 uppercase tracking-wide leading-none">
           All caught up
@@ -455,7 +455,7 @@ export function ReviewQueueRunner() {
   return (
     <div className="space-y-3 text-left max-w-full w-full transform-gpu antialiased">
       {/* HUD HEADER COVER BANNER ELEMENT */}
-      <Card className="border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-cyan-500/[0.03] dark:from-primary/[0.02] dark:to-cyan-500/[0.01] rounded-2xl shadow-sm overflow-hidden select-none w-full">
+      <Card className="border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-accent/[0.03] dark:from-primary/[0.02] dark:to-accent/[0.01] rounded-2xl shadow-sm overflow-hidden select-none w-full">
         <CardContent className="p-4 flex items-center gap-3.5 text-left w-full">
           <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/5 flex items-center justify-center shrink-0 shadow-inner">
             <Brain className="h-5 w-5 text-primary fill-primary/10 animate-pulse stroke-[2.2]" />

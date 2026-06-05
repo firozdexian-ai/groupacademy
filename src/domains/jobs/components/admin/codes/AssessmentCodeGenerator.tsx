@@ -115,7 +115,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  </DialogTrigger>
 
  <DialogContent className="rounded-2xl border border-border/60 bg-card shadow-sm p-0 overflow-hidden max-w-md">
- <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50" />
+ <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary to-primary opacity-50" />
 
  <div className="p-8">
  <DialogHeader className="mb-6 text-left">
@@ -145,7 +145,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  {generatedCode ? (
  <div className="space-y-4 animate-in zoom-in-95 duration-500">
  <div className="space-y-2">
- <Label className="text-[10px] font-black text-emerald-500 ml-1">
+ <Label className="text-[10px] font-black text-success ml-1">
  Logic Artifact (Code)
  </Label>
  <div className="flex items-center gap-3">
@@ -156,11 +156,11 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  />
  <Button
  variant="outline"
- className="h-14 w-14 rounded-2xl border shrink-0 transition-all hover:bg-primary hover:text-white group"
+ className="h-14 w-14 rounded-2xl border shrink-0 transition-all hover:bg-primary hover:text-primary-foreground group"
  onClick={handleArtifactExport}
  >
  {copied ? (
- <Check className="h-5 w-5 text-green-500 group-hover:text-white" />
+ <Check className="h-5 w-5 text-success group-hover:text-primary-foreground" />
  ) : (
  <Copy className="h-5 w-5" />
  )}
@@ -168,7 +168,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  </div>
  </div>
  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex items-start gap-3">
- <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+ <Zap className="h-4 w-4 text-warning shrink-0 mt-0.5" />
  <p className="text-[9px] font-bold leading-relaxed text-muted-foreground italic text-left">
  Artifact expires in 30 days. Export payload to transmit credentials via secondary channel.
  </p>
@@ -193,7 +193,7 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
  {generating ? <InlineSpinner size="md" /> : <KeyRound className="h-5 w-5" />}
  {generating ? "GENERATING..." : "GENERATE CODE"}
  </span>
- <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+ <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
  </Button>
  </div>
  )}
