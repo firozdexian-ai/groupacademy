@@ -55,16 +55,11 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
       const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
       const reco = data?.recommendation || data?.rationale || "";
 
-      const { error: upErr } = await supabase
-        .from("job_applications")
-        .update({
-          ai_match_score: overall,
-          ai_match_rationale: reco,
-          ai_scored_at: new Date().toISOString(),
-        })
-        .eq("id", applicationId);
+      await updateApplicationAIScore(applicationId, {
+        ai_match_score: overall,
+        ai_match_rationale: reco,
+      });
 
-      if (upErr) throw upErr;
 
       toast.success(`Match score: ${overall}/100`, { id: toastId });
       onScored?.(overall, reco);
