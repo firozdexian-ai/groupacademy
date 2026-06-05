@@ -7,7 +7,7 @@ const LEAD_BADGE: Record<string, { label: string; className: string; icon: any }
   lead: { label: "True Lead", className: "bg-primary/10 text-primary border-primary/30", icon: Crown },
   co_lead: {
     label: "Co-Lead",
-    className: "bg-blue-500/10 text-blue-600 border-blue-500/30",
+    className: "bg-primary/10 text-primary border-primary/30",
     icon: Crown,
   },
   follower: {
@@ -17,12 +17,12 @@ const LEAD_BADGE: Record<string, { label: string; className: string; icon: any }
   },
   syndicate: {
     label: "Syndicate",
-    className: "bg-amber-500/10 text-amber-600 border-amber-500/30",
+    className: "bg-warning/10 text-warning border-warning/30",
     icon: Users,
   },
   angel: {
     label: "Angel",
-    className: "bg-purple-500/10 text-purple-600 border-purple-500/30",
+    className: "bg-accent/10 text-accent border-accent/30",
     icon: Users,
   },
 };
@@ -90,7 +90,7 @@ export function PipelineCard({ investor, index, onSelect }: Props) {
             </span>
             {investor.probability_pct > 0 && (
               <span className="flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-md bg-muted text-foreground/70 border border-border/40">
-                <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />
+                <TrendingUp className="h-2.5 w-2.5 text-success" />
                 {investor.probability_pct}%
               </span>
             )}

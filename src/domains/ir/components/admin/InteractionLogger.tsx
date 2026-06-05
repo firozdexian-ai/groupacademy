@@ -118,7 +118,7 @@ export function InteractionLogger({ investorId, open, onOpenChange }: Interactio
  }}
  >
  <DialogContent className="max-w-2xl rounded-2xl border-4 border-border/40 bg-background/95 p-0 overflow-hidden shadow-sm">
- <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+ <div className="h-2 w-full bg-gradient-to-r from-primary via-primary-light to-primary" />
  <div className="p-10 pb-0">
  <DialogHeader className="mb-8">
  <div className="flex items-center gap-4">

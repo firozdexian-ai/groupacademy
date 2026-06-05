@@ -152,8 +152,8 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
   };
 
   // Automated system notification bridge helper to align with Digital Workforce telemetry requirements
-  const lightenAgentNotification = (action: string, registryTable: string) => {
-    console.log(`[Digital Workforce Agent Signal] Action: ${action} on matrix registry: ${registryTable}`);
+  const lightenAgentNotification = (_action: string, _registryTable: string) => {
+    // Reserved for future Digital Workforce signal pipe — no-op until wired.
   };
 
   const rows = useMemo(() => {
@@ -280,7 +280,7 @@ export function StakeholderRegistry({ table, title, fallbackTypeOptions }: Props
                           href={r.website}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1 text-sm font-medium text-blue-500 uppercase hover:underline"
+                          className="flex items-center gap-1 text-sm font-medium text-primary uppercase hover:underline"
                         >
                           <ExternalLink className="h-3 w-3" /> Website
                         </a>
