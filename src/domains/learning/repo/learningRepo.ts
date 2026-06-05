@@ -2263,7 +2263,7 @@ export async function listUpcomingOfflineSeminarsForTalent(cutoff: string) {
   const { data, error } = await supabase
     .from("content")
     .select(
-      "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
+      "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link, price, instructor_name",
     )
     .eq("is_published", true)
     .eq("is_ready", true)
