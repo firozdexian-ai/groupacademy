@@ -81,6 +81,7 @@ const Dashboard = () => {
           </header>
 
           <div className="p-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-top-2 duration-500">
+            <RouteErrorBoundary>
             <Suspense
               fallback={
                 <div className="space-y-6">
