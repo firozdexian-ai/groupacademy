@@ -58,20 +58,20 @@ export function Gro10xRoutes() {
           <Route path="page" element={<Gro10xCompanyPage />} />
           <Route path="page/:companyId" element={<Gro10xCompanyPage />} />
           <Route path="me" element={<Gro10xMe />} />
-          <Route path="agents" element={<Gro10xAgentMarketplace />} />
+          <Route path="agents" element={<ComingSoonGate featureKey="gro10x-agents" title="Agent Marketplace — coming soon" description="Hire AI agents to run sourcing, screening, and outreach for your team. Join the waitlist for early access." secondaryCtaLabel="Back to Inbox" secondaryCtaHref="/gro10x/inbox" />} />
           <Route path="work" element={<Gro10xWork />} />
           <Route path="work/jobs/:jobId/applicants" element={<Gro10xJobApplicants />} />
           <Route path="work/applications" element={<Gro10xApplications />} />
           <Route path="work/applications/:applicationId/offer/new" element={<Gro10xOfferComposer />} />
           <Route path="billing" element={<Gro10xBilling />} />
           <Route path="learn" element={<Gro10xLearn />} />
-          <Route path="learn/ops" element={<Gro10xLearnOps />} />
+          <Route path="learn/ops" element={<ComingSoonGate featureKey="gro10x-learn-ops" title="Learning Ops — coming soon" description="Sponsor courses, assign tracks to your team, and watch completion in real time. Join the waitlist for early access." secondaryCtaLabel="Back to Learn" secondaryCtaHref="/gro10x/learn" />} />
           <Route path="learn/track/:trackId" element={<AppTrackDetail />} />
           <Route path="crm" element={<Gro10xCRM />} />
-          <Route path="offerings" element={<Gro10xOfferings />} />
+          <Route path="offerings" element={<ComingSoonGate featureKey="gro10x-offerings" title="Offerings — coming soon" description="Publish your products and services to the Gro10x marketplace. Join the waitlist for early access." secondaryCtaLabel="Back to Inbox" secondaryCtaHref="/gro10x/inbox" />} />
           <Route path="sourcing" element={<Gro10xSourcing />} />
           <Route path="sourcing/lists" element={<Gro10xSourcingLists />} />
-          <Route path="work/projects" element={<Gro10xProjects />} />
+          <Route path="work/projects" element={<ComingSoonGate featureKey="gro10x-projects" title="Managed Projects — coming soon" description="Fund milestones, manage escrow, and ship multi-talent projects end-to-end. Join the waitlist for early access." secondaryCtaLabel="Back to Activities" secondaryCtaHref="/gro10x/work" />} />
           <Route path="work/gigs/:gigId/bids" element={<Gro10xGigBids />} />
         </Route>
 
