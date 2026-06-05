@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { subscribeToMessagingChannelsByAgent } from "@/domains/messaging/repo/messagingRepo";
 import { updateChannelAutoReply, listMessagingChannelsByAgentKey } from "@/domains/messaging/repo/messagingRepo";
 import { unipileConnect } from "@/domains/messaging/api/messagingApi";
 import { Button } from "@/components/ui/button";
@@ -62,16 +62,9 @@ export function MessagingChannelsTab({
 
   useEffect(() => {
     load();
-    const ch = supabase
-      .channel("messaging_channels_admin")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messaging_channels", filter: `agent_key=eq.${agentKey}` },
-        () => load(),
-      )
-      .subscribe();
+    const unsubscribe = subscribeToMessagingChannelsByAgent(agentKey, () => load());
     return () => {
-      supabase.removeChannel(ch);
+      unsubscribe();
     };
   }, [agentKey]);
 

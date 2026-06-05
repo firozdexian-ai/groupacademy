@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listServiceShareLogs, recordServiceShare } from "@/domains/marketing/repo/marketingRepo";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,13 +102,14 @@ export function ServiceOutreachTab() {
  const [customChannel, setCustomChannel] = useState("");
 
  const loadShareLogs = useCallback(async () => {
- const { data, error } = await supabase
- .from("service_share_logs")
- .select("channel, shared_at, service_slug")
- .order("shared_at", { ascending: false });
- if (error) console.error("Telemetry Fault:", error);
- setShareLogs(data || []);
- setIsLoading(false);
+ try {
+   const data = await listServiceShareLogs();
+   setShareLogs((data || []) as ShareLog[]);
+ } catch (error) {
+   console.error("Telemetry Fault:", error);
+ } finally {
+   setIsLoading(false);
+ }
  }, []);
 
  useEffect(() => {
@@ -123,14 +124,12 @@ export function ServiceOutreachTab() {
  const newLog = { channel, shared_at: new Date().toISOString(), service_slug: selectedService.slug };
  setShareLogs((prev) => [newLog, ...prev]);
 
- const { error } = await supabase
- .from("service_share_logs")
- .insert({ service_slug: selectedService.slug, channel: channel.toLowerCase() });
- if (error) {
- setShareLogs((prev) => prev.filter((l) => l !== newLog));
- toast.error("System Error: Progress synchronization failed.");
- } else {
- toast.success(`Recorded share on ${channel}`);
+ try {
+   await recordServiceShare(selectedService.slug, channel);
+   toast.success(`Recorded share on ${channel}`);
+ } catch {
+   setShareLogs((prev) => prev.filter((l) => l !== newLog));
+   toast.error("System Error: Progress synchronization failed.");
  }
  };
 

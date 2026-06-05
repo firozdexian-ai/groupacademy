@@ -27,7 +27,7 @@ import { StandaloneMockInterviewCodeGenerator } from "@/domains/marketing/compon
 import { StandaloneSalaryCodeGenerator } from "@/domains/marketing/components/admin/StandaloneSalaryCodeGenerator";
 import { JobApplicationCodeGenerator } from "@/domains/jobs/components/admin/codes/JobApplicationCodeGenerator";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listPublishedPaidContent } from "@/domains/marketing/repo/marketingRepo";
 import { cn } from "@/lib/utils";
 
 export function AccessCodesTab() {
@@ -36,16 +36,7 @@ export function AccessCodesTab() {
 
   const { data: paidContent } = useQuery({
     queryKey: ["paid_content_for_codes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, price")
-        .gt("price", 0)
-        .eq("is_published", true)
-        .order("title");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: listPublishedPaidContent,
   });
 
   const [selectedContentId, setSelectedContentId] = useState("");
