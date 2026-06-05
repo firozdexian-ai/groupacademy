@@ -181,7 +181,7 @@ export function MarketingAnalyticsTab() {
             variant="outline"
             size="icon" aria-label="Refresh"
             onClick={loadExecutiveTelemetry}
-            className="h-12 w-12 rounded-xl border-2 hover:bg-orange-500 hover:text-white transition-all text-orange-500 border-orange-500/20 bg-orange-500/5"
+            className="h-12 w-12 rounded-xl border-2 hover:bg-orange-500 hover:text-primary-foreground transition-all text-orange-500 border-orange-500/20 bg-orange-500/5"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>

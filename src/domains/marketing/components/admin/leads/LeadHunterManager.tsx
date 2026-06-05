@@ -468,7 +468,7 @@ export function LeadHunterManager() {
  className={cn(
  "h-20 rounded-xl border flex flex-col gap-2 text-xs font-medium",
  huntMode === "select"
- ? "shadow-sm bg-primary text-white border-primary"
+  ? "shadow-sm bg-primary text-primary-foreground border-primary"
  : "opacity-40 hover:opacity-100",
  )}
  onClick={() => setHuntMode("select")}
@@ -480,7 +480,7 @@ export function LeadHunterManager() {
  className={cn(
  "h-20 rounded-xl border flex flex-col gap-2 text-xs font-medium",
  huntMode === "paste"
- ? "shadow-sm bg-primary text-white border-primary"
+ ? "shadow-sm bg-primary text-primary-foreground border-primary"
  : "opacity-40 hover:opacity-100",
  )}
  onClick={() => setHuntMode("paste")}
@@ -510,7 +510,7 @@ export function LeadHunterManager() {
  className={cn(
  "p-5 rounded-2xl cursor-pointer transition-all flex items-center justify-between group",
  selectedJobId === job.id
- ? "bg-primary text-white shadow-sm scale-[1.02]"
+ ? "bg-primary text-primary-foreground shadow-sm scale-[1.02]"
  : "hover:bg-muted",
  )}
  >
@@ -519,7 +519,7 @@ export function LeadHunterManager() {
  <p
  className={cn(
  "text-[9px] font-bold uppercase mt-2 tracking-widest",
- selectedJobId === job.id ? "text-white/60" : "text-muted-foreground/60",
+ selectedJobId === job.id ? "text-primary-foreground/60" : "text-muted-foreground/60",
  )}
  >
  {job.company_name}
@@ -559,7 +559,7 @@ export function LeadHunterManager() {
  disabled={
  isSearching || (huntMode === "select" && !selectedJobId) || (huntMode === "paste" && !rawJD)
  }
- className="h-10 px-4 rounded-xl bg-primary font-semibold text-[11px] shadow-sm gap-3 text-white"
+ className="h-10 px-4 rounded-xl bg-primary font-semibold text-[11px] shadow-sm gap-3 text-primary-foreground"
  >
  {isSearching ? <InlineSpinner size="md" /> : <Target className="h-5 w-5" />} Launch
  Extract
