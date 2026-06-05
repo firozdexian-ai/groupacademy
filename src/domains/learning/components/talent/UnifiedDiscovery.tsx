@@ -67,15 +67,8 @@ export function UnifiedDiscovery() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, slug, thumbnail_url, cover_image_url, description, credit_cost, content_type, event_date")
-        .eq("is_published", true)
-        .order("display_order")
-        .limit(12);
-
-      if (error) throw error;
-      return (data || []).map((item) => ({
+      const data = await listPublishedDiscoveryContent(12);
+      return (data || []).map((item: any) => ({
         id: item.id,
         title: item.title,
         slug: item.slug,
