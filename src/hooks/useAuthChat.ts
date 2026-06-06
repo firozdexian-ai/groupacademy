@@ -156,6 +156,9 @@ export function useAuthChat() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stateRef = useRef(state);
   stateRef.current = state;
+  // Per-tab session id so the edge function can persist the bot-check answer
+  // server-side under aisha_conversations.session_id.
+  const sessionIdRef = useRef<string>(genId());
 
   const callAgent = useCallback(
     async (context: Record<string, unknown>, conversationHistory?: Array<{ role: string; content: string }>) => {
@@ -164,7 +167,9 @@ export function useAuthChat() {
         ...context,
         instance_id: s.instanceId,
         country: context.country ?? s.collected.country,
+        session_id: sessionIdRef.current,
       };
+
       try {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-auth-agent`, {
           method: "POST",
@@ -345,22 +350,23 @@ export function useAuthChat() {
           }
 
           case "verify_human": {
-            const userAns = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
-            const correctAns = s.quiz?.answer?.toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (userAns === correctAns) {
-              const res = await callAgent({ step: "quiz_passed", flow: s.flow });
-              dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
-              dispatch({ type: "SET_ACTION", value: "set_password" });
-            } else {
-              dispatch({
-                type: "ADD_MESSAGE",
-                role: "assistant",
-                content: "Not quite — what's the opposite of 'hot'?",
-              });
-              dispatch({ type: "SET_QUIZ", value: { answer: "cold" } });
+            // Server-side verification: send the user's answer to the edge
+            // function, which compares it against the answer stored in
+            // aisha_conversations.pending_quiz_answer. The answer is never
+            // sent to the browser, so bots can't read it from the response.
+            const res = await callAgent({
+              step: "quiz_attempt",
+              flow: s.flow,
+              user_quiz_answer: trimmed,
+            });
+            dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+            dispatch({ type: "SET_ACTION", value: res.action });
+            if (res.action === "set_password") {
+              dispatch({ type: "SET_QUIZ", value: null });
             }
             break;
           }
+
         }
       } catch (err) {
         console.error("[Digital Workforce] Aisha User Input Error:", err);
