@@ -157,7 +157,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
               <Button
                 size="lg"
-                onClick={() => navigate("/auth?tab=signup")}
+                onClick={() => navigate("/start")}
                 className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
@@ -232,7 +232,7 @@ const Index = () => {
                   ))}
                 </div>
                 <Button
-                  onClick={() => navigate("/auth?tab=signup")}
+                  onClick={() => navigate("/start")}
                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs bg-foreground text-background hover:bg-foreground/90 transition-all"
                 >
                   Launch Profile

@@ -101,7 +101,7 @@ serve(async (req) => {
 
     const { data: talent } = await userClient
       .from("talents")
-      .select("full_name, phone, skills, email")
+      .select("full_name, phone, skills, email, institution")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -111,7 +111,12 @@ serve(async (req) => {
         : "(missing)"
     }\nNever re-ask for fields already known. Ask for the next missing one. After all three are saved, congratulate the user.`;
 
-    const systemPrompt = (agent?.system_prompt || "You are Aisha, a friendly onboarding concierge.") + known;
+    let basePrompt = agent?.system_prompt || "You are Aisha, a friendly onboarding concierge.";
+    if (talent?.institution) {
+      basePrompt = `You are the University Representative and Campus Ambassador for ${talent.institution} at GroUp Academy. You are welcoming the student and helping them get their profile ready. Your tone is helpful, friendly, and proud of the campus community. ` + basePrompt.replace(/You are Aisha/gi, `You are the University Representative for ${talent.institution}`);
+    }
+
+    const systemPrompt = basePrompt + known;
 
     const conversation: any[] = [{ role: "system", content: systemPrompt }, ...incoming];
 

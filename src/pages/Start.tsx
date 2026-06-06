@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useTalent } from "@/hooks/useTalent";
 import { resolvePostAuthRoute, getDefaultRouteFor } from "@/lib/postAuthRoute";
 import { safeReturnTo } from "@/lib/safeReturnTo";
 
@@ -25,17 +26,18 @@ export default function Start() {
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { accountType, isLoading: accountTypeLoading } = useAccountType();
+  const { talent } = useTalent();
   const [done, setDone] = useState(false);
 
-  // Returning users bypass onboarding entirely.
+  // Returning users bypass onboarding entirely if they have completed the wizard step.
   useEffect(() => {
     if (authLoading || accountTypeLoading) return;
-    if (user) {
+    if (user && talent?.onboardingStep === 4) {
       const returnTo = safeReturnTo(searchParams.get("returnTo"));
       const target = resolvePostAuthRoute(accountType, returnTo) ?? "/app/feed";
       navigate(target, { replace: true });
     }
-  }, [user, authLoading, accountType, accountTypeLoading, navigate, searchParams]);
+  }, [user, authLoading, accountType, accountTypeLoading, navigate, searchParams, talent]);
 
   // After the wizard stashes selections, jump to /auth with an account-type-aware
   // returnTo so the existing post-auth route + AuthCallback finalize step takes over.

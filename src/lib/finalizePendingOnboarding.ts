@@ -4,6 +4,8 @@ import {
   patchTalentByUser,
 } from "@/domains/talent/repo/talentRepo";
 import { trackError, trackEvent } from "@/lib/errorTracking";
+import { provisionOrGetInstance as provisionOrGetInstanceRpc } from "@/domains/profile/repo/profileRepo";
+import { agentRuntime } from "@/domains/agents/api/agentsApi";
 
 interface PendingOnboarding {
   country: { id: string; iso2: string; name: string };
@@ -65,11 +67,38 @@ export async function finalizePendingOnboarding(): Promise<boolean> {
     if (!existing?.school_id) patch.school_id = pending.school.id;
     if (!existing?.onboarding_completed_at) {
       patch.onboarding_step = 4;
-      patch.onboarding_completed_at = new Date().toISOString();
     }
 
     if (Object.keys(patch).length > 0) {
       await patchTalentByUser(userId, patch);
+    }
+
+    // Provision B2C Campus Ambassador instance (University Representative)
+    try {
+      const { data: provisionData, error: provisionErr } = await provisionOrGetInstanceRpc({
+        clusterGeoId: pending.institution.name,
+        funnel: (pending.funnelParams || {}) as Record<string, unknown>,
+      });
+
+      if (!provisionErr && provisionData) {
+        const id = typeof provisionData === "string" ? provisionData : (provisionData as { instance_id?: string })?.instance_id;
+        if (id) {
+          await agentRuntime({
+            instance_id: id,
+            subject_kind: "talent",
+            subject_id: userId,
+            silent_seed: true,
+            seed_context: {
+              funnelParams: pending.funnelParams || {},
+              institution: pending.institution.name,
+              school: pending.school.slug,
+              stage: pending.stage.slug,
+            },
+          });
+        }
+      }
+    } catch (provisionEx) {
+      trackError(provisionEx, { component: "finalizePendingOnboarding", action: "provision_campus_ambassador" });
     }
 
     trackEvent("pending_onboarding_finalized", {

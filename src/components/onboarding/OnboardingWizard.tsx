@@ -284,7 +284,6 @@ export function OnboardingWizard({
         institution: institution.name,
         school_id: school.id,
         onboarding_step: 4,
-        onboarding_completed_at: new Date().toISOString(),
         // Fortify relationship tracking metrics directly inside the mutation payload block
         referral_code: activeLinkRef || undefined,
       });

@@ -244,8 +244,13 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
   const needsOnboarding = !!talent && !talent.onboardingCompletedAt;
   const onBuilder = location.pathname.startsWith("/app/profile-builder");
 
-  if (needsOnboarding && !onBuilder) {
-    return <Navigate to="/app/profile-builder" replace />;
+  if (needsOnboarding) {
+    if (talent.onboardingStep !== 4) {
+      return <Navigate to="/start" replace />;
+    }
+    if (!onBuilder) {
+      return <Navigate to="/app/profile-builder" replace />;
+    }
   }
 
   const needsUpgrade = !!talent && !!talent.onboardingCompletedAt && !talent.careerStageId;
