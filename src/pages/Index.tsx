@@ -209,7 +209,7 @@ const Index = () => {
                     <Users className="w-7 h-7 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black tracking-tight uppercase">Professionals</h3>
+                    <h2 className="text-2xl font-black tracking-tight uppercase">Professionals</h2>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Accelerate Your Trajectory
                     </p>
@@ -248,7 +248,7 @@ const Index = () => {
                     <Building2 className="w-7 h-7 text-secondary" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black tracking-tight uppercase">Employers</h3>
+                    <h2 className="text-2xl font-black tracking-tight uppercase">Employers</h2>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Identify Elite Talent
                     </p>

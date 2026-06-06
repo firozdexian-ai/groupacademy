@@ -16,4 +16,7 @@
   <url><loc>https://groupacademy.online/auth/callback</loc><changefreq>yearly</changefreq><priority>0.1</priority></url>
   <url><loc>https://groupacademy.online/reset-password</loc><changefreq>yearly</changefreq><priority>0.1</priority></url>
   <url><loc>https://groupacademy.online/jobs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://groupacademy.online/start</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://groupacademy.online/pricing</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
+

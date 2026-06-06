@@ -84,11 +84,14 @@ export default function PublicBlog() {
           <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
+              type="search"
+              aria-label="Search blog articles"
               placeholder="Search logic, roles, or skills..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-11 h-12 rounded-2xl border-border/40 bg-muted/20 focus-visible:ring-primary/20"
             />
+
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 lg:pb-0">
             {CATEGORIES.map((cat) => (
