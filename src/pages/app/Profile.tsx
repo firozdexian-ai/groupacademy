@@ -1,5 +1,9 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { PostCard } from "@/domains/feed/components/talent/PostCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
  Mail,
  Phone,
@@ -48,6 +52,41 @@ export default function Profile() {
  const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
  const [isEnhancing, setIsEnhancing] = useState(false);
  const [editingSection, setEditingSection] = useState<EditableSection>(null);
+
+ // --- Query: Fetch user's own feed posts ---
+ const { data: myPosts = [], isLoading: isPostsLoading } = useQuery({
+   queryKey: ["my-posts", talent?.userId],
+   enabled: !!talent?.userId,
+   queryFn: async () => {
+     const { data, error } = await supabase
+       .from("feed_posts")
+       .select("*")
+       .eq("author_user_id", talent!.userId)
+       .eq("is_active", true)
+       .eq("status", "published")
+       .order("created_at", { ascending: false })
+       .limit(3);
+     if (error) throw error;
+     return data || [];
+   },
+ });
+
+ const mapRowToPost = (row: any) => ({
+   id: row.id,
+   authorName: row.author_name || "Community member",
+   authorAvatar: row.author_avatar || undefined,
+   authorTitle: row.author_title || "",
+   contentType: (row.content_type || "text") as any,
+   textContent: row.text_content || "",
+   mediaUrl: row.media_url || undefined,
+   pollOptions: row.poll_options,
+   pollEndsAt: row.poll_ends_at,
+   linkUrl: row.link_url,
+   linkPreview: row.link_preview,
+   tags: row.tags || undefined,
+   isPinned: !!row.is_pinned,
+   createdAt: row.created_at,
+ });
 
  const handleSectionSave = useCallback(
  async (_section: string | null, data: any) => {
@@ -287,6 +326,47 @@ export default function Profile() {
  <EmptyState label="Add a short bio so employers know what you do." onAdd={() => setEditingSection("about")} />
  )}
  </CardContent>
+ </Card>
+
+ {/* Activity Section (LinkedIn-Style Feed) */}
+ <Card>
+   <CardHeader className="p-5 pb-2">
+     <div className="flex items-center justify-between pb-3 border-b border-border/40 mb-4">
+       <div className="flex items-center gap-2">
+         <h3 className="text-sm font-semibold">Activity</h3>
+         {myPosts.length > 0 && (
+           <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+             {myPosts.length} posts
+           </Badge>
+         )}
+       </div>
+       <Button variant="ghost" size="sm" className="h-8 text-primary font-bold hover:bg-primary/5 rounded-xl px-3" onClick={() => navigate("/app/feed")}>
+         Create post
+       </Button>
+     </div>
+   </CardHeader>
+   <CardContent className="px-5 pb-5 space-y-4">
+     {isPostsLoading ? (
+       <div className="space-y-3">
+         <Skeleton className="h-24 w-full rounded-2xl" />
+       </div>
+     ) : myPosts.length === 0 ? (
+       <div className="text-center py-6">
+         <p className="text-xs text-muted-foreground mb-4">
+           You haven't shared any updates yet. Post your achievements or ask questions to build your presence.
+         </p>
+         <Button variant="outline" size="sm" className="rounded-xl font-bold" onClick={() => navigate("/app/feed")}>
+           Share an update
+         </Button>
+       </div>
+     ) : (
+       <div className="space-y-4">
+         {myPosts.map((post: any) => (
+           <PostCard key={post.id} post={mapRowToPost(post)} />
+         ))}
+       </div>
+     )}
+   </CardContent>
  </Card>
 
  {/* Experience */}

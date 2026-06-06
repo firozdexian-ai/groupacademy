@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
 import { useAuth } from "@/hooks/useAuth";
-import { getCountryFlag } from "@/lib/constants/countries";
+import { getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -229,32 +229,49 @@ export function TalentAppShell() {
                     <img src={logoIcon} alt="Logo" className="h-7 w-7 rounded" />
                   </div>
 
-                  <div className="px-4 py-4 bg-card border-b">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-14 w-14 border-2 border-primary/20">
-                        <AvatarImage src={talent?.profilePhotoUrl || ""} />
-                        <AvatarFallback className="text-sm">
-                          <User className="h-6 w-6" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-base truncate">{talent?.fullName || "Talent Node"}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {talent?.countryCode && <span className="mr-1">{getCountryFlag(talent.countryCode)}</span>}
-                          {talent?.phone || ""}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{talent?.email || ""}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigate("/app/profile/edit");
-                          setSidebarOpen(false);
-                        }}
-                        className="p-2 rounded-full hover:bg-muted"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                  <div
+                    onClick={() => {
+                      navigate("/app/profile");
+                      setSidebarOpen(false);
+                    }}
+                    className="px-4 py-4 bg-card border-b flex items-start gap-3 cursor-pointer hover:bg-muted/50 transition-colors duration-200"
+                  >
+                    <Avatar className="h-14 w-14 border-2 border-primary/20 shrink-0">
+                      <AvatarImage src={talent?.profilePhotoUrl || ""} />
+                      <AvatarFallback className="text-sm">
+                        <User className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-base truncate">{talent?.fullName || "Talent Node"}</p>
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-0.5">
+                        {(talent?.country || talent?.countryCode) ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span>{getCountryFlag(talent.countryCode || talent.country || "")}</span>
+                            <span>{getCountryName(talent.country || talent.countryCode || "") || talent.country}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            <span>Worldwide</span>
+                          </span>
+                        )}
+                        {talent?.phone && <span className="opacity-40">·</span>}
+                        {talent?.phone && <span>{talent.phone}</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{talent?.email || ""}</p>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/app/profile/edit");
+                        setSidebarOpen(false);
+                      }}
+                      className="p-2 rounded-full hover:bg-muted shrink-0 transition-colors"
+                      aria-label="Edit profile settings"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <ScrollArea className="flex-1">
@@ -432,16 +449,32 @@ export function TalentAppShell() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72 p-2">
-                <div className="flex items-center gap-3 p-2 mb-2 bg-muted/50 rounded-md">
-                  <Avatar className="h-12 w-12 border">
+                <div
+                  onClick={() => navigate("/app/profile")}
+                  className="flex items-center gap-3 p-2 mb-2 bg-muted/50 rounded-md cursor-pointer hover:bg-muted/80 transition-colors"
+                >
+                  <Avatar className="h-12 w-12 border shrink-0">
                     <AvatarImage src={talent?.profilePhotoUrl || ""} />
                     <AvatarFallback>
                       <User className="h-6 w-6" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden text-left">
                     <p className="font-semibold text-sm truncate">{talent?.fullName || "User"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{talent?.email || ""}</p>
+                    <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                      {(talent?.country || talent?.countryCode) ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span>{getCountryFlag(talent.countryCode || talent.country || "")}</span>
+                          <span>{getCountryName(talent.country || talent.countryCode || "") || talent.country}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <Globe className="h-2.5 w-2.5" />
+                          <span>Worldwide</span>
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{talent?.email || ""}</p>
                   </div>
                 </div>
                 <DropdownMenuItem
