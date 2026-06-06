@@ -39,6 +39,47 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPA_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const admin = SUPA_URL && SERVICE_KEY ? createClient(SUPA_URL, SERVICE_KEY) : null;
+    const sessionId = context?.session_id || context?.sessionId;
+
+    // Server-side CAPTCHA verification path. Client sends the user's answer in
+    // context.user_quiz_answer; we compare against the stored expected answer
+    // (never sent to the client) and return a verdict without going through AI.
+    if (admin && sessionId && typeof context?.user_quiz_answer === "string") {
+      const submitted = String(context.user_quiz_answer).toLowerCase().replace(/[^a-z0-9]/g, "");
+      const { data: row } = await admin
+        .from("aisha_conversations")
+        .select("pending_quiz_answer")
+        .eq("session_id", String(sessionId))
+        .maybeSingle();
+      const expected = (row?.pending_quiz_answer || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const passed = expected.length > 0 && submitted === expected;
+      if (passed) {
+        await admin
+          .from("aisha_conversations")
+          .update({ pending_quiz_answer: null, last_step: "quiz_passed", updated_at: new Date().toISOString() })
+          .eq("session_id", String(sessionId));
+        return new Response(
+          JSON.stringify({
+            reply: "Great. Now create a password (at least 8 characters).",
+            action: "set_password",
+            quiz: null,
+            quiz_passed: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          reply: "Not quite — please try the human-check question again.",
+          action: "verify_human",
+          quiz: null,
+          quiz_passed: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     // Persona resolution: pulled from the WaaS instance bound to this auth-page
     // visitor (mkt-seo-01 country-specific Marketing & SEO agent). Legacy
@@ -49,8 +90,8 @@ serve(async (req) => {
     const instanceId = (context as any)?.instance_id ?? (context as any)?.instanceId;
     if (SUPA_URL && SERVICE_KEY && instanceId) {
       try {
-        const admin = createClient(SUPA_URL, SERVICE_KEY);
-        const { data: inst } = await admin
+        const instAdmin = createClient(SUPA_URL, SERVICE_KEY);
+        const { data: inst } = await instAdmin
           .from("workforce_hired_instances")
           .select(
             "status, kill_switch, prompt_override, model_override, name_override, " +
@@ -68,6 +109,7 @@ serve(async (req) => {
         }
       } catch (_e) { /* fall back to inline */ }
     }
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -112,13 +154,30 @@ serve(async (req) => {
       parsed = { reply: data.choices?.[0]?.message?.content || "…", action: "noop", quiz: null };
     }
 
-    // HUD: CTO_OVERRIDE_GATE
-    // Intercepts the AI response to inject hardcoded human verification logic.
+    // Server-side bot check: generate a question, persist the expected answer
+    // keyed by session_id, and return ONLY the question to the client.
     if (parsed.action === "verify_human") {
       const randomQuiz = QUIZZES[Math.floor(Math.random() * QUIZZES.length)];
-      parsed.quiz = { answer: randomQuiz.a };
+      parsed.quiz = null;
       parsed.reply = `${parsed.reply}\n\nQuestion: ${randomQuiz.q}`;
+      if (admin && sessionId) {
+        try {
+          await admin
+            .from("aisha_conversations")
+            .upsert(
+              {
+                session_id: String(sessionId),
+                pending_quiz_answer: randomQuiz.a,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "session_id" },
+            );
+        } catch (e) {
+          console.error("[Sentinel] QUIZ_STORE_FAULT:", e);
+        }
+      }
     }
+
 
     // HUD: Telemetry — log conversation to aisha_conversations for the admin console.
     try {

@@ -2099,6 +2099,7 @@ export type Database = {
           last_step: string | null
           message_count: number | null
           name: string | null
+          pending_quiz_answer: string | null
           phone: string | null
           raw_messages: Json | null
           session_id: string
@@ -2115,6 +2116,7 @@ export type Database = {
           last_step?: string | null
           message_count?: number | null
           name?: string | null
+          pending_quiz_answer?: string | null
           phone?: string | null
           raw_messages?: Json | null
           session_id: string
@@ -2131,6 +2133,7 @@ export type Database = {
           last_step?: string | null
           message_count?: number | null
           name?: string | null
+          pending_quiz_answer?: string | null
           phone?: string | null
           raw_messages?: Json | null
           session_id?: string
