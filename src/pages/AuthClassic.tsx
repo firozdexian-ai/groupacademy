@@ -402,23 +402,27 @@ const Auth = () => {
 
           <div className="text-center">
             <button
-              onClick={() => navigate(`/auth?${searchParams.toString()}`)}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.delete("tab");
+                navigate(`/auth?${params.toString()}`);
+              }}
               className="text-xs font-medium text-primary hover:underline"
             >
               Prefer to chat? Sign in with our assistant
             </button>
           </div>
-          </div>
 
           <div className="text-center pt-2 border-t border-border/40">
             <button
-              onClick={() => navigate("/for-companies")}
+              onClick={() => navigate("/gro10x/auth")}
               className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Hiring? Apply for company access →
             </button>
           </div>
         </div>
+      </div>
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="rounded-2xl border-border/40">

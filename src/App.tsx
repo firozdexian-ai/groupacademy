@@ -74,6 +74,8 @@ const PublicLeaderboard = lazy(() => import("./pages/public/PublicLeaderboard"))
 const CompanyPublicProjects = lazy(() => import("./pages/public/CompanyPublicProjects"));
 const PublicBlog = lazy(() => import("./pages/PublicBlog"));
 const PublicBlogPost = lazy(() => import("./pages/PublicBlogPost"));
+const Pricing = lazy(() => import("./pages/public/Pricing"));
+const PublicAgentsIndex = lazy(() => import("./pages/public/PublicAgentsIndex"));
 
 // Gro10x shell (entire B2B super-app)
 const Gro10xRoutes = lazy(() =>
@@ -297,6 +299,7 @@ export default function App() {
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/start" element={<Start />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/pricing" element={<Pricing />} />
 
                   {/* Public Job View */}
                   <Route path="/jobs/:id" element={<PublicJobDetail />} />
@@ -326,6 +329,8 @@ export default function App() {
                   <Route path="/t/:handle" element={<PublicTalentProfile />} />
 
                   {/* Phase 5.6 — public discovery */}
+                  <Route path="/agents" element={<PublicAgentsIndex />} />
+                  <Route path="/explore/agents" element={<PublicAgentsIndex />} />
                   <Route path="/projects" element={<PublicProjectsIndex />} />
                   <Route path="/projects/:slug" element={<PublicProjectDetail />} />
                   <Route path="/leaderboards" element={<Navigate to="/leaderboards/talents" replace />} />

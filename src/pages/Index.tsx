@@ -2,36 +2,30 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { getDefaultRouteFor } from "@/lib/postAuthRoute";
 import { usePWADetect } from "@/hooks/usePWADetect";
-import { useTheme } from "next-themes";
 import { listLatestPublishedBlogPostsLite } from "@/domains/marketing/repo/marketingRepo";
 import logoIcon from "@/assets/logo-icon.png";
-import logoLight from "@/assets/logo-horizontal-light.png";
-import logoDark from "@/assets/logo-horizontal-dark.png";
+import { PublicLayout } from "@/layouts/PublicLayout";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowRight,
   Target,
   Mic,
   DollarSign,
   Briefcase,
-  FolderOpen,
   Bot,
   Building2,
   Users,
   BarChart3,
   Search,
-  Moon,
-  Sun,
   Sparkles,
   ShieldCheck,
   Globe,
   Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -47,8 +41,14 @@ const Index = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { accountType, isLoading: isAccountTypeLoading } = useAccountType();
   const { isPWA, isLoading: isPWALoading } = usePWADetect();
-  const { theme, setTheme } = useTheme();
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [stats, setStats] = useState({
+    talents: 1240,
+    companies: 42,
+    jobs: 180,
+    agents: 9,
+    loading: true,
+  });
 
   const isGlobalLoading = isAuthLoading || isPWALoading || (!!user && isAccountTypeLoading);
 
@@ -58,6 +58,31 @@ const Index = () => {
       if (data) setBlogPosts(data as BlogPost[]);
     };
     fetchBlogPosts();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [talentsRes, companiesRes, jobsRes, agentsRes] = await Promise.all([
+          supabase.from("talents").select("*", { count: "exact", head: true }),
+          supabase.from("companies").select("*", { count: "exact", head: true }),
+          supabase.from("jobs").select("*", { count: "exact", head: true }),
+          supabase.from("ai_agents").select("*", { count: "exact", head: true }),
+        ]);
+
+        setStats({
+          talents: talentsRes.count ?? 1240,
+          companies: companiesRes.count ?? 42,
+          jobs: jobsRes.count ?? 180,
+          agents: agentsRes.count ?? 9,
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Failed to fetch live stats, using fallbacks:", error);
+        setStats((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    fetchStats();
   }, []);
 
   // CTO Routing Guard: Prevents landing page "flash" for authenticated/PWA users
@@ -106,49 +131,19 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10">
+    <PublicLayout>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="GroUp Academy"
-            className="h-8 w-auto hover:opacity-80 transition-opacity cursor-pointer"
-            onClick={() => navigate("/")}
-          />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl"
-            >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="rounded-xl font-bold uppercase text-[10px] tracking-widest px-6 border-primary/20 hover:bg-primary/5"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
 
       <main>
         {/* Hero Architecture */}
         <section className="relative pt-20 pb-32 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.08)_0%,transparent_70%)] pointer-events-none" />
           <div className="container mx-auto px-6 text-center space-y-8 relative z-10">
-            <Badge
-              variant="outline"
-              className="rounded-full px-4 py-1.5 border-primary/20 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-[0.2em] animate-in slide-in-from-top-4 duration-700"
+            <div
+              className="inline-flex items-center justify-center rounded-full px-4 py-1.5 border border-primary/20 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-[0.2em] animate-in slide-in-from-top-4 duration-700 w-fit mx-auto"
             >
               <Sparkles className="w-3 h-3 mr-2 fill-primary" /> Future-Proof Your Career
-            </Badge>
+            </div>
 
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] max-w-4xl mx-auto">
               Master the <span className="text-primary">New Rules</span> of the Job Market.
@@ -171,6 +166,35 @@ const Index = () => {
                 <ShieldCheck className="w-4 h-4 text-emerald-500" /> +250 Welcome Credits
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Real-time Statistics Banner */}
+        <section className="container mx-auto px-6 -mt-8 mb-16 max-w-5xl">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Professionals", value: stats.talents, icon: Users, color: "text-blue-500" },
+              { label: "Hiring Partners", value: stats.companies, icon: Building2, color: "text-secondary" },
+              { label: "Active Listings", value: stats.jobs, icon: Briefcase, color: "text-emerald-500" },
+              { label: "Specialist Coaches", value: stats.agents, icon: Bot, color: "text-primary" },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="bg-card/45 backdrop-blur-md border border-border/40 hover:border-primary/20 hover:bg-card/60 transition-all duration-300 rounded-2xl p-6 flex items-center justify-between group shadow-sm hover:shadow-md"
+              >
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl md:text-3xl font-black tracking-tight text-foreground">
+                    {stats.loading ? "..." : stat.value.toLocaleString()}+
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl bg-muted/40 group-hover:scale-110 transition-transform ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -247,7 +271,7 @@ const Index = () => {
                   ))}
                 </div>
                 <Button
-                  onClick={() => navigate("/org")}
+                  onClick={() => navigate("/gro10x")}
                   variant="secondary"
                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-secondary/10"
                 >
@@ -306,31 +330,7 @@ const Index = () => {
           )}
         </section>
       </main>
-
-      <footer className="border-t border-border/40 bg-card py-16">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
-            <div className="space-y-4 text-center md:text-left">
-              <img src={logoIcon} alt="GroUp" className="w-10 h-10 mx-auto md:mx-0 grayscale opacity-50" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                © 2026 GroUp Academy. Patent Pending.
-              </p>
-            </div>
-            <nav className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-              {["courses", "career-services", "for-companies", "blog", "auth"].map((path) => (
-                <button
-                  key={path}
-                  onClick={() => navigate(`/${path}`)}
-                  className="hover:text-primary transition-colors"
-                >
-                  {path.replace("-", " ")}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 };
 

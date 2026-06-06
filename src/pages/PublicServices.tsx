@@ -3,10 +3,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useTheme } from "next-themes";
-import logoLight from "@/assets/logo-horizontal-light.png";
-import logoDark from "@/assets/logo-horizontal-dark.png";
-import logoIcon from "@/assets/logo-icon.png";
+import { PublicLayout } from "@/layouts/PublicLayout";
 import {
   Target,
   Mic,
@@ -14,8 +11,6 @@ import {
   FolderOpen,
   Bot,
   ArrowRight,
-  Sun,
-  Moon,
   CheckCircle2,
   Sparkles,
   ShieldCheck,
@@ -83,7 +78,6 @@ const SERVICES = [
 
 export default function PublicServices() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     document.title = "Intelligence Suite - GroUp | AI Career Verification";
@@ -107,38 +101,8 @@ export default function PublicServices() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10">
+    <PublicLayout>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      {/* Glassmorphism Header */}
-      <header className="border-b border-border/40 bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="GroUp Academy"
-            className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => navigate("/")}
-          />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl"
-            >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="rounded-xl font-black uppercase text-[10px] tracking-widest px-6 border-primary/20"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
 
       {/* Hero Architecture */}
       <section className="relative pt-20 pb-24 overflow-hidden border-b border-border/40 bg-muted/20">
@@ -248,27 +212,6 @@ export default function PublicServices() {
           ))}
         </div>
       </section>
-
-      {/* Executive Footer */}
-      <footer className="border-t border-border/40 bg-card py-12">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 text-[10px] font-black uppercase tracking-tight text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <img src={logoIcon} className="h-6 w-6 grayscale opacity-40" alt="Logo" />
-            <span>© 2026 GroUp Academy</span>
-          </div>
-          <nav className="flex gap-8">
-            {["home", "blog", "organization"].map((link) => (
-              <button
-                key={link}
-                onClick={() => navigate(link === "home" ? "/" : `/${link}`)}
-                className="hover:text-primary transition-colors"
-              >
-                {link}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }

@@ -5,31 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTheme } from "next-themes";
 import { listPublicCoursesCatalog } from "@/domains/learning/repo/learningRepo";
 import { listPublicProfessionTracks } from "@/domains/marketing/repo/marketingRepo";
-import logoLight from "@/assets/logo-horizontal-light.png";
-import logoDark from "@/assets/logo-horizontal-dark.png";
-import logoIcon from "@/assets/logo-icon.png";
+import { PublicLayout } from "@/layouts/PublicLayout";
 import {
   ArrowRight,
-  Sun,
-  Moon,
   BookOpen,
   Clock,
   Users,
-  Sparkles,
   GraduationCap,
   ShieldCheck,
   Zap,
   TrendingUp,
   Globe,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export default function PublicCourses() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     document.title = "Academy Catalog - GroUp | Expert-Led Career Tracks";
@@ -67,38 +59,8 @@ export default function PublicCourses() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10">
+    <PublicLayout>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      {/* Glassmorphism Header */}
-      <header className="border-b border-border/40 bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="GroUp Academy"
-            className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => navigate("/")}
-          />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl"
-            >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="rounded-xl font-black uppercase text-[10px] tracking-widest px-6 border-primary/20"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
 
       <main className="flex-1">
         {/* Hero Architecture */}
@@ -211,7 +173,7 @@ export default function PublicCourses() {
                     <div className="space-y-2 flex-1">
                       <h3 className="text-xl font-black tracking-tight leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                         {course.title}
-                      </h3>
+                    </h3>
                       <p className="text-xs font-medium text-muted-foreground line-clamp-2 leading-relaxed">
                         {course.description}
                       </p>
@@ -274,26 +236,6 @@ export default function PublicCourses() {
           </div>
         </section>
       </main>
-
-      <footer className="bg-background py-12 border-t border-border/40">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 text-[10px] font-black uppercase tracking-tight text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <img src={logoIcon} className="h-6 w-6 grayscale opacity-40" alt="Logo" />
-            <span>© 2026 GroUp Academy</span>
-          </div>
-          <nav className="flex gap-8">
-            {["home", "services", "blog"].map((link) => (
-              <button
-                key={link}
-                onClick={() => navigate(link === "home" ? "/" : `/${link}`)}
-                className="hover:text-primary transition-colors"
-              >
-                {link}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }

@@ -2,17 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listPublishedBlogPosts } from "@/domains/marketing/repo/marketingRepo";
-import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import {
   FileText,
   Clock,
   Search,
-  User,
   Calendar,
   ArrowRight,
-  Sun,
-  Moon,
   Sparkles,
   BookOpen,
   TrendingUp,
@@ -23,16 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import logoLight from "@/assets/logo-horizontal-light.png";
-import logoDark from "@/assets/logo-horizontal-dark.png";
-import logoIcon from "@/assets/logo-icon.png";
+import { PublicLayout } from "@/layouts/PublicLayout";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ["All", "Career Tips", "Industry Insights", "Skills Development", "Job Search", "Interview Prep"];
 
 export default function PublicBlog() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -63,38 +56,8 @@ export default function PublicBlog() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10">
+    <PublicLayout>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      {/* Glassmorphism Header */}
-      <header className="border-b border-border/40 bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="GroUp Academy"
-            className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => navigate("/")}
-          />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl"
-            >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="rounded-xl font-bold uppercase text-[10px] tracking-widest px-6 border-primary/20"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
 
       {/* Hero Protocol */}
       <section className="relative pt-16 pb-24 overflow-hidden border-b border-border/40">
@@ -295,32 +258,6 @@ export default function PublicBlog() {
           </Card>
         )}
       </main>
-
-      {/* Executive Footer */}
-      <footer className="border-t border-border/40 bg-card py-12">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-4">
-            <img src={logoIcon} alt="GroUp" className="w-10 h-10 grayscale opacity-40" />
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest">© 2026 GroUp Academy</p>
-              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter italic">
-                Career Intelligence Verified
-              </p>
-            </div>
-          </div>
-          <nav className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-tight text-muted-foreground">
-            <button onClick={() => navigate("/")} className="hover:text-primary transition-colors">
-              Hub
-            </button>
-            <button onClick={() => navigate("/courses")} className="hover:text-primary transition-colors">
-              Academy
-            </button>
-            <button onClick={() => navigate("/career-services")} className="hover:text-primary transition-colors">
-              Services
-            </button>
-          </nav>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }
