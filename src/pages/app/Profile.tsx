@@ -214,7 +214,7 @@ export default function Profile() {
  );
 
  return (
- <div className="max-w-xl mx-auto pb-32 animate-in fade-in duration-300">
+ <div className="max-w-xl lg:max-w-5xl mx-auto pb-32 animate-in fade-in duration-300">
  <header className="flex items-center justify-between px-4 py-4 sticky top-0 z-20 bg-background/80 border-b border-border/40">
  <div className="flex items-center gap-3">
  <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={() => navigate("/app/feed")}>
@@ -309,11 +309,12 @@ export default function Profile() {
  </div>
  </div>
 
- <div className="px-4 mb-6">
+ <div className="px-4 mb-6 lg:hidden">
  <ProfileCompletionMeter talent={talent} variant="compact" />
  </div>
 
- <div className="space-y-4 px-4">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4">
+ <div className="lg:col-span-2 space-y-4">
  {/* About */}
  <Card>
  <CardHeader className="p-5 pb-2">
@@ -528,8 +529,14 @@ export default function Profile() {
  )}
  </CardContent>
  </Card>
+ </div>
 
- <PublicProfileSettings />
+ <div className="space-y-4 lg:col-span-1">
+   <div className="hidden lg:block">
+     <ProfileCompletionMeter talent={talent} variant="compact" />
+   </div>
+   <PublicProfileSettings />
+ </div>
  </div>
 
  <Dialog open={showEnhanceDialog} onOpenChange={setShowEnhanceDialog}>

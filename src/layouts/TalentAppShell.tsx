@@ -485,9 +485,6 @@ export function TalentAppShell() {
                 </DropdownMenuItem>
 
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate("/app/me")} className="cursor-pointer">
-                  <Home className="h-4 w-4 mr-2" /> My Dashboard
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
                   <Edit2 className="h-4 w-4 mr-2" /> Settings & Privacy
                 </DropdownMenuItem>
