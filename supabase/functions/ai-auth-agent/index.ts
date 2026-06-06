@@ -90,8 +90,8 @@ serve(async (req) => {
     const instanceId = (context as any)?.instance_id ?? (context as any)?.instanceId;
     if (SUPA_URL && SERVICE_KEY && instanceId) {
       try {
-        const admin = createClient(SUPA_URL, SERVICE_KEY);
-        const { data: inst } = await admin
+        const instAdmin = createClient(SUPA_URL, SERVICE_KEY);
+        const { data: inst } = await instAdmin
           .from("workforce_hired_instances")
           .select(
             "status, kill_switch, prompt_override, model_override, name_override, " +
@@ -109,6 +109,7 @@ serve(async (req) => {
         }
       } catch (_e) { /* fall back to inline */ }
     }
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -153,13 +154,30 @@ serve(async (req) => {
       parsed = { reply: data.choices?.[0]?.message?.content || "…", action: "noop", quiz: null };
     }
 
-    // HUD: CTO_OVERRIDE_GATE
-    // Intercepts the AI response to inject hardcoded human verification logic.
+    // Server-side bot check: generate a question, persist the expected answer
+    // keyed by session_id, and return ONLY the question to the client.
     if (parsed.action === "verify_human") {
       const randomQuiz = QUIZZES[Math.floor(Math.random() * QUIZZES.length)];
-      parsed.quiz = { answer: randomQuiz.a };
+      parsed.quiz = null;
       parsed.reply = `${parsed.reply}\n\nQuestion: ${randomQuiz.q}`;
+      if (admin && sessionId) {
+        try {
+          await admin
+            .from("aisha_conversations")
+            .upsert(
+              {
+                session_id: String(sessionId),
+                pending_quiz_answer: randomQuiz.a,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "session_id" },
+            );
+        } catch (e) {
+          console.error("[Sentinel] QUIZ_STORE_FAULT:", e);
+        }
+      }
     }
+
 
     // HUD: Telemetry — log conversation to aisha_conversations for the admin console.
     try {
