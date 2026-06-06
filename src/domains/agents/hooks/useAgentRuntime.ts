@@ -85,7 +85,7 @@ export function useAgentRuntime(
           .maybeSingle();
 
         if (!agent) {
-          toast.error("The requested communication agent profile could not be found.");
+          toast.error("The selected AI agent could not be found.");
           return null;
         }
 
@@ -156,7 +156,7 @@ export function useAgentRuntime(
           .single();
 
         if (!credits || credits.balance < perResponseCost) {
-          toast.error(`Insufficient balance: ${perResponseCost} credits required to submit message.`);
+          toast.error(`Insufficient balance: ${perResponseCost} credits required to send message.`);
           return;
         }
       }
@@ -168,7 +168,7 @@ export function useAgentRuntime(
       let assistantBuffer = "";
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Authentication sync required.");
+        if (!accessToken) throw new Error("Please sign in to continue.");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-runtime`, {
           method: "POST",
@@ -210,7 +210,7 @@ export function useAgentRuntime(
         }
 
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("Could not initialize text stream translation channel.");
+        if (!reader) throw new Error("Could not start message stream.");
         const decoder = new TextDecoder();
         let buf = "";
 
@@ -252,7 +252,7 @@ export function useAgentRuntime(
         if (!assistantBuffer) setMessages((prev) => prev.slice(0, -1));
       } catch (err) {
         console.error("Runtime stream connection error:", err);
-        toast.error("Connection lost: Text stream translation interrupted.");
+        toast.error("Connection lost. Please try again.");
         setMessages((prev) => prev.slice(0, -1));
       } finally {
         setIsStreaming(false);

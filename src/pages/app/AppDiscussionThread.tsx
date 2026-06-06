@@ -74,8 +74,7 @@ export default function AppDiscussionThread() {
  }, [replyConsoleBodyStr, unverifiedThreadIdStr, replyToThreadMutation, toast]);
 
  const handleReportPostSequence = React.useCallback(async (targetPostIdStr: string) => {
- // Hardened from blocking alert interfaces to preserve real-time query loops securely
- const systemReasonQueryStr = window.prompt("Declare validation infraction code description mapping:");
+  const systemReasonQueryStr = window.prompt("Reason for flagging this post:");
  if (!systemReasonQueryStr || !systemReasonQueryStr.trim()) return;
 
  try {
@@ -84,10 +83,10 @@ export default function AppDiscussionThread() {
  scope_id: targetPostIdStr,
  reason: systemReasonQueryStr.trim(),
  });
- toast({ title: "Infraction Logged", description: "Content footprint routed safely to platform audit rows." });
- } catch (suppressedMutationException) {
- toast({ title: "Action Cancelled", description: "Audit logging was refused by configuration boundaries.", variant: "destructive" });
- }
+  toast({ title: "Post flagged", description: "The post has been submitted for moderation." });
+  } catch (suppressedMutationException) {
+  toast({ title: "Action failed", description: "Failed to report content. Please try again.", variant: "destructive" });
+  }
  }, [reportContentMutation, toast]);
 
  if (isThreadResolving) {
@@ -98,7 +97,7 @@ export default function AppDiscussionThread() {
  >
  <div className="flex items-center gap-2.5">
  <InlineSpinner size="sm" />
- <span>Synchronizing Conversation Logs...</span>
+  <span>Loading discussion...</span>
  </div>
  </div>
  );
@@ -112,14 +111,14 @@ export default function AppDiscussionThread() {
  <Inbox className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Topic Mappings Absent</p>
- <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The targeted communication thread index parameters could not be resolved from standard cohort routes.
- </p>
- </div>
- <Button type="button" asChild variant="outline" className="h-8 rounded-lg font-mono text-xs font-medium tracking-wider px-3 shadow-2xs">
- <Link to={`/app/cohorts/${unverifiedCohortIdStr}/discussions`}>Return to Index</Link>
- </Button>
+  <p className="text-xs font-bold text-foreground uppercase tracking-wide">Discussion thread not found</p>
+  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
+  The requested discussion thread could not be found or you don't have access.
+  </p>
+  </div>
+  <Button type="button" asChild variant="outline" className="h-8 rounded-lg font-mono text-xs font-medium tracking-wider px-3 shadow-2xs">
+  <Link to={`/app/cohorts/${unverifiedCohortIdStr}/discussions`}>Back to discussions</Link>
+  </Button>
  </div>
  </div>
  );
@@ -156,7 +155,7 @@ export default function AppDiscussionThread() {
  {coreThreadItem.body}
  </p>
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight block leading-none pt-1 border-t border-border/5 select-none tabular-nums">
- LOGGED: {formatDistanceToNow(new Date(coreThreadItem.created_at), { addSuffix: true }).toUpperCase()}
+  POSTED: {formatDistanceToNow(new Date(coreThreadItem.created_at), { addSuffix: true }).toUpperCase()}
  </p>
  </CardContent>
  </Card>
@@ -189,7 +188,7 @@ export default function AppDiscussionThread() {
  {/* Meta Logging Control Alignment Bar */}
  <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/5 leading-none w-full shrink-0 select-none font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight">
  <span className="tabular-nums">
- REPLY: {formatDistanceToNow(new Date(postItemNode.created_at), { addSuffix: true }).toUpperCase()}
+  REPLIED: {formatDistanceToNow(new Date(postItemNode.created_at), { addSuffix: true }).toUpperCase()}
  </span>
  
  <button 
@@ -199,7 +198,7 @@ export default function AppDiscussionThread() {
  className="inline-flex items-center gap-1 hover:text-destructive transition-colors cursor-pointer outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
  >
  <Flag className="h-3 w-3 stroke-[2.2] shrink-0" />
- <span>Flag Abuse</span>
+  <span>Report</span>
  </button>
  </div>
  </CardContent>

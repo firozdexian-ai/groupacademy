@@ -25,11 +25,11 @@ interface ParsedCVData {
 }
 
 const PARSING_STAGES = [
-  { progress: 15, message: "SYNCING_ARTIFACT_TO_STORAGE" },
-  { progress: 35, message: "DECRYPTING_DOCUMENT_STRUCTURE" },
-  { progress: 55, message: "MAPPING_IDENTITY_NODES" },
-  { progress: 75, message: "ANALYZING_SKILL_VECTORS" },
-  { progress: 90, message: "FINALIZING_REGISTRY_UPDATE" },
+  { progress: 15, message: "Uploading document..." },
+  { progress: 35, message: "Reading file..." },
+  { progress: 55, message: "Processing contact details..." },
+  { progress: 75, message: "Extracting skills..." },
+  { progress: 90, message: "Saving profile..." },
 ];
 
 export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
@@ -80,7 +80,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
   const processDataIngress = async (file: File) => {
     if (!file) return;
     if (!talent?.id) {
-      toast.error("Authentication synchronization required to map professional tokens.");
+      toast.error("Please sign in to upload your CV.");
       return;
     }
 
@@ -92,12 +92,12 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
     ];
 
     if (!validMime.includes(file.type)) {
-      toast.error("Invalid documentation extension. PDF or matching Word files required.");
+      toast.error("Invalid file type. Please upload a PDF or Word file.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Data density overflow limit reached. Maximum requirement: 5MB.");
+      toast.error("File size exceeds the 5MB limit.");
       return;
     }
 
@@ -105,7 +105,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
     setError(null);
     setUploadSuccess(false);
     setProgress(0);
-    setMessage("INITIALIZING_INGRESS_PROTOCOL...");
+    setMessage("Uploading...");
 
     executeTelemetrySimulation();
     trackEvent("inline_cv_ingress_chain_started", { talentId: talent.id, assetSize: file.size });
@@ -138,7 +138,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
         );
 
         await updateTalent({ cvUrl: publicUrl });
-        toast.success("Ecosystem data asset linked natively without secondary text parsing.");
+        toast.success("Resume uploaded successfully.");
       } else {
         const parsed = parseResult.parsed as ParsedCVData;
         const updatePayload: Record<string, any> = {
@@ -166,13 +166,13 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
         }
 
         await updateTalent(updatePayload);
-        toast.success("Ecosystem digital profile normalized and synchronized successfully.");
+        toast.success("Resume details successfully imported to your profile.");
         trackEvent("inline_cv_ingress_chain_success", { talentId: talent.id });
       }
 
       await refreshTalent();
       setProgress(100);
-      setMessage("SYNC_VERIFIED_CLEAN");
+      setMessage("Upload Complete");
       setUploadSuccess(true);
       onUploadComplete?.();
     } catch (err: any) {
@@ -186,7 +186,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
       });
 
       setError(parsedMsg);
-      toast.error("Ecosystem registration validation timeout.");
+      toast.error("Upload timed out. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -202,10 +202,10 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 leading-none">
-              Ecosystem Document Verified
+              Resume Uploaded
             </p>
             <p className="text-[10px] font-bold text-muted-foreground/70 tracking-tight mt-1 leading-none select-text selection:bg-emerald-500/10">
-              Professional credentials active & ready for matching queues
+              Your resume is ready and linked to your profile.
             </p>
           </div>
         </div>
@@ -261,10 +261,10 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
           <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.2]" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400 leading-none">
-              Ingress Channel Blocked
+              Upload Failed
             </p>
             <p className="text-[10px] font-bold font-mono text-muted-foreground/70 mt-1 truncate text-ellipsis select-text selection:bg-rose-500/10">
-              Error code snippet: {error}
+              Details: {error}
             </p>
           </div>
         </div>
@@ -276,7 +276,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
           onClick={() => fileInputRef.current?.click()}
         >
           <RefreshCw className="h-3 w-3 stroke-[2.5]" />
-          <span>Retry Sync</span>
+          <span>Retry</span>
         </Button>
         <input
           ref={fileInputRef}
@@ -319,10 +319,10 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
 
         <div className="space-y-1">
           <p className="text-xs sm:text-sm font-bold uppercase tracking-tight text-foreground/90">
-            Initialize Artifact Ingress Protocol
+            Upload Your Resume
           </p>
           <p className="text-[9px] font-extrabold text-muted-foreground/60 uppercase tracking-wider block leading-none">
-            PDF / Word format templates &bull; Max 5MB density limit &bull; Cognitive parsing active
+            PDF or Word format &bull; Maximum 5MB file size &bull; Automatic resume parsing
           </p>
         </div>
 
@@ -332,7 +332,7 @@ export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => 
           type="button"
           className="h-8 rounded-xl px-4 font-bold text-[10px] uppercase tracking-wide mt-1.5 border border-border/40 bg-background/50 hover:bg-accent hover:border-primary/20 transition-all shadow-sm cursor-pointer"
         >
-          Select System File Node
+          Choose File
         </Button>
       </div>
 

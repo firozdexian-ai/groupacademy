@@ -33,25 +33,25 @@ const SERVICE_CONFIG: Record<
     icon: Target,
     color: "text-accent dark:text-accent",
     bgColor: "bg-accent/10 border-accent/10",
-    label: "NEURAL_ASSESSMENT",
+    label: "CAREER ASSESSMENT",
   },
   mock_interview: {
     icon: Mic,
     color: "text-primary",
     bgColor: "bg-primary/10 border-primary/10",
-    label: "AI_VIRTUAL_INTERVIEW",
+    label: "AI PRACTICE INTERVIEW",
   },
   salary_analysis: {
     icon: DollarSign,
     color: "text-success dark:text-success",
     bgColor: "bg-success/10 border-success/10",
-    label: "CAPITAL_BENCHMARK",
+    label: "SALARY ANALYSIS",
   },
   portfolio: {
     icon: Briefcase,
     color: "text-warning dark:text-warning",
     bgColor: "bg-warning/10 border-warning/10",
-    label: "BRAND_PROVISIONING",
+    label: "PORTFOLIO",
   },
 };
 
@@ -126,7 +126,7 @@ export function ServiceHistoryCard() {
         <CardContent className="p-5 py-10 flex flex-col items-center justify-center gap-3 w-full">
           <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
           <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary italic animate-pulse leading-none">
-            Loading your service history…
+            Loading your history…
           </p>
         </CardContent>
       </Card>
@@ -160,10 +160,10 @@ export function ServiceHistoryCard() {
         <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 text-left">
           <CardTitle className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
             <Zap className="h-4 w-4 text-primary fill-primary/10 stroke-[2.2] shrink-0 animate-pulse" />
-            <span>Verified Service Artifacts</span>
+            <span>Activity History</span>
           </CardTitle>
           <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-            Institutional career engagement histories and performance yield records
+            Records of your assessments, mock interviews, and activities.
           </CardDescription>
         </div>
       </CardHeader>
@@ -226,7 +226,7 @@ export function ServiceHistoryCard() {
               {historyItem.score !== undefined && (
                 <div className="flex flex-col items-end gap-0.5 text-right shrink-0 leading-none pr-1 tabular-nums">
                   <span className="text-[8px] font-mono font-extrabold text-muted-foreground/30 uppercase tracking-wider select-none leading-none">
-                    Output
+                    Score
                   </span>
                   <span className="text-sm font-black tracking-tighter text-primary block leading-none pt-0.5">
                     {historyItem.score}%

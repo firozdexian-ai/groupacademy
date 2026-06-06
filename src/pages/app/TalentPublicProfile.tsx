@@ -136,12 +136,12 @@ export default function TalentPublicProfile() {
  variant="secondary"
  className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5"
  >
- <Sparkles className="h-3 w-3 text-primary" /> {Math.round(meta?.volume || 0)} Credits Volume
+ <Sparkles className="h-3 w-3 text-primary" /> {Math.round(meta?.volume || 0)} Credits Exchanged
  </Badge>
  </div>
 
  <div className="mt-8 space-y-4">
- <h2 className={SECTION_TITLE}>Mastery Nodes</h2>
+ <h2 className={SECTION_TITLE}>Skills</h2>
  <div className="flex flex-wrap gap-2">
  {skills.map((s) => (
  <Badge key={s} variant="outline" className="rounded-xl px-4 py-1">

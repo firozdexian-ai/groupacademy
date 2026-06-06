@@ -109,7 +109,7 @@ export default function LanguageInstructorsPage() {
  </div>
 
  <div className="text-right">
- <div className="text-sm font-bold">{instructor.hourly_rate_credits} cr/hr</div>
+ <div className="text-sm font-bold">{instructor.hourly_rate_credits} credits/hr</div>
  <Button
  size="sm"
  className="mt-2 h-8 rounded-lg text-xs"

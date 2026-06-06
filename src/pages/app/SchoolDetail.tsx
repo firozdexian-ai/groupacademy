@@ -109,12 +109,12 @@ export default function SchoolDetail() {
  });
 
  if (error) throw error;
- toast.success("Request synchronized with Digital Workforce.");
+ toast.success("Connection request sent.");
  setOpenProfession(null);
  setMessage("");
  } catch (err: any) {
  await reportAnomaly("HandoffRequestError", { err });
- toast.error("Failed to sync request.");
+ toast.error("Failed to send request.");
  } finally {
  setSubmitting(false);
  }
@@ -138,7 +138,7 @@ export default function SchoolDetail() {
  return (
  <div className="max-w-4xl mx-auto px-6 py-20 text-center space-y-4">
  <AlertCircle className="h-12 w-12 text-muted-foreground/30 mx-auto" />
- <p className="text-sm">Academy sector unreachable.</p>
+ <p className="text-sm">Academy details are currently unavailable.</p>
  <Button onClick={() => navigate("/app/learning")}>Return to Hub</Button>
  </div>
  );
@@ -233,7 +233,7 @@ export default function SchoolDetail() {
  />
  <DialogFooter>
  <Button onClick={submitRequest} disabled={submitting}>
- {submitting ? <InlineSpinner size="sm" className="mr-2" /> : "Transmit Request"}
+ {submitting ? <InlineSpinner size="sm" className="mr-2" /> : "Send Request"}
  </Button>
  </DialogFooter>
  </DialogContent>

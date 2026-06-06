@@ -60,11 +60,11 @@ const BRAND = {
 };
 
 const PERFORMANCE_REGISTRY: Record<string, string> = {
-  needs_work: "CRITICAL_DEFICIT",
-  developing: "DEVELOPING_SYNC",
-  competent: "COMPETENT_CORE",
-  strong: "PROFICIENT_OPS",
-  excellent: "EXECUTIVE_EXPERT",
+  needs_work: "Needs Work",
+  developing: "Developing",
+  competent: "Competent",
+  strong: "Strong",
+  excellent: "Excellent",
 };
 
 /**
@@ -171,7 +171,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 lineHeight: 1.1,
               }}
             >
-              Mock_Interview_Report
+              Mock Interview Report
             </h1>
             <p
               style={{
@@ -184,7 +184,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 lineHeight: 1,
               }}
             >
-              GroUp_Academy Neural_Assessment_v4
+              GroUp Academy Assessment
             </p>
           </div>
           <div
@@ -198,7 +198,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
               fontFamily: "monospace",
             }}
           >
-            Registry_Sync: {formattedRegistrySyncDate}
+            Completed: {formattedRegistrySyncDate}
           </div>
         </div>
 
@@ -225,7 +225,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 letterSpacing: "0.05em",
               }}
             >
-              Identity_Artifact
+              Candidate
             </p>
             <h2
               style={{ fontSize: "22px", fontWeight: 800, margin: "4px 0 14px 0", color: BRAND.dark, lineHeight: 1.2 }}
@@ -243,10 +243,10 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                     textTransform: "uppercase",
                   }}
                 >
-                  Target_Role
+                  Target Role
                 </p>
                 <p style={{ fontSize: "13px", fontWeight: 700, margin: "2px 0 0 0", color: BRAND.dark }}>
-                  {interview.job_title ? interview.job_title.trim() : "GENERAL_NODE"}
+                  {interview.job_title ? interview.job_title.trim() : "General"}
                 </p>
               </div>
               {interview.company_name && (
@@ -295,13 +295,13 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 letterSpacing: "1px",
               }}
             >
-              Difficulty_Index
+              Difficulty
             </p>
             <h3 style={{ fontSize: "20px", fontWeight: 900, margin: "6px 0", color: "#ffffff", lineHeight: 1 }}>
               {interview.difficulty ? interview.difficulty.toUpperCase() : "STANDARD"}
             </h3>
             <p style={{ margin: "6px 0 0 0", fontSize: "9px", opacity: 0.7, fontWeight: 700, fontFamily: "monospace" }}>
-              {Number(interview.question_count || 0)} CORE_QUESTIONS
+              {Number(interview.question_count || 0)} Core Questions
             </p>
           </div>
         </div>
@@ -327,7 +327,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
               opacity: 0.95,
             }}
           >
-            Neural_Selection_Parity
+            Estimated Pass Probability
           </div>
           <div
             style={{
@@ -381,7 +381,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 letterSpacing: "0.5px",
               }}
             >
-              [+] Sync_Strengths
+              [+] Key Strengths
             </h4>
             <ul
               style={{
@@ -428,7 +428,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 letterSpacing: "0.5px",
               }}
             >
-              [△] Optimization_Nodes
+              [△] Areas for Improvement
             </h4>
             <ul
               style={{
@@ -469,7 +469,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
               paddingBottom: "8px",
             }}
           >
-            Neural_Feedback_Ledger
+            Detailed Feedback
           </h3>
 
           {questionFeedbackCollection.length === 0 ? (
@@ -530,7 +530,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                           border: "1px solid #e2e8f0",
                         }}
                       >
-                        NODE_{String(idx + 1).padStart(2, "0")}
+                        Question {String(idx + 1).padStart(2, "0")}
                       </span>
                       <span
                         style={{
@@ -592,7 +592,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                         lineHeight: "1.4",
                       }}
                     >
-                      <span style={{ letterSpacing: "0.5px", flexShrink: 0 }}>STRATEGY:</span>
+                      <span style={{ letterSpacing: "0.5px", flexShrink: 0 }}>Tip:</span>
                       <span style={{ color: BRAND.dark, fontWeight: 500 }}>{feedbackItem.improvement_tips.trim()}</span>
                     </div>
                   )}
@@ -623,7 +623,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
               fontFamily: "monospace",
             }}
           >
-            Artifact_ID: {interview.id.toUpperCase()} &bull; Generated_by_Neural_Engine_v4.2
+            Report ID: {interview.id.toUpperCase()} &bull; Generated by AI Assistant
           </p>
         </div>
       </div>

@@ -75,7 +75,7 @@ export function ChatBubble({ role, content, timestamp, ctaLabel, ctaLink }: Prop
       >
         {/* MESSAGING MAIN STRUCTURAL CONTENT PARAGRAPH */}
         <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap break-words pr-0.5 selection:bg-primary/20">
-          {content || "Conversational payload parameter initialization missing."}
+          {content || "Message is empty."}
         </p>
 
         {/* COMPONENT COMMAND INTERACTION CALL-TO-ACTION BUTTON LINKAGE */}

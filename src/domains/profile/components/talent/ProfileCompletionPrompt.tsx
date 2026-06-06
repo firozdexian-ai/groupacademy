@@ -60,9 +60,9 @@ export function ProfileCompletionPrompt({
     if (!talent.cvUrl) {
       gaps.push({
         key: "cv",
-        label: "Artifact Sync (CV)",
+        label: "CV",
         icon: FileText,
-        action: "Deploy CV for AI Matching",
+        action: "Upload your CV",
         priority: 1,
       });
     }
@@ -208,10 +208,10 @@ export function ProfileCompletionPrompt({
 
           <div className="min-w-0 flex-1 space-y-1 flex flex-col justify-center leading-none text-left">
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block leading-none font-mono">
-              Incomplete Alignment Registry
+              Complete your profile
             </span>
             <p className="text-xs sm:text-sm font-bold text-muted-foreground/90 truncate text-ellipsis block pr-1 leading-none select-text">
-              {topMissingNodes[0]?.action || "Optimize professional career synchronization yields"}
+              {topMissingNodes[0]?.action || "Complete your profile to get matches"}
             </p>
           </div>
         </div>
@@ -315,7 +315,7 @@ export function ProfileCompletionPrompt({
         {/* INTEGRATED GAUGE BAR TRACK STRIP */}
         <div className="space-y-2 p-3 rounded-xl border border-border/40 bg-muted/10 w-full select-none shadow-sm leading-none shrink-0 font-bold text-[10px] tracking-tight text-muted-foreground/70 tabular-nums">
           <div className="flex justify-between items-center w-full leading-none uppercase tracking-wider font-mono">
-            <span>Identity Fidelity Yield Curve</span>
+            <span>Profile Strength</span>
             <span className="text-primary font-black">{profileFidelityMetrics.yieldPercentage}% complete</span>
           </div>
           <Progress

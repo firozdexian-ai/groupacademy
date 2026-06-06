@@ -169,10 +169,10 @@ export default function AIAgents() {
  </div>
  <div className="min-w-0 leading-none">
  <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-foreground truncate block pt-0.5">
- Agent Marketplace Registry
+ AI Agents
  </h1>
  <p className="text-[10px] font-mono font-bold text-muted-foreground/50 uppercase block tracking-wider leading-none mt-0.5">
- Localize Verified Core Specialty AI Operators
+ Find specialized AI assistants to help with your tasks
  </p>
  </div>
  </div>
@@ -185,7 +185,7 @@ export default function AIAgents() {
  className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider gap-1.5 cursor-pointer shrink-0 shadow-2xs pt-0.5"
  >
  <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/60 stroke-[2.2]" /> 
- <span>Communication Inbox</span>
+ <span>Inbox</span>
  </Button>
  </div>
  
@@ -194,7 +194,7 @@ export default function AIAgents() {
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] pointer-events-none" />
  <Input
  type="search"
- placeholder="Search agents by moniker designation, focus category, or field criteria..."
+ placeholder="Search agents by name or skills..."
  value={textSearchQueryInput}
  onChange={(e) => setTextSearchQueryInput(e.target.value)}
  className="h-9 pl-9 pr-3 bg-muted/40 border-none text-xs sm:text-sm rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -220,7 +220,7 @@ export default function AIAgents() {
  <div className="flex items-center gap-1.5 mb-2 px-1 select-none pointer-events-none leading-none">
  <Sparkles className="h-3.5 w-3.5 text-primary stroke-[2.2] shrink-0 animate-pulse" />
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 pt-0.5 leading-none">
- Curated Specialty Modules
+ Featured Agents
  </h2>
  </div>
  
@@ -242,10 +242,10 @@ export default function AIAgents() {
  <section className="block w-full">
  <div className="flex items-center justify-between mb-2 px-1 border-b border-border/5 pb-2 select-none pointer-events-none leading-none w-full shrink-0">
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 leading-none">
- {textSearchQueryInput ? "Filtered Search Results" : "Verified Operator Listings"}
+ {textSearchQueryInput ? "Search Results" : "Verified Agents"}
  </h2>
  <span className="font-mono text-sm font-medium text-muted-foreground/40 tabular-nums uppercase leading-none">
- {processedFilteredAgents.length.toString()} Operators Resolved
+ {processedFilteredAgents.length.toString()} agents found
  </span>
  </div>
 
@@ -275,7 +275,7 @@ export default function AIAgents() {
  <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block mt-2">
  <Inbox className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
  <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
- No custom agent blueprints logged matching the specified parameter token constraints.
+ No agents found matching your search.
  </p>
  </div>
  ) : (

@@ -100,19 +100,19 @@ export function PayoutAccountsManager() {
     const sanitizedBankName = bankName.trim();
 
     if (!sanitizedAccountName || !sanitizedAccountNumber) {
-      toast.error("Account holder name and account routing parameters are required.");
+      toast.error("Account holder name and account details are required.");
       return;
     }
 
     setBusy(true);
     trackEvent("payout_account_registration_initiated", { method });
     const dynamicToastTrackerId = toast.loading(
-      "Registering disbursement variables over secure workspace index nodes...",
+      "Saving payout account...",
     );
 
     try {
       const uid = await getCurrentUserId();
-      if (!uid) throw new Error("Authentication index token lost. Please log in.");
+      if (!uid) throw new Error("Session expired. Please log in again.");
 
       const isFirstAccountNode = rows.length === 0;
 
@@ -133,7 +133,7 @@ export function PayoutAccountsManager() {
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
 
       if (isMountedRef.current) {
-        toast.success("Disbursement channel successfully verified down configuration ledger.", {
+        toast.success("Payout method added successfully.", {
           id: dynamicToastTrackerId,
         });
         setAccountName("");
@@ -160,7 +160,7 @@ export function PayoutAccountsManager() {
 
     setBusy(true);
     trackEvent("payout_account_primary_set_requested", { accountId: targetAccountIdStr });
-    const dynamicToastTrackerId = toast.loading("Updating primary payout path designations...");
+    const dynamicToastTrackerId = toast.loading("Setting primary payout method...");
 
     try {
       await setPayoutAccountPrimary(targetAccountIdStr);
@@ -168,7 +168,7 @@ export function PayoutAccountsManager() {
       await queryClient.invalidateQueries({ queryKey: ["payout-accounts"] });
 
       if (isMountedRef.current) {
-        toast.success("Primary account route successfully verified.", { id: dynamicToastTrackerId });
+        toast.success("Primary payout account updated.", { id: dynamicToastTrackerId });
         trackEvent("payout_account_primary_set_success");
         await loadPayoutAccountsLedger();
       }
@@ -191,9 +191,9 @@ export function PayoutAccountsManager() {
     if (!targetAccountIdStr) return;
 
     // Controlled structural verification step instead of basic prompt hooks
-    const confirmToastId = toast.info("Are you sure you want to expunge this disbursement account row?", {
+    const confirmToastId = toast.info("Are you sure you want to delete this payout account?", {
       action: {
-        label: "Confirm Purge",
+        label: "Delete",
         onClick: async () => {
           setBusy(true);
           trackEvent("payout_account_removal_executed", { accountId: targetAccountIdStr });
@@ -202,7 +202,7 @@ export function PayoutAccountsManager() {
             await deletePayoutAccount(targetAccountIdStr);
 
             await queryClient.invalidateQueries({ queryKey: ["payout-accounts"] });
-            toast.success("Disbursement node successfully removed.");
+            toast.success("Payout account removed.");
             await loadPayoutAccountsLedger();
           } catch (err) {
             const parsedExceptionMsg = err instanceof Error ? err.message : String(err);
@@ -211,7 +211,7 @@ export function PayoutAccountsManager() {
               action: "expunge_account_node",
               accountId: targetAccountIdStr,
             });
-            toast.error(`Purge Failed: ${parsedExceptionMsg}`);
+            toast.error(`Failed to delete account: ${parsedExceptionMsg}`);
           } finally {
             if (isMountedRef.current) {
               setBusy(false);
@@ -220,7 +220,7 @@ export function PayoutAccountsManager() {
         },
       },
       cancel: {
-        label: "Abort",
+        label: "Cancel",
         onClick: () => trackEvent("payout_account_removal_cancelled"),
       },
     });
@@ -233,13 +233,12 @@ export function PayoutAccountsManager() {
         <div className="flex items-center gap-2 px-0.5 select-none w-full leading-none shrink-0 h-8 text-left">
           <Wallet className="h-4.5 w-4.5 text-primary stroke-[2.2] shrink-0 animate-pulse" />
           <h3 className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wide truncate block pt-0.5 leading-none">
-            Disbursement Channel Configuration
+            Payout Settings
           </h3>
         </div>
 
         <p className="text-[11px] font-semibold text-muted-foreground/70 leading-normal select-none pr-1">
-          Specify your primary billing account coordinates to authorize fast workspace token withdrawals. Add secondary
-          alternatives as automated failover routing keys.
+          Manage your payout methods for earnings and withdrawals.
         </p>
 
         {/* LOADING PROCESSING INDICATOR SCREEN */}
@@ -338,10 +337,10 @@ export function PayoutAccountsManager() {
                     Direct Bank Transfer
                   </SelectItem>
                   <SelectItem value="paypal" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">
-                    PayPal Token Network
+                    PayPal
                   </SelectItem>
                   <SelectItem value="wise" className="cursor-pointer text-xs font-semibold py-2 rounded-lg">
-                    Wise Virtual Transfer
+                    Wise
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -350,7 +349,7 @@ export function PayoutAccountsManager() {
             {method === "bank" && (
               <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight animate-in fade-in duration-200">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                  Bank Name institution *
+                  Bank Name *
                 </Label>
                 <Input
                   value={bankName}
@@ -364,13 +363,13 @@ export function PayoutAccountsManager() {
 
             <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight">
               <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                Account Holder Legal Name *
+                Account Holder Name *
               </Label>
               <Input
                 value={accountName}
                 disabled={busy}
                 onChange={(e) => setAccountName(e.target.value)}
-                placeholder="E.g. JASON BOURNE"
+                placeholder="E.g. John Doe"
                 className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block uppercase italic font-bold"
               />
             </div>
@@ -405,7 +404,7 @@ export function PayoutAccountsManager() {
                 type="button"
                 className="flex-[2] h-10 rounded-xl font-bold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.995] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
               >
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" /> : "Save Account"}
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" /> : "Add Payout Account"}
               </Button>
               <Button
                 variant="ghost"
@@ -435,7 +434,7 @@ export function PayoutAccountsManager() {
         {/* HUD LEVEL 3: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
         <div className="mt-4 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
           <Zap className="h-3.5 w-3.5 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Compensation payout routing ledger synchronization indexes complete</span>
+          <span>Your payout details are stored securely</span>
         </div>
       </CardContent>
     </Card>

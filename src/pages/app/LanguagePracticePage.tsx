@@ -95,7 +95,7 @@ export default function LanguagePracticePage() {
  setActiveCorrections((prev) => [...prev, ...(data.corrections as Correction[])]);
  }
  } catch (e: any) {
- toast.error(e.message || "Failed to finalize communication channel.");
+ toast.error(e.message || "Could not send message. Please try again.");
  } finally {
  setIsInferenceProcessing(false);
  }
@@ -179,7 +179,7 @@ export default function LanguagePracticePage() {
  {activeCorrections.length > 0 && (
  <Card className={cn(CARD, "mx-4 mb-2 p-3 max-h-40 overflow-y-auto border-amber-500/20 bg-amber-500/[0.02]")}>
  <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2 flex items-center justify-between sticky top-0 bg-inherit pb-1">
- <span>Correction Log</span>
+ <span>Corrections</span>
  <button onClick={() => setActiveCorrections([])} className="hover:text-destructive transition-colors">
  <EyeOff className="h-3 w-3" />
  </button>
@@ -201,7 +201,7 @@ export default function LanguagePracticePage() {
  value={userTextInputStr}
  onChange={(e) => setUserTextInputStr(e.target.value)}
  onKeyDown={handleKeyboardInputInterceptor}
- placeholder="Input target language sequence..."
+ placeholder="Type your message..."
  disabled={isInferenceProcessing}
  className="rounded-lg h-10 shadow-none border-border/60"
  />

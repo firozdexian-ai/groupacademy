@@ -198,10 +198,9 @@ export default function PublicTalentProfile() {
             <Lock className="h-4 w-4 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Identity Vault Sealed</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Profile Not Found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              This operator configuration has been restricted by RLS visibility thresholds or contains malformed
-              handles.
+              This profile is private or the link is incorrect.
             </p>
           </div>
           <Button
@@ -210,7 +209,7 @@ export default function PublicTalentProfile() {
             variant="outline"
             className="h-8 rounded-lg text-sm font-medium tracking-wider cursor-pointer"
           >
-            <Link to="/">Return to Platform Core</Link>
+            <Link to="/">Back to Home</Link>
           </Button>
         </div>
       </div>
@@ -226,7 +225,7 @@ export default function PublicTalentProfile() {
         {identityRecordNode.cover_image_url && (
           <div
             role="img"
-            aria-label="User space structural layout banner canvas graphic"
+            aria-label="Profile cover image"
             className="h-24 w-full bg-cover bg-center block pointer-events-none select-none border-b border-border/5"
             style={{ backgroundImage: `url(${identityRecordNode.cover_image_url})` }}
           />
@@ -307,7 +306,7 @@ export default function PublicTalentProfile() {
           {Number(identityRecordNode.learning_recency_score ?? 0) >= 0.7 && (
             <div className="pt-1.5 block select-none pointer-events-none">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 h-4.5 pt-1 leading-none shrink-0">
-                <Activity className="h-2.5 w-2.5 stroke-[2.5]" /> Active Learning Stream Token
+                <Activity className="h-2.5 w-2.5 stroke-[2.5]" /> Active Learner
               </span>
             </div>
           )}
@@ -320,7 +319,7 @@ export default function PublicTalentProfile() {
           <CardContent className="p-4 space-y-3 block w-full leading-none">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10 flex items-center gap-2">
               <Layers className="h-3.5 w-3.5 text-cyan-500 stroke-[2.2]" />
-              <span>Completed Track Matrix Capsules ({identityRecordNode.tracks_completed.length})</span>
+              <span>Completed Courses ({identityRecordNode.tracks_completed.length})</span>
             </h2>
             <ul className="space-y-2 p-0 m-0 block w-full list-none">
               {identityRecordNode.tracks_completed.map((trackItemNode: any, structuralIdxNum: number) => (
@@ -346,7 +345,7 @@ export default function PublicTalentProfile() {
                       </p>
                       {trackItemNode.sponsor_company_name && (
                         <p className="text-[10px] font-mono font-bold text-muted-foreground/50 truncate block select-text leading-none uppercase">
-                          Sponsor Node: {trackItemNode.sponsor_company_name}
+                          Sponsored by: {trackItemNode.sponsor_company_name}
                         </p>
                       )}
                     </div>
@@ -373,7 +372,7 @@ export default function PublicTalentProfile() {
           <CardContent className="p-4 space-y-3 block w-full leading-none">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10 flex items-center gap-2">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 stroke-[2.2]" />
-              <span>Verified Skill Vectors Archive ({identityRecordNode.credentials.length})</span>
+              <span>Verified Skills ({identityRecordNode.credentials.length})</span>
             </h2>
             <div className="space-y-2 block w-full">
               {identityRecordNode.credentials.map((skillNodeItem: any) => {
@@ -399,7 +398,7 @@ export default function PublicTalentProfile() {
                         <p className="text-[10px] sm:text-[11px] font-medium opacity-70 truncate block select-text max-w-xs leading-none">
                           {targetLevelMetaMapObj.label} · {skillNodeItem.course_title ?? "Cross-Course Framework"} ·{" "}
                           <span className="font-mono font-bold tabular-nums">
-                            {Math.round(Number(skillNodeItem.mastery_at_issue) * 100)}% Match
+                            {Math.round(Number(skillNodeItem.mastery_at_issue) * 100)}% Mastery
                           </span>
                         </p>
                       </div>
@@ -426,7 +425,7 @@ export default function PublicTalentProfile() {
           <Card className="rounded-xl border border-border/60 bg-card/40 shadow-none block w-full overflow-hidden">
             <CardContent className="p-4 space-y-3 block w-full leading-none">
               <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10">
-                Learning Mastery Indexes
+                Skill Mastery
               </h2>
               <div className="grid grid-cols-2 gap-2 text-left select-none pointer-events-none block w-full font-sans shadow-2xs">
                 <div className="rounded-lg bg-muted/40 border border-border/5 p-3 leading-none space-y-1 block">
@@ -450,7 +449,7 @@ export default function PublicTalentProfile() {
               {identityRecordNode.mastery.top_strengths?.length > 0 && (
                 <div className="space-y-1.5 mt-2 block w-full">
                   <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block select-none pointer-events-none leading-none">
-                    Top Strengths Vectors
+                    Top Strengths
                   </p>
                   <div className="flex flex-wrap gap-1.5 w-full block">
                     {identityRecordNode.mastery.top_strengths.map((strengthNodeItem: any) => (
@@ -476,7 +475,7 @@ export default function PublicTalentProfile() {
           to="/"
           className="font-sans font-semibold text-primary hover:text-primary/80 pointer-events-auto cursor-pointer normal-case tracking-normal text-xs"
         >
-          Group Academy Digital Validation Grid
+          GroUp Academy
         </Link>
       </p>
     </div>

@@ -88,7 +88,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
   const executeIntelligenceSync = async () => {
     setIsParsing(true);
     setParseError(null);
-    const toastId = toast.loading("Processing raw data through AI mapping syntax...");
+    const toastId = toast.loading("Reading details with AI...");
 
     trackEvent("job_posting_intelligence_sync_started", { inputMode, talentId });
 
@@ -96,7 +96,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       let payload: any = {};
 
       if (inputMode === "image" && screenshotFile) {
-        toast.info("VISION_SYNC: Streaming raw visual telemetry to asset grid...", { id: toastId });
+        toast.info("Uploading screenshot...", { id: toastId });
         const fileName = `gig-job-screenshots/${talentId}/${Date.now()}-${screenshotFile.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
 
         const { publicUrl } = await uploadJobAsset(fileName, screenshotFile, { upsert: false });
@@ -106,7 +106,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       } else {
         if (jobText.trim().length < MIN_INGRESS_CHARS) {
           throw new Error(
-            `Ingress content density boundary check failed. Minimum requirement: ${MIN_INGRESS_CHARS} chars.`,
+            `Description must be at least ${MIN_INGRESS_CHARS} characters.`,
           );
         }
         payload = { rawText: jobText.trim() };
@@ -116,7 +116,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       const data: any = await parseJobPost(payload as any);
 
       const parsed = data.parsed || data;
-      if (!parsed) throw new Error("AI engine generated empty payload parsing tokens.");
+      if (!parsed) throw new Error("Could not extract details from the description.");
 
       setParsedRaw(parsed);
       setEditTitle(parsed.title || "");
@@ -124,7 +124,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       setEditLocation(parsed.location || "");
       setEditJobType(parsed.job_type || "");
 
-      toast.success("AI data normalization completed successfully", { id: toastId });
+      toast.success("Details extracted successfully", { id: toastId });
       trackEvent("job_posting_intelligence_sync_success", { gigId: gig.id });
     } catch (err: any) {
       const exceptionMsg = err instanceof Error ? err.message : String(err);
@@ -137,7 +137,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       });
 
       setParseError(exceptionMsg);
-      toast.error("Data tracking connection failed. Verify asset inputs.", { id: toastId });
+      toast.error("Failed to read job description. Please check your text or image.", { id: toastId });
     } finally {
       setIsParsing(false);
     }
@@ -145,7 +145,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
 
   const finalizeArtifactSubmission = async () => {
     setIsSubmitting(true);
-    const toastId = toast.loading("Registering submission tokens into global ledger...");
+    const toastId = toast.loading("Submitting gig details...");
 
     try {
       const inserted = await insertGigSubmission({
@@ -174,7 +174,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       queryClient.invalidateQueries({ queryKey: ["my-gig-submissions", talentId] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-      toast.success("Asset logged elegantly for automated validation checks", { id: toastId });
+      toast.success("Gig submitted successfully for review", { id: toastId });
       onSubmitted();
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -186,7 +186,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
         talentId,
       });
 
-      toast.error("Ledger connection layout validation timeout.", { id: toastId });
+      toast.error("Failed to submit gig. Please try again.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -243,7 +243,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           ) : (
             <div className="space-y-1.5 text-left animate-in slide-in-from-top-1 duration-200">
               <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5 select-none">
-                Evidence Document Capture
+                Upload Screenshot
               </Label>
               <div className="relative group w-full">
                 <Input
@@ -269,11 +269,11 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
                       <img
                         src={screenshotPreview}
                         className="h-full w-full object-contain rounded-xl border border-border/20 shadow-md"
-                        alt="Staged payload visualization preview file"
+                        alt="Job description screenshot"
                       />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-xl">
                         <Badge className="bg-primary text-[9px] font-extrabold px-2.5 py-0.5 rounded-md tracking-wider uppercase select-none shadow-md">
-                          Replace Evidence File
+                          Replace Screenshot
                         </Badge>
                       </div>
                     </div>
@@ -283,7 +283,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
                         <ImagePlus className="h-5 w-5 text-muted-foreground/80" />
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/90 pl-0.5">
-                        Stage Screenshot Evidence Asset
+                        Upload Screenshot
                       </span>
                     </div>
                   )}
@@ -362,7 +362,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
 
               <div className="space-y-1 text-left w-full min-w-0">
                 <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none">
-                  Employing Organization
+                  Company
                 </Label>
                 <div className="relative w-full min-w-0">
                   <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
@@ -378,22 +378,22 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
               <div className="grid grid-cols-2 gap-3.5 w-full">
                 <div className="space-y-1 text-left min-w-0">
                   <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none truncate block">
-                    Deployment Location
+                    Location
                   </Label>
                   <div className="relative w-full min-w-0">
                     <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
                     <Input
-                      value={editLocation}
-                      onChange={(e) => setEditLocation(e.target.value)}
-                      placeholder="E.g. Remote / London"
-                      className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-xs sm:text-sm tracking-tight focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full truncate"
+                       value={editLocation}
+                       onChange={(e) => setEditLocation(e.target.value)}
+                       placeholder="E.g. Remote / London"
+                       className="rounded-xl border border-border/40 bg-background/40 pl-10 h-10 font-bold text-xs sm:text-sm tracking-tight focus-visible:ring-1 focus-visible:ring-ring text-foreground/90 w-full truncate"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1 text-left min-w-0">
                   <Label className="text-[9px] font-bold uppercase tracking-wider text-primary pl-0.5 select-none truncate block">
-                    Contract Model
+                    Job Type
                   </Label>
                   <div className="relative w-full min-w-0">
                     <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
@@ -411,7 +411,7 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
             {sourceImageUrl && (
               <div className="pt-3.5 border-t border-border/10 select-none w-full animate-in fade-in duration-200">
                 <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2 italic">
-                  Source Image Context Evidence
+                  Source Screenshot
                 </p>
                 <img
                   src={sourceImageUrl}

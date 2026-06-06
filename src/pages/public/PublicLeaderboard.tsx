@@ -62,13 +62,13 @@ function PublicLeaderboardInner() {
 
         // Apply synchronized metadata metrics inside the data pipeline resolution thread
         setHead({
-          title: `Top ${activeKindToken} · Gro10x Leaderboard`,
-          description: `Live leaderboard metric monitoring top ${activeKindToken} allocations on Gro10x. Refreshed systematically from verified project completions, trust milestones, and verification accuracy logs.`,
+          title: `Top ${activeKindToken} · Leaderboard`,
+          description: `Live leaderboard of top ${activeKindToken} on GroUp Academy based on completed projects and milestones.`,
           canonical: `https://groupacademy.online/leaderboards/${activeKindToken}`,
           jsonLd: {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            name: `Top ${activeKindToken} on Gro10x Workspace Registry`,
+            name: `Top ${activeKindToken} on GroUp Academy`,
           },
           key: `lb-registry-${activeKindToken}-${activePeriodFilter}`,
         });
@@ -103,12 +103,12 @@ function PublicLeaderboardInner() {
             to="/projects"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors leading-none"
           >
-            <ArrowLeft className="h-3 w-3 stroke-[2.2]" /> <span>Return to Project Index</span>
+            <ArrowLeft className="h-3 w-3 stroke-[2.2]" /> <span>Back to Projects</span>
           </Link>
 
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-wide text-foreground flex items-center gap-2 mt-3 block leading-none">
             <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-primary stroke-[2.2] shrink-0" />
-            <span className="pt-0.5">Gro10x Performance Leaderboards</span>
+            <span className="pt-0.5">Leaderboards</span>
           </h1>
 
           {/* LAYER A: WORKSPACE INTERCEPT SEGMENT TRIGGERS */}
@@ -160,13 +160,13 @@ function PublicLeaderboardInner() {
             className="w-full flex items-center justify-center py-12 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none pointer-events-none gap-2.5"
           >
             <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-            <span>Compiling Performance Matrix...</span>
+            <span>Loading leaderboard...</span>
           </div>
         ) : rankingRowsRegistry.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 bg-card/20 p-8 text-center select-none block mt-2">
             <Inbox className="h-5 w-5 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
             <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
-              No performance allocations or ranks logged within this tracking interval sequence.
+              No entries found for this leaderboard period.
             </p>
           </div>
         ) : (
@@ -180,7 +180,7 @@ function PublicLeaderboardInner() {
               const companySlugAccessorStr = rowItemNode.slug as string | undefined;
 
               const computedEntityNameStr =
-                (rowItemNode.full_name as string) || (rowItemNode.name as string) || "Anonymous Profile Node";
+                (rowItemNode.full_name as string) || (rowItemNode.name as string) || "Anonymous";
               const parsedAvatarImageSourceRoute =
                 (rowItemNode.profile_photo_url as string) || (rowItemNode.logo_url as string) || undefined;
 

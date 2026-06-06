@@ -131,7 +131,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
 
     setSaving(true);
     trackEvent("profile_section_save_initiated", { activeSectionType: section });
-    const dynamicToastTrackerId = toast.loading(`Saving ${section}…`);
+    const dynamicToastTrackerId = toast.loading(`Saving...`);
 
     try {
       let syncPayload: Record<string, any> = {};
@@ -247,7 +247,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
           {section === "achievements" && (
             <div className="space-y-4 w-full min-w-0 text-left animate-in fade-in duration-200">
               <div className="flex items-center justify-between gap-4 px-0.5 select-none w-full leading-none shrink-0">
-                <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block leading-none">Honors, Awards & Distinction Documents</Label>
+                <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block leading-none">Achievements & Awards</Label>
                 <Button
                   variant="outline"
                   size="sm"
@@ -257,7 +257,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                   className="h-7 px-2.5 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[9px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1 flex items-center justify-center transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> 
-                  <span>Add Distinction</span>
+                  <span>Add Achievement</span>
                 </Button>
               </div>
               
@@ -279,7 +279,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                     </Button>
                     
                     <div className="space-y-1.5 text-left w-full min-w-0">
-                      <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Distinction Award Title *</Label>
+                      <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Achievement Title *</Label>
                       <Input
                         value={awardItem.title}
                         disabled={saving}
@@ -292,7 +292,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full min-w-0">
                       <div className="space-y-1.5 text-left w-full min-w-0">
-                        <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Awarding Body Issuer Node *</Label>
+                        <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Issued By *</Label>
                         <Input
                           value={awardItem.issuer}
                           disabled={saving}
@@ -303,7 +303,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                         />
                       </div>
                       <div className="space-y-1.5 text-left w-full min-w-0">
-                        <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Validation Verification Date</Label>
+                        <Label className="text-[9px] font-extrabold uppercase tracking-wide text-muted-foreground/50 block pl-0.5 leading-none select-none">Date Received</Label>
                         <Input
                           value={awardItem.date}
                           disabled={saving}
@@ -324,7 +324,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
           {section === "languages" && (
             <div className="space-y-4 w-full min-w-0 text-left animate-in fade-in duration-200">
               <div className="flex items-center justify-between gap-4 px-0.5 select-none w-full leading-none shrink-0">
-                <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block leading-none">Authorized Communication Protocols</Label>
+                <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block leading-none">Languages</Label>
                 <Button
                   variant="outline"
                   size="sm"
@@ -334,7 +334,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                   className="h-7 px-2.5 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[9px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1 flex items-center justify-center transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> 
-                  <span>Add Protocol</span>
+                  <span>Add Language</span>
                 </Button>
               </div>
               
@@ -348,7 +348,7 @@ export function ProfileSectionEditor({ section, onClose, onSave, talent }: Profi
                       onChange={(e) =>
                         setLanguages((p) => p.map((l, idx) => (idx === i ? { ...l, language: e.target.value } : l)))
                       }
-                      placeholder="Language protocol label (e.g. English, Bengali)…"
+                      placeholder="Language (e.g. English, Spanish)…"
                     />
                     
                     <Select

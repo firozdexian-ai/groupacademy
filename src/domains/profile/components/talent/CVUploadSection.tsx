@@ -43,12 +43,12 @@ interface ParsedCVData {
 }
 
 const PARSING_STAGES = [
-  { progress: 0, message: "INITIALIZING_UPLOAD..." },
-  { progress: 20, message: "READING_ARTIFACT_NODE..." },
-  { progress: 40, message: "EXTRACTING_NEURAL_DATA..." },
-  { progress: 60, message: "ANALYZING_SKILL_MATRIX..." },
-  { progress: 80, message: "MAPPING_PROFESSIONAL_NODES..." },
-  { progress: 95, message: "HYDRATING_PROFILE_LEDGER..." },
+  { progress: 0, message: "Uploading document..." },
+  { progress: 20, message: "Reading file..." },
+  { progress: 40, message: "Extracting details..." },
+  { progress: 60, message: "Analyzing skills..." },
+  { progress: 80, message: "Mapping experience..." },
+  { progress: 95, message: "Updating profile..." },
 ];
 
 /**
@@ -122,7 +122,7 @@ export function CVUploadSection() {
     ];
 
     if (!allowedMimeTypesCollection.includes(selectedFileNode.type)) {
-      toast.error("Format Rejected: Ingest premium PDF or Word artifacts (.doc, .docx) only.");
+      toast.error("Invalid format. Please upload PDF or Word documents (.doc, .docx) only.");
       trackEvent("cv_ingress_invalid_format_intercepted", { fileType: selectedFileNode.type });
       return;
     }
@@ -154,14 +154,14 @@ export function CVUploadSection() {
         selectedFileNode,
         { upsert: true },
       ).catch((e: any) => {
-        throw new Error(`Transmission Fault: ${e.message}`);
+        throw new Error(`Upload failed: ${e.message}`);
       });
 
       if (!generatedPublicCvUrlStr) {
-        throw new Error("Registry Error: Storage bucket failed to compile a public route path.");
+        throw new Error("Upload failed: Could not retrieve file URL.");
       }
 
-      // COGNITIVE INTELLIGENCE LAYER: Execute Neural Parser Edge Function
+      // Execute AI Parser
       if (isMountedRef.current) {
         setCurrentStage(2);
         setUploadProgress(40);
@@ -352,7 +352,7 @@ export function CVUploadSection() {
                 className="flex-1 h-10 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shadow-sm hover:bg-accent gap-1.5 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Upload className="h-3.5 w-3.5 stroke-[2.2]" />
-                <span>Upload Replacement Document</span>
+                <span>Upload new CV</span>
               </Button>
               {talent?.cvUrl && (
                 <Button
@@ -362,7 +362,7 @@ export function CVUploadSection() {
                     downloadFile(talent.cvUrl!, `${talent.fullName || "CV_ARTIFACT"}.pdf`);
                   }}
                   className="h-10 w-10 rounded-xl border border-border/60 text-muted-foreground hover:bg-accent shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95 flex items-center justify-center p-0"
-                  title="Pull verified file node from encrypted remote object storage repository"
+                  title="Download CV"
                 >
                   <Download className="h-4 w-4 stroke-[2.5]" />
                 </Button>
@@ -383,10 +383,10 @@ export function CVUploadSection() {
               </div>
               <div className="space-y-1.5 leading-none text-center font-bold text-xs tracking-tight">
                 <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground/80 leading-none">
-                  Deploy Professional CV Artifact
+                  Upload your CV
                 </p>
                 <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-widest block leading-none pt-0.5">
-                  Authorized Extensions: PDF | DOC | DOCX &bull; Maximum Volume Limit: 5MB
+                  Supported formats: PDF, DOC, DOCX &bull; Max size: 5MB
                 </p>
               </div>
               <Button
@@ -394,7 +394,7 @@ export function CVUploadSection() {
                 variant="secondary"
                 className="h-8 px-5 rounded-xl font-bold uppercase text-[9px] tracking-wider shadow-sm shrink-0 pointer-events-none bg-muted text-muted-foreground"
               >
-                Select Source Node
+                Select file
               </Button>
             </div>
           </div>
@@ -403,7 +403,7 @@ export function CVUploadSection() {
         {/* BOTTOM METRIC RIBBON OVERLAY LABEL */}
         <div className="mt-6 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
           <Zap className="h-3.5 w-3.5 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Powered by AI · CV parsing</span>
+          <span>Profile auto-fill powered by AI</span>
         </div>
       </CardContent>
     </Card>

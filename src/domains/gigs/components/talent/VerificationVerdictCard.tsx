@@ -29,13 +29,13 @@ const verdictMeta: Record<string, { label: string; icon: any; tone: string; clas
     className: "bg-muted text-muted-foreground border-border/40",
   },
   auto_approved: {
-    label: "Approved Systematically",
+    label: "Approved",
     icon: CheckCircle2,
     tone: "default",
     className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
   },
   human_approved: {
-    label: "Approved Verified",
+    label: "Approved",
     icon: CheckCircle2,
     tone: "default",
     className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
@@ -53,7 +53,7 @@ const verdictMeta: Record<string, { label: string; icon: any; tone: string; clas
     className: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",
   },
   human_rejected: {
-    label: "Audit Rejected",
+    label: "Rejected",
     icon: XCircle,
     tone: "destructive",
     className: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",
@@ -98,12 +98,12 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
     if (!sanitizedReasonText) return;
 
     if (sanitizedReasonText.length < 20) {
-      toast.error("Please supply a rigorous narrative statement describing the event context (≥ 20 characters).");
+      toast.error("Please provide a reason with at least 20 characters.");
       return;
     }
 
     setIsSubmitting(true);
-    const toastId = toast.loading("Registering appeal case into adjudication ledger...");
+    const toastId = toast.loading("Submitting appeal...");
 
     trackEvent("verification_appeal_submission_requested", { verificationId: verification.id });
 
@@ -122,7 +122,7 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
       queryClient.invalidateQueries({ queryKey: ["share-active-courses"] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-      toast.success("Appeal case logged successfully. A reviewer panel will adjudicate status updates.", {
+      toast.success("Appeal submitted successfully. A reviewer will check your case.", {
         id: toastId,
       });
 
@@ -137,7 +137,7 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
         verificationId: verification.id,
       });
 
-      toast.error(`Arbitration deployment fault: ${parsedMsg}`, { id: toastId });
+      toast.error(`Failed to submit appeal: ${parsedMsg}`, { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +173,7 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
             variant="outline"
             className="text-[10px] font-extrabold tracking-wide rounded-md border border-border/40 text-foreground/80 bg-background/40 px-2.5 h-5.5 tabular-nums shadow-inner select-none"
           >
-            Synapse Fit: {Math.round(verification.score)} Score
+            Score: {Math.round(verification.score)}%
           </Badge>
         )}
       </div>
@@ -188,7 +188,7 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
       {verification.criteria_results?.length > 0 && (
         <div className="space-y-1.5 pt-3 border-t border-border/10 mt-3 w-full min-w-0">
           <span className="text-[9px] font-extrabold text-muted-foreground/60 uppercase tracking-wider block pl-0.5 select-none">
-            Audit Metric Compliance
+            Verification Criteria
           </span>
           <ul className="space-y-1.5 text-xs font-bold text-foreground/90 tracking-tight w-full">
             {verification.criteria_results.map((criterionItem, index) => {
@@ -243,7 +243,7 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
         <div className="rounded-xl border border-border/30 bg-muted/10 p-3 text-xs text-left mt-3 select-text select-none animate-in slide-in-from-bottom-2 duration-200 w-full">
           <div className="font-bold text-foreground/80 text-[11px] uppercase tracking-wider mb-1.5 pl-0.5 select-none flex items-center gap-1.5">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 stroke-[2.2]" />
-            <span>Suggested System Revisions</span>
+            <span>Suggested revisions</span>
           </div>
           <ul className="list-disc pl-4 space-y-1 text-muted-foreground/90 font-medium leading-relaxed select-text selection:bg-primary/10 break-words">
             {verification.suggested_revisions.map((revisionStr, index) => {
@@ -290,18 +290,17 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
                     <span>File an appeal</span>
                   </SheetTitle>
                   <SheetDescription className="text-xs text-muted-foreground/90 leading-normal">
-                    Provide precise contextual counter-arguments regarding the rejection markers or metric failures
-                    flagged during systematic verification checks.
+                    Provide details or evidence to help us review the rejection markers or failures flagged during verification.
                   </SheetDescription>
                 </SheetHeader>
 
                 <div className="space-y-4 mt-2">
                   <div className="space-y-1 text-left w-full">
                     <label className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider pl-0.5">
-                      Factual Narrative Arguments
+                      Explain your appeal
                     </label>
                     <Textarea
-                      placeholder="Detail specific evidence paths, missing portfolio files link validation references, or transactional ledger context indicators cleanly..."
+                      placeholder="Provide details or links to evidence to support your appeal..."
                       value={appealReason}
                       onChange={(e) => setAppealReason(e.target.value)}
                       rows={4}
@@ -319,10 +318,10 @@ export function VerificationVerdictCard({ verification }: { verification: Verifi
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                        <span>Publishing Case Log Update…</span>
+                        <span>Submitting appeal...</span>
                       </>
                     ) : (
-                      <span>Submit Arbitration Appeal</span>
+                      <span>Submit appeal</span>
                     )}
                   </Button>
                 </div>

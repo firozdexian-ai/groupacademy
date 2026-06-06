@@ -690,7 +690,7 @@ function KnowledgePanel({ agentId }: { agentId: string }) {
           ? { agent_id: agentId, source_kind: "text" as const, title, content, source_ref: null }
           : { agent_id: agentId, source_kind: "url" as const, title: title || url, content: "", source_ref: url };
 
-      const data = await ingestAgentKnowledge(payload as any);
+      const data = await ingestAgentKnowledge(payload);
       toast.success(`Knowledge base updated successfully. Embedded ${data?.chunks ?? 0} data chunks.`);
       setTitle("");
       setContent("");

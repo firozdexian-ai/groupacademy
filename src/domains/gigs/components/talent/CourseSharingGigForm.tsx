@@ -148,7 +148,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
       queryClient.invalidateQueries({ queryKey: ["share-active-courses"] });
       queryClient.invalidateQueries({ queryKey: ["gig_submissions", talentId] });
 
-      toast.success("Affiliate referral link active — earning metrics tracking enabled");
+      toast.success("Referral tracking active!");
       onSubmitted();
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -177,7 +177,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/80 stroke-[2.2]" />
           <Input
             className="pl-9.5 h-10 rounded-xl border border-border/40 bg-background/50 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium"
-            placeholder="Search campaign catalog fields..."
+            placeholder="Search courses..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -191,7 +191,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-xs text-muted-foreground/90 text-center py-4 font-medium leading-normal">
-              No campaign targets available inside the current schedule window.
+              No active courses found.
             </p>
           ) : (
             filtered.map((course) => {
@@ -245,7 +245,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
           {/* SECTION 2: Unique Link Registry Display */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider pl-0.5">
-              2. Your Unique Tracking Link
+              2. Your Referral Link
             </Label>
             <div className="flex gap-2 w-full">
               <Input
@@ -261,7 +261,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
                 onClick={() => {
                   navigator.clipboard.writeText(linkFor(selected));
                   trackEvent("course_sharing_link_copied_manual", { courseId: selected.id });
-                  toast.success("Affiliate path pinned to clipboard");
+                  toast.success("Referral link copied to clipboard");
                 }}
               >
                 <Copy className="h-4 w-4 text-muted-foreground" />
@@ -269,14 +269,14 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
             </div>
             <p className="text-[10px] font-medium text-muted-foreground leading-normal pl-0.5 pt-0.5">
               Earn <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">10 credits</span>{" "}
-              settled directly into your wallet for every conversion mapped through this link.
+              settled directly into your wallet for every signup through this link.
             </p>
           </div>
 
           {/* SECTION 3: Social Outreach Handshake Array */}
           <div className="space-y-2 select-none">
             <Label className="text-xs font-bold text-foreground/90 uppercase tracking-wider pl-0.5">
-              3. Share to Active Channels
+              3. Share to Channels
             </Label>
             <div className="grid grid-cols-2 gap-2 w-full">
               {CHANNELS.map((ch) => {
@@ -312,7 +312,7 @@ export function CourseSharingGigForm({ gig, talentId, onSubmitted }: Props) {
             {submitting ? (
               <Loader2 className="h-3.5 w-3.5 anonymity-spin animate-spin stroke-[2.5]" />
             ) : (
-              <span>Activate Referral Tracking</span>
+              <span>Confirm referral</span>
             )}
           </Button>
         </div>

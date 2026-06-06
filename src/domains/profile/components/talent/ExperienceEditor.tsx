@@ -196,7 +196,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                     <div className="flex items-center gap-2 min-w-0 flex-1 h-full">
                       <ShieldCheck className="h-4 w-4 text-primary opacity-50 stroke-[2.2] shrink-0 animate-pulse" />
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/70 truncate block pt-0.5 leading-none">
-                        Professional Placement Module Artifact #{safeExperienceEntriesList.length - index}
+                        Work Experience Record #${safeExperienceEntriesList.length - index}
                       </span>
                     </div>
 
@@ -206,7 +206,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                       size="icon" aria-label="Expunge this specific operational record row from "
                       onClick={() => removeExperienceNode(index)}
                       className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer transition-colors shrink-0 p-0 border-none shadow-none"
-                      title="Expunge this specific operational record row from user database parameters"
+                      title="Remove this experience record"
                     >
                       <Trash2 className="h-4 w-4 stroke-[2.2]" />
                     </Button>
@@ -221,7 +221,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                           htmlFor={`exp-position-node-id-${index}`}
                           className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                         >
-                          Placement Job Title *
+                          Job Title *
                         </Label>
                         <Input
                           id={`exp-position-node-id-${index}`}
@@ -237,7 +237,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                           htmlFor={`exp-company-node-id-${index}`}
                           className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                         >
-                          Corporate Host Employer *
+                          Company *
                         </Label>
                         <Input
                           id={`exp-company-node-id-${index}`}
@@ -257,7 +257,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                           className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none flex items-center gap-1"
                         >
                           <Calendar className="h-3 w-3 stroke-[2.2]" />
-                          <span>Deployment Activation Date</span>
+                          <span>Start Date</span>
                         </Label>
                         <Input
                           id={`exp-startdate-node-id-${index}`}
@@ -275,7 +275,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                             className="text-[10px] font-extrabold uppercase tracking-wide text-primary block leading-none select-none flex items-center gap-1"
                           >
                             <Calendar className="h-3 w-3 stroke-[2.2]" />
-                            <span>Termination Watermark Date</span>
+                            <span>End Date</span>
                           </Label>
 
                           {/* CHECKBOX PROMPT SWITCH LAYER */}
@@ -292,7 +292,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                               htmlFor={`current-role-checkbox-id-${index}`}
                               className="text-[9px] font-black uppercase tracking-wide italic cursor-pointer text-primary/80 pl-0.5 pt-0.5 select-none"
                             >
-                              Active Role
+                              Current Role
                             </Label>
                           </div>
                         </div>
@@ -314,13 +314,13 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
                         htmlFor={`exp-description-node-id-${index}`}
                         className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                       >
-                        Vocational Deliverables Impact Summary
+                        Description & Accomplishments
                       </Label>
                       <Textarea
                         id={`exp-description-node-id-${index}`}
                         value={entryItem.description}
                         onChange={(e) => updateExperienceNodeField(index, "description", e.target.value)}
-                        placeholder="• Designed and executed high-availability microservice routing logic pipelines…&#10;• Optimized core API layer latency thresholds by 40 percent under production parameters…"
+                        placeholder="• Describe your responsibilities and achievements...&#10;• Keep it clear and action-oriented..."
                         rows={3}
                         className="w-full rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3.5 leading-relaxed resize-none shadow-inner"
                       />
@@ -336,7 +336,7 @@ export function ExperienceEditor({ experience = [], onChange }: ExperienceEditor
       {/* HUD LEVEL 3: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
       <div className="mt-6 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
         <Zap className="h-3.5 w-3.5 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-        <span>Experience parameters synchronized for real-time market placement calibrations</span>
+        <span>Your experience helps us find relevant job matches</span>
       </div>
     </div>
   );

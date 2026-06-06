@@ -206,11 +206,11 @@ export function AgentTriggers() {
     } catch (error: any) {
       return toast({
         title: "Transaction failed",
-        description: error.message || "Could not top up the platform credit balance.",
+        description: error.message || "Could not top up the credits.",
         variant: "destructive",
       });
     }
-    toast({ title: `Successfully added ${amt} credits to the shared automation pool.` });
+    toast({ title: `Successfully added ${amt} credits to the shared pool.` });
     load();
   }
 
@@ -235,8 +235,8 @@ export function AgentTriggers() {
     try {
       const data = await agentEventDispatcher({});
       toast({
-        title: "Automation engine synchronized",
-        description: `Successfully evaluated ${data?.events ?? 0} events and triggered ${data?.dispatched ?? 0} outbound operations.`,
+        title: "Triggers updated",
+        description: `Successfully evaluated ${data?.events ?? 0} events and sent ${data?.dispatched ?? 0} messages.`,
       });
       load();
     } catch (e: any) {
@@ -271,11 +271,10 @@ export function AgentTriggers() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-foreground">
             <Zap className="h-5 w-5 text-amber-500 fill-amber-500/10" />
-            <h1 className="text-2xl font-bold tracking-tight">Automated Trigger Center</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Automation Trigger Center</h1>
           </div>
           <p className="text-xs text-muted-foreground">
-            Map specific workspace events to active communication agents, regulate channel paths, and adjust centralized
-            credit pools.
+            Map specific workspace events to active agents, set communication channels, and manage shared credits.
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
@@ -286,7 +285,7 @@ export function AgentTriggers() {
             className="rounded-lg h-10 px-4 text-xs font-semibold gap-1.5 bg-background shadow-sm"
           >
             {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
-            Run Sync Dispatcher
+            Run Dispatcher
           </Button>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -304,7 +303,7 @@ export function AgentTriggers() {
                     <div className="space-y-0.5 text-left">
                       <DialogTitle className="text-lg font-bold tracking-tight">Create Automation Trigger</DialogTitle>
                       <p className="text-xs text-muted-foreground">
-                        Expose a live system event to automated assistant behavioral parameters.
+                        Set up an AI agent to respond to system events.
                       </p>
                     </div>
                   </div>
@@ -313,10 +312,10 @@ export function AgentTriggers() {
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-foreground">Assign Communication Agent</Label>
+                      <Label className="text-xs font-semibold text-foreground">Select AI Agent</Label>
                       <Select value={draft.agent_id} onValueChange={(v) => setDraft({ ...draft, agent_id: v })}>
                         <SelectTrigger className="h-10 rounded-lg text-xs font-medium bg-muted/20">
-                          <SelectValue placeholder="Select target profile..." />
+                          <SelectValue placeholder="Select an agent..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-lg border">
                           {agents.map((a) => (
@@ -328,7 +327,7 @@ export function AgentTriggers() {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-foreground">Platform Event Key Trigger</Label>
+                      <Label className="text-xs font-semibold text-foreground">Event Trigger</Label>
                       <Select value={draft.event_kind} onValueChange={(v) => setDraft({ ...draft, event_kind: v })}>
                         <SelectTrigger className="h-10 rounded-lg text-xs font-medium bg-muted/20">
                           <SelectValue />
@@ -346,7 +345,7 @@ export function AgentTriggers() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1.5 md:col-span-1">
-                      <Label className="text-xs font-semibold text-foreground">Recipient Scope</Label>
+                      <Label className="text-xs font-semibold text-foreground">Recipient</Label>
                       <Select
                         value={draft.recipient_strategy}
                         onValueChange={(v) => setDraft({ ...draft, recipient_strategy: v })}
@@ -364,7 +363,7 @@ export function AgentTriggers() {
                       </Select>
                     </div>
                     <div className="space-y-1.5 md:col-span-1">
-                      <Label className="text-xs font-semibold text-foreground">Outbound Route Channel</Label>
+                      <Label className="text-xs font-semibold text-foreground">Channel</Label>
                       <Select value={draft.channel || "auto"} onValueChange={(v) => setDraft({ ...draft, channel: v })}>
                         <SelectTrigger className="h-10 rounded-lg text-xs font-medium bg-muted/20">
                           <SelectValue />
@@ -393,17 +392,17 @@ export function AgentTriggers() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center mb-0.5">
                       <Label className="text-xs font-semibold text-foreground">
-                        Message Generation Outline / Prompts
+                        Message Template / Prompt
                       </Label>
                       <Badge variant="secondary" className="text-[10px] font-medium rounded px-1">
-                        Dynamic Context Injection Active
+                        Dynamic values active
                       </Badge>
                     </div>
                     <Textarea
                       rows={4}
                       value={draft.template || ""}
                       onChange={(e) => setDraft({ ...draft, template: e.target.value })}
-                      placeholder="E.g., Welcome new candidates, highlighting a deep assessment as their logical initial milestone action item."
+                      placeholder="E.g., Welcome new users and suggest starting a career assessment."
                       className="rounded-lg text-xs p-3 font-medium bg-muted/10 resize-none leading-relaxed"
                     />
                   </div>
@@ -421,7 +420,7 @@ export function AgentTriggers() {
                     onClick={saveTrigger}
                     className="h-10 px-5 rounded-lg text-xs font-semibold gap-1.5 shadow-sm"
                   >
-                    <ShieldCheck className="h-4 w-4" /> Save Trigger Rule
+                    <ShieldCheck className="h-4 w-4" /> Save Trigger
                   </Button>
                 </DialogFooter>
               </div>
@@ -437,7 +436,7 @@ export function AgentTriggers() {
             <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-xl" />
             <CardHeader className="p-4 sm:p-5 border-b border-border/40 bg-muted/5">
               <CardTitle className="text-xs font-semibold tracking-wider uppercase flex items-center gap-2 text-muted-foreground">
-                <Wallet className="h-3.5 w-3.5 text-amber-500" /> Automated Credit Ledger Settings
+                <Wallet className="h-3.5 w-3.5 text-amber-500" /> Shared Credits Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-6">
@@ -460,7 +459,7 @@ export function AgentTriggers() {
                 </div>
                 <div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
-                    Monthly Spending Limit
+                    Monthly Limit
                   </div>
                   <div className="text-2xl font-bold tracking-tight text-primary">
                     {pool?.monthly_cap?.toLocaleString() ?? "0"}
@@ -470,7 +469,7 @@ export function AgentTriggers() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs font-medium">
-                  <span className="text-muted-foreground">Current Utilization vs Cap Limit</span>
+                  <span className="text-muted-foreground">Monthly Limit Usage</span>
                   <span className={cn("font-semibold", spentPct > 90 ? "text-destructive" : "text-amber-600")}>
                     {spentPct}%
                   </span>
@@ -507,7 +506,7 @@ export function AgentTriggers() {
                     type="number"
                     value={capAmount}
                     onChange={(e) => setCapAmount(e.target.value)}
-                    placeholder="New Cap Limit"
+                    placeholder="New Limit"
                   />
                   <Button
                     size="sm"
@@ -527,13 +526,13 @@ export function AgentTriggers() {
             <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-t-xl" />
             <CardHeader className="p-4 sm:p-5 border-b border-border/40 bg-muted/5">
               <CardTitle className="text-xs font-semibold tracking-wider uppercase flex items-center gap-2 text-muted-foreground">
-                <Cpu className="h-3.5 w-3.5 text-emerald-600" /> Active System Trigger Actions
+                <Cpu className="h-3.5 w-3.5 text-emerald-600" /> Active Triggers
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-5">
               {triggers.length === 0 ? (
                 <div className="py-12 text-center text-xs text-muted-foreground">
-                  No active system trigger maps configured yet.
+                  No active triggers set up yet.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -548,7 +547,7 @@ export function AgentTriggers() {
                             {t.event_kind}
                           </Badge>
                           <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                            {agentMap[t.agent_id]?.name || "Unassigned Profile"}
+                            {agentMap[t.agent_id]?.name || "Unassigned Agent"}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -556,7 +555,7 @@ export function AgentTriggers() {
                             variant="secondary"
                             className="text-[10px] font-medium bg-muted rounded px-1.5 uppercase tracking-wide"
                           >
-                            Scope: {t.recipient_strategy}
+                            To: {t.recipient_strategy}
                           </Badge>
                           <Badge
                             variant="outline"
@@ -573,7 +572,7 @@ export function AgentTriggers() {
                         </div>
                         {t.last_fired_at && (
                           <div className="text-[10px] font-mono text-muted-foreground/50">
-                            Last Dispatched: {new Date(t.last_fired_at).toLocaleString()}
+                            Last Sent: {new Date(t.last_fired_at).toLocaleString()}
                           </div>
                         )}
                       </div>
@@ -606,18 +605,18 @@ export function AgentTriggers() {
           <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-t-xl" />
           <CardHeader className="p-4 sm:p-5 border-b border-border/40 bg-muted/5">
             <CardTitle className="text-xs font-semibold tracking-wider uppercase flex items-center gap-2 text-muted-foreground">
-              <Network className="h-3.5 w-3.5 text-primary" /> Live Outreach Dispatch Logs
+              <Network className="h-3.5 w-3.5 text-primary" /> Live Outreach Logs
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-y-auto max-h-[720px] no-scrollbar bg-background/5">
             {running ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
-                <span className="text-xs font-medium">Synchronizing delivery tracks...</span>
+                <span className="text-xs font-medium">Syncing logs...</span>
               </div>
             ) : outreach.length === 0 ? (
               <div className="p-12 text-center text-xs text-muted-foreground">
-                No outbound notifications logged on this environment layer.
+                No outreach logs found.
               </div>
             ) : (
               <div className="divide-y border-t border-border/20">

@@ -69,7 +69,7 @@ export default function LanguagesHub() {
  <h1 className={PAGE_TITLE}>Language Lab</h1>
  </div>
  <p className={PAGE_SUBTITLE}>
- Engage with AI communication partners or book high-fidelity sessions with native instructional faculty.
+ Practice speaking with AI partners or book 1-on-1 sessions with professional tutors.
  </p>
  </header>
 

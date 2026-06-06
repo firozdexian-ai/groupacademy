@@ -50,7 +50,7 @@ export default function IELTSResults() {
  .maybeSingle();
 
  if (queryHandshakeError) throw queryHandshakeError;
- if (!dbAttemptPayload) throw new Error("Examination attempt registry record not localized.");
+ if (!dbAttemptPayload) throw new Error("Test attempt not found.");
  return dbAttemptPayload as unknown as MockAttemptRecord;
  },
  });
@@ -71,7 +71,7 @@ export default function IELTSResults() {
  return (
  <div className="min-h-[50vh] grid place-items-center text-center p-6 antialiased select-none transform-gpu w-full">
  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
- Examination Data Registry Unallocated
+ Test data not found.
  </p>
  </div>
  );
@@ -83,10 +83,10 @@ export default function IELTSResults() {
  <header className="flex items-center justify-between gap-4 border-b border-border/10 pb-4 w-full shrink-0 select-none leading-none">
  <div className="block leading-none">
  <p className="font-mono text-sm font-medium text-muted-foreground/50 uppercase tracking-wide block leading-none pb-1">
- Examination Result
+ Test Result
  </p>
  <h1 className="text-base sm:text-lg font-black uppercase tracking-wide text-foreground leading-tight block select-text">
- {activeAttemptNode.section.toUpperCase()} PERFORMANCE ANALYSIS
+ {activeAttemptNode.section.toUpperCase()} PRACTICE RESULTS
  </h1>
  </div>
  <Badge className="font-mono text-base font-black uppercase px-3 h-9 rounded-lg border border-primary/20 bg-primary/5 text-primary shadow-3xs tracking-tighter shrink-0 select-none pointer-events-none">
@@ -128,7 +128,7 @@ export default function IELTSResults() {
  {Array.isArray(feedbackDataPayload.strengths) && feedbackDataPayload.strengths.length > 0 && (
  <section className="space-y-2 block w-full">
  <h3 className="font-mono text-[9px] font-black uppercase text-emerald-700 tracking-wide block leading-none pb-1 border-b border-emerald-500/10">
- Identified Strengths
+ Your Strengths
  </h3>
  <ul className="text-xs text-foreground/80 font-medium space-y-1.5 pl-1 block">
  {feedbackDataPayload.strengths.map((strengthStr, idx) => (
@@ -143,7 +143,7 @@ export default function IELTSResults() {
  {Array.isArray(feedbackDataPayload.improvements) && feedbackDataPayload.improvements.length > 0 && (
  <section className="space-y-2 block w-full">
  <h3 className="font-mono text-[9px] font-black uppercase text-amber-700 tracking-wide block leading-none pb-1 border-b border-amber-500/10">
- Growth Opportunities
+ Areas to Improve
  </h3>
  <ul className="text-xs text-foreground/80 font-medium space-y-1.5 pl-1 block">
  {feedbackDataPayload.improvements.map((improvementStr, idx) => (
@@ -161,7 +161,7 @@ export default function IELTSResults() {
  <Card className="rounded-lg border border-primary/30 bg-primary/[0.02] shadow-none overflow-hidden block w-full">
  <CardContent className="p-4 space-y-1 block w-full leading-none">
  <div className="font-mono text-[9px] font-black uppercase text-primary tracking-wide block leading-none pb-1.5">
- Actionable Next Protocol
+ Recommended Next Steps
  </div>
  <p className="text-xs font-semibold text-foreground leading-relaxed block select-text">
  {feedbackDataPayload.next_action}

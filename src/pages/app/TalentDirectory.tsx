@@ -101,43 +101,43 @@ export default function TalentDirectory() {
  },
  });
 
- const boost = async () => {
- setBoosting(true);
- try {
- await boostProfile();
- setBoosting(false);
- toast.success("Profile Pinned.");
- } catch (error) {
- setBoosting(false);
- await reportAnomaly("BoostFailure", { error });
- toast.error("Boost operational fault.");
- }
- };
+  const boost = async () => {
+    setBoosting(true);
+    try {
+      await boostProfile();
+      setBoosting(false);
+      toast.success("Profile Pinned.");
+    } catch (error) {
+      setBoosting(false);
+      await reportAnomaly("BoostFailure", { error });
+      toast.error("Failed to pin profile.");
+    }
+  };
 
  return (
  <div className={PAGE_SHELL_WIDE}>
  <header className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <h1 className={PAGE_TITLE}>Talent Directory</h1>
- <p className={PAGE_SUBTITLE}>Discover verified creator artifacts and workforce nodes.</p>
- </div>
- {me?.id && (
- <Button onClick={boost} disabled={boosting} className="rounded-xl">
- <Rocket className="h-4 w-4 mr-2" /> Pin Profile · 100 cr
- </Button>
- )}
+    <div>
+      <h1 className={PAGE_TITLE}>Talent Directory</h1>
+      <p className={PAGE_SUBTITLE}>Discover verified creators and talented professionals.</p>
+    </div>
+    {me?.id && (
+      <Button onClick={boost} disabled={boosting} className="rounded-xl">
+        <Rocket className="h-4 w-4 mr-2" /> Pin Profile · 100 credits
+      </Button>
+    )}
  </header>
 
- <section className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
- <div className="relative">
- <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
- <Input
- placeholder="Search identity nodes…"
- value={q}
- onChange={(e) => setQ(e.target.value)}
- className="pl-9 rounded-xl"
- />
- </div>
+  <section className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        placeholder="Search members…"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        className="pl-9 rounded-xl"
+      />
+    </div>
  {/* Selects & Switch implementation remains immutable */}
  </section>
 
@@ -147,10 +147,10 @@ export default function TalentDirectory() {
  <Skeleton key={i} className="h-24 rounded-2xl" />
  ))}
  </div>
- ) : rows.length === 0 ? (
- <Card className="p-12 text-center border-dashed">
- <p className="text-sm">No identity nodes detected.</p>
- </Card>
+  ) : rows.length === 0 ? (
+    <Card className="p-12 text-center border-dashed">
+      <p className="text-sm">No talent profiles found.</p>
+    </Card>
  ) : (
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {rows.map((t) => (

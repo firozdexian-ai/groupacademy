@@ -155,7 +155,15 @@ export function RoadmapIntakeForm() {
         message: err.message,
         timestamp: new Date().toISOString(),
       });
-      toast.error(err.message || "Couldn't generate roadmap. Please try again.");
+      
+      const msg = err.message || "";
+      if (msg.includes("AUTH_SYNC_REQUIRED")) {
+        toast.error("Please sign in to continue.");
+      } else if (msg.includes("FISCAL_DEFICIT")) {
+        toast.error("Not enough credits. Please top up your wallet.");
+      } else {
+        toast.error(msg || "Couldn't generate roadmap. Please try again.");
+      }
     },
   });
 
@@ -325,7 +333,7 @@ export function RoadmapIntakeForm() {
                     )}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-black text-xs uppercase italic tracking-widest">{b.label}</span>=
+                      <span className="font-black text-xs uppercase italic tracking-widest">{b.label}</span>
                       {isSelected && <ShieldCheck className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">

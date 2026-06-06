@@ -208,14 +208,14 @@ export function CoverImageUpload({ currentUrl, onImageChange }: CoverImageUpload
               className="h-9 px-4 rounded-xl font-bold uppercase text-[10px] tracking-wide text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 cursor-pointer shrink-0 transition-colors gap-1.5 flex items-center justify-center border-none shadow-none"
             >
               <Trash2 className="h-4 w-4 stroke-[2.2]" />
-              <span>Flush Node</span>
+              <span>Remove cover</span>
             </Button>
           )}
         </div>
 
         <div className="flex items-center gap-1.5 px-2.5 h-5 rounded bg-muted/40 border border-border/10 text-[9px] font-mono font-extrabold uppercase text-muted-foreground/70 tracking-wide select-none shadow-inner leading-none shrink-0">
           <Zap className="h-3 w-3 text-warning fill-warning/10 stroke-[2.2]" />
-          <span>Optimum Baseline: 1200x400 JPG/PNG index dimensions</span>
+          <span>Recommended size: 1200x400 JPG or PNG</span>
         </div>
       </div>
     </div>

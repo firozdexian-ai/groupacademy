@@ -41,6 +41,13 @@ interface Transaction {
  is_earned: boolean;
 }
 
+const formatTxType = (type: string) => {
+  if (!type) return "";
+  return type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export default function Transactions() {
  const navigate = useNavigate();
  const [searchParams] = useSearchParams();
@@ -109,8 +116,8 @@ export default function Transactions() {
  <ArrowLeft className="h-5 w-5 text-primary" />
  </Button>
  <div className="space-y-1">
- <h1 className={PAGE_TITLE}>Credit Ledger</h1>
- <p className={PAGE_SUBTITLE}>Economic Tracking Node</p>
+ <h1 className={PAGE_TITLE}>Credits & Billing</h1>
+ <p className={PAGE_SUBTITLE}>View your transaction history and invoices</p>
  </div>
  </header>
 
@@ -164,7 +171,7 @@ export default function Transactions() {
  <Coins className="h-6 w-6" />
  </div>
  <div>
- <h4 className="font-black uppercase italic">{tx.transaction_type}</h4>
+ <h4 className="font-black uppercase italic">{formatTxType(tx.transaction_type)}</h4>
  <p className={META_TEXT}>{format(new Date(tx.created_at), "MMM d, yyyy")}</p>
  </div>
  </div>

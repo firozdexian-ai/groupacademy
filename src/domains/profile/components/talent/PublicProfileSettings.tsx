@@ -65,8 +65,8 @@ export function PublicProfileSettings() {
 
       if (isMountedRef.current) {
         toast({
-          title: "REGISTRY_LOCKED",
-          description: "Your unique profile identity index track handle has been validated down rows.",
+          title: "Handle claimed",
+          description: "Your public profile handle has been updated.",
         });
       }
     } catch (err: any) {
@@ -74,8 +74,8 @@ export function PublicProfileSettings() {
       trackError(parsedExceptionMsg, { component: "PublicProfileSettings", action: "commit_handle_claim" });
 
       toast({
-        title: "REGISTRY_SYNC_FAULT",
-        description: parsedExceptionMsg || "The selected handle has been claimed by a parallel network entity.",
+        title: "Handle unavailable",
+        description: parsedExceptionMsg || "The selected handle is already taken.",
         variant: "destructive",
       });
     }
@@ -90,11 +90,11 @@ export function PublicProfileSettings() {
       await queryClient.invalidateQueries({ queryKey: ["public-profile-settings"] });
 
       if (isMountedRef.current) {
-        toast({ title: "BIO_SYNC_VERIFIED" });
+        toast({ title: "Bio updated" });
       }
     } catch (err) {
       trackError(err, { component: "PublicProfileSettings", action: "commit_bio_update" });
-      toast({ title: "TRANSIT_FAULT", description: "Failed to push narrative modifications.", variant: "destructive" });
+      toast({ title: "Save failed", description: "Failed to save bio. Please try again.", variant: "destructive" });
     }
   };
 
@@ -104,7 +104,7 @@ export function PublicProfileSettings() {
 
     try {
       navigator.clipboard.writeText(publicUrl);
-      toast({ title: "LINK_COPIED_SYNC" });
+      toast({ title: "Link copied" });
     } catch (err) {
       trackError(err, { component: "PublicProfileSettings", action: "copy_clipboard_link" });
     }
@@ -168,7 +168,7 @@ export function PublicProfileSettings() {
                     value={handleInput}
                     disabled={claimHandle.isPending}
                     onChange={(e) => setHandleInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                    placeholder="your-custom-alias-id"
+                    placeholder="your-username"
                     className="border-none bg-transparent shadow-none h-full w-full px-0.5 font-bold italic tracking-wide focus-visible:ring-0 select-text"
                     maxLength={40}
                   />
@@ -212,7 +212,7 @@ export function PublicProfileSettings() {
                     className="h-7 px-3 rounded-lg font-bold text-[10px] uppercase tracking-wide border border-border/40 bg-background/30 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors"
                   >
                     <Copy className="h-3 w-3 mr-1 stroke-[2.2]" />
-                    <span>Copy Endpoint</span>
+                    <span>Copy Link</span>
                   </Button>
                   <Button
                     asChild
@@ -228,7 +228,7 @@ export function PublicProfileSettings() {
                       onClick={() => trackEvent("public_profile_view_external_clicked")}
                     >
                       <ExternalLink className="h-3 w-3 mr-1 stroke-[2.2]" />
-                      <span>Launch view</span>
+                      <span>View Profile</span>
                     </a>
                   </Button>
                 </div>
@@ -240,7 +240,7 @@ export function PublicProfileSettings() {
               <div className="rounded-xl border border-warning/15 bg-warning/[0.015] p-3 text-[11px] sm:text-xs text-warning dark:text-warning font-bold flex items-center gap-2 select-none leading-none animate-in pulse duration-1000 w-full shrink-0">
                 <AlertCircle className="h-4 w-4 shrink-0 stroke-[2.2]" />
                 <span>
-                  Specify and claim an identity handle node key above to authorize dynamic pipeline routing links.
+                  Claim a handle above to share your public profile.
                 </span>
               </div>
             )}
@@ -248,19 +248,19 @@ export function PublicProfileSettings() {
             {/* SUB NODE BLOCK C: PROFILE BIO SYNC EDITOR BOX AREA */}
             <div className="space-y-1.5 text-left w-full min-w-0 font-bold text-xs tracking-tight">
               <label className="text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground/60 block pl-0.5 leading-none select-none">
-                Short Core Bio Tagline Summary
+                Short Bio
               </label>
               <Textarea
                 value={bio}
                 disabled={update.isPending}
                 onChange={(e) => setBio(e.target.value.slice(0, 240))}
-                placeholder="Specify an authoritative one-line baseline programmatic professional tagline shown on public frames…"
+                placeholder="Write a short tagline for your public profile..."
                 rows={2}
                 className="w-full rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 leading-relaxed italic resize-none shadow-inner"
               />
               <div className="flex items-center justify-between gap-4 select-none leading-none w-full shrink-0 h-7 pt-0.5 font-bold text-[10px]">
                 <span className="font-mono text-muted-foreground/40 tabular-nums font-extrabold">
-                  {bio.length} / 240 scalar units
+                  {bio.length} / 240 characters
                 </span>
                 <Button
                   size="sm"
@@ -278,7 +278,7 @@ export function PublicProfileSettings() {
             {/* SUB NODE BLOCK D: METRIC SUB-TOGGLE CONFIGURATION SWITCHES GRID */}
             <div className="space-y-2 pt-2 border-t border-border/10 select-none w-full shrink-0 flex flex-col font-bold text-xs">
               <div className="flex items-center justify-between gap-4 p-2.5 rounded-xl border border-border/5 bg-background/20 transition-colors w-full min-w-0 leading-none font-semibold">
-                <span className="text-xs text-foreground/80 truncate pr-1">Expose Verified Skill Registry Badges</span>
+                <span className="text-xs text-foreground/80 truncate pr-1">Show verified skills</span>
                 <Switch
                   checked={!!data.public_show_credentials}
                   disabled={update.isPending}
@@ -297,7 +297,7 @@ export function PublicProfileSettings() {
 
               <div className="flex items-center justify-between gap-4 p-2.5 rounded-xl border border-border/5 bg-background/20 transition-colors w-full min-w-0 leading-none font-semibold">
                 <span className="text-xs text-foreground/80 truncate pr-1">
-                  Expose Psychometric Mastery Snapshot Curves
+                  Show skill assessment scores
                 </span>
                 <Switch
                   checked={!!data.public_show_mastery}

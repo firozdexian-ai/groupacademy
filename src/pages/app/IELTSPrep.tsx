@@ -199,7 +199,7 @@ export default function IELTSPrep() {
  "font-mono text-[9px] font-extrabold uppercase tracking-wide text-amber-600 block",
  )}
  >
- 100 Credits Draw Metric
+ 100 Credits
  </p>
  </div>
  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />

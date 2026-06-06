@@ -91,7 +91,7 @@ export function GigSubmissionForm({ gig, open, onOpenChange }: GigSubmissionForm
           <div className="py-12 text-center space-y-3.5 select-none">
             <AlertCircle className="h-10 w-10 text-destructive/40 mx-auto animate-bounce" />
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 italic">
-              Protocol Node Offline
+              Service Offline
             </p>
           </div>
         );
@@ -143,12 +143,12 @@ export function GigSubmissionForm({ gig, open, onOpenChange }: GigSubmissionForm
           <DialogDescription className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 flex items-center justify-between shadow-inner w-full gap-4">
             <div className="flex flex-col text-left">
               <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                Yield Potential Status
+                Reward
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
                 <span className="text-xs font-bold text-amber-600 dark:text-amber-500 tracking-tight">
-                  Verification Auditing Required
+                  Requires verification
                 </span>
               </div>
             </div>

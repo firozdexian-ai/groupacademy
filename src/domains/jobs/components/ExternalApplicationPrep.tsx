@@ -28,19 +28,19 @@ interface ExternalApplicationPrepProps {
 }
 
 const SCRAPE_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "INITIALIZING_REMOTE_SYNC" },
-  { progress: 35, message: "DECRYPTING_FORM_STRUCTURE" },
-  { progress: 55, message: "MAPPING_QUESTION_NODES" },
-  { progress: 70, message: "INJECTING_PROFILE_ARTIFACTS" },
-  { progress: 85, message: "SYNTHESIZING_PERSONALIZED_DATA" },
-  { progress: 95, message: "FINALIZING_RESPONSE_BLUEPRINTS" },
+  { progress: 15, message: "Connecting..." },
+  { progress: 35, message: "Reading form fields..." },
+  { progress: 55, message: "Identifying questions..." },
+  { progress: 70, message: "Matching with your profile..." },
+  { progress: 85, message: "Drafting answers..." },
+  { progress: 95, message: "Finalizing answers..." },
 ];
 
 const SCREENSHOT_STAGES: ProcessingStage[] = [
-  { progress: 15, message: "ANALYZING_VISION_SYNC" },
-  { progress: 45, message: "EXTRACTING_TEXT_CLUSTER" },
-  { progress: 75, message: "MAPPING_TRAJECTORY_FIT" },
-  { progress: 95, message: "SYNTHESIZING_DATA" },
+  { progress: 15, message: "Analyzing screenshot..." },
+  { progress: 45, message: "Extracting text..." },
+  { progress: 75, message: "Matching with job role..." },
+  { progress: 95, message: "Drafting answers..." },
 ];
 
 type Phase = "loading" | "scrape_failed" | "results";
@@ -252,10 +252,10 @@ export function ExternalApplicationPrep({
               </div>
               <div className="min-w-0 flex-1 flex flex-col justify-center leading-none">
                 <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground uppercase tracking-wide">
-                  Apply Strategy Optimization
+                  Application Assistant
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mt-1 truncate max-w-full">
-                  Deployment Profile: {jobTitle} &bull; {companyName}
+                  Job details: {jobTitle} &bull; {companyName}
                 </DialogDescription>
               </div>
             </div>
@@ -284,7 +284,7 @@ export function ExternalApplicationPrep({
               </div>
               <div className="space-y-1 max-w-sm mx-auto px-2 text-center">
                 <p className="text-xs font-bold uppercase tracking-wider text-destructive dark:text-destructive leading-none">
-                  Synchronization Protocol Fault
+                  Failed to read form
                 </p>
                 <p className="text-[11px] font-semibold text-muted-foreground/80 leading-normal italic select-text mt-1">
                   {error}
@@ -297,7 +297,7 @@ export function ExternalApplicationPrep({
                 className="h-9 px-4 rounded-xl border-border/60 hover:bg-accent font-bold uppercase text-[10px] tracking-wide gap-1.5 shrink-0 shadow-sm cursor-pointer"
               >
                 <Zap className="h-3.5 w-3.5 text-primary fill-primary/10 stroke-[2.2]" />
-                <span>Retry Channel Sync</span>
+                <span>Retry</span>
               </Button>
             </div>
           )}
@@ -308,17 +308,16 @@ export function ExternalApplicationPrep({
               <div className="p-4 bg-warning/5 border border-warning/20 rounded-2xl shadow-inner relative overflow-hidden select-none">
                 <Zap className="absolute -top-3 -right-3 h-14 w-14 text-warning opacity-5 rotate-12 pointer-events-none select-none" />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-warning dark:text-warning mb-1 leading-none pl-0.5">
-                  Remote Scrape Gate Intercepted
+                  Form couldn't be loaded automatically
                 </p>
                 <p className="text-[11px] font-medium text-muted-foreground/90 leading-relaxed italic pl-0.5 pr-2">
-                  Application form mapping interface structured behind Single-Page authorization gates. Initialize
-                  Vision Core processing loops by dropping screenshot captures of required question rows below.
+                  This job application form might be protected or requires login. You can take a screenshot of the form fields and upload it below so we can help you draft answers.
                 </p>
               </div>
 
               <div className="space-y-2 w-full">
                 <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 ml-0.5 italic select-none leading-none">
-                  Vision Ingress Staging Queue
+                  Staged Screenshots
                 </p>
 
                 <div className="grid grid-cols-3 gap-3 w-full max-w-full select-none">
@@ -351,7 +350,7 @@ export function ExternalApplicationPrep({
                     <label className="aspect-video rounded-xl border border-dashed border-primary/20 bg-primary/5 hover:bg-card/40 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all duration-300 group shadow-sm">
                       <ImagePlus className="w-5 h-5 text-primary/50 group-hover:scale-105 transition-transform duration-300" />
                       <span className="text-[8px] font-bold uppercase mt-1.5 tracking-wider text-primary/60 pl-0.5">
-                        Stage Image
+                        Upload Screenshot
                       </span>
                       <input
                         type="file"
@@ -381,7 +380,7 @@ export function ExternalApplicationPrep({
                     className="flex-1 h-11 rounded-xl font-bold text-xs tracking-wide shadow-md active:scale-[0.99] transition-all cursor-pointer gap-2"
                   >
                     <Upload className="w-4 h-4 text-primary-foreground stroke-[2.2]" />
-                    <span>Initialize Vision Processing Matrix ({screenshots.length} / 5)</span>
+                    <span>Analyze Screenshots ({screenshots.length} / 5)</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -391,7 +390,7 @@ export function ExternalApplicationPrep({
                       trackEvent("external_portal_manual_opened", { jobId });
                       window.open(applicationUrl, "_blank", "noopener,noreferrer");
                     }}
-                    aria-label="Open native form source direction layout link"
+                    aria-label="Open application link"
                   >
                     <ExternalLink className="w-4 h-4 text-muted-foreground/80 stroke-[2.2]" />
                   </Button>
@@ -409,14 +408,14 @@ export function ExternalApplicationPrep({
                     <div className="flex items-center gap-2 min-w-0">
                       <ShieldCheck className="h-4 w-4 text-success shrink-0 stroke-[2.5]" />
                       <h3 className="text-[10px] font-bold uppercase tracking-wider text-foreground/90 truncate pl-0.5">
-                        Extracted Ingress Form Blocks
+                        Drafted Answers
                       </h3>
                     </div>
                     <Badge
                       variant="outline"
                       className="text-[9px] font-extrabold h-5 px-2 bg-primary/5 text-primary border-primary/20 rounded-md tracking-wide uppercase shadow-sm select-none tabular-nums"
                     >
-                      {answers.length} parameters mapped
+                      {answers.length} questions found
                     </Badge>
                   </div>
 
@@ -431,7 +430,7 @@ export function ExternalApplicationPrep({
                           <CardContent className="p-4 space-y-2.5 w-full min-w-0">
                             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/90 leading-tight select-text flex items-start gap-2 break-words w-full">
                               <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1 shrink-0 select-none" />
-                              <span className="flex-1 min-w-0">Question Node: {qaItem.question}</span>
+                              <span className="flex-1 min-w-0">Question: {qaItem.question}</span>
                             </p>
 
                             <Textarea
@@ -516,7 +515,7 @@ export function ExternalApplicationPrep({
                   window.open(applicationUrl, "_blank", "noopener,noreferrer");
                 }}
               >
-                <span>Launch Destination Career Portal</span>
+                <span>Open Application Page</span>
                 <ExternalLink className="h-4 w-4 text-primary-foreground stroke-[2.5]" />
               </Button>
             </div>

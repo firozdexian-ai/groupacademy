@@ -183,10 +183,10 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
             </div>
             <div className="min-w-0 flex flex-col justify-center leading-none flex-1">
               <DialogTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none">
-                Authorized Profile Identity Configuration Terminal
+                Edit Profile
               </DialogTitle>
               <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none pt-1">
-                Authorized tracking credentials synchronization panel interface
+                Update your profile details below
               </DialogDescription>
             </div>
           </div>
@@ -252,20 +252,20 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
                 <div className="grid grid-cols-1 gap-4 w-full">
                   <div className="space-y-1.5 text-left w-full min-w-0">
                     <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                      Identity Track Profile Name *
+                      Full Name *
                     </Label>
                     <Input
                       value={fullName}
                       disabled={isSaving}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Specify comprehensive index legal name parameters…"
+                      placeholder="Enter your full name..."
                       className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner w-full block"
                     />
                   </div>
 
                   <div className="space-y-1.5 text-left w-full min-w-0">
                     <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                      Communication Phone Line
+                      Phone Number
                     </Label>
                     <Input
                       type="tel"
@@ -279,7 +279,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
 
                   <div className="space-y-1.5 text-left w-full min-w-0">
                     <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                      Functional Vocational Role
+                      Profession / Title
                     </Label>
                     <Input
                       value={customProfession}
@@ -292,26 +292,26 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
 
                   <div className="space-y-1.5 text-left w-full min-w-0">
                     <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                      LinkedIn Network Sync Node URL
+                      LinkedIn Profile URL
                     </Label>
                     <Input
                       value={linkedinUrl}
                       disabled={isSaving}
                       onChange={(e) => setLinkedinUrl(e.target.value)}
-                      placeholder="https://linkedin.com/in/profile-identification-string"
+                      placeholder="https://linkedin.com/in/username"
                       className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner font-mono text-primary/80 block select-text w-full"
                     />
                   </div>
 
                   <div className="space-y-1.5 text-left w-full min-w-0">
                     <Label className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none">
-                      Digital Portfolio Repository Artifact Link
+                      Portfolio Website URL
                     </Label>
                     <Input
                       value={portfolioUrl}
                       disabled={isSaving}
                       onChange={(e) => setPortfolioUrl(e.target.value)}
-                      placeholder="https://domain-name.com/portfolio-address-registry"
+                      placeholder="https://yourportfolio.com"
                       className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner font-mono text-primary/80 block select-text w-full"
                     />
                   </div>
@@ -342,7 +342,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
             disabled={isSaving}
             className="h-9 px-4 rounded-xl text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 transition-colors cursor-pointer"
           >
-            Abort Changes
+            Cancel
           </Button>
 
           <Button

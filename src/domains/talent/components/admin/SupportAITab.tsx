@@ -48,7 +48,7 @@ export function SupportAITab() {
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) return toast.error("Error: Image format required.");
-    if (file.size > 10 * 1024 * 1024) return toast.error("Payload Fault: Image must be under 10MB.");
+    if (file.size > 10 * 1024 * 1024) return toast.error("Error: Image must be under 10MB.");
 
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
@@ -83,10 +83,10 @@ export function SupportAITab() {
       if (data?.error) throw new Error(data.error);
 
       setResponse(data as AIResponse);
-      toast.success("Intelligence: Conversation analyzed.");
+      toast.success("Conversation analyzed.");
     } catch (err: any) {
       console.error("Analysis Fault:", err);
-      toast.error(err.message || "System Error: Neural analysis failed.");
+      toast.error(err.message || "Error: Analysis failed.");
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export function SupportAITab() {
     if (!response?.reply) return;
     await navigator.clipboard.writeText(response.reply);
     setCopied(true);
-    toast.success("Artifact copied to clipboard.");
+    toast.success("Reply copied to clipboard.");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -118,14 +118,14 @@ export function SupportAITab() {
             </h2>
           </div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Visual Conversation OCR & Neural Response
+            AI-Powered Support Assistant
           </p>
         </div>
         <Badge
           variant="outline"
           className="h-12 px-6 rounded-xl font-semibold uppercase text-xs tracking-widest gap-2 border-accent/50 text-accent bg-accent/10 animate-pulse"
         >
-          <ShieldCheck className="h-4 w-4" /> AI_ASSIST_ENABLED
+          <ShieldCheck className="h-4 w-4" /> AI ASSIST ENABLED
         </Badge>
       </header>
 
@@ -168,7 +168,7 @@ export function SupportAITab() {
                     Drop Screenshot Here
                   </p>
                   <p className="text-[10px] font-bold text-muted-foreground mt-2">
-                    PNG, JPG or WebP (Node limit 10MB)
+                    PNG, JPG or WebP (Max size 10MB)
                   </p>
                   <input
                     id="support-image-upload"
@@ -182,7 +182,7 @@ export function SupportAITab() {
 
               <div className="space-y-3">
                 <Label className="text-[10px] font-semibold uppercase italic tracking-widest text-accent ml-1 flex items-center gap-2">
-                  <User className="h-3 w-3" /> Additional Context Node
+                  <User className="h-3 w-3" /> Additional Context
                 </Label>
                 <Textarea
                   placeholder="e.g., User is asking about the 75-credit cost for mock interview retakes..."
@@ -199,11 +199,11 @@ export function SupportAITab() {
               >
                 {loading ? (
                   <>
-                    <InlineSpinner size="md" /> Processing Registry...
+                    <InlineSpinner size="md" /> Analyzing...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-5 w-5 fill-current" /> Initialize Neural Analysis
+                    <Sparkles className="h-5 w-5 fill-current" /> Analyze Conversation
                   </>
                 )}
               </Button>
@@ -221,14 +221,14 @@ export function SupportAITab() {
                 </div>
                 <div>
                   <p className="text-[9px] font-semibold uppercase text-muted-foreground/60 italic tracking-widest">
-                    Neural Tone Detection
+                    Tone Detection
                   </p>
                   <p className="font-semibold uppercase italic text-lg tracking-tight leading-none mt-0.5">
                     {response.tone}
                   </p>
                 </div>
                 <Badge className="ml-auto bg-success/10 text-success border-none font-semibold text-[9px] px-3">
-                  VERIFIED_LOGIC
+                  VERIFIED
                 </Badge>
               </div>
 
@@ -237,10 +237,10 @@ export function SupportAITab() {
                 <CardHeader className="p-8 border-b border-border/10 flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-semibold uppercase italic tracking-tight flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-accent" /> Deployed Reply Node
+                      <MessageSquare className="h-5 w-5 text-accent" /> Generated Response
                     </CardTitle>
                     <CardDescription className="text-[9px] font-bold mt-1">
-                      Optimized for high-fidelity conversion
+                      Ready to copy and send
                     </CardDescription>
                   </div>
                   <Button
@@ -268,7 +268,7 @@ export function SupportAITab() {
                 <Card className="rounded-2xl border border-border/60 bg-card shadow-xl overflow-hidden text-left">
                   <CardHeader className="p-6 pb-2 border-b border-border/5 bg-muted/5">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2 text-warning">
-                      <Lightbulb className="h-4 w-4" /> Feature Mapping
+                      <Lightbulb className="h-4 w-4" /> Suggestions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -316,7 +316,7 @@ export function SupportAITab() {
                 <Sparkles className="h-10 w-10 text-muted-foreground/30" />
               </div>
               <p className="text-sm font-semibold text-muted-foreground/40 italic">
-                Awaiting Neural Ingestion
+                Awaiting analysis
               </p>
             </Card>
           )}

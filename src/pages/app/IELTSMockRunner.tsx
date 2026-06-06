@@ -67,7 +67,7 @@ export default function IELTSMockRunner() {
  mediaRecorderRef.current = recorderInstance;
  setIsMicrophoneRecording(true);
  } catch (hardwareException) {
- toast.error("Microphone hardware access denied by security container.");
+ toast.error("Could not access microphone. Please check permissions.");
  }
  };
 
@@ -78,11 +78,11 @@ export default function IELTSMockRunner() {
 
  const handleCommitSubmissionSequence = async () => {
  if (isAudioSectionFlag && !activeAudioBlob) {
- toast.error("You must finalize your vocal response track before auditing.");
+ toast.error("Please record your voice response before submitting.");
  return;
  }
  if (!isAudioSectionFlag && !responseTextInputStr.trim()) {
- toast.error("Input text parameters are required for writing-based section evaluation.");
+ toast.error("Please type your response before submitting.");
  return;
  }
 
@@ -92,7 +92,7 @@ export default function IELTSMockRunner() {
 
  if (isAudioSectionFlag && activeAudioBlob) {
  const authUser = await getCurrentUser();
- if (!authUser) throw new Error("Authentication credential session expired.");
+ if (!authUser) throw new Error("Session expired. Please sign in again.");
 
  const generatedPath = `${authUser.id}/${Date.now().toString()}.webm`;
  await uploadIeltsAudio(generatedPath, activeAudioBlob);
@@ -109,7 +109,7 @@ export default function IELTSMockRunner() {
  if (evaluationResponsePayload?.error) throw new Error(evaluationResponsePayload.error);
 
  toast.success(
- `Analysis Finalized: Band ${evaluationResponsePayload.band?.toString()} (${evaluationResponsePayload.was_free ? "Free Entry" : (evaluationResponsePayload.credits_spent ?? 0).toString() + " Credits Deducted"})`,
+ `Grading complete! Band ${evaluationResponsePayload.band?.toString()} (${evaluationResponsePayload.was_free ? "Free Practice" : (evaluationResponsePayload.credits_spent ?? 0).toString() + " credits used"})`,
  );
  navigateHook(`/app/abroad/ielts/results/${evaluationResponsePayload.attempt_id}`);
  } catch (mutationException: any) {
@@ -123,16 +123,16 @@ export default function IELTSMockRunner() {
  <div className="max-w-3xl mx-auto px-4 py-8 space-y-6 antialiased block transform-gpu w-full">
  <header className="space-y-1 block leading-none">
  <h1 className="text-xl font-black uppercase tracking-tight text-foreground">
- {unverifiedSectionStr?.toUpperCase()} MOCK EXAMINATION
+ {unverifiedSectionStr?.toUpperCase()} PRACTICE TEST
  </h1>
  <p className="font-mono text-sm font-medium text-muted-foreground/60 uppercase tracking-widest pt-1">
- {isAudioSectionFlag ? "Audio response window (60–120 seconds)" : "Written response window (min 250 words)"}
+ {isAudioSectionFlag ? "Speak for 1–2 minutes" : "Write at least 250 words"}
  </p>
  </header>
 
  <Card className="rounded-xl border border-primary/20 bg-muted/20 p-4 shadow-none">
  <div className="font-mono text-[9px] font-extrabold uppercase tracking-widest text-primary mb-2 select-none pointer-events-none">
- Examination Prompt
+ Question Prompt
  </div>
  <div className="text-sm font-medium text-foreground/80 leading-relaxed italic block">
  {unverifiedSectionStr === "writing" &&
@@ -140,9 +140,9 @@ export default function IELTSMockRunner() {
  {unverifiedSectionStr === "speaking" &&
  "Detail a location you desire to travel. Articulate the geography, travel infrastructure, activities planned, and justification for this travel itinerary."}
  {(unverifiedSectionStr === "reading" || unverifiedSectionStr === "listening") &&
- "Access the examination resource manifest and process the comprehension data matrix."}
+ "Read the passage carefully and answer the questions."}
  {unverifiedSectionStr === "full" &&
- "Execute a full-cycle mock examination across all four modules. System grading for each module will follow."}
+ "Take a full practice test covering all four sections: listening, reading, writing, and speaking."}
  </div>
  </Card>
 
@@ -154,7 +154,7 @@ export default function IELTSMockRunner() {
  variant="destructive"
  className="rounded-lg h-12 w-full font-bold uppercase tracking-widest shadow-2xs"
  >
- <Square className="h-4 w-4 mr-2" /> Finalize Recording
+ <Square className="h-4 w-4 mr-2" /> Stop Recording
  </Button>
  ) : (
  <Button
@@ -167,7 +167,7 @@ export default function IELTSMockRunner() {
  )}
  {activeAudioBlob && (
  <p className="font-mono text-[9px] font-bold text-emerald-600 uppercase tracking-wider mt-4">
- ✓ Hardware Capture Verified ({(activeAudioBlob.size / 1024).toFixed(0)} KB)
+ ✓ Recording complete ({(activeAudioBlob.size / 1024).toFixed(0)} KB)
  </p>
  )}
  </Card>
@@ -176,7 +176,7 @@ export default function IELTSMockRunner() {
  rows={12}
  value={responseTextInputStr}
  onChange={(e) => setResponseTextInputStr(e.target.value)}
- placeholder="Input your evaluation response parameter block string here..."
+ placeholder="Type your response here..."
  className="min-h-[240px] rounded-lg bg-background border border-border/60 p-4 text-sm font-medium leading-relaxed resize-none shadow-none focus-visible:ring-1 focus-visible:ring-ring"
  />
  )}
@@ -188,11 +188,11 @@ export default function IELTSMockRunner() {
  >
  {isSubmissionPending ? (
  <div className="flex items-center gap-2">
- <InlineSpinner size="sm" /> <span>Submitting for grading...</span>
+ <InlineSpinner size="sm" /> <span>Analyzing response...</span>
  </div>
  ) : (
  <div className="flex items-center gap-2">
- <ShieldCheck className="h-4 w-4" /> <span>Commit Response for AI Band Grading</span>
+ <ShieldCheck className="h-4 w-4" /> <span>Submit Response for AI Grading</span>
  </div>
  )}
  </Button>

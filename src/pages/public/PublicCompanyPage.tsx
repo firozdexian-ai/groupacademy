@@ -197,7 +197,7 @@ export default function PublicCompanyPage() {
       >
         <div className="flex items-center gap-2.5">
           <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-          <span>Resolving Corporate Core Node...</span>
+          <span>Loading Company Profile...</span>
         </div>
       </div>
     );
@@ -216,14 +216,14 @@ export default function PublicCompanyPage() {
           <div className="space-y-1 block">
             <p className="text-xs font-bold text-foreground uppercase tracking-wide">Company not found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              The targeted company mirror profile instance could not be tracked within verified system records.
+              The requested company profile could not be found.
             </p>
           </div>
           <Link
             to="/"
             className="h-8 px-4 rounded-lg inline-flex items-center justify-center text-sm font-medium tracking-wider bg-accent text-accent-foreground border border-border/40 transition-colors hover:bg-muted"
           >
-            ← Back to Home Matrix
+            ← Back to Home
           </Link>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function PublicCompanyPage() {
         {/* HUD LEVEL 1: PROFILE COVER MATRICES */}
         <div
           role="img"
-          aria-label={`${companyRecordState.name} structural workspace display cover canvas`}
+          aria-label={`${companyRecordState.name} cover image`}
           className="aspect-[3/1] w-full bg-linear-to-br from-muted/60 via-muted/20 to-background border-b border-border/10 shrink-0 block select-none pointer-events-none bg-cover bg-center"
           style={
             companyRecordState.banner_url ? { backgroundImage: `url(${companyRecordState.banner_url})` } : undefined
@@ -291,7 +291,7 @@ export default function PublicCompanyPage() {
         {companyRecordState.about && (
           <section className="px-4 mt-6 block w-full">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
-              Abstract Overview
+              About Us
             </h2>
             <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-medium block select-text whitespace-pre-wrap mt-3">
               {companyRecordState.about}
@@ -303,7 +303,7 @@ export default function PublicCompanyPage() {
         {activeMembersState.length > 0 && (
           <section className="px-4 mt-8 block w-full">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-3 border-b border-border/5">
-              Verified Node Collaborators
+              Team Members
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3.5 block w-full">
               {activeMembersState.map((memberItemNode, nodePositionIdx) => (
@@ -320,7 +320,7 @@ export default function PublicCompanyPage() {
                   </div>
                   <div className="leading-none space-y-0.5 w-full block">
                     <p className="text-xs font-bold text-foreground truncate block select-text">
-                      {memberItemNode.full_name ?? "Operator Node"}
+                      {memberItemNode.full_name ?? "Team Member"}
                     </p>
                     {memberItemNode.custom_profession && (
                       <p className="text-[10px] font-semibold text-muted-foreground/50 truncate block uppercase select-text font-mono tracking-tight">
@@ -338,7 +338,7 @@ export default function PublicCompanyPage() {
         {associatedJobsState.length > 0 && (
           <section className="px-4 mt-8 block w-full">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-3 border-b border-border/5 flex items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Active Mission Postings</span>
+              <Briefcase className="h-3.5 w-3.5 stroke-[2.2]" /> <span>Job Openings</span>
             </h2>
             <div className="space-y-2 mt-3.5 block w-full">
               {associatedJobsState.map((jobCapsuleItem) => (
@@ -352,12 +352,12 @@ export default function PublicCompanyPage() {
                       {jobCapsuleItem.title}
                     </p>
                     <p className="text-[11px] font-mono font-bold text-muted-foreground/50 truncate block leading-none">
-                      {jobCapsuleItem.location ?? "Distributed Grid"} ·{" "}
+                      {jobCapsuleItem.location ?? "Remote"} ·{" "}
                       {jobCapsuleItem.job_type.replace(/_/g, " ").toUpperCase()}
                     </p>
                   </div>
                   <span className="text-[10px] font-bold text-primary group-hover:translate-x-0.5 transition-transform shrink-0 uppercase tracking-wider hidden sm:inline-block">
-                    Inspect Allocation →
+                    View Job →
                   </span>
                 </Link>
               ))}
@@ -372,7 +372,7 @@ export default function PublicCompanyPage() {
             to="/gro10x"
             className="text-primary hover:text-primary/80 pointer-events-auto cursor-pointer font-sans normal-case tracking-normal text-xs font-semibold"
           >
-            Gro10x Digital Core Infrastructure
+            GroUp Academy
           </Link>
         </p>
       </main>

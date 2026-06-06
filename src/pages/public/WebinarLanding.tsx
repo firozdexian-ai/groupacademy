@@ -120,9 +120,9 @@ export default function WebinarLanding() {
             <Inbox className="h-4 w-4 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Event Not Resolved</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Webinar Not Found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              The targeted presentation portal or live webinar node configuration could not be loaded down safely.
+              The requested webinar details could not be loaded.
             </p>
           </div>
           <Button
@@ -130,7 +130,7 @@ export default function WebinarLanding() {
             onClick={() => executeNavigationHook("/")}
             className="h-8 rounded-lg text-sm font-medium tracking-wider cursor-pointer"
           >
-            Return to Core Hub
+            Back to Home
           </Button>
         </div>
       </div>
@@ -162,7 +162,7 @@ export default function WebinarLanding() {
       {/* HUD LEVEL 2: SPECIFICATION METADATA SEGMENTS */}
       <div className="space-y-1.5 block leading-none w-full">
         <Badge className="font-mono text-[9px] font-extrabold uppercase tracking-wide rounded px-1.5 h-5 pt-0.5 pointer-events-none select-none bg-primary text-primary-foreground shrink-0">
-          LIVE KNOWLEDGE WEBINAR
+          LIVE WEBINAR
         </Badge>
 
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-wide text-foreground leading-tight select-text block pt-1">
@@ -170,7 +170,7 @@ export default function WebinarLanding() {
         </h1>
         {verifiedWebinarDataRecord.instructor_name && (
           <p className="text-xs sm:text-sm font-semibold text-muted-foreground/60 leading-none select-text block pt-0.5">
-            Hosted by Specialist Instructor: {verifiedWebinarDataRecord.instructor_name}
+            Hosted by: {verifiedWebinarDataRecord.instructor_name}
           </p>
         )}
       </div>
@@ -190,7 +190,7 @@ export default function WebinarLanding() {
               </p>
               <p className="text-[11px] text-muted-foreground/50 block select-text font-mono font-medium lowercase tracking-tight">
                 {/* Guaranteed to synchronize formatting values without throwing runtime timezone drift faults */}
-                Local Conversion Profile: {formatEventLocal(verifiedWebinarDataRecord.event_date)}
+                Your local time: {formatEventLocal(verifiedWebinarDataRecord.event_date)}
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function WebinarLanding() {
             <div className="flex items-center gap-3 w-full select-none pointer-events-none block">
               <Clock className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
               <span className="pt-0.5 block font-mono font-bold uppercase text-[11px] sm:text-xs tracking-wide">
-                Session Length Time Allocation: {verifiedWebinarDataRecord.event_duration_minutes} Minutes
+                Duration: {verifiedWebinarDataRecord.event_duration_minutes} Minutes
               </span>
             </div>
           ) : null}
@@ -218,8 +218,8 @@ export default function WebinarLanding() {
                 )}
               >
                 {availableRemainingSeatCapacityCount > 0
-                  ? `Registry Slots Remaining: ${availableRemainingSeatCapacityCount.toLocaleString()} Open Seats`
-                  : "Registry Capacity Sealed: Admission Sold Out"}
+                  ? `Seats remaining: ${availableRemainingSeatCapacityCount.toLocaleString()}`
+                  : "Sold Out"}
               </span>
             </div>
           )}
@@ -231,7 +231,7 @@ export default function WebinarLanding() {
         <Card className="rounded-xl border border-border/60 bg-card/20 shadow-none block w-full overflow-hidden">
           <CardContent className="p-4 text-xs sm:text-sm font-medium text-foreground/80 leading-relaxed select-text block w-full whitespace-pre-line">
             <h2 className="text-[10px] font-mono font-extrabold uppercase tracking-wide text-muted-foreground/40 select-none pointer-events-none block leading-none pb-2 border-b border-border/5 mb-2.5">
-              Instructional Syllabus Focus Outline
+              About this Webinar
             </h2>
             {verifiedWebinarDataRecord.description}
           </CardContent>
@@ -244,25 +244,24 @@ export default function WebinarLanding() {
           <div className="flex items-center gap-2 select-none pointer-events-none leading-none">
             <Coins className="h-4 w-4 text-emerald-600 stroke-[2.2]" />
             <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground pt-0.5">
-              Complimentary Pipeline Credit Integration Allocation
+              New User Welcome Bonus
             </p>
           </div>
 
           <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-normal block select-text">
-            Finalize onboarding setup steps to dispatch a baseline system credit reward structure mapping{" "}
+            Sign up today and receive{" "}
             <span className="font-mono font-extrabold text-foreground bg-muted border border-border/40 px-1 py-0.5 rounded-sm tabular-nums">
-              250 PLATFORM CREDITS
+              250 credits
             </span>{" "}
-            directly into your active profile wallet. This session burns{" "}
+            in your wallet. Joining this session uses{" "}
             <span className="font-mono font-bold text-foreground tabular-nums">
               {computedPlatformCreditsPrice} credits
             </span>
-            , preserving a net residual balance of{" "}
+            , leaving you with{" "}
             <span className="font-mono font-bold text-foreground tabular-nums">
               {Math.max(0, 250 - computedPlatformCreditsPrice)} credits
             </span>{" "}
-            to inject cleanly toward advanced automated AI mock validation scenarios, salary assessment models, or code
-            reviews.
+            to use for AI mock interviews, career assessments, or code reviews.
           </p>
 
           <Button
@@ -272,7 +271,7 @@ export default function WebinarLanding() {
             disabled={availableRemainingSeatCapacityCount !== null && availableRemainingSeatCapacityCount <= 0}
             className="w-full h-10 px-5 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer transition-colors shadow-xs transform-gpu active:scale-[0.985] block select-none"
           >
-            <span>Sign Up & Reserve Admission Coordinates</span>
+            <span>Register for Webinar</span>
             <ArrowRight className="h-4 w-4 stroke-[2.5]" />
           </Button>
         </CardContent>

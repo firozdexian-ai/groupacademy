@@ -70,12 +70,12 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
 
   const executeIntelligenceChain = async () => {
     if (!cvFile) {
-      toast.error("Document required to initialize analysis.");
+      toast.error("Please upload a document first.");
       return;
     }
 
     setIsProcessing(true);
-    const toastId = toast.loading("Initializing AI mapping synapse chain...");
+    const toastId = toast.loading("Analyzing CV with AI...");
 
     trackEvent("cv_intelligence_chain_started", { talentId, fileName: cvFile.name });
 
@@ -120,7 +120,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
 
       setOutreachMessage(msgRes.message);
 
-      toast.success("Profile mapping completed successfully", { id: toastId });
+      toast.success("CV analyzed successfully", { id: toastId });
       trackEvent("cv_intelligence_chain_success", { talentId });
     } catch (err: any) {
       const parsedMsg = err instanceof Error ? err.message : String(err);
@@ -131,7 +131,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
         talentId,
       });
 
-      toast.error(`Analysis delay: ${parsedMsg}`, { id: toastId });
+      toast.error(`Analysis failed: ${parsedMsg}`, { id: toastId });
     } finally {
       setIsProcessing(false);
     }
@@ -145,7 +145,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
 
   const finalizeGigSubmission = async () => {
     setIsSubmitting(true);
-    const toastId = toast.loading("Registering submission records into ledger...");
+    const toastId = toast.loading("Submitting CV...");
 
     try {
       const inserted = await insertGigSubmission({
@@ -173,7 +173,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
       queryClient.invalidateQueries({ queryKey: ["gig_submissions", talentId] });
 
-      toast.success("Artifact submitted cleanly for verification review", { id: toastId });
+      toast.success("CV submitted successfully for review", { id: toastId });
       onSubmitted();
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -185,7 +185,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
         talentId,
       });
 
-      toast.error("Ledger connection timeout. Submission delayed.", { id: toastId });
+      toast.error("Failed to submit CV. Please try again.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -196,7 +196,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
       {/* NODE: FILE_INGRESS Panel wrapper */}
       <div className="space-y-2">
         <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pl-0.5 select-none">
-          Document Ingress
+          Upload Document
         </Label>
         <div className="relative group w-full">
           <Input
@@ -229,7 +229,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                   variant="outline"
                   className="text-[9px] font-extrabold bg-primary/5 text-primary border-primary/20 rounded-md px-2 py-0.5 select-none tracking-wide uppercase"
                 >
-                  Document Staged
+                  Document uploaded
                 </Badge>
               </div>
             ) : (
@@ -269,7 +269,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                  Extracted Lead Identity
+                  Extracted Details
                 </span>
               </div>
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
@@ -281,7 +281,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                   <User className="h-4 w-4 text-muted-foreground/80" />
                 </div>
                 <p className="text-xs sm:text-sm font-bold text-foreground/90 truncate break-all select-text flex-1">
-                  {parsedData.full_name || "Unidentified Resource"}
+                  {parsedData.full_name || "Unknown name"}
                 </p>
               </div>
 
@@ -290,7 +290,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                   <Phone className="h-4 w-4 text-muted-foreground/80" />
                 </div>
                 <p className="text-xs sm:text-sm font-bold text-foreground/80 tabular-nums select-text flex-1 truncate">
-                  {parsedData.phone || "No connection number mapped"}
+                  {parsedData.phone || "No phone number found"}
                 </p>
               </div>
 
@@ -300,7 +300,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <Badge className="bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary px-2.5 py-0.5 rounded-md uppercase tracking-wide truncate max-w-full">
-                    {parsedData.profession_category?.replace("_", " ") || "General Domain"}
+                    {parsedData.profession_category?.replace("_", " ") || "General"}
                   </Badge>
                 </div>
               </div>
@@ -314,7 +314,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                 <MessageSquare className="h-10 w-10 text-emerald-500" />
               </div>
               <Label className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-2.5 block select-none">
-                Generated Strategic Messaging
+                Generated outreach message
               </Label>
               <p className="text-xs font-semibold leading-relaxed text-foreground/80 bg-background/50 p-4 rounded-xl border border-emerald-500/10 select-text break-words">
                 &ldquo;{outreachMessage}&rdquo;
@@ -333,7 +333,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                 }}
               >
                 <Share2 className="h-4 w-4 stroke-[2.2]" />
-                <span>Launch WhatsApp Distribution</span>
+                <span>Send via WhatsApp</span>
               </Button>
 
               <Button
@@ -347,7 +347,7 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
                 ) : (
                   <CheckCircle className="h-4 w-4" />
                 )}
-                <span>Confirm Lead Submission</span>
+                <span>Confirm Submission</span>
               </Button>
             </div>
           </div>

@@ -92,7 +92,7 @@ function InsightsBody({ postId }: { postId: string }) {
         <Stat
           icon={<Coins className="h-3 w-3 text-emerald-500" />}
           label="Earned"
-          value={`+${Number(data.credits_earned || 0).toFixed(1)} cr`}
+          value={`+${Number(data.credits_earned || 0).toFixed(1)} credits`}
         />
         <Stat
           icon={<MessageCircle className="h-3 w-3 text-blue-500" />}

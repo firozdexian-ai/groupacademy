@@ -91,7 +91,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground leading-relaxed">
               Send multiple hypes in one go. Each hype costs exactly{" "}
-              <span className="font-semibold text-foreground tabular-nums">1 credit</span>. 80% goes directly to support the creator, with the remaining 20% allocated to platform operations.
+              <span className="font-semibold text-foreground tabular-nums">1 credit</span>. 80% goes directly to the creator, and 20% helps run the platform.
             </SheetDescription>
           </SheetHeader>
 
@@ -115,7 +115,7 @@ export function HypeBoostSheet({ open, onOpenChange, onConfirm, contextData }: P
                   )}
                 >
                   <span className="tabular-nums tracking-tight text-sm">{n}&times;</span>
-                  <span className="text-[10px] font-medium opacity-70 tabular-nums">{n} cr</span>
+                  <span className="text-[10px] font-medium opacity-70 tabular-nums">{n} credits</span>
                 </button>
               );
             })}

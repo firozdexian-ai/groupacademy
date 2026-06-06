@@ -288,7 +288,7 @@ export function FlashcardPlayer({ cards = [], title, onComplete, className }: Fl
                 showHint ? "fill-primary text-primary" : "text-current",
               )}
             />
-            <span>{showHint ? "Hide Strategy Reference Hint" : "Expose Strategy Reference Hint"}</span>
+            <span>{showHint ? "Hide hint" : "Show hint"}</span>
           </Button>
 
           {showHint && (

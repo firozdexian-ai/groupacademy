@@ -114,11 +114,11 @@ export function IdentityDocsUpload() {
 
     setBusy(true);
     trackEvent("identity_docs_submission_initiated", { docType });
-    const dynamicToastTrackerId = toast.loading("Encrypting identity resources over secure bucket nodes...");
+    const dynamicToastTrackerId = toast.loading("Uploading documents safely...");
 
     try {
       const uid = await getCurrentUserId();
-      if (!uid) throw new Error("Authentication index token lost. Please log in.");
+      if (!uid) throw new Error("Session expired. Please log in again.");
 
       const front_url = await uploadOne(uid, frontFile, "front");
       const back_url = backFile ? await uploadOne(uid, backFile, "back") : null;
@@ -131,12 +131,12 @@ export function IdentityDocsUpload() {
         backUrl: back_url,
       });
 
-      // Automated Efficiency: Synchronize cache streams immediately to avoid state drift across layouts
+      // Clear cache to refresh profile status
       await queryClient.invalidateQueries({ queryKey: ["talent-id-docs"] });
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
 
       if (isMountedRef.current) {
-        toast.success("Identity tokens submitted. Verification process resolves within 24 hours.", {
+        toast.success("Identity documents submitted. Verification process takes up to 24 hours.", {
           id: dynamicToastTrackerId,
         });
         setFrontFile(null);
@@ -301,7 +301,7 @@ export function IdentityDocsUpload() {
         {/* HUD LEVEL 3: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
         <div className="mt-4 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
           <Zap className="h-3.5 w-3.5 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Identity core cryptographic compliance verification tracking indices v1.0 complete</span>
+          <span>Secure Identity Verification</span>
         </div>
       </CardContent>
     </Card>

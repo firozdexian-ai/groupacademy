@@ -163,7 +163,7 @@ export default function DestinationAgentPage() {
  ]);
  }
  } catch (fatalInferenceException: any) {
- toast.error(fatalInferenceException.message || "Asynchronous interaction framework connection timeout.");
+ toast.error(fatalInferenceException.message || "Connection error. Please try again.");
  } finally {
  setIsAIEngineProcessing(false);
  }
@@ -194,10 +194,9 @@ export default function DestinationAgentPage() {
  className="min-h-[40vh] grid place-items-center text-center p-6 antialiased select-none transform-gpu w-full"
  >
  <div className="max-w-xs block space-y-2 leading-none">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Destination Advisor Unmapped</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Destination Advisor Not Found</p>
  <p className="text-[11px] font-semibold text-muted-foreground/50 leading-normal">
- The target location agent infrastructure profile metrics could not be resolved from study abroad registry
- files.
+ The selected study abroad destination advisor profile could not be loaded.
  </p>
  </div>
  </div>
@@ -229,7 +228,7 @@ export default function DestinationAgentPage() {
  size="sm"
  className="h-8 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wide cursor-pointer shadow-2xs gap-1.5 pt-0.5"
  >
- <Map className="h-3.5 w-3.5 stroke-[2.2] shrink-0" /> <span>Syllabus Roadmap</span>
+ <Map className="h-3.5 w-3.5 stroke-[2.2] shrink-0" /> <span>Study Roadmap</span>
  </Button>
  </RoadmapBuilderSheet>
  </div>
@@ -244,21 +243,19 @@ export default function DestinationAgentPage() {
  <div className="flex items-start gap-2.5 leading-none w-full block">
  <Sparkles className="h-4 w-4 text-primary stroke-[2.2] shrink-0 mt-0.5 select-none pointer-events-none animate-pulse" />
  <div className="text-xs sm:text-sm font-medium text-foreground/80 leading-relaxed block flex-1">
- Greetings Candidate! Pose queries relative to visas processing, program tracking timelines,
- scholarships drawing, or IELTS parameter cutoffs inside{" "}
- <strong className="text-foreground font-bold">
- {destinationAgentMetadata.display_name.replace(" Destination Agent", "")}
- </strong>{" "}
- workspace blocks. Alternatively, leverage the{" "}
- <strong className="text-primary font-bold">Syllabus Roadmap Engine</strong> button framework above
- to compile an explicit 12-month alignment execution plan.
+  Welcome! You can ask questions about student visas, program timelines, scholarships, and IELTS requirements for{" "}
+  <strong className="text-foreground font-bold">
+  {destinationAgentMetadata.display_name.replace(" Destination Agent", "")}
+  </strong>. Or, click the{" "}
+  <strong className="text-primary font-bold">Study Roadmap</strong> button above
+  to get a personalized 12-month plan.
  </div>
  </div>
 
  {availableProgramsCollection.length > 0 && (
  <div className="mt-3 pt-3 border-t border-border/5 text-[11px] font-semibold text-muted-foreground/60 leading-none block w-full space-y-1.5 shrink-0 select-text">
  <div className="font-mono text-[9px] font-bold text-primary uppercase tracking-wide block leading-none pb-0.5 select-none pointer-events-none">
- Verified Institutional Catalog Programs Available:
+  Available Programs:
  </div>
  <ul className="space-y-1 block font-sans select-text tracking-normal">
  {availableProgramsCollection.slice(0, 5).map((programItem) => (
@@ -319,7 +316,7 @@ export default function DestinationAgentPage() {
  value={consoleTextInputStr}
  onChange={(e) => setConsoleTextInputStr(e.target.value)}
  onKeyDown={handleKeyboardInputInterceptor}
- placeholder="Input visa specifications, scholarship parameters, cutoff rows or university queries..."
+ placeholder="Ask a question about visas, scholarships, or universities..."
  disabled={isAIEngineProcessing}
  className="w-full h-10 bg-background/50 border border-border/60 text-xs sm:text-sm font-semibold rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-ring flex-1 leading-normal px-3"
  />
@@ -327,9 +324,9 @@ export default function DestinationAgentPage() {
  type="button"
  onClick={handleDispatchConsoleQuerySequence}
  disabled={isAIEngineProcessing || !consoleTextInputStr.trim()}
- size="icon" aria-label="Dispatch context parameter block query to target a"
+ size="icon" aria-label="Send message"
  className="h-10 w-10 rounded-lg bg-primary text-primary-foreground shadow-2xs hover:bg-primary/90 cursor-pointer transition-transform transform-gpu active:scale-95 shrink-0 block"
- title="Dispatch context parameter block query to target agent container"
+ title="Send message"
  >
  <Send className="h-4 w-4 stroke-[2.5] mx-auto block" />
  </Button>

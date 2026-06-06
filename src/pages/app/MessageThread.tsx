@@ -107,7 +107,7 @@ export default function MessageThread() {
  await sendMessage(trimmedInput);
  };
 
- const headerLabel = isSystemThread ? "AI General Feed" : (activeAgent?.name ?? "Assistant");
+ const headerLabel = isSystemThread ? "System Notifications" : (activeAgent?.name ?? "Assistant");
 
  return (
  <div className={cn(PAGE_SHELL, "flex flex-col h-[100dvh] max-w-2xl mx-auto bg-background")}>
@@ -128,10 +128,10 @@ export default function MessageThread() {
  <p className="font-bold text-sm truncate">{headerLabel}</p>
  <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest truncate">
  {isSystemThread
- ? "Platform Telemetry"
+ ? "System Feed"
  : isStreaming
- ? "Synthesizing Response..."
- : `${perResponseCost} Credit Cost`}
+ ? "Typing..."
+ : `${perResponseCost} credits per message`}
  </p>
  </div>
  </header>
@@ -142,7 +142,7 @@ export default function MessageThread() {
  <InlineSpinner size="lg" />
  ) : isSystemThread ? (
  systemNotifications.length === 0 ? (
- <div className="text-center text-xs text-muted-foreground py-10">No telemetry alerts present.</div>
+ <div className="text-center text-xs text-muted-foreground py-10">No system messages.</div>
  ) : (
  systemNotifications.map((n) => (
  <ChatBubble
@@ -150,7 +150,7 @@ export default function MessageThread() {
  role="assistant"
  content={`${n.title}${n.message ? `\n\n${n.message}` : ""}`}
  timestamp={format(new Date(n.created_at), "MMM d, h:mm a")}
- ctaLabel={n.link ? "Navigate" : undefined}
+ ctaLabel={n.link ? "View" : undefined}
  ctaLink={n.link || undefined}
  />
  ))
@@ -162,7 +162,7 @@ export default function MessageThread() {
  ))}
  {isStreaming && (
  <div className="flex items-center gap-2 px-3 py-2 text-[10px] uppercase font-bold text-muted-foreground animate-pulse">
- <InlineSpinner size="sm" /> {headerLabel} is generating...
+ <InlineSpinner size="sm" /> {headerLabel} is typing...
  </div>
  )}
  </>

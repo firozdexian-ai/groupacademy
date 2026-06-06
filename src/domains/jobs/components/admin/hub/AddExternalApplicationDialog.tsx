@@ -95,7 +95,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  if (!cvFile && cvText.trim().length < 30) return toast.error("Payload Fault: Insufficient CV data.");
 
  setParsing(true);
- const toastId = toast.loading("Neural Ingestion in progress...");
+ const toastId = toast.loading("Reading details...");
 
  try {
  let publicUrl = "";
@@ -179,10 +179,10 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  <div className="flex justify-between items-center">
  <div className="space-y-1">
  <DialogTitle className="text-3xl font-semibold font-medium flex items-center gap-3">
- <Zap className="h-8 w-8 text-primary fill-current" /> Bridge Terminal
+ <Zap className="h-8 w-8 text-primary fill-current" /> Add Job Application
  </DialogTitle>
  <DialogDescription className="text-sm font-medium text-muted-foreground italic">
- External lead ingestion and AI artifact parsing
+ Add external job details and parse resume with AI
  </DialogDescription>
  </div>
  <Badge variant="outline" className="font-semibold text-[9px] border uppercase italic px-3 py-1">
@@ -253,7 +253,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
  className="w-full h-20 rounded-2xl font-semibold font-medium text-2xl gap-4 shadow-sm hover:scale-[1.01] active:scale-95 transition-transform"
  >
  {parsing ? <InlineSpinner size="lg" /> : <Sparkles className="h-8 w-8 fill-current" />}
- Initialize Neural Extraction
+ Analyze Resume
  </Button>
  </div>
  ) : (

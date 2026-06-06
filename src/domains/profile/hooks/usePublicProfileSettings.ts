@@ -56,10 +56,10 @@ export function usePublicProfileSettings() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey });
-      toast.success("Profile privacy controls configured successfully.");
+      toast.success("Visibility settings updated.");
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to commit visibility settings changes.");
+      toast.error(err.message || "Failed to update visibility settings.");
     },
   });
 
@@ -87,11 +87,11 @@ export function usePublicProfileSettings() {
     },
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey });
-      toast.success(`Custom URL claimed successfully: @${data.handle}`);
+      toast.success(`Handle claimed successfully: @${data.handle}`);
     },
     onError: (err: any) => {
       console.warn("[Digital Workforce] ANOMALY: Custom slug reservation denied due to validation logic.", err.message);
-      toast.error(err.message || "This unique handle has already been reserved by another talent node.");
+      toast.error(err.message || "This handle is already taken. Please try another one.");
     },
   });
 

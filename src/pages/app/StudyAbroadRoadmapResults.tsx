@@ -105,12 +105,14 @@ export default function StudyAbroadRoadmapResults() {
  fetchRoadmap();
  }, [id, pollCount]);
 
- if (loading)
- return (
- <div className={PAGE_SHELL}>
- <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
- </div>
- );
+  if (loading || (roadmap && (roadmap.status === "pending" || roadmap.status === "processing")))
+  return (
+  <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
+  <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+  <h3 className="text-xl font-bold uppercase tracking-tighter italic">Building your custom roadmap...</h3>
+  <p className="text-xs text-muted-foreground">This may take up to a minute. Please keep this page open.</p>
+  </div>
+  );
 
  if (!roadmap || roadmap.status === "failed")
  return (

@@ -140,7 +140,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
           <CardContent className="p-4 flex flex-col items-center justify-center gap-2.5">
             <Zap className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.2] animate-pulse" />
             <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 leading-none">
-              Artifact Ingestion Fault: Invalid Video Matrix Resource Link Key
+              Invalid video link. Please contact support.
             </p>
           </CardContent>
         </Card>
@@ -176,7 +176,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
               className="h-8 rounded-xl border border-border/60 text-muted-foreground font-bold hover:text-primary hover:border-primary/20 uppercase text-[10px] tracking-wide shrink-0 shadow-sm gap-1 flex items-center cursor-pointer transition-colors"
             >
               <ShieldCheck className="h-4 w-4 text-current stroke-[2.5]" />
-              <span>Lock Progress</span>
+              <span>Mark complete</span>
             </Button>
           )}
         </CardContent>
@@ -216,7 +216,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
                 className="h-9 px-4 rounded-xl font-bold uppercase text-[10px] tracking-wide shadow-md bg-background text-foreground hover:bg-muted"
               >
                 <Maximize className="h-4 w-4 mr-1.5 stroke-[2.5]" />
-                <span>Fullscreen Analysis</span>
+                <span>Fullscreen</span>
               </Button>
 
               <Button
@@ -256,7 +256,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
                 rel="noopener noreferrer"
                 onClick={() => trackEvent("resource_slides_external_opened", { title })}
               >
-                <span>External Ingress</span>
+                <span>Open link</span>
                 <ExternalLink className="h-3.5 w-3.5 ml-1 stroke-[2.2]" />
               </a>
             </Button>
@@ -276,7 +276,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
             <div className="relative w-full h-full flex flex-col select-none min-w-0">
               <div className="flex items-center justify-between gap-4 p-4 bg-muted/10 border-b border-border/10 leading-none shrink-0 w-full">
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-primary select-none block leading-none font-mono">
-                  Fullscreen Audit Workspace Session Active
+                  Fullscreen View
                 </p>
                 <Button
                   variant="ghost"
@@ -323,7 +323,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
           >
             <img
               src={url}
-              alt={`${title || "Cognitive reference data asset graphic sheet overview mapping pointer"}`}
+              alt={title || "Infographic"}
               className="w-full h-auto transition-transform duration-1000 ease-out transform group-hover/visual:scale-102 object-cover block shadow-inner"
               loading="lazy"
             />
@@ -335,7 +335,7 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
                 className="h-9 px-4 rounded-xl font-bold uppercase text-[10px] tracking-wide shadow-md bg-background text-foreground hover:bg-muted"
               >
                 <Maximize className="h-4 w-4 mr-1.5 stroke-[2.5]" />
-                <span>Ingest Complete Structural Node</span>
+                <span>Open in new tab</span>
               </Button>
             </div>
           </div>
@@ -408,9 +408,9 @@ export function ResourceViewer({ type, url, title, onProgress, onComplete, class
 
             <div className="flex-1 min-w-0 space-y-1.5 flex flex-col justify-center leading-none select-none">
               <div className="flex justify-between items-center text-[9px] font-extrabold text-muted-foreground/60 uppercase tracking-wider font-mono leading-none w-full">
-                <span>Auditory Progression Flux</span>
+                <span>Audio Progress</span>
                 <span className="tabular-nums text-primary font-black bg-primary/5 px-1.5 py-0.5 border border-primary/5 rounded shadow-xs">
-                  {Math.round(audioProgress)}% verified
+                  {Math.round(audioProgress)}% complete
                 </span>
               </div>
               <div className="h-2 bg-primary/10 border border-border/5 rounded-full overflow-hidden shadow-inner relative flex w-full">

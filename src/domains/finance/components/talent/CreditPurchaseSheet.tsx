@@ -162,12 +162,12 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
               <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-md">
                 <Coins className="h-6 w-6 text-amber-500 animate-pulse shrink-0" />
               </div>
-              <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">Add Wallet Credits</SheetTitle>
+              <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">Add Credits</SheetTitle>
             </div>
             <SheetDescription className="text-xs font-semibold tracking-wider text-muted-foreground/80 pt-0.5">
               {showStripe && isStripeConfigured
-                ? "Secure payment processing via Stripe"
-                : "Manual payment verification via mobile banking support"}
+                ? "Secure payment via Card"
+                : "Pay via mobile banking (bKash / WhatsApp)"}
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -177,7 +177,7 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
           <div className="flex items-center justify-between p-5 rounded-[28px] bg-card border border-border/60 shadow-inner relative overflow-hidden">
             <Zap className="absolute -top-4 -right-4 h-24 w-24 text-primary opacity-5 rotate-12 pointer-events-none" />
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-muted-foreground/80 mb-1">Available Wallet Balance</span>
+              <span className="text-xs font-semibold text-muted-foreground/80 mb-1">Available Balance</span>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Verified Funds</span>
@@ -276,8 +276,7 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
           <div className="flex items-start gap-4 p-5 bg-muted/20 border border-border/10 rounded-2xl">
             <ShieldCheck className="h-5 w-5 text-primary shrink-0 opacity-60 mt-0.5" />
             <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/90">
-              Payments are protected with industry-standard secure transaction protocols. Your digital wallet balance
-              updates instantly inside your profile dashboard upon automated invoice authorization.
+              Payments are safe and secure. Your balance will update instantly after a successful payment.
             </p>
           </div>
         </div>
@@ -299,14 +298,14 @@ export function CreditPurchaseSheet({ isOpen, onClose, currentBalance = 0 }: Cre
                   <MessageCircle className="h-5 w-5 fill-current opacity-60" />
                 )}
                 {whatsappSyncMutation.isPending
-                  ? "Generating invoice ref..."
+                  ? "Connecting..."
                   : isBdtCurrency
                     ? "Top up via bKash / WhatsApp"
                     : "Top up via WhatsApp Support"}
               </Button>
               <div className="flex items-center justify-center gap-3 opacity-30">
                 <div className="h-[1px] flex-1 bg-border" />
-                <span className="text-[9px] font-bold uppercase tracking-widest">Secure Verification Channel</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest">Secure Payment</span>
                 <div className="h-[1px] flex-1 bg-border" />
               </div>
             </div>

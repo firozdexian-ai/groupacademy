@@ -93,7 +93,7 @@ export function ProgressStage({
     trackEvent("progress_stage_download_nodes_requested", { moduleId });
     toast.info("Saving progress", {
       description:
-        "Assembling verified knowledge schemas and cognitive recall artifacts for your local credential locker.",
+        "Saving your notes and progress to your profile.",
     });
   };
 
@@ -119,12 +119,12 @@ export function ProgressStage({
   };
 
   const stageRegistry = [
-    { name: "ORIENTATION SYNC", stage: 1, icon: Target },
-    { name: "KNOWLEDGE INGESTION", stage: 2, icon: Brain },
-    { name: "KNOWLEDGE SYNTHESIS", stage: 3, icon: Clock },
-    { name: "COGNITIVE RECALL", stage: 4, icon: Brain },
-    { name: "ACCURACY AUDIT", stage: 5, icon: CheckCircle },
-    { name: "MILESTONE SYNC", stage: 6, icon: Award },
+    { name: "Introduction", stage: 1, icon: Target },
+    { name: "Video Tutorial", stage: 2, icon: Brain },
+    { name: "Slides", stage: 3, icon: Clock },
+    { name: "Flashcards", stage: 4, icon: Brain },
+    { name: "Assessment", stage: 5, icon: CheckCircle },
+    { name: "Complete", stage: 6, icon: Award },
   ];
 
   return (
@@ -134,10 +134,10 @@ export function ProgressStage({
         <div className="space-y-1.5 text-left flex flex-col justify-center min-w-0 flex-1 leading-none">
           <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground uppercase tracking-wide flex items-center gap-2">
             <Award className="h-4 w-4 text-primary stroke-[2.2] shrink-0 animate-pulse" />
-            <span>Stage 06: Milestone Synchronization</span>
+            <span>Module Complete</span>
           </h2>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mt-1 leading-none">
-            Audit trajectory progression telemetry and transition identity credentials to outstanding targets
+            Your progress history and accomplishments for this module
           </p>
         </div>
         <Badge
@@ -145,7 +145,7 @@ export function ProgressStage({
           className="text-[9px] font-extrabold tracking-wider uppercase px-2 h-5.5 rounded bg-emerald-500/10 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 leading-none shadow-sm shrink-0 select-none"
         >
           <ShieldCheck className="h-3.5 w-3.5 mr-1 stroke-[2.5]" />
-          <span>Node Verified</span>
+          <span>Completed</span>
         </Badge>
       </div>
 
@@ -166,10 +166,10 @@ export function ProgressStage({
 
             <div className="space-y-1 w-full text-center leading-none select-text relative z-10">
               <h3 className="text-base font-black uppercase tracking-wider text-foreground/90 leading-none">
-                Module Complete verified
+                Module Complete!
               </h3>
               <p className="text-xs font-semibold text-muted-foreground/80 line-clamp-1 truncate uppercase tracking-wide leading-none pt-0.5 pr-1 max-w-full">
-                {moduleName || "Un-calibrated curriculum target row"}
+                {moduleName || "Curriculum Outline"}
               </p>
             </div>
 
@@ -210,7 +210,7 @@ export function ProgressStage({
             </div>
 
             <p className="text-[9px] font-extrabold text-muted-foreground/50 uppercase tracking-wider select-none leading-none pt-5 relative z-10">
-              Cryptographically syncing module metrics with wallet ledger…
+              Saving your progress…
             </p>
           </Card>
 
@@ -225,7 +225,7 @@ export function ProgressStage({
               <CardContent className="p-4 sm:p-5 w-full min-w-0 font-bold text-xs flex items-center justify-between gap-4 leading-none">
                 <div className="space-y-1 text-left min-w-0 flex-1 leading-none select-none">
                   <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground/60 block leading-none">
-                    Quiz Evaluation Yield
+                    Quiz Score
                   </span>
                   <p className="text-xs sm:text-sm font-black uppercase tracking-wide flex items-center gap-1.5 leading-none pt-1 text-foreground/90 truncate">
                     {quizPassed ? (
@@ -233,7 +233,7 @@ export function ProgressStage({
                     ) : (
                       <AlertCircle className="h-4 w-4 text-amber-500 stroke-[2.2] shrink-0" />
                     )}
-                    <span>{quizPassed ? "You passed" : "Not passed yet"}</span>
+                    <span>{quizPassed ? "Quiz passed!" : "Score threshold not met"}</span>
                   </p>
                 </div>
 
@@ -244,7 +244,7 @@ export function ProgressStage({
                     {quizTotal}
                   </p>
                   <p className="text-[9px] font-black text-primary uppercase tracking-wide pt-1 leading-none font-mono">
-                    {normalizedAccuracyValue}% Verification accuracy
+                    {normalizedAccuracyValue}% Score
                   </p>
                 </div>
               </CardContent>
@@ -258,7 +258,7 @@ export function ProgressStage({
           <Card className="rounded-2xl border border-border/40 bg-muted/5 w-full min-w-0 select-none shadow-sm flex flex-col justify-center">
             <CardHeader className="p-3.5 px-4 select-none border-b border-border/10 leading-none w-full">
               <CardTitle className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/70 block pt-0.5 leading-none w-full">
-                Synchronous Trajectory Audit
+                Completion Checklist
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3.5 space-y-2.5 w-full min-w-0 font-bold text-xs tracking-tight text-foreground/90">
@@ -311,7 +311,7 @@ export function ProgressStage({
             <CardContent className="p-4 space-y-3 font-bold text-xs tracking-tight">
               <div className="flex items-center justify-between gap-4 select-none leading-none w-full">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/60 block leading-none">
-                  Total Trajectory Calibration
+                  Overall Course Progress
                 </span>
                 <span className="text-[9px] font-mono font-black text-primary border bg-primary/5 rounded px-1.5 h-4.5 flex items-center justify-center shadow-sm uppercase tracking-wide leading-none shrink-0">
                   Mod {moduleIndex + 1} of {totalModules}
@@ -335,7 +335,7 @@ export function ProgressStage({
           className="flex-1 h-10 rounded-xl border border-border/60 text-muted-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1.5 flex items-center justify-center transition-colors"
         >
           <Download className="h-4 w-4 stroke-[2.2]" />
-          <span>Download Knowledge Schema</span>
+          <span>Download notes</span>
         </Button>
 
         {hasNextModule ? (
@@ -344,7 +344,7 @@ export function ProgressStage({
             onClick={handleNextCurriculumNodeAdvance}
             className="sm:flex-[2] h-10 rounded-xl font-extrabold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.99] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
           >
-            <span>Initialize Next Specialized Node</span>
+            <span>Next Module</span>
             <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.5]" />
           </Button>
         ) : (
@@ -354,7 +354,7 @@ export function ProgressStage({
             className="sm:flex-[2] h-10 rounded-xl font-extrabold uppercase text-[10px] tracking-wider gap-1.5 cursor-pointer shadow-md transform-gpu active:scale-[0.99] transition-transform bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
           >
             <Trophy className="h-4 w-4 shrink-0 stroke-[2.2] text-current fill-primary-foreground/10" />
-            <span>Finalize Curriculum Track Graduation</span>
+            <span>Finish Course</span>
           </Button>
         )}
       </div>

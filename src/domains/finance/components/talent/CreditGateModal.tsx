@@ -100,7 +100,7 @@ export function CreditGateModal({
               {fiscalLedger.canAfford ? (
                 <>
                   <ShieldCheck className="h-5 w-5 text-primary shrink-0" />
-                  Confirm Authorization
+                  Confirm & Unlock
                 </>
               ) : (
                 <>
@@ -111,8 +111,8 @@ export function CreditGateModal({
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-muted-foreground/90 mt-1 leading-relaxed">
               {fiscalLedger.canAfford
-                ? `Review transaction parameters for unlocking: ${serviceName}`
-                : `You need a higher wallet balance to access: ${serviceName}`}
+                ? `Confirm details to unlock: ${serviceName}`
+                : `You need more credits to access: ${serviceName}`}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -140,7 +140,7 @@ export function CreditGateModal({
             </div>
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-muted/20 border border-border/10">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                Wallet Balance
+                Your Balance
               </span>
               <div className="flex items-center gap-2">
                 <Coins className="h-4 w-4 text-amber-500 opacity-50 shrink-0" />
@@ -171,7 +171,7 @@ export function CreditGateModal({
             <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-xl bg-destructive/5 shadow-inner">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-destructive">
-                  Shortfall Amount
+                  Credits Needed
                 </span>
                 <p className="text-[9px] text-destructive/60 font-medium">Please top up to proceed</p>
               </div>
@@ -207,11 +207,11 @@ export function CreditGateModal({
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <InlineSpinner size="sm" />
-                    Processing transaction...
+                    Unlocking...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-1.5">
-                    Confirm Authorization
+                    Confirm & Unlock
                     <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </span>
                 )}

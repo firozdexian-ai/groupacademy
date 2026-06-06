@@ -82,14 +82,81 @@ serve(async (req) => {
     }
 
     // 2. Parse Request
-    const { parsedCV, product, professionCategory, senderName, language = "auto" } = await req.json();
+    const body = await req.json();
+    let { parsedCV, product, professionCategory, senderName, language = "auto", talent_id, product_context } = body;
+
+    if (talent_id && !parsedCV) {
+      console.log(`[generate-outreach-message] Resolving talent_id: ${talent_id}`);
+      const { data: talent, error: talentError } = await supabaseAuth
+        .from("talents")
+        .select(`
+          full_name,
+          phone,
+          gender,
+          skills,
+          experience,
+          education,
+          current_status,
+          custom_profession,
+          profession_categories(name)
+        `)
+        .eq("id", talent_id)
+        .maybeSingle();
+
+      if (talentError) {
+        console.error("Failed to query talent:", talentError);
+        return new Response(JSON.stringify({ error: "Failed to load talent data from database" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!talent) {
+        return new Response(JSON.stringify({ error: "Talent not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      parsedCV = {
+        full_name: talent.full_name,
+        phone: talent.phone,
+        gender: talent.gender || "unknown",
+        skills: talent.skills || [],
+        education: talent.education || [],
+        experience: talent.experience || [],
+        current_status: talent.current_status || "Not specified",
+      };
+
+      if (!professionCategory) {
+        professionCategory = talent.custom_profession || talent.profession_categories?.name || "Job Seeker";
+      }
+    }
+
+    if (!product && product_context) {
+      const normalized = product_context.toLowerCase().replace(/\s+/g, "-");
+      if (normalized in PRODUCT_TEMPLATES) {
+        product = normalized;
+      } else if (normalized.includes("portfolio")) {
+        product = "digital-portfolio";
+      } else if (normalized.includes("scorecard") || normalized.includes("readiness")) {
+        product = "career-scorecard";
+      } else if (normalized.includes("interview")) {
+        product = "mock-interview";
+      } else if (normalized.includes("salary")) {
+        product = "salary-analysis";
+      } else {
+        product = "digital-portfolio";
+      }
+    }
 
     if (!parsedCV || !product) {
-      return new Response(JSON.stringify({ error: "parsedCV and product are required" }), {
+      return new Response(JSON.stringify({ error: "parsedCV (or talent_id) and product (or product_context) are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

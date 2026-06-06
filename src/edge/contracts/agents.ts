@@ -121,10 +121,10 @@ export type AgentBlueprintResponse = z.infer<typeof AgentBlueprintResponseSchema
 // ingest-agent-knowledge -----------------------------------------------------
 export interface IngestAgentKnowledgeRequest {
   agent_id: string;
-  source_type: "text" | "url" | "file";
+  source_kind: "text" | "url" | "file";
   title: string;
   content?: string;
-  url?: string;
+  source_ref?: string | null;
 }
 
 export const IngestAgentKnowledgeResponseSchema = z.object({

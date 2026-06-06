@@ -145,7 +145,7 @@ export default function PublicProjectDetail() {
       >
         <div className="flex items-center gap-2.5">
           <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-          <span>Resolving Technical Dossier Node...</span>
+          <span>Loading Project Details...</span>
         </div>
       </div>
     );
@@ -162,16 +162,16 @@ export default function PublicProjectDetail() {
             <Inbox className="h-4 w-4 stroke-[2.2]" />
           </div>
           <div className="space-y-1 block">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Specification Missing</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Project Not Found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              The targeted assignment ledger or deployment project parameters could not be pulled down securely.
+              The requested project details could not be loaded.
             </p>
           </div>
           <Link
             to="/projects"
             className="h-8 px-3 rounded-lg inline-flex items-center justify-center text-sm font-medium tracking-wider bg-accent text-accent-foreground border border-border/40 transition-colors hover:bg-muted"
           >
-            Return to Core Index
+            Back to Projects
           </Link>
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function PublicProjectDetail() {
         {milestones.length > 0 && (
           <section className="block w-full">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10">
-              Execution Roadmap Iterations
+              Milestones
             </h2>
             <div className="space-y-2 mt-3 block w-full">
               {milestones
@@ -309,7 +309,7 @@ export default function PublicProjectDetail() {
         {team.length > 0 && (
           <section className="block w-full">
             <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/10">
-              Assigned Squad Engineers
+              Assigned Team
             </h2>
             <div className="flex flex-wrap gap-2 mt-3 block w-full">
               {team.map(
@@ -344,10 +344,10 @@ export default function PublicProjectDetail() {
           <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full text-left leading-none">
             <div className="leading-none space-y-1 block select-none pointer-events-none">
               <p className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide">
-                Require elite engineering squads like this?
+                Need a team for your project?
               </p>
               <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-normal block">
-                Distribute your custom functional technical roadmap allocations globally onto Gro10x.
+                Publish your project roadmap and hire talent on GroUp Academy.
               </p>
             </div>
 
@@ -357,7 +357,7 @@ export default function PublicProjectDetail() {
               className="h-9 px-4 rounded-lg font-bold uppercase text-[10px] sm:text-xs tracking-wider gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transform-gpu active:scale-[0.985] self-start sm:self-center shrink-0 cursor-pointer"
             >
               <Link to="/gro10x">
-                <span>Hire via Gro10x Core</span>
+                <span>Get Started</span>
                 <ExternalLink className="h-3.5 w-3.5 stroke-[2.5]" />
               </Link>
             </Button>

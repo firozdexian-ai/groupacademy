@@ -79,7 +79,7 @@ export default function CompanyBrandedCatalog() {
     const computedDocumentTitleString = `${validatedCompanyNode.name} · Learning Catalog`;
     const computedMetaDescriptionString =
       validatedCompanyNode.tagline ??
-      `Explore verified enterprise academic learning tracks authored by ${validatedCompanyNode.name}.`;
+      `Explore learning tracks authored by ${validatedCompanyNode.name}.`;
 
     // Step A: Stabilize document page root elements
     document.title = computedDocumentTitleString;
@@ -111,7 +111,7 @@ export default function CompanyBrandedCatalog() {
         "@type": "Course",
         position: arrayIndexPosition + 1,
         name: trackItemNode.title,
-        description: trackItemNode.summary ?? "No abstract provided for this academic syllabus entry segment.",
+        description: trackItemNode.summary ?? "No description provided for this track.",
         provider: {
           "@type": "Organization",
           name: validatedCompanyNode.name,
@@ -150,16 +150,16 @@ export default function CompanyBrandedCatalog() {
             <Building2 className="h-5 w-5 stroke-[2.2]" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Handshake Refused</p>
+            <p className="text-xs font-bold text-foreground uppercase tracking-wide">Catalog Not Found</p>
             <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
-              The targeted company node could not be resolved within the global schema register lookup parameters.
+              The requested company catalog could not be found.
             </p>
           </div>
           <Link
             to="/"
             className="h-8 px-4 rounded-lg inline-flex items-center justify-center text-sm font-medium tracking-wider bg-accent text-accent-foreground border border-border/40 transition-colors hover:bg-muted"
           >
-            Return to Core Index Grid
+            Return to Home
           </Link>
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function CompanyBrandedCatalog() {
               {activeCompanyRecord.logo_url ? (
                 <img
                   src={activeCompanyRecord.logo_url}
-                  alt={`${activeCompanyRecord.name} corporate badge`}
+                  alt={`${activeCompanyRecord.name} logo`}
                   className="h-full w-full object-cover block"
                 />
               ) : (
@@ -222,7 +222,7 @@ export default function CompanyBrandedCatalog() {
           <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none mt-4 block">
             <BookOpen className="h-6 w-6 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
             <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
-              No academic course programs or instruction syllabi have been distributed under this node yet.
+              No learning tracks have been published for this company yet.
             </p>
           </div>
         ) : (
@@ -259,7 +259,7 @@ export default function CompanyBrandedCatalog() {
 
                   <div className="flex items-center justify-between text-[11px] font-mono font-bold text-muted-foreground/50 border-t border-border/5 pt-2 w-full shrink-0 select-none pointer-events-none leading-none">
                     <span className="tabular-nums">
-                      {trackNodeItem.item_count} {trackNodeItem.item_count === 1 ? "COURSE CAPSULE" : "COURSE CAPSULES"}
+                      {trackNodeItem.item_count} {trackNodeItem.item_count === 1 ? "COURSE" : "COURSES"}
                     </span>
                     <span className="inline-flex items-center gap-1 text-primary font-sans font-bold uppercase tracking-wider text-[10px] group-hover:gap-1.5 transition-all">
                       <span>Enroll</span>
@@ -275,7 +275,7 @@ export default function CompanyBrandedCatalog() {
         {/* HUD LEVEL 3: FOOTER ENDPOINT COMPLIANCE DISCLOSURE SLOTS */}
         <footer className="mt-12 sm:mt-16 pt-4 border-t border-border/10 select-none pointer-events-none block w-full text-center leading-none">
           <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground/30">
-            Sponsored by {activeCompanyRecord.name} · Powered by GroUp Academy Infrastructure Pipeline
+            Sponsored by {activeCompanyRecord.name} · Powered by GroUp Academy
           </p>
         </footer>
       </main>

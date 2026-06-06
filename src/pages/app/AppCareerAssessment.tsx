@@ -166,8 +166,8 @@ export default function AppCareerAssessment() {
  }
  } catch (fatalMutationExceptionPayload: any) {
  toast({
- title: "Sequence Refused",
- description: "The evaluation pipeline rejected your transaction string parameters. Please re-initialize.",
+ title: "Submission Failed",
+ description: "The assessment couldn't be submitted. Please try again.",
  variant: "destructive",
  });
  setAssessmentStepState("lead-capture");
@@ -227,7 +227,7 @@ export default function AppCareerAssessment() {
  <div className="flex justify-between items-end px-0.5 leading-none w-full block">
  <div className="leading-none space-y-1 block">
  <p className="font-mono text-[10px] font-extrabold uppercase tracking-widest text-primary">
- Cognitive Diagnostic Run
+ Career Assessment
  </p>
  <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground/60 block truncate max-w-[180px] sm:max-w-xs pt-0.5">
  Phase: {assessmentStepState.replace("-", " ")}
@@ -253,7 +253,7 @@ export default function AppCareerAssessment() {
  className="rounded-lg h-9 px-3 text-[10px] font-mono font-black uppercase tracking-wider hover:bg-muted group cursor-pointer border border-border/5"
  >
  <ArrowLeft className="mr-1.5 h-3.5 w-3.5 stroke-[2.5] transition-transform group-hover:-translate-x-0.5 shrink-0" />
- <span>Terminate / Revert Parameters</span>
+ <span>Back</span>
  </Button>
  </div>
  )}
@@ -267,13 +267,13 @@ export default function AppCareerAssessment() {
  variant="outline"
  className="rounded font-mono text-[9px] font-extrabold uppercase tracking-widest px-2.5 h-5 bg-primary/5 text-primary border-primary/20 shrink-0 pointer-events-none leading-none pt-0.5"
  >
- Diagnostic Protocol Gateway 2.0
+ Career Assessment
  </Badge>
  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground leading-none pt-1">
  Career Readiness Evaluation
  </h1>
  <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground/60 leading-normal block max-w-sm mx-auto">
- AI-powered algorithmic competency telemetry mapping and matching profile matrix architectures.
+ AI-powered career recommendations to match you with the right roles.
  </p>
  </div>
 
@@ -283,18 +283,18 @@ export default function AppCareerAssessment() {
  {[
  {
  icon: Target,
- title: "Precision Mapping",
- desc: "Role-specific telemetry parameter configurations.",
+ title: "Skills Mapping",
+ desc: "Get evaluated on industry-standard skills for your role.",
  },
  {
  icon: Sparkles,
- title: "AI Inference Logic",
- desc: "Deep programmatic structural gap vector analysis.",
+ title: "AI Insights",
+ desc: "Identify your skill strengths and areas to improve.",
  },
  {
  icon: TrendingUp,
- title: "Executive Syllabus",
- desc: "Target output career roadmap data listings.",
+ title: "Personalized Roadmap",
+ desc: "Get tailored learning and career path suggestions.",
  },
  ].map((itemNode, itemIdx) => {
  const VectorIconComponent = itemNode.icon;
@@ -326,7 +326,7 @@ export default function AppCareerAssessment() {
  className="w-full h-11 px-5 rounded-lg font-bold uppercase text-xs tracking-wider gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-xs transform-gpu active:scale-[0.99] select-none block text-center"
  >
  <Zap className="h-4 w-4 stroke-[2.5] inline-block align-middle shrink-0" />
- <span className="inline-block align-middle pt-0.5">Initialize Diagnostic Sequence</span>
+ <span className="inline-block align-middle pt-0.5">Start Career Assessment</span>
  </Button>
  </CardContent>
  </Card>

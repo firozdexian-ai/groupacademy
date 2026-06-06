@@ -74,7 +74,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     const maxByteLimitCalculated = maxSizeMB * 1024 * 1024;
     if (file.size > maxByteLimitCalculated) {
       setMode("error");
-      const sizeOverflowErrorString = `DATA_OVERFLOW_FAULT: Transmission ceiling limit clamped at ${maxSizeMB}MB.`;
+      const sizeOverflowErrorString = `File is too large: Maximum allowed size is ${maxSizeMB}MB.`;
       setErrorMessage(sizeOverflowErrorString);
       trackEvent("singleton_ingress_size_overflow_intercepted", { fileSize: file.size });
       return;
@@ -82,7 +82,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
 
     setMode("uploading");
     setProgress(0);
-    setStatusMessage("Initializing secure registry handshake…");
+    setStatusMessage("Connecting to server...");
     trackEvent("singleton_ingress_network_stream_started", { fileName: file.name });
 
     // PROTOCOL LOCK: Deterministic Non-Colliding Index Identifier Mapping
@@ -111,7 +111,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
 
         setUploadedUrl(publicConstructedArtifactUrlStr);
         setMode("success");
-        setStatusMessage("REGISTRY_SYNC_VERIFIED");
+        setStatusMessage("Upload complete");
         trackEvent("singleton_ingress_upload_success");
 
         try {
@@ -125,7 +125,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
 
         onFileUploaded(publicConstructedArtifactUrlStr);
       } else {
-        const errorResponseStatusCodeStr = `INGRESS_HTTP_FAULT_CODE: ${xhrInstance.status}`;
+        const errorResponseStatusCodeStr = `Upload failed: Server error ${xhrInstance.status}`;
         setMode("error");
         setErrorMessage(errorResponseStatusCodeStr);
         trackError(errorResponseStatusCodeStr, { component: "SimpleFileUpload", action: "xhr_onload_status_failure" });
@@ -135,7 +135,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     xhrInstance.onerror = () => {
       if (!isMountedRef.current) return;
       const networkUplinkDroppedErrorStr =
-        "UPLINK_TERMINATED_EXCEPTION: Check environment parameters or proxy interference blocks.";
+        "Network error: Please check your connection and try again.";
       setMode("error");
       setErrorMessage(networkUplinkDroppedErrorStr);
       trackError(networkUplinkDroppedErrorStr, { component: "SimpleFileUpload", action: "xhr_onerror_callback" });
@@ -145,7 +145,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     xhrInstance.ontimeout = () => {
       if (!isMountedRef.current) return;
       const requestTimeoutErrorStr =
-        "SYNC_TIMEOUT_EXCEEDED: High network latency detected. Recommend fallback link-mapping bounds.";
+        "Request timed out. Please check your connection or use an external link.";
       setMode("error");
       setErrorMessage(requestTimeoutErrorStr);
       trackError(requestTimeoutErrorStr, { component: "SimpleFileUpload", action: "xhr_ontimeout_callback" });
@@ -160,7 +160,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
   const executeUrlSync = async () => {
     const rawCleanUrlString = urlInput.trim();
     if (!rawCleanUrlString) {
-      setErrorMessage("SYNC_REGISTRY_IDENTIFIER_REQUIRED");
+      setErrorMessage("Please enter a valid URL.");
       return;
     }
 
@@ -180,7 +180,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       onUrlProvided(rawCleanUrlString);
     } catch (urlExceptionErr) {
       trackError(urlExceptionErr, { component: "SimpleFileUpload", action: "execute_url_sync_validation" });
-      setErrorMessage("MALFORMED_URL_SCHEMA: Active secure index structure required (https://…).");
+      setErrorMessage("Invalid URL. A secure link starting with https:// is required.");
     }
   };
 
@@ -214,17 +214,17 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             <Upload className="h-5 w-5 text-muted-foreground/40 group-hover/dropzone:text-primary transition-colors stroke-[2.2]" />
           </div>
           <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-foreground/80 leading-none">
-            Initialize Binary Ingress Pipeline
+            Upload CV or document
           </p>
           <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-widest mt-1.5 leading-none">
-            Extensions Mapped: PDF | DOCX &bull; Maximum Allowed Volume: {maxSizeMB}MB
+            Supported formats: PDF, DOC, DOCX &bull; Max size: {maxSizeMB}MB
           </p>
         </div>
 
         <div className="flex items-center gap-3 px-1 select-none pointer-events-none">
           <div className="flex-1 h-[1px] bg-border/10" />
           <span className="text-[9px] font-extrabold text-muted-foreground/30 uppercase tracking-widest font-mono leading-none">
-            Alternative Dynamic Route
+            Or paste a link
           </span>
           <div className="flex-1 h-[1px] bg-border/10" />
         </div>
@@ -239,7 +239,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
           className="w-full h-10 rounded-xl border border-border/60 text-muted-foreground font-bold hover:text-foreground uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors"
         >
           <Link className="h-4 w-4 mr-1 stroke-[2.2]" />
-          <span>Map External Public Storage Document URL</span>
+          <span>Provide a link to your file</span>
         </Button>
       </div>
     );
@@ -276,7 +276,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
           className="w-full h-8 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 hover:text-rose-500 transition-colors cursor-pointer rounded-xl"
         >
           <X className="h-3.5 w-3.5 mr-1 stroke-[2.5]" />
-          <span>Abort Transport Action Stream</span>
+          <span>Cancel Upload</span>
         </Button>
       </div>
     );
@@ -290,12 +290,12 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       <div className="space-y-3.5 text-left max-w-full w-full transform-gpu antialiased animate-in slide-in-from-bottom-1 duration-200 font-bold text-xs">
         <div className="space-y-1.5 text-left w-full leading-none">
           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground/60 block pl-0.5 leading-none select-none">
-            Registry Storage Link Mapping Identification
+            File Link (e.g. Google Drive, Dropbox)
           </Label>
           <div className="flex gap-2 w-full font-semibold text-sm">
             <Input
               type="url"
-              placeholder="Inject secure target asset address link (e.g. https://drive.google.com/…)…"
+              placeholder="Paste the link to your file (e.g. https://drive.google.com/...)…"
               value={urlInput}
               className="h-10 rounded-xl border border-border/40 bg-background/50 text-xs sm:text-sm font-semibold tracking-tight text-foreground p-3 shadow-inner flex-1 min-w-0"
               onChange={(e) => {
@@ -320,8 +320,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
         )}
 
         <p className="text-[11px] font-semibold text-muted-foreground/40 leading-normal select-none italic pl-0.5 pt-0.5">
-          Supported remote hosting nodes include: Google Drive, Dropbox, and OneDrive index lines. Targets must retain
-          public reading accessibility variables.
+          You can link to files hosted on Google Drive, Dropbox, OneDrive, etc. Make sure the link is set to public so we can access it.
         </p>
 
         <Button
@@ -331,7 +330,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
           onClick={() => setMode("choose")}
           className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-colors h-7 rounded-xl px-2 select-none cursor-pointer"
         >
-          &larr; Revert Back to Local Binary Processing
+          &larr; Upload a file instead
         </Button>
       </div>
     );
@@ -348,7 +347,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 stroke-[2.5] mt-0.5" />
             <div className="space-y-1.5 flex-1 min-w-0 text-left">
               <p className="text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400 select-none leading-none">
-                Ingress Validation Fault
+                Upload Error
               </p>
               <p className="text-[11px] font-semibold text-muted-foreground/70 italic leading-relaxed break-words pr-1">
                 {errorMessage}
@@ -364,7 +363,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             className="flex-1 h-10 rounded-xl border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer transition-colors"
             onClick={() => setMode("choose")}
           >
-            Re-Initialize Ingress
+            Try Again
           </Button>
           <Button
             type="button"
@@ -372,7 +371,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             onClick={() => setMode("url-input")}
           >
             <Link className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Use Mapped Link</span>
+            <span>Paste Link</span>
           </Button>
         </div>
       </div>
@@ -392,7 +391,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             </div>
             <div className="flex flex-col justify-center leading-none min-w-0 flex-1">
               <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase italic tracking-wide leading-none select-all">
-                Artifact Ingress Mapped
+                File added successfully
               </p>
               <p className="text-[9px] font-mono font-extrabold text-muted-foreground/40 uppercase tracking-wider truncate text-ellipsis block pt-1.5 leading-none select-text">
                 {uploadedUrl.includes("storage") ? "Stored file" : "External link"}
@@ -411,7 +410,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
               onFileUploaded("");
             }}
             className="h-8 w-8 rounded-lg text-muted-foreground/60 hover:bg-rose-500/10 hover:text-rose-500 transition-colors shrink-0 flex items-center justify-center shadow-none p-0 border-none"
-            title="Purge active verification file entry parameters from current identity frame"
+            title="Remove file"
           >
             <X className="h-4 w-4 stroke-[2.5]" />
           </Button>

@@ -71,8 +71,8 @@ export function InboxUnlockCard() {
     setLoading(true);
     trackEvent("inbox_unlock_mutation_initiated", { volume });
     const dynamicToastTrackerId = toast({
-      title: "MUTATING_PERMISSION_INDEX",
-      description: "Verifying currency parameters down ledger rows…",
+      title: "Unlocking Inbox",
+      description: "Verifying credits and unlocking messaging...",
     });
 
     try {
@@ -86,8 +86,8 @@ export function InboxUnlockCard() {
 
       if (isMountedRef.current) {
         toast({
-          title: "INBOX_UNLOCKED_SUCCESS",
-          description: "Other validated talent nodes can now dispatch custom connection requests directly.",
+          title: "Inbox Unlocked",
+          description: "Other members can now send you connection requests directly.",
         });
         trackEvent("inbox_unlock_mutation_success");
         await refreshUnlockLedgerMetrics();
@@ -99,7 +99,7 @@ export function InboxUnlockCard() {
           : String(caughtPipelineExceptionErr);
 
       trackError(formattedExceptionMsgStr, { component: "InboxUnlockCard", action: "commit_inbox_unlock_rpc" });
-      toast({ title: "PERMISSION_DENIED_FAULT", description: formattedExceptionMsgStr, variant: "destructive" });
+      toast({ title: "Unlock Failed", description: formattedExceptionMsgStr, variant: "destructive" });
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -136,7 +136,7 @@ export function InboxUnlockCard() {
               variant="outline"
               className="rounded px-1.5 h-4.5 text-[8px] font-extrabold tracking-wider uppercase border border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono shadow-xs shrink-0 select-none"
             >
-              Active Node
+              Active
             </Badge>
           )}
         </div>
@@ -145,22 +145,20 @@ export function InboxUnlockCard() {
         {!unlocked ? (
           <div className="space-y-4 w-full min-w-0 flex flex-col justify-center animate-in slide-in-from-top-1 duration-200">
             <p className="text-[11px] font-semibold text-muted-foreground/70 leading-normal block select-text pr-0.5">
-              Accumulate{" "}
+              To unlock your inbox, you can either accumulate{" "}
               <strong className="text-foreground font-mono bg-muted/40 px-1 py-0.5 rounded shadow-xs">
-                {FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} lifetime credit transactions
+                {FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} transacted credits
               </strong>{" "}
-              (via cross-profile earning or project spend) to authorize an automated system unlock sequence, or process
-              a one-time deployment fee of{" "}
+              from project milestones or profile earnings, or unlock it immediately for a one-time fee of{" "}
               <strong className="text-foreground font-mono bg-muted/40 px-1 py-0.5 rounded shadow-xs">
-                {FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} workspace credits
-              </strong>{" "}
-              instantly.
+                {FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} credits
+              </strong>.
             </p>
 
             {/* INTEGRATED GAUGE BAR TRACK STRIP */}
             <div className="space-y-2 p-3 rounded-xl border border-border/40 bg-muted/10 w-full select-none shadow-sm leading-none shrink-0 font-bold text-[10px] tracking-tight text-muted-foreground/70 tabular-nums">
               <div className="flex justify-between items-center w-full leading-none uppercase tracking-wider font-mono">
-                <span>Verification Volume Curve</span>
+                <span>Transaction Progress</span>
                 <span className="text-primary font-black">
                   {volume.toLocaleString()} / {FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} credits
                 </span>
@@ -181,7 +179,7 @@ export function InboxUnlockCard() {
               {loading ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                  <span>Processing Handshake Matrix…</span>
+                  <span>Unlocking Inbox...</span>
                 </>
               ) : (
                 <>
@@ -189,7 +187,7 @@ export function InboxUnlockCard() {
                   <span>
                     {volume >= FIXED_UNLOCK_THRESHOLD_VOLUME
                       ? "Unlock inbox (free)"
-                      : `Unlock Channel (${FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} cr)`}
+                      : `Unlock Inbox (${FIXED_UNLOCK_THRESHOLD_VOLUME.toLocaleString()} credits)`}
                   </span>
                 </>
               )}
@@ -200,8 +198,7 @@ export function InboxUnlockCard() {
           <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.015] p-3 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2.5 select-none leading-none w-full shrink-0 animate-in fade-in duration-200">
             <ShieldCheck className="h-4 w-4 shrink-0 stroke-[2.5]" />
             <span className="leading-normal">
-              Your messaging channel has successfully synchronized with the talent registry search networks. Alternative
-              profiles can now initiate collaboration workflows.
+              Your inbox is unlocked! Other members can now send you connection requests directly.
             </span>
           </div>
         )}
@@ -209,7 +206,7 @@ export function InboxUnlockCard() {
         {/* HUD LEVEL 3: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
         <div className="flex items-center justify-center gap-1.5 py-2 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full pt-3 mt-1">
           <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Messaging permission pipeline synchronization core complete</span>
+          <span>Secure messaging enabled</span>
         </div>
       </CardContent>
     </Card>

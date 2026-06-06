@@ -95,15 +95,15 @@ export function ExistingCVCard({
           <div className="flex-1 min-w-0 py-0.5">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-black uppercase italic tracking-tighter text-foreground leading-none">
-                REGISTRY_CV_DETECTED
+                EXISTING CV FOUND
               </h3>
               <Zap className="h-3 w-3 text-primary fill-current shrink-0 animate-pulse" />
             </div>
 
             <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic pt-1 font-mono leading-none">
               {sanitizedRegistryDateString
-                ? `SYNC_TIMESTAMP: ${sanitizedRegistryDateString}`
-                : "ARTIFACT_READY_FOR_DEPLOYMENT"}
+                ? `UPLOADED: ${sanitizedRegistryDateString}`
+                : "CV READY"}
             </p>
 
             {/* ACTION SECTOR: INTERACTION TRIGGERS GRID */}
@@ -119,11 +119,11 @@ export function ExistingCVCard({
                   {loading ? (
                     <span className="flex items-center gap-1.5 font-mono">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      INITIALIZING...
+                      PROCESSING...
                     </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
-                      SYNC_THIS_ARTIFACT <ArrowRight className="h-3.5 w-3.5 stroke-[3]" />
+                      USE THIS CV <ArrowRight className="h-3.5 w-3.5 stroke-[3]" />
                     </span>
                   )}
                 </Button>
@@ -137,7 +137,7 @@ export function ExistingCVCard({
                   className="h-10 rounded-xl border-2 font-black uppercase italic text-[10px] tracking-widest hover:bg-muted/10 transition-all gap-2 disabled:cursor-not-allowed"
                 >
                   <Upload className="h-3.5 w-3.5 shrink-0" />
-                  OVERWRITE_NODE
+                  UPLOAD NEW CV
                 </Button>
 
                 <Button

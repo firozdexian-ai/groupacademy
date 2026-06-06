@@ -220,7 +220,7 @@ export default function AppMockInterviewSetup() {
  const isCreditHandshakeSettled = await deductCredits(
  "MOCK_INTERVIEW",
  undefined,
- "AI practice mock interview protocol generation run",
+ "AI Mock Interview",
  );
  if (!isCreditHandshakeSettled) throw new Error("Credit mapping handshaking failure.");
 
@@ -362,7 +362,7 @@ export default function AppMockInterviewSetup() {
  "text-[11px] sm:text-xs font-semibold text-muted-foreground/60 block leading-none",
  )}
  >
- Deploy tailored interactive behavioral and technical role interrogations dynamically.
+ Prepare for your next interview with interactive behavioral and technical questions tailored to your field.
  </p>
  </div>
  </header>
@@ -381,17 +381,17 @@ export default function AppMockInterviewSetup() {
  <div className="space-y-1 block leading-none select-none pointer-events-none">
  <div className="flex items-center gap-2 font-mono text-[10px] font-extrabold uppercase tracking-wide text-primary leading-none">
  <BriefcaseIcon className="h-4 w-4 stroke-[2.2] text-primary" />
- <span className="pt-0.5">Target Placement Profile Description</span>
+ <span className="pt-0.5">Job Description</span>
  </div>
  <p className="text-[11px] font-semibold text-muted-foreground/50 leading-normal block">
- Provide or paste the explicit text criteria constraints of the target role you intend to target.
+ Paste the job description of the role you want to practice for.
  </p>
  </div>
 
  <div className="space-y-2 block w-full leading-none">
  <div className="flex justify-between items-center select-none leading-none w-full shrink-0">
  <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none pt-0.5">
- Role Parameters Configuration Matrix
+ Job Description
  </Label>
  {jobDescriptionInputStr.trim().length > 0 && (
  <Button
@@ -401,13 +401,13 @@ export default function AppMockInterviewSetup() {
  onClick={handleClearDescriptionFieldAction}
  className="h-6 px-2 rounded font-mono text-[9px] font-black uppercase text-muted-foreground/60 hover:text-destructive cursor-pointer leading-none"
  >
- <Trash2 className="w-3 h-3 stroke-[2.2] inline mr-1" /> <span>Purge Draft</span>
+ <Trash2 className="w-3 h-3 stroke-[2.2] inline mr-1" /> <span>Clear Draft</span>
  </Button>
  )}
  </div>
 
  <Textarea
- placeholder="Paste corporate requirements outline description specifications directly here..."
+ placeholder="Paste job description here..."
  value={jobDescriptionInputStr}
  onChange={(e) => setJobDescriptionInputStr(e.target.value)}
  className="min-h-[180px] font-sans text-xs sm:text-sm font-medium leading-relaxed bg-background/50 border border-border/60 focus-visible:ring-1 focus-visible:ring-ring rounded-lg shadow-none p-3"
@@ -418,7 +418,7 @@ export default function AppMockInterviewSetup() {
  <Save className="w-3 h-3 text-muted-foreground/50 stroke-[2.2]" /> <span>Draft Buffered</span>
  </span>
  <span className={cn(jobDescriptionInputStr.trim().length < 50 && "text-amber-600 font-extrabold")}>
- {jobDescriptionInputStr.trim().length.toString()} / 50 Minimal Length Bounds Threshold
+ {jobDescriptionInputStr.trim().length.toString()} / 50 minimum characters required
  </span>
  </div>
  </div>
@@ -429,7 +429,7 @@ export default function AppMockInterviewSetup() {
  onClick={() => setWizardStepState("configuration")}
  disabled={jobDescriptionInputStr.trim().length < 50}
  >
- <span>Advance Configuration parameters</span>
+ <span>Next: Configure Interview</span>
  <ArrowRight className="h-4 w-4 stroke-[2.5]" />
  </Button>
  </CardContent>
@@ -445,10 +445,10 @@ export default function AppMockInterviewSetup() {
  <div className="space-y-1 block leading-none select-none pointer-events-none pb-2 border-b border-border/5">
  <div className="flex items-center gap-2 font-mono text-[10px] font-extrabold uppercase tracking-wide text-primary leading-none">
  <Settings className="h-4 w-4 stroke-[2.2] text-primary" />
- <span className="pt-0.5">Tune Assessment Pipeline Configurations</span>
+ <span className="pt-0.5">Configure Interview</span>
  </div>
  <p className="text-[11px] font-semibold text-muted-foreground/50 leading-normal block">
- Adjust length scales, difficulty steps, and context mappings prior to spawning runtime processes.
+ Set your difficulty, number of questions, and background context.
  </p>
  </div>
 
@@ -465,7 +465,7 @@ export default function AppMockInterviewSetup() {
  {/* TUNING ITEM A: QUESTION QUANTUM LIMITS */}
  <div className="space-y-2 block w-full leading-none">
  <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Evaluation Question Quantum Scale
+ Number of questions
  </Label>
  <RadioGroup
  value={String(interviewConfigState.questionCount)}
@@ -498,7 +498,7 @@ export default function AppMockInterviewSetup() {
  {/* TUNING ITEM B: CHRONO STEP DIFFICULTY CHANNELS */}
  <div className="space-y-2 block w-full leading-none pt-1">
  <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Target Vetting Difficulty Step
+ Difficulty
  </Label>
  <RadioGroup
  value={interviewConfigState.difficulty}
@@ -531,7 +531,7 @@ export default function AppMockInterviewSetup() {
  {/* TUNING ITEM C: CLASSIFICATION DOMAIN CATEGORIES */}
  <div className="space-y-1.5 block w-full leading-none pt-1">
  <Label className="font-mono text-[10px] font-extrabold uppercase text-muted-foreground/60 tracking-wide block leading-none">
- Profession Specialty Classification Variant
+ Industry / Profession
  </Label>
  <Select
  value={interviewConfigState.professionCategoryId || ""}
@@ -540,7 +540,7 @@ export default function AppMockInterviewSetup() {
  }
  >
  <SelectTrigger className="h-9 font-sans text-xs sm:text-sm rounded-lg border border-border/40 bg-background/50 shadow-none">
- <SelectValue placeholder="Select specialized discipline context mapping..." />
+ <SelectValue placeholder="Select your industry..." />
  </SelectTrigger>
  <SelectContent className="rounded-lg border border-border/60 bg-popover text-popover-foreground">
  {professionCategoriesArray.map((categoryNodeItem) => (
@@ -569,7 +569,7 @@ export default function AppMockInterviewSetup() {
  htmlFor="profile-context-integration-trigger"
  className="text-xs sm:text-sm font-bold text-foreground cursor-pointer block"
  >
- Integrate Dynamic Profile Context Maps
+ Integrate my resume details
  </Label>
  <p
  className={cn(
@@ -577,8 +577,7 @@ export default function AppMockInterviewSetup() {
  "font-sans text-[11px] font-medium text-muted-foreground/50 leading-tight block select-none pointer-events-none",
  )}
  >
- Tailor interrogation lines explicitly matching your skills metrics record logs and structural work
- experience portfolios.
+ Customize questions to match your experience, education, and skills.
  </p>
  </div>
  </div>
@@ -589,7 +588,7 @@ export default function AppMockInterviewSetup() {
  <div className="flex items-center justify-between select-none pointer-events-none leading-none w-full shrink-0 font-mono text-[10px] uppercase tracking-tight font-bold text-muted-foreground/40">
  <span className="flex items-center gap-1.5 shrink-0">
  <Coins className="h-3.5 w-3.5 text-amber-500 stroke-[2]" />{" "}
- <span>Computational Resource Cost Charge</span>
+ <span>Cost</span>
  </span>
  <span className="text-sm font-black text-foreground tabular-nums">
  {MOCK_INTERVIEW_COST.toString()} Credits
@@ -604,7 +603,7 @@ export default function AppMockInterviewSetup() {
  disabled={isAIInferenceProcessing}
  className="h-9 px-4 rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wider border border-border/60 bg-background/50 hover:bg-accent cursor-pointer transition-colors shadow-2xs gap-1.5 pt-0.5 block shrink-0"
  >
- <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Revert Description</span>
+ <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" /> <span>Back</span>
  </Button>
 
  <Button
@@ -619,7 +618,7 @@ export default function AppMockInterviewSetup() {
  <span className="truncate block pt-0.5">{progressiveLoadingMessageStr}</span>
  </div>
  ) : (
- <span>Initialize Core Simulation Matrix</span>
+ <span>Start Interview</span>
  )}
  </Button>
  </div>
@@ -640,7 +639,7 @@ export default function AppMockInterviewSetup() {
  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto stroke-[2.5]" />
  <div className="space-y-1 block leading-none">
  <h3 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide">
- Assembling Cognitive Syllabus Nodes...
+ Generating your interview...
  </h3>
  <p
  className={cn(
@@ -652,7 +651,7 @@ export default function AppMockInterviewSetup() {
  </p>
  <p className="font-mono text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest pt-2 flex items-center justify-center gap-1 leading-none tabular-nums">
  <Sparkles className="h-3 w-3 stroke-[2]" />{" "}
- <span>Estimated inference conversion processing window: 20–30s</span>
+ <span>Estimated time: 20–30s</span>
  </p>
  </div>
  </CardContent>

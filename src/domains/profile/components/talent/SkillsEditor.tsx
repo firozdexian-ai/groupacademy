@@ -50,8 +50,8 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
     if (!sanitizedInputToken) return;
 
     if (safeSkillsCollection.includes(sanitizedInputToken)) {
-      toast("DUPLICATE_NODE_REJECTED", {
-        description: "This proficiency token is already mapped to your matrix.",
+      toast("Skill already added", {
+        description: "This skill is already on your list.",
       });
       setInputValue("");
       return;
@@ -164,7 +164,7 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
                   type="button"
                   onClick={() => removeSkillNode(skillToken)}
                   className="h-5 w-5 rounded-md bg-muted border border-border/40 text-muted-foreground hover:bg-destructive hover:text-primary-foreground hover:border-transparent transition-colors cursor-pointer select-none flex items-center justify-center p-0 shrink-0"
-                  title={`Expunge ${skillToken} parameter from secure profile lookup registry`}
+                  title={`Remove ${skillToken}`}
                 >
                   <X className="h-3 w-3 stroke-[2.5]" />
                 </button>
@@ -178,9 +178,8 @@ export function SkillsEditor({ skills = [], onChange }: SkillsEditorProps) {
       <div className="flex items-start gap-3 p-3.5 rounded-xl bg-primary/[0.01] border border-primary/10 select-none text-left w-full shadow-sm shrink-0">
         <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5 stroke-[2.2]" />
         <p className="text-[10px] font-semibold text-muted-foreground uppercase leading-relaxed tracking-wide">
-          <span className="text-primary font-black italic">Executive Guidance:</span> Populate technical capabilities,
-          tool frameworks, languages, and core soft proficiencies cleanly to optimize your neural visibility
-          calculations inside global enterprise recruiter matching passes.
+          <span className="text-primary font-black italic">Tip:</span> Add technical skills, tools,
+          languages, and soft skills to stand out to employers and get matched with relevant job opportunities.
         </p>
       </div>
     </div>

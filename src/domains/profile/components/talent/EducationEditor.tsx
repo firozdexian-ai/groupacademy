@@ -141,7 +141,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
           className="h-8 px-3 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 shadow-sm cursor-pointer hover:bg-accent gap-1 flex items-center justify-center transition-colors select-none"
         >
           <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>Add Record</span>
+          <span>Add Education</span>
         </Button>
       </div>
 
@@ -184,7 +184,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                       {String(index + 1).padStart(2, "0")}
                     </div>
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/70 truncate block pt-0.5 leading-none">
-                      Institutional Registry Record
+                      Education Record
                     </span>
                   </div>
 
@@ -194,7 +194,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                     size="icon" aria-label="Expunge this specific qualification element row fr"
                     onClick={() => removeAcademicNode(index)}
                     className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer transition-colors shrink-0 p-0 border-none shadow-none"
-                    title="Expunge this specific qualification element row from database collection parameters"
+                    title="Remove this education record"
                   >
                     <Trash2 className="h-4 w-4 stroke-[2.2]" />
                   </Button>
@@ -207,7 +207,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                       htmlFor={`edu-institution-node-id-${index}`}
                       className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                     >
-                      Institutional Track Name *
+                      School / University *
                     </Label>
                     <Input
                       id={`edu-institution-node-id-${index}`}
@@ -224,7 +224,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                         htmlFor={`edu-degree-node-id-${index}`}
                         className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                       >
-                        Credential Attainment Level
+                        Degree (e.g. Bachelor's)
                       </Label>
                       <Input
                         id={`edu-degree-node-id-${index}`}
@@ -240,7 +240,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                         htmlFor={`edu-field-node-id-${index}`}
                         className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                       >
-                        Domain Specialization discipline
+                        Field of Study
                       </Label>
                       <Input
                         id={`edu-field-node-id-${index}`}
@@ -258,7 +258,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                         htmlFor={`edu-start-node-id-${index}`}
                         className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                       >
-                        Deployment Start Year
+                        Start Year
                       </Label>
                       <Input
                         id={`edu-start-node-id-${index}`}
@@ -275,7 +275,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
                         htmlFor={`edu-end-node-id-${index}`}
                         className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
                       >
-                        Conclusion Watermark Year
+                        End Year (or Expected)
                       </Label>
                       <Input
                         id={`edu-end-node-id-${index}`}
@@ -297,7 +297,7 @@ export function EducationEditor({ education = [], onChange }: EducationEditorPro
       {/* HUD LEVEL 3: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
       <div className="mt-6 flex items-center justify-center gap-1.5 py-2.5 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none shrink-0 uppercase w-full">
         <Zap className="h-3.5 w-3.5 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-        <span>Registry parameters verified for authoritative cognitive skill analysis tracks</span>
+        <span>Education history helps customize your profile</span>
       </div>
     </div>
   );

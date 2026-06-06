@@ -72,7 +72,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
     setIsValidating(true);
     trackEvent("access_code_validation_handshake_initiated", { contentId });
     const dynamicToastTrackerId = toast.loading(
-      "Verifying network credentials parameter records with global index ledgers…",
+      "Verifying your access code...",
     );
 
     try {
@@ -128,7 +128,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
         // Fallback profile creation pass if relational records live disconnected down database tables
         const profileInitializationCreatedBool = await createStudentProfile(
           user.id,
-          user.email?.split("@")[0] || "Learner_Node",
+          user.email?.split("@")[0] || "Learner",
           user.email || "",
           "",
           "free_learner",
@@ -151,7 +151,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
 
       if (insertEnrollmentRegistryError) {
         if (insertEnrollmentRegistryError.code === "23505") {
-          toast.error("Ecosystem Bypass: Relational indices mirror this enrollment track as already active.", {
+          toast.error("You are already enrolled in this course.", {
             id: dynamicToastTrackerId,
           });
           if (isMountedRef.current) {
@@ -175,7 +175,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
       await queryClient.invalidateQueries({ queryKey: ["talent-profile"] });
 
       if (isMountedRef.current) {
-        toast.success("Curriculum verification sync complete. Classroom trajectory authorized.", {
+        toast.success("Access code verified! You have successfully enrolled.", {
           id: dynamicToastTrackerId,
         });
         trackEvent("access_code_validation_handshake_success", { contentId });
@@ -194,7 +194,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
         action: "execute_enrollment_handshake",
         contentId,
       });
-      toast.error(`Ingress gateway setup sync fault: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
+      toast.error(`Verification failed: ${formattedExceptionMsgStr}`, { id: dynamicToastTrackerId });
     } finally {
       if (isMountedRef.current) {
         setIsValidating(false);
@@ -222,10 +222,10 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
               </div>
               <div className="min-w-0 flex flex-col justify-center leading-none flex-1">
                 <DialogTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none">
-                  Syllabus Key Code Ingress Terminal
+                  Enter Access Code
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none pt-1">
-                  Authorize structural user workspace synchronization handshake sequence
+                  Unlock course content using your access code.
                 </DialogDescription>
               </div>
             </div>
@@ -236,7 +236,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
         <div className="p-5 sm:p-6 space-y-4 w-full min-w-0 flex flex-col justify-center font-bold text-xs text-foreground/90">
           <div className="p-3.5 border border-border/40 bg-background/50 rounded-xl space-y-1 w-full min-w-0 flex flex-col justify-center leading-none text-left select-none">
             <span className="text-[9px] font-mono font-extrabold uppercase tracking-wider text-muted-foreground/50 block leading-none">
-              Target Classroom Node
+              Target Course
             </span>
             <p className="text-xs sm:text-sm font-bold text-foreground/90 truncate text-ellipsis block pr-1 leading-none select-text pt-0.5">
               {contentTitle || "Untitled course"}
@@ -253,7 +253,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
                 htmlFor="code"
                 className="text-[10px] font-extrabold uppercase tracking-wide text-primary block pl-0.5 leading-none select-none"
               >
-                Registry Access Code Parameter Key
+                Access Code
               </Label>
               <Input
                 id="code"
@@ -271,8 +271,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
               <div className="flex gap-2.5 items-start p-3 bg-primary/[0.01] border border-primary/10 rounded-xl select-none leading-none shadow-sm w-full shrink-0">
                 <MessageSquare className="h-4 w-4 text-primary shrink-0 stroke-[2.2]" />
                 <p className="text-[9px] font-semibold text-muted-foreground uppercase leading-relaxed tracking-wide pt-0.5">
-                  Guidance: Connect with administrative faculty channels to request your non-colliding artifact key
-                  variables on payment completion verification events.
+                  Note: Contact your instructor or administrator if you need an access code.
                 </p>
               </div>
             </div>
@@ -286,7 +285,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
                 onClick={() => onOpenChange(false)}
                 className="h-9 px-4 rounded-xl text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 transition-colors cursor-pointer"
               >
-                Abort Handshake
+                Cancel
               </Button>
 
               <Button
@@ -297,12 +296,12 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
                 {isValidating ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                    <span>Syncing Key…</span>
+                    <span>Verifying…</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="h-4 w-4 stroke-[2.5]" />
-                    <span>Validate & Ingress</span>
+                    <span>Unlock Course</span>
                   </>
                 )}
               </Button>

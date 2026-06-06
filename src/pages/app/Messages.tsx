@@ -96,7 +96,7 @@ export default function Messages() {
  <div className="relative">
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
  <Input
- placeholder="Search active correspondence threads..."
+ placeholder="Search messages..."
  value={textSearchQueryStr}
  onChange={(e) => setTextSearchInputStr(e.target.value)}
  className="h-9 pl-9 bg-muted/30 border-transparent focus-visible:bg-background rounded-lg shadow-none text-xs"
@@ -140,16 +140,16 @@ export default function Messages() {
  <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center mb-6">
  <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
  </div>
- <h2 className="text-sm font-bold uppercase tracking-tight mb-2">No active conversation nodes</h2>
+ <h2 className="text-sm font-bold uppercase tracking-tight mb-2">No messages found</h2>
  <p className="text-xs text-muted-foreground mb-6 max-w-[200px]">
- Initialize connection with an AI agent via the Discovery portal.
+ Start a conversation with an AI agent to see your chats here.
  </p>
  <Button
  onClick={() => navigateHook("/app/agents")}
  size="sm"
  className="gap-2 text-xs font-bold uppercase tracking-widest rounded-lg"
  >
- <Bot className="h-4 w-4" /> Discovery Portal
+ <Bot className="h-4 w-4" /> Browse Agents
  </Button>
  </div>
  ) : (

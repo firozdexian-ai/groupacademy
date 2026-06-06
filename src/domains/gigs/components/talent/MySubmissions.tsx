@@ -42,7 +42,7 @@ const STATUS_CONFIG = {
     className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   },
   rejected: {
-    label: "Audit Rejection",
+    label: "Rejected",
     icon: AlertCircle,
     className: "bg-rose-500/10 text-rose-600 border-rose-500/20",
   },
@@ -147,7 +147,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
       <div className="py-12 text-center border border-dashed border-border/40 bg-card/40 backdrop-blur-md rounded-2xl select-none p-4 w-full">
         <Sparkles className="h-8 w-8 text-primary/40 mx-auto mb-3 animate-pulse" />
         <p className="text-xs font-bold text-muted-foreground leading-normal tracking-tight max-w-xs mx-auto">
-          No task submission logs mapped to your ledger. Select an active gig update above to ignite tracking rows.
+          No task submissions found. Select an active gig above to submit your work.
         </p>
       </div>
     );
@@ -198,7 +198,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
                       &ldquo;{sub.ai_feedback}&rdquo;
                       {aiScore !== null && (
                         <span className="ml-1.5 not-italic text-[10px] font-extrabold tracking-wide uppercase bg-primary/5 border border-primary/10 px-1.5 py-0.5 rounded-full text-primary tabular-nums">
-                          Synapse: {aiScore}/10 Score
+                          AI Rating: {aiScore}/10
                         </span>
                       )}
                     </p>
@@ -233,10 +233,10 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
                 <div className="flex items-center justify-between text-[10px] font-bold text-foreground/90 uppercase tracking-wide">
                   <span className="flex items-center gap-1.5 text-primary">
                     <MousePointerClick className="h-3 w-3 stroke-[2.5]" />
-                    <span>Viral reach progression</span>
+                    <span>Progression</span>
                   </span>
                   <span className="tabular-nums tracking-wider bg-background/60 border px-2 py-0.5 rounded-md text-muted-foreground">
-                    {clicks} / {CLICK_THRESHOLD} conversion clicks
+                    {clicks} / {CLICK_THRESHOLD} clicks
                   </span>
                 </div>
 
@@ -264,7 +264,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
                       navigator.clipboard.writeText(absoluteAttributionUrl);
                       setCopiedId(sub.id);
                       trackEvent("my_submissions_link_copied", { jobId });
-                      toast.success("Affiliate referral link pinned to clipboard");
+                      toast.success("Referral link copied to clipboard");
                       setTimeout(() => setCopiedId(null), 2000);
                     }}
                   >
@@ -284,7 +284,7 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
                 <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 stroke-[2.2]" />
                 <div className="space-y-0.5 min-w-0">
                   <span className="text-[9px] font-extrabold uppercase tracking-wider text-rose-600 block leading-none">
-                    Audit rejection remarks
+                    Rejection remarks
                   </span>
                   <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-400 leading-relaxed mt-0.5 break-words">
                     {sub.admin_notes}

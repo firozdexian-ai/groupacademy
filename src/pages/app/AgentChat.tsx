@@ -93,7 +93,7 @@ export default function AgentChat() {
  if (isDatabaseAgentResolving || isLoadingSessions || !unverifiedAgentKeyStr) return;
 
  if (!resolvedActiveAgentMetadata) {
- toast.error("Specialist agent registry could not be parsed.");
+ toast.error("Agent details could not be loaded.");
  executeNavigationHook("/app/agents");
  return;
  }
@@ -109,7 +109,7 @@ export default function AgentChat() {
  } catch (fatalSessionInitException) {
  if (isThreadActiveAndValid) {
  console.error("Session Ingress Exception thrown:", fatalSessionInitException);
- toast.error("Could not construct encrypted telemetry route.");
+ toast.error("Could not connect to the agent.");
  executeNavigationHook("/app/agents");
  }
  }
@@ -148,10 +148,10 @@ export default function AgentChat() {
  </div>
  <div className="text-center leading-none space-y-1 block">
  <p className="font-mono text-[10px] font-extrabold uppercase tracking-widest text-primary animate-pulse">
- Configuring Uplink Path
+ Connecting...
  </p>
  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 leading-none">
- Synchronizing Matrix Interface Maps...
+ Preparing chat...
  </p>
  </div>
  </div>
@@ -169,10 +169,9 @@ export default function AgentChat() {
  <ShieldAlert className="h-5 w-5 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Uplink Terminated</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Connection Failed</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The communication handshake has failed to resolve. The specified neural node link is invalid or
- unreachable.
+ Could not establish a connection. The agent might be offline or unavailable.
  </p>
  </div>
  <Button
@@ -180,7 +179,7 @@ export default function AgentChat() {
  onClick={() => executeNavigationHook("/app/agents")}
  className="h-8 rounded-lg text-xs font-medium tracking-wider px-4 cursor-pointer"
  >
- Return to Directory Roster
+ Return to Agents
  </Button>
  </div>
  </div>
@@ -227,10 +226,10 @@ export default function AgentChat() {
  </div>
  <div className="space-y-1 block leading-none">
  <h3 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wide">
- Session Pipeline Interrupted
+ Connection Lost
  </h3>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal block">
- The streaming data connection channel with the active specialist node has dropped.
+ The connection with the AI agent was lost.
  </p>
  </div>
 
@@ -241,7 +240,7 @@ export default function AgentChat() {
  className="w-full h-9 rounded-lg font-bold uppercase tracking-wider text-[10px] sm:text-xs gap-1.5 cursor-pointer shadow-xs transform-gpu active:scale-[0.985]"
  >
  <Zap className="h-3.5 w-3.5 stroke-[2.2]" />
- <span>Re-establish Uplink Track</span>
+ <span>Reconnect</span>
  </Button>
  </div>
  )}

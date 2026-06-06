@@ -40,13 +40,13 @@ const STATUS_CONFIG: Record<
     color: "text-accent dark:text-accent border-accent/20 bg-accent/5",
   },
   rejected: {
-    label: "ARCHIVED",
+    label: "NOT SELECTED",
     variant: "destructive",
     icon: XCircle,
     color: "text-destructive border-destructive/20 bg-destructive/5",
   },
   hired: {
-    label: "PLACED",
+    label: "HIRED",
     variant: "default",
     icon: CheckCircle,
     color: "text-success dark:text-success border-success/20 bg-success/5",
@@ -153,10 +153,10 @@ export function ApplicationHistoryCard() {
           <div className="space-y-1.5 flex flex-col justify-center leading-none min-w-0 flex-1 text-left">
             <CardTitle className="text-xs sm:text-sm font-bold text-foreground/90 uppercase tracking-wide flex items-center gap-2 leading-none block truncate">
               <Target className="h-4 w-4 text-primary stroke-[2.2] shrink-0 animate-pulse" />
-              <span>Application Pipeline Tracker</span>
+              <span>Job Applications</span>
             </CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block leading-none pt-0.5">
-              Real-time trajectory synchronization with institutional enterprise partners
+              Track the status of your applications in real-time.
             </CardDescription>
           </div>
 
@@ -210,7 +210,7 @@ export function ApplicationHistoryCard() {
               }
               className="h-8 rounded-xl border border-border/60 font-bold uppercase text-[10px] tracking-wide shadow-sm hover:bg-accent cursor-pointer transition-colors"
             >
-              Discover Target Opportunities
+              Explore Jobs
             </Button>
           </div>
         ) : (

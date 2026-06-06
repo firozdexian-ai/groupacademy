@@ -78,14 +78,14 @@ export default function PublicProjectsIndex() {
 
         // Apply synchronized metadata metrics inside the data pipeline resolution thread to prevent shifts
         setHead({
-          title: "Public Projects · Gro10x Case Registry",
+          title: "Projects · GroUp Academy",
           description:
-            "Browse verified live B2B developmental projects, functional system architectures, and production case studies from teams operating globally on Gro10x.",
+            "Browse projects and case studies from teams on GroUp Academy.",
           canonical: "https://groupacademy.online/projects",
           jsonLd: {
             "@context": "https://schema.org",
             "@type": "CollectionPage",
-            name: "Gro10x Public Project Matrix Repository",
+            name: "GroUp Academy Projects",
           },
           key: `projects-showcase-index-query-${consolidatedDebouncedSearchQuery}`,
         });
@@ -113,7 +113,7 @@ export default function PublicProjectsIndex() {
             className="font-bold uppercase text-xs sm:text-sm text-foreground flex items-center gap-2 tracking-wide pointer-events-auto leading-none"
           >
             <Briefcase className="h-4 w-4 text-primary stroke-[2.2] shrink-0" />
-            <span className="pt-0.5">Gro10x Projects Engine</span>
+            <span className="pt-0.5">Projects Hub</span>
           </Link>
 
           <nav
@@ -137,11 +137,10 @@ export default function PublicProjectsIndex() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 block w-full">
         <div className="space-y-1 block leading-none select-none pointer-events-none border-b border-border/10 pb-4 w-full shrink-0">
           <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-foreground leading-none pt-0.5">
-            Production Showcases
+            Featured Projects
           </h1>
           <p className="text-xs sm:text-sm font-semibold text-muted-foreground/60 leading-normal block">
-            Verified functional abstractions and engineering case studies from teams building inside the Gro10x ledger
-            system.
+            View projects and case studies built by our community and companies.
           </p>
         </div>
 
@@ -150,7 +149,7 @@ export default function PublicProjectsIndex() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 stroke-[2.2] select-none pointer-events-none" />
           <Input
             type="search"
-            placeholder="Filter active assignment registries..."
+            placeholder="Search projects..."
             value={rawSearchQueryInput}
             onChange={(eventObject) => setRawSearchQueryInput(eventObject.target.value)}
             className="w-full h-9 pl-9 pr-3 bg-background/50 border border-border/40 text-xs sm:text-sm rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -164,15 +163,15 @@ export default function PublicProjectsIndex() {
             className="w-full flex items-center justify-center py-16 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none pointer-events-none gap-2.5"
           >
             <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 border-t-primary animate-spin shrink-0" />
-            <span>Resolving Pipeline Payload...</span>
+            <span>Loading projects...</span>
           </div>
         ) : projectRowsRegistry.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-8 text-center select-none mt-6 block">
             <Inbox className="h-5 w-5 text-muted-foreground/30 mx-auto stroke-[2.2] pointer-events-none" />
             <p className="text-xs font-semibold text-muted-foreground/60 leading-normal mt-2 max-w-xs mx-auto">
               {rawSearchQueryInput
-                ? "No matching public portfolio logs resolved from standard parameter filtering indexes."
-                : "No public technical projects or case indexes have been distributed within this catalog node yet."}
+                ? "No matching projects found."
+                : "No projects have been published yet."}
             </p>
           </div>
         ) : (

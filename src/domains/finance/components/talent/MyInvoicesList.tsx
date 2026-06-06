@@ -125,7 +125,7 @@ export function MyInvoicesList() {
           const cleanPrice = Number(inv.bundle_price_usd || 0).toFixed(2);
 
           const outboundMessagePayload = encodeURIComponent(
-            `Inquiry regarding Invoice Reference ${cleanRef} | Package: ${cleanCredits} Credits ($${cleanPrice}). Please help verify my payment.`
+            `Inquiry regarding Invoice #${cleanRef} | Package: ${cleanCredits} Credits ($${cleanPrice}). Please help verify my payment.`
           );
 
           window.open(

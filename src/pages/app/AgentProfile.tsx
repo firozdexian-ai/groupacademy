@@ -205,9 +205,9 @@ export default function AgentProfile() {
  <ShieldAlert className="h-4 w-4 stroke-[2.2]" />
  </div>
  <div className="space-y-1 block">
- <p className="text-xs font-bold text-foreground uppercase tracking-wide">Specialist Missing</p>
+ <p className="text-xs font-bold text-foreground uppercase tracking-wide">Agent not found</p>
  <p className="text-[11px] font-semibold text-muted-foreground/60 leading-normal">
- The targeted specialty agent parameters could not be localized within public registry arrays.
+ The selected agent could not be found.
  </p>
  </div>
  <Button
@@ -216,7 +216,7 @@ export default function AgentProfile() {
  onClick={handleReturnToMarketplace}
  className="text-xs font-bold uppercase tracking-wider text-primary"
  >
- Return to Marketplace Index
+ Return to Agents
  </Button>
  </div>
  </div>
@@ -239,7 +239,7 @@ export default function AgentProfile() {
  <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
  </Button>
  <p className="font-mono text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/70 pt-0.5">
- Specialist Agent Deployment Dossier
+ Agent Details
  </p>
  </header>
 
@@ -269,7 +269,7 @@ export default function AgentProfile() {
  <CheckCircle2 className="h-4 w-4 text-primary stroke-[2.5] shrink-0" />
  </h1>
  <p className="font-mono text-[9px] font-black uppercase tracking-wide text-muted-foreground/40 leading-none block">
- {agentProfileData.agent_type === "company" ? "Enterprise Corporate Agent" : "Verified Academy Operator"}
+ {agentProfileData.agent_type === "company" ? "Verified Company Assistant" : "Verified Academy Assistant"}
  </p>
  </div>
  </div>
@@ -291,7 +291,7 @@ export default function AgentProfile() {
  {telemetryStatsState.users.toLocaleString()}
  </p>
  <p className="font-mono text-[9px] font-bold text-muted-foreground/30 uppercase tracking-tight block leading-none">
- Roster Footprint
+ Total Users
  </p>
  </div>
  <div className="rounded-lg border border-border/60 bg-card/40 p-2.5 text-center leading-none space-y-1 block shadow-2xs">
@@ -309,7 +309,7 @@ export default function AgentProfile() {
  {agentProfileData.description && (
  <section className="block w-full">
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
- Abstract Overview
+ About
  </h2>
  <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-medium block select-text whitespace-pre-wrap mt-2.5">
  {agentProfileData.description}
@@ -321,7 +321,7 @@ export default function AgentProfile() {
  {verifiedAreasOfExpertiseList.length > 0 && (
  <section className="block w-full">
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5">
- Utility Focus Domain Vectors
+ Expertise
  </h2>
  <div className="flex flex-wrap gap-1.5 mt-2.5 block w-full select-none pointer-events-none">
  {verifiedAreasOfExpertiseList.map((expertiseItem) => (
@@ -341,23 +341,23 @@ export default function AgentProfile() {
  <section className="rounded-xl border border-border/60 bg-card p-3 flex items-center justify-between gap-4 leading-none w-full block select-none pointer-events-none shadow-2xs">
  <div className="leading-none space-y-1 block">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide leading-none">
- Computational Transmission Draw
+ Cost per message
  </p>
  <p className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5 pt-0.5 tabular-nums uppercase">
  <Coins className="h-4 w-4 text-primary stroke-[2]" />
  <span>
- {(agentProfileData.delivery_credit_cost || agentProfileData.credit_cost || 1).toLocaleString()} Credits
- / Pass
+ {(agentProfileData.delivery_credit_cost || agentProfileData.credit_cost || 1).toLocaleString()} credits
+ / message
  </span>
  </p>
  </div>
  {agentProfileData.connection_fee !== null && agentProfileData.connection_fee > 0 && (
  <div className="text-right leading-none space-y-1 block">
  <p className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide leading-none">
- Initial Onboarding Fee
+ Unlock cost
  </p>
  <p className="text-xs sm:text-sm font-bold font-mono text-primary tabular-nums pt-0.5 uppercase">
- {agentProfileData.connection_fee.toLocaleString()} Credits
+ {agentProfileData.connection_fee.toLocaleString()} credits
  </p>
  </div>
  )}
@@ -379,7 +379,7 @@ export default function AgentProfile() {
  className="w-full h-10 rounded-lg font-bold uppercase text-xs tracking-wider gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transform-gpu active:scale-[0.985] block"
  >
  <MessageCircle className="h-4 w-4 stroke-[2.5]" />
- <span>Resume Encrypted Uplink Channel</span>
+ <span>Chat now</span>
  </Button>
  ) : (
  <Button
@@ -395,8 +395,8 @@ export default function AgentProfile() {
  )}
  <span>
  {Number(agentProfileData.connection_fee ?? 0) > 0
- ? `Initialize Pipeline Allocation · ${agentProfileData.connection_fee} Credits`
- : "Initialize Pipeline Allocation · Free Access Token"}
+    ? `Unlock for ${agentProfileData.connection_fee} credits`
+    : "Unlock Agent"}
  </span>
  </Button>
  )}

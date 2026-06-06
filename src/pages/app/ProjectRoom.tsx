@@ -62,7 +62,7 @@ export default function ProjectRoom() {
  setMessages(msg || []);
  } catch (e) {
  await reportAnomaly("DataSyncError", { projectId, error: e });
- toast.error("Failed to sync project ledger.");
+ toast.error("Failed to load project details.");
  } finally {
  setLoading(false);
  }
@@ -96,7 +96,7 @@ export default function ProjectRoom() {
  milestoneId: id,
  payload: { note: submitNote, submitted_by: talent?.id },
  });
- toast.success("Deliverables synchronized.");
+ toast.success("Deliverables submitted.");
  setSubmitNote("");
  load();
  } catch (e) {
@@ -113,7 +113,7 @@ export default function ProjectRoom() {
  <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
  </div>
  );
- if (!project) return <div className="p-4 text-sm">Project state not found.</div>;
+ if (!project) return <div className="p-4 text-sm">Project not found.</div>;
 
  return (
  <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 animate-in fade-in duration-700">
@@ -123,8 +123,8 @@ export default function ProjectRoom() {
  <Badge variant="outline" className="capitalize">
  {project.status}
  </Badge>
- <span>Budget: {project.budget_credits} cr</span>
- {escrow && <span className="flex gap-2">· Escrow: {escrow.held_credits} held</span>}
+ <span>Budget: {project.budget_credits} credits</span>
+ {escrow && <span className="flex gap-2">· Escrow: {escrow.held_credits} credits</span>}
  </div>
  </header>
 
@@ -152,14 +152,14 @@ export default function ProjectRoom() {
  </div>
  <p className="text-xs text-muted-foreground italic">{m.summary}</p>
  <div className="text-xs font-medium tracking-widest text-muted-foreground/60">
- {m.budget_credits} cr {m.due_at && `· due ${new Date(m.due_at).toLocaleDateString()}`}
+ {m.budget_credits} credits {m.due_at && `· due ${new Date(m.due_at).toLocaleDateString()}`}
  </div>
  {(m.status === "in_progress" || m.status === "revising") && (
  <div className="space-y-3 pt-2 border-t border-border/10">
  <Textarea
  value={submitNote}
  onChange={(e) => setSubmitNote(e.target.value)}
- placeholder="Attach deliverable notes or artifacts…"
+ placeholder="Attach deliverable notes or links…"
  className="rounded-xl bg-background/50"
  />
  <Button
@@ -173,7 +173,7 @@ export default function ProjectRoom() {
  ) : (
  <ShieldCheck className="h-3 w-3 mr-2" />
  )}
- Sync Deliverables
+ Submit Deliverables
  </Button>
  </div>
  )}
@@ -193,14 +193,14 @@ export default function ProjectRoom() {
  </div>
  ))}
  {messages.length === 0 && (
- <p className="text-sm text-muted-foreground text-center italic">No message nodes.</p>
+ <p className="text-sm text-muted-foreground text-center italic">No messages yet.</p>
  )}
  </div>
  <div className="flex gap-2">
  <Textarea
  value={body}
  onChange={(e) => setBody(e.target.value)}
- placeholder="Type communication node…"
+ placeholder="Type a message..."
  className="rounded-2xl"
  rows={2}
  />

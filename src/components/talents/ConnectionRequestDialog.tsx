@@ -79,7 +79,7 @@ export function ConnectionRequestDialog({
   }, [open, recipientId]);
 
   const safeRecipientFirstNameStr = useMemo(() => {
-    if (!recipientName || typeof recipientName !== "string") return "Talent Node";
+    if (!recipientName || typeof recipientName !== "string") return "Member";
     return recipientName.split(" ")[0];
   }, [recipientName]);
 
@@ -100,8 +100,8 @@ export function ConnectionRequestDialog({
 
       if (isMountedRef.current) {
         toast({
-          title: "TRANSACTION_VERIFIED",
-          description: `Connection requested cleanly. ${recipientName} retains a 14-day limit window to respond. Full balance refunded if declined.`,
+          title: "Connection Request Sent",
+          description: `Your connection request has been sent. ${recipientName} has 14 days to respond. Your credits will be fully refunded if declined.`,
         });
 
         trackEvent("connection_request_dispatch_success", { recipientId });
@@ -121,9 +121,9 @@ export function ConnectionRequestDialog({
       });
 
       toast({
-        title: "TRANSACTION_ABORTED_FAULT",
+        title: "Failed to Send Request",
         description:
-          formattedExceptionMsgStr || "Insufficient escrow token reserves available to settle transaction parameters.",
+          formattedExceptionMsgStr || "You do not have enough credits to complete this connection.",
         variant: "destructive",
       });
     } finally {
@@ -151,31 +151,29 @@ export function ConnectionRequestDialog({
               <Sparkles className="h-4 w-4 text-primary stroke-[2.2] animate-pulse" />
             </div>
             <DialogTitle className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wide leading-none min-w-0 flex-1 truncate text-ellipsis block pr-1">
-              Initialize Connection with {recipientName}
+              Connect with {recipientName}
             </DialogTitle>
           </div>
           <DialogDescription className="hidden sr-only" aria-hidden="true">
-            Escrow balance allocation form parameters for launching cross-profile networking handshakes.
+            Form to connect with another member using credits.
           </DialogDescription>
         </DialogHeader>
 
         {/* HUD LEVEL 2: DYNAMIC ESCROW METRIC CONTEXT BLOCKS */}
         <div className="space-y-4 w-full min-w-0 font-bold text-xs tracking-tight text-foreground/90">
           <p className="text-[11px] font-semibold text-muted-foreground/70 leading-normal block select-text pr-0.5">
-            Dispatching a secure profile handshake requires an escrow commitment of{" "}
+            Connecting with {recipientName} requires{" "}
             <strong className="text-foreground font-mono bg-muted/40 px-1 py-0.5 rounded shadow-xs">
               {price !== null ? `${price} credits` : "… calculating"}
-            </strong>{" "}
-            (calibrated dynamically from 1% of their verified milestone curves). On network accept events, 70%
-            translates to {safeRecipientFirstNameStr} directly, with 30% parsing down infrastructure pools. Tokens
-            revert fully to your wallet ledger index if declined or unrecorded over 14 days.
+            </strong>.
+            {" "}When they accept, 70% of the credits will go directly to {safeRecipientFirstNameStr}, and 30% goes to the platform. If the request is declined or expires after 14 days, your credits will be fully refunded to your balance.
           </p>
 
           {/* HARDENED AMBER NOTICE BOX CONTAINER */}
           <div className="flex gap-3 items-center p-3 rounded-xl border border-amber-500/15 bg-amber-500/[0.015] leading-none text-left w-full min-w-0 select-none shadow-inner h-11 shrink-0">
             <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400 stroke-[2.2] shrink-0 animate-pulse" />
             <span className="text-[10px] font-mono font-extrabold uppercase tracking-wide text-amber-600 dark:text-amber-400 block pt-0.5 truncate text-ellipsis max-w-full">
-              Premium tier creator metrics dictate higher network values.
+              Highly active creators may require more credits to connect.
             </span>
           </div>
         </div>
@@ -189,7 +187,7 @@ export function ConnectionRequestDialog({
             disabled={sending}
             className="h-9 px-4 rounded-xl text-muted-foreground hover:text-foreground font-bold uppercase text-[10px] tracking-wide shrink-0 transition-colors cursor-pointer"
           >
-            Cancel Ingress
+            Cancel
           </Button>
 
           <Button
@@ -201,12 +199,12 @@ export function ConnectionRequestDialog({
             {sending ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
-                <span>Escrowing…</span>
+                <span>Sending…</span>
               </>
             ) : (
               <>
                 <ShieldCheck className="h-4 w-4 stroke-[2.5]" />
-                <span>Send ({price ?? "…"} cr)</span>
+                <span>Send ({price ?? "…"} credits)</span>
               </>
             )}
           </Button>
@@ -215,7 +213,7 @@ export function ConnectionRequestDialog({
         {/* HUD LEVEL 4: RECTILINEAR OVERLAY BOTTOM METRIC LOG OMNIPRESENCE SHIELD */}
         <div className="shrink-0 pt-2 mt-4 border-t border-border/10 select-none shadow-none pointer-events-none tracking-normal font-bold text-[9px] text-muted-foreground/40 font-mono leading-none uppercase w-full flex items-center justify-center gap-1.5 h-6">
           <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 stroke-[2.2] shrink-0 animate-pulse" />
-          <span>Profile alignment handshake currency routing ledger complete</span>
+          <span>Secured request using credits</span>
         </div>
       </DialogContent>
     </Dialog>

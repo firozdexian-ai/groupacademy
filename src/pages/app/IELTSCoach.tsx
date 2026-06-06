@@ -160,10 +160,10 @@ export default function IELTSCoach() {
  <header className="flex items-center justify-between gap-4 select-none pointer-events-none leading-none w-full shrink-0 border-b border-border/5 pb-2.5">
  <div className="min-w-0 flex-1 leading-none space-y-1 block">
  <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground leading-none m-0">
- AI IELTS Training Cockpit
+ AI IELTS Practice
  </h1>
  <p className="font-mono text-sm font-medium text-muted-foreground/50 uppercase tracking-tight block leading-none pt-0.5">
- Execute language performance verification modules synchronized to CEFR scoring matrices.
+ Practice your speaking, listening, reading, and writing skills with AI-powered feedback.
  </p>
  </div>
 
@@ -186,7 +186,7 @@ export default function IELTSCoach() {
  </div>
  <div className="flex-1 leading-none space-y-1 block">
  <span className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-wide block leading-none">
- Attendance Log Metric
+ Attendance Streak
  </span>
  <p className="text-base font-black text-foreground font-mono leading-none tabular-nums pt-0.5">
  {fallbackStreakCountInt.toString()} Consecutive Days Active
@@ -198,7 +198,7 @@ export default function IELTSCoach() {
  </span>
  <span className="opacity-30 select-none">•</span>
  <span>
- Personal Horizon Record:{" "}
+ Best Streak:{" "}
  {userStreakRecord?.longest_streak_days ? userStreakRecord.longest_streak_days.toString() : "0"} Days
  </span>
  </div>
@@ -215,7 +215,7 @@ export default function IELTSCoach() {
  <Sparkles className="h-4 w-4 text-primary fill-current stroke-[1.5] mt-0.5 shrink-0 select-none pointer-events-none animate-pulse" />
  <div className="flex-1 leading-none space-y-1.5 block min-w-0">
  <span className="font-mono text-[9px] font-black text-primary uppercase tracking-wider block leading-none p-0">
- Daily Synchronized Challenge (Fee Dismissed)
+ Daily Challenge (Free)
  </span>
  <p className="text-xs font-semibold text-foreground/80 leading-normal block select-text pt-0.5 whitespace-normal break-words italic">
  &ldquo;{dailyChallengePayload.ielts_prompts.prompt_text.slice(0, 140).trim()}&hellip;&rdquo;
@@ -231,7 +231,7 @@ export default function IELTSCoach() {
  <Link
  to={`/app/abroad/ielts/mock/${dailyChallengePayload.section}?prompt=${dailyChallengePayload.prompt_id}`}
  >
- Commit Daily Ingress Run
+ Start Daily Challenge
  </Link>
  </Button>
  </div>
@@ -247,13 +247,12 @@ export default function IELTSCoach() {
  <CardContent className="p-3 flex items-start gap-2.5 block w-full leading-none">
  <AlertTriangle className="h-4 w-4 text-amber-600 stroke-[2.2] shrink-0 mt-0.5" />
  <div className="flex-1 leading-normal block pt-0.5 font-sans text-xs font-semibold text-foreground/80 tracking-normal">
- Continuous vetting reveals capacity variance drift in{" "}
- <strong className="text-amber-700 capitalize font-bold">{calculatedWeakestSectionItem.section}</strong>{" "}
- settling at baseline{" "}
+ Your recent scores show that you can improve in the{" "}
+ <strong className="text-amber-700 capitalize font-bold">{calculatedWeakestSectionItem.section}</strong> section, currently at{" "}
  <strong className="font-mono font-black text-foreground">
  Band {Number(calculatedWeakestSectionItem.ai_band_score).toFixed(1)}
  </strong>
- . Deploy practice variables down-stream to normalize performance distributions.
+ . Try practicing this section to boost your overall score.
  </div>
  </CardContent>
  </Card>
@@ -282,7 +281,7 @@ export default function IELTSCoach() {
  {sectionNodeItem.name}
  </div>
  <div className="font-mono text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tight tabular-nums block">
- 1 Credit Fee Charge • ~10 Min Duration
+ 1 credit • ~10 mins
  </div>
  </CardContent>
  </Card>
@@ -300,7 +299,7 @@ export default function IELTSCoach() {
  >
  <Link to="/app/abroad/ielts/mock/full">
  <Trophy className="h-4 w-4 stroke-[2.2] mr-1.5 inline-block text-primary-foreground fill-primary-foreground/10" />
- <span className="inline-block pt-0.5">Initialize Cumulative Mock Evaluation Exam (4 Credits)</span>
+ <span className="inline-block pt-0.5">Take Full Mock Exam (4 credits)</span>
  </Link>
  </Button>
  </div>
@@ -309,7 +308,7 @@ export default function IELTSCoach() {
  {recentAttemptsCollection.length > 0 && (
  <section className="space-y-2 block w-full">
  <h2 className="text-xs font-mono font-extrabold uppercase tracking-wide text-muted-foreground/50 select-none block leading-none pb-2 border-b border-border/5 px-0.5">
- Recent Examination Submissions
+ Recent Attempts
  </h2>
 
  <div className="space-y-2 block w-full mt-2.5">
@@ -323,7 +322,7 @@ export default function IELTSCoach() {
  minute: "2-digit",
  })
  .toUpperCase()
- : "UNRESOLVED TIMELOG COORDINATE";
+ : "Unknown Date";
 
  return (
  <Link
@@ -335,7 +334,7 @@ export default function IELTSCoach() {
  <CardContent className="p-3.5 flex items-center justify-between gap-4 block w-full leading-none">
  <div className="leading-none space-y-1 block min-w-0 flex-1 pr-2">
  <div className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5 truncate pt-0.5">
- <span>Section Assignment Focus: </span>
+ <span>Section: </span>
  <span className="text-primary font-mono font-black">
  {attemptRowNode.section.toUpperCase()}
  </span>

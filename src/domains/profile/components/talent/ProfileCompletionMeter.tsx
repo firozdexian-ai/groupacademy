@@ -60,7 +60,7 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
     return [
       {
         key: "photo",
-        label: "Identity Node",
+        label: "Photo",
         icon: User,
         isComplete: !!talent.profilePhotoUrl,
         action: "Provision profile photo",
@@ -146,7 +146,7 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
         role="button"
         onClick={handleEditHandshake}
         className="relative w-14 h-14 group cursor-pointer transform-gpu antialiased select-none block shrink-0"
-        title={`Profile integration scale maps ${profileComplianceMetrics.percentage}% complete parameters. Trigger to edit configuration layers.`}
+        title={`Profile is ${profileComplianceMetrics.percentage}% complete. Click to edit.`}
       >
         <svg className="w-14 h-14 transform -rotate-90 block">
           <circle
@@ -225,10 +225,10 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
 
             <div className="flex-1 min-w-0 text-left space-y-1 flex flex-col justify-center leading-none">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block leading-none font-mono">
-                Incomplete Alignment Trajectory
+                Profile Strength
               </span>
               <p className="text-xs sm:text-sm font-bold text-foreground/90 truncate text-ellipsis block pr-1 leading-none select-text">
-                {nextAction ? nextAction.action : "Hydrate profile credential nodes"}
+                {nextAction ? nextAction.action : "Complete your profile"}
               </p>
             </div>
 
@@ -292,15 +292,15 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
                   variant="outline"
                   className="rounded px-1.5 h-4.5 text-[8px] font-extrabold tracking-wider uppercase border border-transparent bg-success/10 text-success dark:text-success font-mono shadow-xs shrink-0"
                 >
-                  Verified Node
+                  Complete
                 </Badge>
               )}
             </div>
 
             <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-normal leading-normal select-text pr-1 italic">
               {profileComplianceMetrics.percentage >= 100
-                ? "Your professional identity vector indices are completely synchronized for market matching sequences."
-                : `${profileComplianceMetrics.totalCount - profileComplianceMetrics.completedCount} critical pipeline sections remain vacant to optimize employer discovery tracks.`}
+                ? "Your profile is fully complete and ready for matching."
+                : `${profileComplianceMetrics.totalCount - profileComplianceMetrics.completedCount} sections remaining to complete your profile.`}
             </p>
             <Progress
               value={profileComplianceMetrics.percentage}
@@ -365,7 +365,7 @@ export function ProfileCompletionMeter({ talent, variant = "full", showActions =
             <Zap className="h-4 w-4 fill-primary-foreground/10 stroke-[2.2] shrink-0 animate-pulse" />
             <span>
               {nextAction
-                ? `Complete ${nextAction.key.toUpperCase()}`
+                ? nextAction.action
                 : "Finish your profile"}
             </span>
           </Button>

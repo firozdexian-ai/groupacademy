@@ -121,9 +121,9 @@ export function AgentChatDialog({
         </div>
 
         <div className="flex flex-col items-end shrink-0 font-mono">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Session Cost</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cost per message</span>
           <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 mt-1">
-            {perResponseCost} Credits
+            {perResponseCost} credits
           </span>
         </div>
       </header>
@@ -136,7 +136,7 @@ export function AgentChatDialog({
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <p className="text-xs font-medium text-muted-foreground text-center leading-relaxed">
-              Active Session Encrypted. <br /> Type your message below to begin consultation.
+              Chat session active. <br /> Type your message below to start chatting.
             </p>
           </div>
         ) : (

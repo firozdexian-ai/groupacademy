@@ -222,7 +222,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
             disabled={isUploading}
             onClick={handleTermination}
             className="h-9 w-9 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 cursor-pointer shrink-0 transition-colors flex items-center justify-center p-0 border-none shadow-none"
-            title="Expunge visual identity element properties from ledger indices"
+            title="Remove photo"
           >
             <Trash2 className="h-4 w-4 stroke-[2.2]" />
           </Button>
@@ -232,7 +232,7 @@ export function ProfilePhotoUpload({ currentPhotoUrl, fullName, onPhotoChange }:
       {/* METRIC INFORMATION FOOTER COMPONENT */}
       <div className="flex items-center gap-1.5 px-3.5 h-6 rounded-full bg-muted/40 border border-border/10 text-[9px] font-mono font-extrabold uppercase text-muted-foreground/70 tracking-wide select-none shadow-inner leading-none shrink-0 pointer-events-none">
         <Zap className="h-3 w-3 text-warning fill-warning/10 stroke-[2.2] shrink-0 animate-pulse" />
-        <span>Optimized Extensions Mapped: JPG | PNG | GIF &bull; Max 5MB Payload Bounds</span>
+        <span>Supported formats: JPG, PNG, GIF &bull; Max size: 5MB</span>
       </div>
     </div>
   );

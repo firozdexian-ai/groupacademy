@@ -138,7 +138,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
     },
     onSuccess: () => {
       toast.success("Agent saved", {
-        description: "Marketplace verification protocol is currently pending review within 24 hours.",
+        description: "Your agent is pending review and will be verified within 24 hours.",
       });
 
       // Universally sync data collections across query stores
@@ -185,7 +185,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                   Creator Studio
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-                  Initialize Custom AI Entity
+                  Create custom AI agent
                 </DialogDescription>
               </div>
             </div>
@@ -196,7 +196,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
               {STEPS.map((stepName, i) => (
                 <span key={stepName} className={cn("transition-colors", i === step && "text-primary")}>
-                  PHASE_0{i + 1}
+                  STEP {i + 1}
                 </span>
               ))}
             </div>
@@ -208,7 +208,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Entity Designation
+                    Agent Name
                   </Label>
                   <Input
                     value={name}
@@ -221,7 +221,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Logic Parameters
+                    Agent Instructions / Purpose
                   </Label>
                   <Textarea
                     value={brief}
@@ -232,7 +232,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                     className="rounded-2xl border-2 bg-muted/20 font-medium italic p-4 resize-none disabled:opacity-50"
                   />
                   <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 text-right mt-1">
-                    {brief.length} / 1000 Bytes
+                    {brief.length} / 1000 characters
                   </p>
                 </div>
                 <Card className="bg-primary/5 border-2 border-primary/20 rounded-2xl">
@@ -251,13 +251,13 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
             {step === 1 && (
               <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
                 <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 italic text-center mb-6">
-                  Neural Blueprint Synthesized. Refinement available post-deployment.
+                  AI agent blueprint generated. You can refine this later.
                 </p>
                 <Card className="rounded-[24px] border-2 border-border/40 bg-card/40 backdrop-blur-sm shadow-inner">
                   <CardContent className="p-6 space-y-4">
                     <div>
                       <div className="font-black uppercase tracking-widest text-[9px] text-primary mb-2 flex items-center gap-2">
-                        <Bot className="h-3 w-3" /> Core Logic Prompt
+                        <Bot className="h-3 w-3" /> Instructions Prompt
                       </div>
                       <div className="p-4 rounded-xl bg-muted/30 border border-border/20 text-xs font-mono text-foreground/70 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
                         {blueprint?.system_prompt ?? brief}
@@ -266,7 +266,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                     {blueprint?.allowed_tools && blueprint.allowed_tools.length > 0 && (
                       <div className="pt-4 border-t border-border/10">
                         <div className="font-black uppercase tracking-widest text-[9px] text-primary mb-2 flex items-center gap-2">
-                          <Zap className="h-3 w-3" /> Authorized Tooling
+                          <Zap className="h-3 w-3" /> Skills & Tools
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {blueprint.allowed_tools.map((toolName) => (
@@ -291,7 +291,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="space-y-4 bg-muted/20 p-6 rounded-[24px] border-2 border-border/40">
                   <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                    <Coins className="h-4 w-4" /> Message Cost Yield (Credits)
+                    <Coins className="h-4 w-4" /> Message Cost (Credits)
                   </Label>
                   <Input
                     type="number"
@@ -303,19 +303,19 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                     className="h-16 rounded-2xl border-2 bg-background font-black text-2xl px-6 disabled:opacity-50"
                   />
                   <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground/60">Creator Yield Rate:</span>
-                    <span className="text-emerald-500">~{(credits * 0.5).toFixed(1)} TKN / Msg</span>
+                    <span className="text-muted-foreground/60">Your earnings:</span>
+                    <span className="text-emerald-500">~{(credits * 0.5).toFixed(1)} credits per message</span>
                   </div>
                 </div>
 
                 <Card className="bg-amber-500/5 border-2 border-amber-500/20 rounded-[24px]">
                   <CardContent className="p-6 text-sm text-center italic font-medium text-foreground/80">
                     <p className="mb-1 text-amber-600 font-black not-italic uppercase tracking-widest text-[10px]">
-                      Verification Protocol
+                      Security Review
                     </p>
                     <p>
-                      Submitted artifacts undergo security review within 24 hours. You will receive telemetry once the
-                      entity is active on the marketplace.
+                      Submitted agents undergo security review within 24 hours. You will receive a notification once your
+                      agent is active on the marketplace.
                     </p>
                   </CardContent>
                 </Card>
@@ -333,7 +333,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 onClick={() => setStep((s) => s - 1)}
                 className="h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest w-full sm:w-auto px-8"
               >
-                Revert Phase
+                Back
               </Button>
             )}
 
@@ -359,7 +359,7 @@ export function CreatorOnboardingDialog({ open, onOpenChange, onCreated }: Creat
                 onClick={() => setStep(2)}
                 className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest w-full sm:flex-1 shadow-xl shadow-primary/20"
               >
-                Confirm Parameters
+                Confirm Pricing
               </Button>
             )}
 

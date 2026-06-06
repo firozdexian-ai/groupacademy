@@ -110,7 +110,7 @@ export function ThreadListItem({ thread, onClick }: Props) {
               unread ? "font-extrabold text-foreground tracking-tight" : "font-semibold text-foreground/80",
             )}
           >
-            {thread.agentName || "System Automated Ingress"}
+            {thread.agentName || "System Notification"}
           </span>
           <span
             className={cn(
@@ -130,7 +130,7 @@ export function ThreadListItem({ thread, onClick }: Props) {
               unread ? "text-foreground/90 font-bold" : "text-muted-foreground/80 font-medium",
             )}
           >
-            {thread.last_message_preview ? thread.last_message_preview.trim() : "Awaiting operational signal track..."}
+            {thread.last_message_preview ? thread.last_message_preview.trim() : "No messages yet."}
           </p>
 
           {unread && (

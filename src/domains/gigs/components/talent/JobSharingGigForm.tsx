@@ -156,7 +156,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
         jobId,
         channel,
       });
-      toast.error("Copywriting asset generation failed. Re-trigger channel sync.");
+      toast.error("Failed to generate caption. Please try again.");
     } finally {
       setLoadingCaption(false);
     }
@@ -200,7 +200,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     const shareUrl = linkForJob(selectedJobId);
 
     setIsSubmitting(true);
-    const toastId = toast.loading("Registering submission metrics into global ledger...");
+    const toastId = toast.loading("Submitting referral details...");
 
     trackEvent("job_sharing_submission_finalizing", { gigId: gig.id, selectedJobId, talentId });
 
@@ -228,7 +228,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       queryClient.invalidateQueries({ queryKey: ["my-gig-submissions", talentId] });
       queryClient.invalidateQueries({ queryKey: ["feed-posts"] });
 
-      toast.success("Affiliate path activated cleanly — monitoring system armed", { id: toastId });
+      toast.success("Referral submitted successfully!", { id: toastId });
       onSubmitted();
     } catch (err: any) {
       const parsedMsg = err instanceof Error ? err.message : String(err);
@@ -240,7 +240,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
         talentId,
       });
 
-      toast.error("Ledger connection layout validation timeout.", { id: toastId });
+      toast.error("Failed to submit referral. Please try again.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -252,13 +252,13 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       <div className="space-y-2">
         <div className="flex items-center justify-between px-0.5 select-none">
           <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            1. Select Referral Target
+            1. Select a job to share
           </Label>
           <Badge
             variant="outline"
             className="bg-primary/5 text-primary border-primary/20 text-[9px] font-bold uppercase tracking-wider px-2.5 h-5 rounded-md shadow-sm"
           >
-            {filteredJobs.length} campaigns online
+            {filteredJobs.length} jobs available
           </Badge>
         </div>
 
@@ -266,7 +266,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 stroke-[2.2]" />
             <Input
-              placeholder="Search Role or Organization titles..."
+              placeholder="Search roles or companies..."
               className="pl-10 h-10 rounded-xl border border-border/40 bg-background/50 focus-visible:ring-1 focus-visible:ring-ring text-xs sm:text-sm font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -298,7 +298,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             </div>
           ) : filteredJobs.length === 0 ? (
             <p className="text-xs text-muted-foreground/80 font-medium leading-normal text-center py-4 select-text">
-              No matching recruitment campaigns active in this region block.
+              No active jobs found in this region.
             </p>
           ) : (
             filteredJobs.map((job) => {
@@ -345,7 +345,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
           <div className="space-y-2 select-none w-full">
             <Label className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pl-0.5">
               <Sparkles className="h-3.5 w-3.5 text-primary fill-primary/10 shrink-0" />
-              <span>2. Copywriting Strategy Asset</span>
+              <span>2. Generated Share Caption</span>
             </Label>
 
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar p-0.5 w-full max-w-full">
@@ -378,7 +378,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-2xl gap-2 select-none border border-border/10 animate-in fade-in duration-200">
                 <Loader2 className="h-5 w-5 animate-spin text-primary stroke-[2.5]" />
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic animate-pulse">
-                  Synthesizing Content Nodes…
+                  Generating caption...
                 </p>
               </div>
             )}
@@ -388,7 +388,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               <Textarea
                 value={captions[activeChannel] || ""}
                 readOnly
-                placeholder="Awaiting pipeline generation matrix signals..."
+                placeholder="Awaiting AI generation..."
                 className="text-xs font-medium min-h-[120px] border-0 bg-transparent resize-none leading-relaxed text-foreground/80 p-0 focus-visible:ring-0 break-words w-full"
               />
               <Button
@@ -400,7 +400,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
                   if (!captions[activeChannel]) return;
                   navigator.clipboard.writeText(captions[activeChannel]);
                   trackEvent("job_sharing_copy_clipboard_clicked", { channel: activeChannel });
-                  toast.success("Marketing copy pinned to clipboard");
+                  toast.success("Caption copied to clipboard");
                 }}
                 disabled={!captions[activeChannel]}
               >
@@ -418,7 +418,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               className="w-full h-10 rounded-xl border-primary/20 text-primary font-bold text-xs tracking-wide hover:bg-primary/5 transition-all shadow-sm active:scale-[0.98] gap-2 cursor-pointer"
               onClick={() => handleExternalLaunch(activeChannel)}
             >
-              <span>Launch Target Outreach Channel</span>
+              <span>Open App to Share</span>
               <ExternalLink className="h-3.5 w-3.5 text-primary stroke-[2.2]" />
             </Button>
 
@@ -448,7 +448,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
                 <div className="flex items-center justify-center gap-1.5 mt-3 text-emerald-500 animate-in zoom-in-95 duration-300">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-500 tabular-nums">
-                    Tracking Synced ({sharedChannels.length} network paths active)
+                    Tracking referral ({sharedChannels.length} shared)
                   </span>
                 </div>
               )}
