@@ -143,6 +143,11 @@ async function fetchFeedPage(olderThan?: string): Promise<{ items: FeedItem[]; n
       authorCountry: meta?.country,
       authorProfession: meta?.profession,
       pollOptions: p.poll_options as unknown as { id: string; text: string }[],
+      pollEndsAt: p.poll_ends_at,
+      textContent: p.text_content,
+      linkUrl: p.link_url,
+      linkPreview: p.link_preview,
+      tags: p.tags,
     });
   });
 

@@ -111,7 +111,7 @@ export default function Transactions() {
  variant="ghost"
  size="icon" aria-label="Go back"
  className="rounded-xl h-11 w-11 hover:bg-primary/5"
- onClick={() => navigate(-1)}
+ onClick={() => navigate("/app/feed")}
  >
  <ArrowLeft className="h-5 w-5 text-primary" />
  </Button>

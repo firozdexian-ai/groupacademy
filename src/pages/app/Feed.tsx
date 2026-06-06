@@ -5,6 +5,7 @@ import { FeedHeader } from "@/domains/feed/components/talent/FeedHeader";
 import { FeedFilters } from "@/domains/feed/components/talent/FeedFilters";
 import { ComposePost } from "@/domains/feed/components/talent/ComposePost";
 import { FeedCardRedesigned } from "@/domains/feed/components/talent/FeedCardRedesigned";
+import { PostCard } from "@/domains/feed/components/talent/PostCard";
 import { FeedSkeleton } from "@/domains/feed/components/talent/FeedSkeleton";
 import { useTalent } from "@/hooks/useTalent";
 
@@ -84,12 +85,16 @@ export default function Feed() {
  ) : (
  <div className="space-y-2">
  {items.map((item) => (
- <FeedCardRedesigned
- key={`${item.type}-${item.id}`}
- item={item}
- onInterested={() => markInterested(item)}
- onNotInterested={() => markNotInterested(item.id)}
- />
+  item.type === "post" ? (
+    <PostCard key={`${item.type}-${item.id}`} post={item as any} />
+  ) : (
+    <FeedCardRedesigned
+      key={`${item.type}-${item.id}`}
+      item={item}
+      onInterested={() => markInterested(item)}
+      onNotInterested={() => markNotInterested(item.id)}
+    />
+  )
  ))}
  </div>
  )}

@@ -178,7 +178,7 @@ export default function Profile() {
  <div className="max-w-xl mx-auto pb-32 animate-in fade-in duration-300">
  <header className="flex items-center justify-between px-4 py-4 sticky top-0 z-20 bg-background/80 border-b border-border/40">
  <div className="flex items-center gap-3">
- <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={() => navigate(-1)}>
+ <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={() => navigate("/app/feed")}>
  <ArrowLeft className="h-5 w-5" />
  </Button>
  <div>

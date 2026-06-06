@@ -77,14 +77,15 @@ export async function insertFeedPost(payload: Record<string, any>): Promise<{ er
  * Retrieves a paginated batch of feed recommendations across all content types.
  */
 export async function fetchFeedRecommendationPage(opts: FeedRecommendationOptions) {
-  let coursesQuery = (supabase as any)
-    .from("courses")
-    .select("id, title, slug, cover_image, description, created_at")
+  let coursesQuery = supabase
+    .from("content")
+    .select("id, title, slug, cover_image_url, thumbnail_url, youtube_url, description, created_at, content_type")
+    .eq("is_published", true)
     .limit(opts.pageSizeCourses);
 
   let blogsQuery = supabase
     .from("blog_posts")
-    .select("id, title, slug, excerpt, cover_image, created_at")
+    .select("id, title, slug, excerpt, featured_image, category, created_at")
     .eq("status", "published")
     .limit(opts.pageSizeBlogs);
 

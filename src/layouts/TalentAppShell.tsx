@@ -57,7 +57,7 @@ import { toast } from "sonner";
 import logoIcon from "@/assets/logo-icon.png";
 import { CreditPurchaseSheet } from "@/domains/finance/components/talent/CreditPurchaseSheet";
 import { useCreditPurchase } from "@/domains/finance/hooks/useCreditPurchase";
-import { GlobalAIBubble } from "@/components/ai/GlobalAIBubble";
+import { FloatingWhatsAppButton } from "@/domains/feed/components/talent/FloatingWhatsAppButton";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 /**
@@ -578,8 +578,8 @@ export function TalentAppShell() {
         currentBalance={balance}
       />
 
-      {/* GLOBAL: Floating AI Assistant — Career Coach by default, context-aware */}
-      <GlobalAIBubble />
+      {/* GLOBAL: WhatsApp Floating Button — Restoring lost WhatsApp support action */}
+      <FloatingWhatsAppButton />
 
       {/* --- HUD: MOBILE BOTTOM TAB BAR --- */}
       <nav
